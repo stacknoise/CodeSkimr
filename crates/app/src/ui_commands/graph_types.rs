@@ -9,13 +9,15 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{TypeFocus, TypeNeighbour};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
-    LayoutEdge, LayoutGraph, LayoutNode, NodeIndex, Project, SnapshotId, SymbolId,
+    Layout, LayoutEdge, LayoutGraph, LayoutNode, NodeIndex, Project, SnapshotId, SymbolId,
+    name_parts,
 };
 
 use super::consts::{
-    BOX_ID_SEPARATOR, TYPE_ROW_FOCUS, TYPE_ROW_USED, TYPE_ROW_USERS, TYPE_SIDE_MAX,
+    BOX_ID_SEPARATOR, BREADCRUMB_JOIN, TYPE_ROW_FOCUS, TYPE_ROW_USED, TYPE_ROW_USERS, TYPE_SIDE_MAX,
 };
 use super::graph::{BoxOut, FocusOut, GraphOut, GraphPorts, LinkOut};
+use super::graph_wrap::centre;
 
 /// One type that is drawn: its id, qualified name, the name of its box and its row. The box name
 /// is the qualified name, with the id added if another drawn type has the same one, so that the
@@ -69,6 +71,21 @@ fn name_boxes(all: &mut [Drawn]) {
     }
 }
 
+/// The namespaces in front of a type as a breadcrumb (`App › Views`); empty for a type without
+/// namespace.
+pub(super) fn breadcrumb(qualified: &str) -> String {
+    let parts = name_parts(qualified);
+    let (_, path) = parts.split_last().unwrap_or((&qualified, &[]));
+    path.join(BREADCRUMB_JOIN)
+}
+
+/// The name of a type without the namespace in front of it.
+pub(super) fn short_name(qualified: &str) -> String {
+    name_parts(qualified)
+        .last()
+        .map_or_else(|| qualified.to_owned(), |last| (*last).to_owned())
+}
+
 fn links(found: &TypeFocus, types: &[Drawn]) -> Vec<LinkOut> {
     let boxed = |id: SymbolId| {
         types
@@ -105,16 +122,22 @@ fn links(found: &TypeFocus, types: &[Drawn]) -> Vec<LinkOut> {
     all
 }
 
-fn place(look: &Graph, types: &[Drawn], links: &[LinkOut]) -> Result<Vec<BoxOut>, CodedError> {
-    let size = look.node_size();
-    let nodes = types
+/// Places boxes in the given rows (0 above the middle, 1 the middle, 2 below); `names` are the
+/// names of the boxes in the same order, which the links refer to.
+pub(super) fn layout_rows(
+    look: &Graph,
+    rows: &[u32],
+    names: &[&str],
+    links: &[LinkOut],
+) -> Result<Layout, CodedError> {
+    let position = |name: &str| names.iter().position(|one| *one == name);
+    let nodes = rows
         .iter()
-        .map(|one| LayoutNode {
-            size,
-            rank: Some(one.row),
+        .map(|&row| LayoutNode {
+            size: look.node_size(),
+            rank: Some(row),
         })
         .collect();
-    let position = |name: &str| types.iter().position(|one| one.name == name);
     let edges = links
         .iter()
         .filter_map(|link| {
@@ -124,23 +147,24 @@ fn place(look: &Graph, types: &[Drawn], links: &[LinkOut]) -> Result<Vec<BoxOut>
             })
         })
         .collect();
-    let layout = LayoutGraph::new(nodes, edges)
+    Ok(LayoutGraph::new(nodes, edges)
         .map_err(CodedError::caused_by)?
-        .layout(&look.layout_params());
+        .layout(&look.layout_params()))
+}
+
+fn place(look: &Graph, types: &[Drawn], links: &[LinkOut]) -> Result<Vec<BoxOut>, CodedError> {
+    let size = look.node_size();
+    let rows: Vec<u32> = types.iter().map(|one| one.row).collect();
+    let names: Vec<&str> = types.iter().map(|one| one.name.as_str()).collect();
+    let layout = layout_rows(look, &rows, &names, links)?;
     Ok(types
         .iter()
         .zip(&layout.placements)
         .map(|(one, spot)| BoxOut {
-            name: one.name.clone(),
-            x: spot.x,
-            y: spot.y,
-            width: size.width,
-            height: size.height,
-            rank: spot.rank,
-            order: spot.order,
-            layer: None,
-            types: None,
+            label: short_name(&one.qualified),
+            context: breadcrumb(&one.qualified),
             symbol: Some(one.symbol),
+            ..BoxOut::placed(&one.name, spot, size, None, None)
         })
         .collect())
 }
@@ -167,13 +191,13 @@ pub(super) fn types_out(
     for (one, drawn) in boxes.iter_mut().zip(&types) {
         one.layer = project.layer_name_of(&drawn.qualified);
     }
-    let reach = |pick: fn(&BoxOut) -> u32| boxes.iter().map(pick).max().unwrap_or(0);
+    let centred = centre(&mut boxes, &ports.look);
     let hidden = |list: &[TypeNeighbour]| u32::try_from(list.len().saturating_sub(TYPE_SIDE_MAX));
     Ok(GraphOut {
-        width: reach(|one| one.x + one.width),
-        height: reach(|one| one.y + one.height),
+        width: centred.width,
+        height: centred.height,
         focus: Some(FocusOut {
-            symbol: found.focus.id.get(),
+            symbol: Some(found.focus.id.get()),
             name: types
                 .first()
                 .map(|one| one.name.clone())
@@ -190,6 +214,14 @@ pub(super) fn types_out(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_type_box_shows_the_type_name_and_the_namespaces_as_a_breadcrumb() {
+        assert_eq!(short_name("App.Views.Board"), "Board");
+        assert_eq!(breadcrumb("App.Views.Board"), "App › Views");
+        assert_eq!(short_name("Board"), "Board");
+        assert_eq!(breadcrumb("Board"), "");
+    }
 
     fn drawn_as(symbol: u64, qualified: &str) -> Drawn {
         Drawn {

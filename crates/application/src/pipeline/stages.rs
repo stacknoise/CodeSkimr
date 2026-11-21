@@ -9,7 +9,7 @@ use std::time::Instant;
 
 use codeskimr_domain::{
     CommitHash, FileId, FolderPath, LanguageId, Metric, Project, Reference, ScanMode, Snapshot,
-    SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts, SymbolOrigin,
+    SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts, SymbolOrigin, Timestamp,
 };
 
 use codeskimr_codes::ErrorCode;
@@ -26,6 +26,7 @@ use crate::ports::{
     AnalyzeRequest, Clock, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts,
     MetricsCalculator, PathsReport, PendingReference, ProjectRepository, ReferenceResolver,
     ScanWarning, SnapshotData, SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints,
+    SymbolHash,
 };
 use crate::resolve::ambiguous_occurrences;
 use crate::selection::Selection;
@@ -92,6 +93,8 @@ pub struct Analyzed {
     pub counts: Vec<SymbolCounts>,
     /// The syntax fingerprints of the callables of the analysed files.
     pub fingerprints: Vec<SymbolFingerprints>,
+    /// The content hashes of the types and members of the analysed files.
+    pub hashes: Vec<SymbolHash>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
 }
@@ -113,6 +116,8 @@ pub struct Resolved {
     pub counts: Vec<SymbolCounts>,
     /// The syntax fingerprints of the callables of the analysed files.
     pub fingerprints: Vec<SymbolFingerprints>,
+    /// The content hashes of the types and members of the analysed files.
+    pub hashes: Vec<SymbolHash>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
 }
@@ -134,6 +139,8 @@ pub struct Measured {
     pub metrics: Vec<Metric>,
     /// The syntax fingerprints of the callables of the analysed files.
     pub fingerprints: Vec<SymbolFingerprints>,
+    /// The content hashes of the types and members of the analysed files.
+    pub hashes: Vec<SymbolHash>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
 }
@@ -315,6 +322,7 @@ impl Stage for AnalyzeStage {
             pending: Vec::new(),
             counts: Vec::new(),
             fingerprints: Vec::new(),
+            hashes: Vec::new(),
             carried,
         };
         let mut times: BTreeMap<LanguageId, u64> = BTreeMap::new();
@@ -325,6 +333,7 @@ impl Stage for AnalyzeStage {
             out.pending.extend(facts.pending);
             out.counts.extend(facts.counts);
             out.fingerprints.extend(facts.fingerprints);
+            out.hashes.extend(facts.hashes);
         }
         if run.mode == ScanMode::Full {
             out.run.parse_micros = times.into_iter().collect();
@@ -481,6 +490,7 @@ impl Stage for ResolveStage {
             pending,
             counts,
             fingerprints,
+            hashes,
             mut carried,
         } = input;
         let due = carried.due_names((&symbols, &pending), self.projects.as_ref())?;
@@ -508,6 +518,7 @@ impl Stage for ResolveStage {
             pending,
             counts,
             fingerprints,
+            hashes,
             carried,
         })
     }
@@ -566,6 +577,7 @@ impl Stage for MeasureStage {
             pending: input.pending,
             metrics,
             fingerprints: input.fingerprints,
+            hashes: input.hashes,
             carried: input.carried,
         })
     }
@@ -626,18 +638,7 @@ impl Stage for PersistStage {
     fn run(&self, input: Measured, ctx: &StageContext<'_>) -> Result<Persisted, Interruption> {
         ctx.progress(0, 1);
         let root = input.run.root.clone();
-        let snapshot = Snapshot {
-            id: input.run.snapshot,
-            project: input.run.project.id,
-            commit: input.run.commit,
-            created: self.clock.now(),
-            mode: input.run.mode,
-            stats: SnapshotStats {
-                files: count(&input.files) + count(&input.carried.files),
-                symbols: count(&input.symbols) + count(&input.carried.symbols),
-                references: count(&input.references) + count(&input.carried.references),
-            },
-        };
+        let snapshot = snapshot_of(&input, self.clock.now());
         let warnings = warnings_of(&input.references, &input.carried.references);
         let data = SnapshotData {
             snapshot,
@@ -646,6 +647,7 @@ impl Stage for PersistStage {
             references: input.references,
             metrics: input.metrics,
             fingerprints: input.fingerprints,
+            hashes: input.hashes,
             removed: input.carried.removed,
             pending: input.pending,
             dropped_references: input.carried.dropped,
@@ -662,6 +664,22 @@ impl Stage for PersistStage {
             warnings,
             paths: input.run.paths_report,
         })
+    }
+}
+
+/// The snapshot row of a run: who it belongs to and how many files, symbols and references it holds.
+fn snapshot_of(input: &Measured, created: Timestamp) -> Snapshot {
+    Snapshot {
+        id: input.run.snapshot,
+        project: input.run.project.id,
+        commit: input.run.commit.clone(),
+        created,
+        mode: input.run.mode,
+        stats: SnapshotStats {
+            files: count(&input.files) + count(&input.carried.files),
+            symbols: count(&input.symbols) + count(&input.carried.symbols),
+            references: count(&input.references) + count(&input.carried.references),
+        },
     }
 }
 

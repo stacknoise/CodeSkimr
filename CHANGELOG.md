@@ -3,10 +3,16 @@
 All notable changes of CodeSkimr. The format follows [Keep a Changelog](https://keepachangelog.com/), the versions follow [SemVer](https://semver.org/).
 Each section is generated from the Conventional Commit titles of the squash-merged pull requests with `tools/release/changelog.py` (see `docs/release.md`); the titles are English, as CLAUDE.md requires for commit messages (`changelog.py` refuses German titles).
 
-## [Unreleased] - 2026-11-15
+## [Unreleased]
+
+## [1.0.0] - 2026-11-20
 
 ### Added
 
+- a click on a row of the usages hit list lights the path of that hit in the graph
+- level 2 runs in the background for scans from the UI, and every project keeps a scan report (ADR 0072)
+- "Browse" button with the folder dialog of the system (Windows and macOS) next to the folder field of a new project (ADR 0075)
+- remove a project from the app again: command `projects.remove` and a "Remove" button with a confirmation in the project list
 - coupling metrics Ce, Ca and instability per snapshot ([#275](https://github.com/stacknoise/CodeSkimr/pull/275))
 - `#private` members in TypeScript and JavaScript are private (ADR 0047, #81) ([#323](https://github.com/stacknoise/CodeSkimr/pull/323))
 - tool check reports an SDK that is newer than global.json allows ([#328](https://github.com/stacknoise/CodeSkimr/pull/328))
@@ -18,6 +24,10 @@ Each section is generated from the Conventional Commit titles of the squash-merg
 
 ### Fixed
 
+- the code column of the usages hit list has a handle to change its width; the place column takes the rest
+- the "Browse" button was never shown: the browser sends no body, which the two folder dialog commands refused
+- the usages screen starts at depth 1, so list and diagram show only direct usages
+- level 1 usages stay visible where level 2 finds nothing, marked "unchecked (level 1)"; verified ones read "verified (level 2)" (ADR 0033 addendum)
 - link check when opening and a hardened answer buffer ([#322](https://github.com/stacknoise/CodeSkimr/pull/322))
 - error text for unreadable sources, storage error tests and stale Git work folders ([#319](https://github.com/stacknoise/CodeSkimr/pull/319))
 - finish the follow-ups of the embedded packs: directory sync, open without packs, pack check beside the program (#351) ([#383](https://github.com/stacknoise/CodeSkimr/pull/383))
@@ -41,6 +51,7 @@ Each section is generated from the Conventional Commit titles of the squash-merg
 
 ### Changed
 
+- the rights of the browser client are split from those of the MCP client
 - split remaining long web components and enforce max-lines-per-function ([#371](https://github.com/stacknoise/CodeSkimr/pull/371))
 - split long web components and add golden cases for owner lookup limits ([#360](https://github.com/stacknoise/CodeSkimr/pull/360))
 

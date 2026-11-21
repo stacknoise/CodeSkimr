@@ -411,18 +411,120 @@ pub const LOG_TOOL_CHECK_FAILED: &str = "tool_check_failed";
 /// on), in bytes.
 pub const REQUIREMENT_MAX_BYTES: u64 = 65_536;
 
-/// Characters besides the control characters that can hide or reorder text on a terminal: the
-/// direction marks and overrides, the zero-width characters, the line and paragraph separators
-/// and the byte order mark. A name that holds one is not shown in a prompt.
-pub const INVISIBLE_RANGES: [(char, char); 7] = [
-    ('\u{061C}', '\u{061C}'),
-    ('\u{200B}', '\u{200F}'),
-    ('\u{2028}', '\u{202E}'),
-    ('\u{2060}', '\u{2064}'),
-    ('\u{2066}', '\u{2069}'),
-    ('\u{FEFF}', '\u{FEFF}'),
-    ('\u{00AD}', '\u{00AD}'),
-];
+/// Windows process creation flag: the new process gets a console window of its own.
+#[cfg(windows)]
+pub const CREATE_NEW_CONSOLE: u32 = 0x0000_0010;
+/// The program that macOS starts to run an `AppleScript`. An absolute path, never a lookup.
+pub const OSASCRIPT_PROGRAM: &str = "/usr/bin/osascript";
+/// The option of `osascript` that takes the text of the script.
+pub const OSASCRIPT_SCRIPT_OPTION: &str = "-e";
+/// Ends the options of `osascript`: what follows is handed to the script as its arguments, also
+/// words that start with a dash.
+pub const OSASCRIPT_END_OF_OPTIONS: &str = "--";
+/// The constant script that opens Terminal with the command. It holds no value of its own: the
+/// program, the words and the project id arrive as `argv` items, and each one is quoted for the
+/// shell with `quoted form of` before the line is assembled (ADR 0071, decision 5).
+pub const TERMINAL_SCRIPT: &str = "on run argv
+set parts to {}
+repeat with piece in argv
+set end of parts to quoted form of (piece as text)
+end repeat
+set AppleScript's text item delimiters to \" \"
+tell application \"Terminal\"
+activate
+do script (parts as text)
+end tell
+end run";
+/// The words after the program in the command that a confirmation window runs; the flag marks the
+/// window as one that the server opened, and the project id follows.
+pub const CONFIRM_WINDOW_WORDS: [&str; 3] = ["level2", "confirm", "--from-ui"];
+/// Variables that name a remote session: a window opened there would appear on a screen that
+/// nobody sits in front of (ADR 0071, decision 6).
+pub const REMOTE_SESSION_VARIABLES: [&str; 3] = ["SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY"];
+/// Variables of which at least one is set in a session with a screen, per system (ADR 0071,
+/// decision 6): Linux has a display (X11 or Wayland), Windows names its session of the window
+/// station (`Console` or `RDP-Tcp#n`; a service has none), macOS has the id of the login session
+/// of the user. Without one the check cannot decide for "interactive", so the answer is `copy`.
+#[cfg(target_os = "linux")]
+pub const DESKTOP_SESSION_VARIABLES: [&str; 2] = ["DISPLAY", "WAYLAND_DISPLAY"];
+/// See the Linux definition.
+#[cfg(windows)]
+pub const DESKTOP_SESSION_VARIABLES: [&str; 1] = ["SESSIONNAME"];
+/// See the Linux definition.
+#[cfg(not(any(target_os = "linux", windows)))]
+pub const DESKTOP_SESSION_VARIABLES: [&str; 1] = ["SECURITYSESSIONID"];
+/// The console of the process on Windows, for input. A window the server opened reads its
+/// answer from here, because its standard streams may be the ones of a program without a console
+/// (ADR 0071).
+#[cfg(windows)]
+pub const CONSOLE_INPUT: &str = "CONIN$";
+/// The console of the process on Windows, for output.
+#[cfg(windows)]
+pub const CONSOLE_OUTPUT: &str = "CONOUT$";
 
 /// Name of the thread that builds the usages index in the background.
 pub const WARM_THREAD_NAME: &str = "usages-warm-up";
+/// Pause between two looks at whether the runs have ended.
+pub const IDLE_POLL: Duration = Duration::from_millis(50);
+/// How long the end of the server waits for the runs it cancelled (ADR 0072).
+pub const SHUTDOWN_GRACE: Duration = Duration::from_secs(5);
+/// Name of the thread that runs level 2 after a scan from the browser (ADR 0072).
+pub const LEVEL2_THREAD_NAME: &str = "level2-run";
+
+/// Environment variable that marks the program started by the bare `codeskimr` for the tray: it
+/// runs the server and the tray icon, the starting program only starts it and ends (ADR 0067).
+pub const ENV_TRAY_CHILD: &str = "CODESKIMR_TRAY_CHILD";
+/// Value of [`ENV_TRAY_CHILD`].
+pub const TRAY_CHILD_ON: &str = "1";
+/// The log of the tray program, inside the data folder. It starts empty with every start.
+pub const TRAY_LOG_FILE: &str = "codeskimr.log";
+/// Windows process creation flag: the new process gets no console window.
+#[cfg(windows)]
+pub const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+/// How often the tray looks whether the server has ended on its own.
+#[cfg(any(windows, target_os = "macos"))]
+pub const TRAY_SERVER_POLL: std::time::Duration = std::time::Duration::from_secs(1);
+/// Width and height of the tray icon in pixels.
+#[cfg(any(windows, target_os = "macos"))]
+pub const TRAY_ICON_SIZE: u32 = 64;
+/// The tray icon: the app logo as raw RGBA pixels, `TRAY_ICON_SIZE` square (made by `tools/logo/make_icons.py`).
+#[cfg(any(windows, target_os = "macos"))]
+pub const TRAY_ICON_RGBA: &[u8] = include_bytes!("../assets/tray-icon.rgba");
+// A wrongly made icon file fails the build, not the start of the tray.
+#[cfg(any(windows, target_os = "macos"))]
+const _: () = assert!(TRAY_ICON_RGBA.len() == (TRAY_ICON_SIZE * TRAY_ICON_SIZE * 4) as usize);
+
+/// Separates the lines of the output of `annotations` and `alerts`.
+pub const CLI_LINE_BREAK: &str = "\n";
+/// The control characters that stay in the text output of `annotations` and `alerts`.
+pub const CLI_KEPT_CONTROLS: [char; 2] = ['\t', '\n'];
+/// Separates the parts of the summary of an annotation or of the detail of an alert.
+pub const CLI_LIST_SEPARATOR: &str = ", ";
+
+/// Names of the Fluent arguments of the messages of `annotations` and `alerts`.
+pub mod note_arg {
+    /// `{ $id }`: id of an annotation or an alert.
+    pub const ID: &str = "id";
+    /// `{ $kind }`: kind of an annotation or an alert.
+    pub const KIND: &str = "kind";
+    /// `{ $name }`: qualified name of the symbol.
+    pub const NAME: &str = "name";
+    /// `{ $state }`: state of an alert.
+    pub const STATE: &str = "state";
+    /// `{ $parts }`: 0 if the line has no summary or detail, 1 if it has.
+    pub const PARTS: &str = "parts";
+    /// `{ $summary }`: what an annotation says.
+    pub const SUMMARY: &str = "summary";
+    /// `{ $detail }`: what an alert found.
+    pub const DETAIL: &str = "detail";
+    /// `{ $shown }`: rows on this page.
+    pub const SHOWN: &str = "shown";
+    /// `{ $total }`: rows of the whole list.
+    pub const TOTAL: &str = "total";
+    /// `{ $next }`: the offset of the next page.
+    pub const NEXT: &str = "next";
+    /// `{ $open }`: open alerts.
+    pub const OPEN: &str = "open";
+    /// `{ $dismissed }`: alerts that were dismissed.
+    pub const DISMISSED: &str = "dismissed";
+}

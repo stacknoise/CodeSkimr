@@ -14,6 +14,10 @@ mod tests {
     const SECOND: &str = "namespace Demo;\n\npublic class Ledger\n{\n    public int Balance(int[] amounts)\n    {\n        var sum = 0;\n        foreach (var value in amounts)\n        {\n            if (value > 0) { sum += value * 2; } else { sum -= value; }\n        }\n        return sum;\n    }\n}\n";
     const OTHER: &str = "namespace Demo;\n\npublic class Greeter\n{\n    public string Hello() { return \"hello\"; }\n}\n";
 
+    /// Two functions of one Python file: one with two literals, one with a single one.
+    const PYTHON: &str =
+        "def pair():\n    return 42 + 7\n\n\ndef single():\n    return \"x\" + str(0)\n";
+
     struct Project {
         root: TempDir,
     }
@@ -85,7 +89,7 @@ mod tests {
         let json = report(&output);
         assert_eq!(json["files_checked"], 2);
         assert_eq!(json["findings"], serde_json::json!([]));
-        assert_eq!(json["not_checked"].as_array().unwrap().len(), 4);
+        assert_eq!(json["not_checked"].as_array().unwrap().len(), 2);
     }
 
     #[test]
@@ -112,6 +116,63 @@ mod tests {
         let german = String::from_utf8_lossy(&project.check_in("de", &[]).stdout).into_owned();
         assert!(german.contains("3 Dateien geprüft, 1 Fund."), "{german}");
         assert!(german.contains("kopiert"), "{german}");
+    }
+
+    fn python_project() -> Project {
+        let project = Project::new();
+        fs::write(project.root.path().join("project/src/limits.py"), PYTHON).unwrap();
+        project
+    }
+
+    #[test]
+    fn literals_in_a_python_function_are_counted_in_the_json() {
+        let json = report(&python_project().check(&["--json", "src/limits.py"]));
+        let counts: Vec<(&str, u64)> = json["findings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|finding| finding["code"] == "CHK-101")
+            .map(|finding| {
+                (
+                    finding["symbol"].as_str().unwrap(),
+                    finding["literals"].as_u64().unwrap(),
+                )
+            })
+            .collect();
+        assert_eq!(counts, [("src.limits.pair", 2), ("src.limits.single", 1)]);
+        assert!(
+            !json["not_checked"]
+                .as_array()
+                .unwrap()
+                .contains(&Value::from("CHK-101"))
+        );
+    }
+
+    #[test]
+    fn literals_are_worded_in_both_languages() {
+        let project = python_project();
+        let text = |language: &str| {
+            let output = project.check_in(language, &["src/limits.py"]);
+            String::from_utf8_lossy(&output.stdout).into_owned()
+        };
+        let english = text("en");
+        assert!(
+            english.contains("src.limits.pair contains 2 literals"),
+            "{english}"
+        );
+        assert!(
+            english.contains("src.limits.single contains one literal"),
+            "{english}"
+        );
+        let german = text("de");
+        assert!(
+            german.contains("src.limits.pair enthält 2 Literale"),
+            "{german}"
+        );
+        assert!(
+            german.contains("src.limits.single enthält ein Literal"),
+            "{german}"
+        );
     }
 
     #[test]

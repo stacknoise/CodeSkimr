@@ -8,23 +8,25 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use std::time::Duration;
 
+use codeskimr_application::alerts::AlertStep;
 use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ids::IdSequence;
 use codeskimr_application::level2::Level2Pass;
 use codeskimr_application::metrics::StandardMetrics;
+use codeskimr_application::pipeline::ReportStep;
 use codeskimr_application::pipeline::{Scanner, ScannerPorts};
 use codeskimr_application::ports::{AuthError, Credential, CredentialStore};
 use codeskimr_application::ports::{
-    FileAnalyzer, FileDiscovery, IndexRunner, IndexerSpec, SnippetFingerprinter,
+    FileAnalyzer, FileDiscovery, IndexRunner, IndexerSpec, SnippetFingerprinter, SourceProvider,
 };
 use codeskimr_application::resolve::ScopedResolver;
-use codeskimr_application::tools::{ToolCheckPorts, ToolChecker};
+use codeskimr_application::tools::{IndexerCheck, IndexerOverview, ToolCheckPorts, ToolChecker};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{CredentialId, LanguageId};
 use codeskimr_indexer::ProcessIndexRunner;
-use codeskimr_parsing::{LanguagePacks, PackTools, TreeSitterAnalyzer};
+use codeskimr_parsing::{Blake3Digest, LanguagePacks, PackTools, TreeSitterAnalyzer};
 use codeskimr_scip::ScipImporter;
 use codeskimr_secrets::{KeystoreCredentials, OsKeystore};
 use codeskimr_source::{
@@ -132,15 +134,10 @@ pub fn scanner_over(
         max_file_bytes: u64::from(config.scan.max_source_mb).saturating_mul(BYTES_PER_MB),
         settings: config.level2.clone(),
         indexers,
+        events: events.clone(),
     };
     let ports = ScannerPorts {
-        source: Arc::new(RefreshingSource::new(
-            SourceFetcher::new(
-                GitCache::new(locations.git_cache()),
-                Arc::new(ForRemotes(Arc::clone(secrets))),
-            ),
-            Refresher::new(Arc::clone(secrets)),
-        )),
+        source: Arc::new(scan_source(locations, secrets)),
         discovery,
         analyzer,
         resolver: Arc::new(ScopedResolver),
@@ -150,7 +147,33 @@ pub fn scanner_over(
         clock: Arc::new(SystemClock),
         max_workers: config.scan.max_workers,
     };
-    Ok(Scanner::new(ports, &ids, events).with_level2(pass))
+    Ok(Scanner::new(ports, &ids, events.clone())
+        .with_level2(pass)
+        .with_alerts(alert_step(store, events))
+        .with_reports(ReportStep::new(store.clone(), Arc::new(SystemClock))))
+}
+
+/// The source of a scan: the git cache, with the credentials of the remotes and the refresh of an
+/// expired token.
+fn scan_source(locations: &Locations, secrets: &Arc<Secrets>) -> impl SourceProvider + 'static {
+    RefreshingSource::new(
+        SourceFetcher::new(
+            GitCache::new(locations.git_cache()),
+            Arc::new(ForRemotes(Arc::clone(secrets))),
+        ),
+        Refresher::new(Arc::clone(secrets)),
+    )
+}
+
+/// The alert step of ADR 0068 over the store; it publishes on `events`.
+fn alert_step(store: &Arc<SqliteStore>, events: EventBus) -> AlertStep {
+    AlertStep {
+        annotations: store.clone(),
+        states: store.clone(),
+        digest: Arc::new(Blake3Digest),
+        clock: Arc::new(SystemClock),
+        events,
+    }
 }
 
 /// The runner that finds out which tools exist, for the check of ADR 0033: version queries only,
@@ -181,6 +204,22 @@ pub fn tool_checker(
         overview: store.clone(),
         clock: Arc::new(SystemClock),
     })))
+}
+
+/// The check of all indexers of the language packs, for the settings; it needs no project.
+///
+/// # Errors
+/// `PRS` failures if the language packs cannot be read.
+pub fn indexer_check(
+    locations: &Locations,
+    runner: Arc<dyn IndexRunner>,
+) -> Result<Arc<dyn IndexerCheck>, CodedError> {
+    let catalog = PackTools::load(&locations.languages_dir).map_err(CodedError::caused_by)?;
+    Ok(Arc::new(IndexerOverview::new(
+        Arc::new(catalog),
+        runner,
+        Arc::new(SystemClock),
+    )))
 }
 
 /// The id sequence of the database file in this process. Scans of different projects run at the
@@ -256,13 +295,11 @@ pub fn build_analysis(config: &Config, locations: &Locations) -> Result<Analysis
 
 #[cfg(test)]
 mod tests {
-    use secrecy::SecretString;
-
     use super::*;
     use crate::memory_keystore::secrets;
 
     fn credential() -> Credential {
-        Credential::new(SecretString::from("user"), SecretString::from("secret"))
+        codeskimr_secrets::credential("user", "secret").unwrap()
     }
 
     #[test]

@@ -6,12 +6,18 @@ import { clearUsages } from "../usages/usages";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
+import { projectRow } from "../../tests/projectRow";
+import { refreshProjects } from "../projects/projects";
 import { openOrder, ORDER, OUTLINE } from "../../tests/explorer";
+import { currentMember, forgetExplorer, setMemberSort, treeScroll } from "./explorer";
+import { INITIAL_SORT } from "./memberSort";
 import { ExplorerScreen } from "./ExplorerScreen";
-import { requestFocus } from "../../shared/navigation/navigation";
+import { originPlace, requestFocus } from "../../shared/navigation/navigation";
 
 useServerSession();
 afterEach(() => {
+  setMemberSort(INITIAL_SORT);
+  forgetExplorer();
   clearUsages();
   navigate("/");
 });
@@ -20,13 +26,56 @@ afterEach(() => {
 function renderOrder() {
   openProject(1);
   serve({ "explorer.outline": () => answer(OUTLINE), "explorer.symbol": () => answer(ORDER) });
-  render(() => <ExplorerScreen />);
+  return render(() => <ExplorerScreen />);
 }
 
 describe("ExplorerScreen", () => {
   it("asks to open a project first", async () => {
     render(() => <ExplorerScreen />);
     expect(await screen.findByText("No project open")).toBeTruthy();
+  });
+
+  it("names the language of a type in the tree and in the details", async () => {
+    renderOrder();
+    await openOrder();
+    expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
+    expect(within(screen.getByRole("tree")).getByTitle("C#")).toBeTruthy();
+    expect(screen.getAllByText("C#").length).toBeGreaterThan(1);
+  });
+
+  it("marks the coupling tiles as an upper bound until level 2 confirmed the language", async () => {
+    openProject(1);
+    serve({
+      "explorer.outline": () => answer(OUTLINE),
+      "explorer.symbol": () => answer(ORDER),
+      "projects.list": () => answer([projectRow({ id: 1 })]),
+    });
+    await refreshProjects();
+    render(() => <ExplorerScreen />);
+    await openOrder();
+    expect(await screen.findAllByText("upper bound")).toHaveLength(3);
+  });
+
+  it("leaves the coupling tiles without a note where level 2 checked the language", async () => {
+    openProject(1);
+    const report = {
+      last_scan: { at: 1, level: "2" as const, origin: "terminal" as const },
+      level2: {
+        at: 1,
+        origin: "terminal" as const,
+        languages: [{ language: "csharp", outcome: "checked" as const, files: 3, stale: 0 }],
+      },
+    };
+    serve({
+      "explorer.outline": () => answer(OUTLINE),
+      "explorer.symbol": () => answer(ORDER),
+      "projects.list": () => answer([projectRow({ id: 1, report })]),
+    });
+    await refreshProjects();
+    render(() => <ExplorerScreen />);
+    await openOrder();
+    await screen.findByText("Fields etc.");
+    expect(screen.queryByText("upper bound")).toBeNull();
   });
 
   it("shows the structure, opens a type and shows its metrics and members", async () => {
@@ -46,7 +95,7 @@ describe("ExplorerScreen", () => {
     await screen.findByText("decimal Total()");
     fireEvent.click(screen.getAllByTitle("Show the usages")[0]!);
     expect(currentPath()).toBe("/usages");
-    expect(focusSymbol()).toBe(8);
+    expect(focusSymbol()).toBe(9);
     navigate("/explorer");
     fireEvent.click(screen.getByRole("button", { name: /^Usages/ }));
     expect(focusSymbol()).toBe(7);
@@ -105,7 +154,7 @@ describe("ExplorerScreen", () => {
     renderOrder();
     expect(await screen.findByText("Overview")).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Order" })).toBeNull();
-    expect(screen.queryByText("Shop.Domain")).toBeNull();
+    expect(screen.queryByText("Sales")).toBeNull();
   });
 
   it("counts in the singular when there is one of a kind", async () => {
@@ -139,7 +188,8 @@ describe("the click rules of the tree", () => {
   it("lets the caret only open and close, and leaves the selection", async () => {
     renderOrder();
     fireEvent.click(await screen.findByText("Domain"));
-    fireEvent.click(await screen.findByText("Shop.Domain"));
+    fireEvent.click(await screen.findByText("Shop"));
+    fireEvent.click(await screen.findByText("Sales"));
     fireEvent.click(caretOf("Order"));
     expect(await screen.findByText(GROUP_NAME)).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Order" })).toBeNull();
@@ -166,13 +216,15 @@ describe("the keys of the tree", () => {
     fireEvent.keyDown(tree, { key: "ArrowDown" });
     expect(tree.getAttribute("aria-activedescendant")).toBe("explorer-row-0");
     fireEvent.keyDown(tree, { key: "Enter" });
-    expect(await screen.findByText("Shop.Domain")).toBeTruthy();
+    expect(await screen.findByText("Shop")).toBeTruthy();
     fireEvent.keyDown(tree, { key: "ArrowDown" });
     expect(tree.getAttribute("aria-activedescendant")).toBe("explorer-row-1");
+    fireEvent.keyDown(tree, { key: "Enter" });
+    expect(await screen.findByText("Sales")).toBeTruthy();
     fireEvent.keyDown(tree, { key: "ArrowLeft" });
     fireEvent.keyDown(tree, { key: "ArrowUp" });
     fireEvent.keyDown(tree, { key: "ArrowLeft" });
-    await waitFor(() => expect(screen.queryByText("Shop.Domain")).toBeNull());
+    await waitFor(() => expect(screen.queryByText("Shop")).toBeNull());
   });
 
   it("closes everything on Ctrl+Left and shows the selection on Ctrl+.", async () => {
@@ -181,9 +233,9 @@ describe("the keys of the tree", () => {
     await screen.findByRole("heading", { name: "Order" });
     fireEvent.keyDown(document.body, { key: "ArrowLeft", ctrlKey: true });
     const tree = screen.getByRole("tree");
-    await waitFor(() => expect(within(tree).queryByText("Shop.Domain")).toBeNull());
+    await waitFor(() => expect(within(tree).queryByText("Sales")).toBeNull());
     fireEvent.keyDown(document.body, { key: ".", ctrlKey: true });
-    expect(await within(tree).findByText("Shop.Domain")).toBeTruthy();
+    expect(await within(tree).findByText("Sales")).toBeTruthy();
   });
 });
 
@@ -222,7 +274,7 @@ describe("the details", () => {
     render(() => <ExplorerScreen />);
     await openOrder();
     expect((await screen.findAllByRole("alert")).length).toBeGreaterThan(0);
-    expect(screen.getByText("Shop.Domain")).toBeTruthy();
+    expect(screen.getByText("Sales")).toBeTruthy();
   });
 
   it("reveals a nested type of the table in the tree", async () => {
@@ -234,8 +286,54 @@ describe("the details", () => {
     });
     render(() => <ExplorerScreen />);
     await openOrder();
-    fireEvent.click(await screen.findByRole("button", { name: /Line/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Line$/ }));
     expect(await screen.findByRole("treeitem", { name: /Line/ })).toBeTruthy();
+  });
+});
+
+describe("the layer graph button", () => {
+  const renderWith = (layer: string | null) => {
+    openProject(1);
+    serve({
+      "explorer.outline": () => answer(OUTLINE),
+      "explorer.symbol": () => answer({ ...ORDER, layer }),
+    });
+    return render(() => <ExplorerScreen />);
+  };
+
+  it("is off for a symbol that no layer owns", async () => {
+    renderWith(null);
+    await openOrder();
+    await screen.findByText("decimal Total()");
+    expect(screen.getByRole("button", { name: /Layer graph/ })).toBeDisabled();
+  });
+
+  it("is on for a symbol of a layer", async () => {
+    renderWith("Domain");
+    await openOrder();
+    await screen.findByText("decimal Total()");
+    expect(screen.getByRole("button", { name: /Layer graph/ })).toBeEnabled();
+  });
+});
+
+describe("the way back from a member", () => {
+  it("leads from a member picked in the table back to the table, and only then", async () => {
+    renderOrder();
+    await openOrder();
+    await screen.findByText("decimal Total()");
+    expect(screen.queryByRole("button", { name: /Back to the members/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Total/ }));
+    await waitFor(() => expect(currentMember()).toBe(8));
+    fireEvent.click(await screen.findByRole("button", { name: /Back to the members/ }));
+    await waitFor(() => expect(currentMember()).toBeNull());
+    expect(await screen.findByText("decimal Total()")).toBeTruthy();
+  });
+
+  it("offers no way back to the table for a member reached from outside", async () => {
+    requestFocus({ type: 7, member: 8, kind: "method" });
+    renderOrder();
+    expect(await screen.findByRole("heading", { name: "Total" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Back to the members/ })).toBeNull();
   });
 });
 
@@ -243,18 +341,270 @@ describe("a navigation from another screen", () => {
   it("opens the rows down to a member and shows its type", async () => {
     requestFocus({ type: 7, member: 8, kind: "method" });
     renderOrder();
-    expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Total" })).toBeTruthy();
     const tree = screen.getByRole("tree");
     expect(await within(tree).findByText("Total")).toBeTruthy();
-    expect(within(tree).getByText("Shop.Domain")).toBeTruthy();
+    expect(within(tree).getByText("Sales")).toBeTruthy();
     const cursor = tree.getAttribute("aria-activedescendant") ?? "";
     expect(document.getElementById(cursor)?.textContent).toContain("Total");
+  });
+
+  it("opens the rows down to a member of a nested type and selects it", async () => {
+    const line = { visibility: "public", signature: null, complexity: null, usages: 0 };
+    const nested = {
+      ...ORDER,
+      id: 20,
+      name: "Line",
+      breadcrumb: [
+        { id: 6, name: "Shop.Domain", kind: "namespace" },
+        { id: 7, name: "Order", kind: "class" },
+      ],
+      members: [
+        {
+          id: 21,
+          name: "Price",
+          kind: "property",
+          complexity_rating: null,
+          first_line: 1,
+          last_line: 1,
+          ...line,
+        },
+      ],
+    };
+    const outer = {
+      ...ORDER,
+      members: [{ ...nested.members[0]!, id: 20, name: "Line", kind: "class" }],
+    };
+    requestFocus({ type: 20, member: 21, kind: "property" });
+    openProject(1);
+    fetchMock.mockImplementation((path: string, init?: RequestInit) => {
+      const body = String(init?.body ?? "");
+      const symbol = path.endsWith("explorer.symbol") && body.includes('"symbol":20');
+      return Promise.resolve(
+        answer(path.endsWith("explorer.outline") ? OUTLINE : symbol ? nested : outer),
+      );
+    });
+    render(() => <ExplorerScreen />);
+    const tree = screen.getByRole("tree");
+    const price = await within(tree).findByText("Price");
+    expect(price.closest("[role=treeitem]")?.getAttribute("aria-selected")).toBe("true");
   });
 
   it("opens the rows down to a type", async () => {
     requestFocus({ type: 7, member: null, kind: null });
     renderOrder();
     expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
-    expect(within(screen.getByRole("tree")).getByText("Shop.Domain")).toBeTruthy();
+    expect(within(screen.getByRole("tree")).getByText("Sales")).toBeTruthy();
+  });
+});
+
+describe("a jump to the usages", () => {
+  it("remembers the table of the members as the place to come back to", async () => {
+    renderOrder();
+    await openOrder();
+    await screen.findByText("decimal Total()");
+    fireEvent.click(screen.getAllByTitle(/usages/i)[0]!);
+    expect(originPlace()).toEqual({ type: 7, member: null, kind: null });
+  });
+});
+
+describe("a navigation from a map to a row", () => {
+  const cursorText = () => {
+    const tree = screen.getByRole("tree");
+    return document.getElementById(tree.getAttribute("aria-activedescendant") ?? "")?.textContent;
+  };
+
+  it("opens the layer and the segments of a namespace, and puts the cursor on it", async () => {
+    requestFocus({ namespace: "Shop.Sales" });
+    renderOrder();
+    const tree = screen.getByRole("tree");
+    expect(await within(tree).findByText("Order")).toBeTruthy();
+    expect(cursorText()).toContain("Sales");
+  });
+
+  it("puts the cursor on a layer and opens it", async () => {
+    requestFocus({ layer: "Domain" });
+    renderOrder();
+    expect(await within(screen.getByRole("tree")).findByText("Shop")).toBeTruthy();
+    expect(cursorText()).toContain("Domain");
+  });
+
+  it("leaves the tree as it is for a layer the outline does not have", async () => {
+    requestFocus({ layer: "Nowhere" });
+    renderOrder();
+    await within(screen.getByRole("tree")).findByText("Domain");
+    expect(screen.getByRole("tree").getAttribute("aria-activedescendant") ?? "").not.toContain(
+      "Nowhere",
+    );
+    expect(within(screen.getByRole("tree")).queryByText("Shop")).toBeNull();
+  });
+});
+
+describe("a navigation while the tree is read again", () => {
+  it("keeps the type the navigation read, so the details do not fall back to the overview", async () => {
+    const first = renderOrder();
+    await openOrder();
+    await screen.findByRole("heading", { name: "Order" });
+    first.unmount();
+    requestFocus({ type: 30, member: null, kind: null });
+    fetchMock.mockImplementation((path: string, init?: RequestInit) => {
+      const other = String(init?.body ?? "").includes('"symbol":30');
+      return Promise.resolve(
+        answer(
+          path.endsWith("explorer.outline")
+            ? OUTLINE
+            : other
+              ? { ...ORDER, id: 30, name: "Other" }
+              : ORDER,
+        ),
+      );
+    });
+    render(() => <ExplorerScreen />);
+    expect(await screen.findByRole("heading", { name: "Other" })).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.getByRole("heading", { name: "Other" })).toBeTruthy();
+  });
+});
+
+describe("coming back to the explorer", () => {
+  it("keeps the open rows, the selection and the filter when another screen was shown", async () => {
+    const first = renderOrder();
+    await openOrder();
+    expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
+    first.unmount();
+    render(() => <ExplorerScreen />);
+    expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
+    expect(screen.getAllByText("Sales").length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("treeitem", { selected: true }).length).toBe(1);
+  });
+
+  it("starts from nothing for another project", async () => {
+    const first = renderOrder();
+    await openOrder();
+    await screen.findByRole("heading", { name: "Order" });
+    first.unmount();
+    openProject(2);
+    render(() => <ExplorerScreen />);
+    expect(await screen.findByText("Domain")).toBeTruthy();
+    expect(screen.queryByText("Sales")).toBeNull();
+  });
+
+  it("reads the tree again on the way back and drops a symbol that is gone", async () => {
+    const first = renderOrder();
+    await openOrder();
+    await screen.findByRole("heading", { name: "Order" });
+    first.unmount();
+    const renamed = {
+      ...OUTLINE,
+      layers: [
+        {
+          name: "Domain",
+          namespaces: [
+            {
+              name: "Shop.Sales",
+              types: [{ id: 7, name: "Order2", kind: "class", members: 2, language: "csharp" }],
+            },
+          ],
+        },
+      ],
+    };
+    serve({
+      "explorer.outline": () => answer(renamed),
+      "explorer.symbol": () => answer({ code: "gone" }, 404),
+    });
+    render(() => <ExplorerScreen />);
+    expect(await screen.findByText("Order2")).toBeTruthy();
+    expect(screen.getAllByText("Sales").length).toBeGreaterThan(0);
+  });
+
+  it("scrolls the tree to where it was", async () => {
+    const first = renderOrder();
+    await openOrder();
+    await screen.findByRole("heading", { name: "Order" });
+    const tree = screen.getByRole("tree");
+    tree.scrollTop = 52;
+    fireEvent.scroll(tree);
+    expect(treeScroll()).toBe(52);
+    first.unmount();
+    render(() => <ExplorerScreen />);
+    await screen.findByRole("heading", { name: "Order" });
+    await waitFor(() => expect(screen.getByRole("tree").scrollTop).toBe(52));
+  });
+});
+
+describe("sorting the member table", () => {
+  const names = () =>
+    Array.from(document.querySelectorAll("tbody td:first-child button")).map((cell) =>
+      (cell.textContent ?? "").trim(),
+    );
+
+  it("sorts by name at first and by a column when its head is pressed, turning it round on the second press", async () => {
+    renderOrder();
+    await openOrder();
+    await screen.findByText("decimal Total()");
+    expect(names().length).toBe(2);
+    expect(names()[0]).toContain("Id");
+    expect(screen.getByRole("columnheader", { name: /Name/ }).getAttribute("aria-sort")).toBe(
+      "ascending",
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^CC/ }));
+    expect(names()[0]).toContain("Total");
+    expect(screen.getByRole("columnheader", { name: /CC/ }).getAttribute("aria-sort")).toBe(
+      "descending",
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^CC/ }));
+    // A member without a value stays last, also when the order is turned round.
+    expect(names()[0]).toContain("Total");
+    expect(names()[1]).toContain("Id");
+    // A third press removes the sort: no column is marked and the rows follow the code.
+    fireEvent.click(screen.getByRole("button", { name: /^CC/ }));
+    expect(screen.getByRole("columnheader", { name: /CC/ }).getAttribute("aria-sort")).toBeNull();
+  });
+
+  it("steps through the members in the order of the table", async () => {
+    renderOrder();
+    await openOrder();
+    await screen.findByText("decimal Total()");
+    const step = () => fireEvent.keyDown(document.body, { key: "ArrowDown", altKey: true });
+    fireEvent.click(screen.getByRole("button", { name: /^CC/ }));
+    step();
+    await waitFor(() => expect(currentMember()).toBe(8));
+    step();
+    await waitFor(() => expect(currentMember()).toBe(9));
+  });
+
+  it("steps only through the members that the chip keeps", async () => {
+    renderOrder();
+    await openOrder();
+    await screen.findByText("decimal Total()");
+    fireEvent.click(screen.getByRole("button", { name: "Properties" }));
+    fireEvent.keyDown(document.body, { key: "ArrowDown", altKey: true });
+    await waitFor(() => expect(currentMember()).toBe(9));
+    fireEvent.keyDown(document.body, { key: "ArrowDown", altKey: true });
+    await waitFor(() => expect(currentMember()).toBe(9));
+  });
+});
+
+describe("a member selected in the tree", () => {
+  it("shows only the header and the source, with the member as the title", async () => {
+    renderOrder();
+    await openOrder();
+    fireEvent.click(
+      await screen
+        .findByRole("heading", { name: "Order" })
+        .then(() => screen.getAllByRole("button", { name: /Total/ })[0]!),
+    );
+    expect(await screen.findByRole("heading", { name: "Total" })).toBeTruthy();
+    expect(screen.queryByText("Members 2")).toBeNull();
+    expect(screen.queryByText("Codelines")).toBeNull();
+    const crumbs = document.querySelector("[class*=crumbs]")?.textContent ?? "";
+    expect(crumbs).toContain("Order");
+    expect(crumbs).toContain("Total");
+    expect(screen.getByRole("button", { name: /^Usages/ })).toBeTruthy();
+    // The source sits in the middle column, under the header, and no third column is left.
+    const details = screen.getByRole("region", { name: "Details" });
+    expect(within(details).getByRole("region", { name: "Source" })).toBeTruthy();
+    // Only the tree has a separator left; the one of the source column is gone.
+    expect(screen.getAllByRole("separator")).toHaveLength(1);
   });
 });

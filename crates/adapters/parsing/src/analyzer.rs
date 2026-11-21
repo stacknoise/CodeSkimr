@@ -12,6 +12,7 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Fingerprints, LanguageId, RelativePath, SourceFile, lines_of_code};
 use tree_sitter::{ParseOptions, ParseState, Parser, Point, Tree};
 
+use crate::content_hash;
 use crate::encoding::decode;
 use crate::error::ParsingError;
 use crate::fingerprints::{self, FingerprintSettings};
@@ -86,6 +87,7 @@ impl TreeSitterAnalyzer {
         let fingerprints = self.fingerprinting.map_or_else(Vec::new, |settings| {
             fingerprints::of_callables(pack, root, &table, settings)
         });
+        let hashes = content_hash::of_symbols(pack, root, &source, &table)?;
         Ok(FileFacts {
             file: SourceFile {
                 id: file,
@@ -99,6 +101,7 @@ impl TreeSitterAnalyzer {
             pending,
             fingerprints,
             counts,
+            hashes,
         })
     }
 }

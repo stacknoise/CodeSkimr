@@ -29,3 +29,9 @@ export const TIMED_COMMANDS: Record<string, string> = {
   "usages.query": "usages_query",
   "graph.layers": "graph_layout",
 };
+
+/** The header with which the server asks to wait, and the form of its value that is used: whole seconds. */
+export const HEADER_RETRY_AFTER = "Retry-After";
+export const SECONDS_ONLY = /^\d{1,6}$/;
+/** The longest wait of `Retry-After` that is believed, in seconds; anything above (or 0) is ignored. */
+export const RETRY_AFTER_MAX_SECONDS = 3600;

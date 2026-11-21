@@ -9,6 +9,7 @@ use std::time::Duration;
 use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
+use codeskimr_application::level2::ConfirmationDesk;
 use codeskimr_application::ports::CredentialStore;
 use codeskimr_cli::GlobalOptions;
 use codeskimr_codes::ErrorCode;
@@ -17,7 +18,7 @@ use codeskimr_secrets::{OsCredentialStore, OsKeystore};
 use codeskimr_server::{CommandApi, EditorSettings, Server, UiOptions, UiSettings};
 use codeskimr_storage::SqliteStore;
 
-use crate::consts::URL_SCHEME;
+use crate::consts::{SHUTDOWN_GRACE, URL_SCHEME};
 use crate::locations::Locations;
 use crate::running::RunningScans;
 use crate::wiring::{Secrets, open_serving_store, os_secrets};
@@ -38,6 +39,20 @@ pub fn run(
     locations: &Locations,
     listening: impl FnOnce(&str),
 ) -> Result<(), CodedError> {
+    run_until(global, locations, listening, interrupted())
+}
+
+/// Like [`run`], but serves until `shutdown` completes instead of until Ctrl+C. The tray program
+/// ends the server this way when the user picks "Quit".
+///
+/// # Errors
+/// The same as [`run`].
+pub fn run_until(
+    global: &GlobalOptions,
+    locations: &Locations,
+    listening: impl FnOnce(&str),
+    shutdown: impl Future<Output = ()> + Send + 'static,
+) -> Result<(), CodedError> {
     let config = config_files::load(locations, global, None)?;
     let store = OsCredentialStore::new(OsKeystore);
     let secrets = os_secrets();
@@ -51,9 +66,9 @@ pub fn run(
         &config,
         (global, locations),
         (events, &secrets),
-        running,
+        running.clone(),
     )?;
-    tokio::runtime::Builder::new_current_thread()
+    let served = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?
@@ -62,8 +77,11 @@ pub fn run(
             config.server.port,
             parts,
             listening,
-            interrupted(),
-        ))
+            shutdown,
+        ));
+    // A level 2 run that is still going is cancelled the way `projects.cancel` does it.
+    running.cancel_all(SHUTDOWN_GRACE);
+    served
 }
 
 /// What the browser UI gets from the configuration. Without a built UI folder the server answers
@@ -88,6 +106,9 @@ fn ui_options(config: &codeskimr_application::config::Config, locations: &Locati
                 allowed_schemes: config.editor.allowed_schemes.clone(),
             },
             default_theme: config.ui.default_theme.clone(),
+            level2_poll_seconds: config.ui.level2_poll_seconds,
+            level2_poll_max_seconds: config.ui.level2_poll_max_seconds,
+            approximate_languages: config.ui.approximate_languages.clone(),
         },
     }
 }
@@ -114,15 +135,20 @@ pub(crate) fn serving_parts(
     (events, secrets): (EventBus, &Arc<Secrets>),
     running: RunningScans,
 ) -> Result<Parts, CodedError> {
+    let (api, confirmation) = ui_commands::command_api_over(
+        catalog,
+        config,
+        (global, locations),
+        (events.clone(), Arc::clone(secrets)),
+        (
+            (None, running.clone()),
+            ui_commands::Window::of_this_system(global),
+        ),
+    )?;
     Ok(Parts {
         ui: ui_options(config, locations),
-        api: ui_commands::command_api_over(
-            catalog,
-            config,
-            (global, locations),
-            (events.clone(), Arc::clone(secrets)),
-            (None, running.clone()),
-        )?,
+        api,
+        confirmation: Some(confirmation),
         mcp: Some(mcp::http_service_sharing(
             Arc::clone(catalog),
             config,
@@ -140,6 +166,8 @@ pub(crate) fn serving_parts(
 pub(crate) struct Parts {
     pub ui: UiOptions,
     pub api: CommandApi,
+    /// The desk of the level 2 confirmation window; `None` where no route for it is wanted.
+    pub confirmation: Option<Arc<ConfirmationDesk>>,
     pub mcp: Option<HttpService>,
     pub events: EventBus,
     /// File that serialises the first start of several programs (`None`: no lock, for tests).
@@ -161,12 +189,16 @@ pub(crate) async fn serve(
     let server = Server::new(
         parts.api,
         parts.events,
-        principal::remote_client(),
+        principal::browser_client(),
         token,
         parts.ui,
     );
     let server = match parts.mcp {
         Some(service) => server.with_mcp(service),
+        None => server,
+    };
+    let server = match parts.confirmation {
+        Some(desk) => server.with_confirmation(desk),
         None => server,
     };
     let bound = server
@@ -185,6 +217,7 @@ pub(crate) fn bare_parts(ui: UiOptions) -> Parts {
     Parts {
         ui,
         mcp: None,
+        confirmation: None,
         api: CommandApi::new(std::sync::Arc::new(
             codeskimr_application::registry::Registry::new(),
         )),

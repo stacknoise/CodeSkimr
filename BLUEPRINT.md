@@ -285,6 +285,9 @@ codeskimr/
 | `Reference` | one occurrence of a symbol | id, from symbol, to symbol, file, span, kind, confidence |
 | `Metric` | measured value | symbol, kind (loc, cc, cc_max, mi, ce, ca, instability), value |
 | `LayerEdge` | aggregated dependency between namespaces / layers | from, to, count, violates layering, part of cycle |
+| `Annotation` | user mark, note or task on a symbol, not part of a snapshot (ADR 0068) | id, project, target, kind (`critical` \| `note` \| `task`), text, status, due, assignee, author |
+| `Alert` | message that a system-critical symbol changed, was removed or lost its target (ADR 0068) | id, annotation, kind, counter, snapshot, commit (if Git), state (`open` \| `dismissed`) |
+| `ScanReport` | what the newest scan of a project says about itself, not part of a snapshot (ADR 0072) | project, scanned at, level (`1` \| `2`), origin (`terminal` \| `browser` \| `watch` \| `mcp`); with it the newest second pass: run at, origin and per language the outcome (`checked` \| `skipped` \| `failed`), file counts, reason key or error code; no path, tool name or output |
 
 **Symbol kinds** are language-neutral: `module`, `namespace`, `class`, `interface`, `trait`, `record`, `struct`, `enum`, `union`, `function`, `method`, `constructor`, `property`, `field`, `constant`, `event`, `enum_member`, `parameter`, `type_alias`. Language packs map their syntax onto these kinds. Free functions belong to a `module` symbol, one per file.
 
@@ -304,6 +307,7 @@ codeskimr/
   - `layer_graph` – the dependency map
   - `type_summary` – the metric strip
 - **Retention:** keep the last N snapshots per project (configurable, default from `config/default.toml`).
+- **Annotations (ADR 0068):** the tables `annotation`, `annotation_baseline` and `alert` are not tied to a snapshot and are not touched by retention. A symbol is found again by kind, qualified name and parameter types. Dismissed alerts are kept for `annotations.dismissed_retention_days`.
 - Schema migrations are versioned SQL files in `crates/adapters/storage/migrations/`, applied at start-up.
 
 ---
@@ -343,8 +347,8 @@ languages/csharp/
 ├─ language.toml      metadata and rules
 ├─ symbols.scm        Tree-sitter query: declarations → symbol kinds
 ├─ references.scm     Tree-sitter query: identifiers, calls, imports, scopes
-├─ metrics.scm        Tree-sitter query: comments, decision points, Halstead operators and operands, cognitive complexity and parameters (ADR 0048)
-├─ highlights.scm     syntax highlighting for the UI
+├─ metrics.scm        Tree-sitter query: comments, decision points, Halstead operators and operands, cognitive complexity, parameters (ADR 0048) and literals (ADR 0058)
+├─ highlights.scm     syntax highlighting for the UI (captures: ADR 0064)
 └─ tests/             small sample files + expected JSON (golden tests)
 ```
 
@@ -406,7 +410,8 @@ Name resolution is based on Tree-sitter, in this order:
 Level 2 imports SCIP indexes that existing indexers produce (scip-dotnet, scip-typescript, scip-java, scip-python and others; how to start each one is in the `[indexer]` table of its language pack). Roslyn for C# is a later step. Imported references replace the level-1 references of the files the index covers and are always `certain` and `verified` (ADR 0033).
 
 - **A second pass, not part of Resolve.** Level 1 is stored and usable first. Then, for each indexer, the pass checks permission and consent, checks that the tools exist, runs the indexer, checks the hash of every file against the disk again, maps the index and replaces the references of exactly the checked files in one transaction. A changed file, a cancel, a failure or a missing tool leaves level 1 as it was and is reported per language.
-- **Consent.** An indexer runs the build tools of the project, so it runs only if the local owner enabled level 2 and confirmed it for the project, interactively on this computer (`codeskimr level2 confirm`). The confirmation names the file and network access of the tools and is bound to source, location and branch, not to a commit. The `level2` table of `.codeskimr.toml` is ignored. MCP, REST tokens, CI and watch mode cannot confirm, and only the scan of the command line starts indexers: `rescan` through MCP or the UI and the later scans of watch mode are level 1 only.
+- **Consent.** An indexer runs the build tools of the project, so it runs only if the local owner enabled level 2 and confirmed it for the project, interactively on this computer (`codeskimr level2 confirm`). The confirmation names the file and network access of the tools and is bound to source, location and branch, not to a commit. The `level2` table of `.codeskimr.toml` is ignored. MCP, REST tokens, CI and watch mode cannot confirm. Indexers start only for the local owner: with `codeskimr scan`, and after `projects.add` and `projects.rescan` of the browser (ADR 0072, see below); `rescan` through MCP, the team server and the later scans of watch mode are level 1 only. **Switch in the projects screen (ADR 0071).** The screen can ask the server to open the console window of `codeskimr level2 confirm --from-ui <id>` (`POST /api/v1/level2/confirm-window`, Windows and macOS; elsewhere the screen shows the command to copy); the owner still types the name of the project in that window, so the browser never gives the consent. Switching off is the command `level2.revoke` (right `revoke_indexer`, which only removes a right, installation token needed). `level2.status` reports `on`, `off`, `not_enabled` or `locked`. The master switch `[level2] enabled` is read from the user configuration only and never written by the program (`CFG-105`).
+- **Level 2 from the browser (ADR 0072).** `projects.add` and `projects.rescan` return after level 1 and continue with level 2 in a background task, if the caller holds `run_indexer` (the principal `browser_client`; MCP is `remote_client` and has none), `[level2] enabled` is set in the user configuration (a confirmation alone is not enough from the browser) and the project is confirmed. The permission is checked again when the run starts, so a consent revoked in between holds (`SEC-301`). The command takes `level2: false` for a scan of level 1 only and answers `level2` with `started`, `not_started` and a reason (`not_permitted`, `not_confirmed`, `busy`, `paused`) or `not_requested`. One run per project; at most `level2.max_parallel_runs` (1) runs at the same time (`busy` otherwise); after a run that the browser started ended in any way, the same project waits `level2.ui_cooldown_seconds` (60, `paused` inside). The project counts as scanning until the run has ended (`PRJ-302`); `projects.cancel` stops the indexer and keeps level 1; the end of the server cancels the run the same way. The events `level2_progressed` and `level2_finished` tell the screens. Both keys are read from the user configuration only. The scan of the command line stays synchronous and is not paused.
 - **Created symbols (ADR 0055).** For the kinds a language pack lists in `[indexer.symbol_kinds]` (Rust: types, enums, variants, traits, aliases), level 2 creates symbols with `origin = index` for definitions that level 1 does not know (macro output). `max_created_symbols` bounds them; exceeding it fails the import (`RES-303`).
 - **Limits.** Time, memory and output of a run are bounded (`level2.*`); the index is untrusted input with its own size limit, its paths are cleaned and only files of the snapshot are read.
 - **Columns.** Indexes may count UTF-16 or UTF-32 units; the import converts them to UTF-8 bytes using the lines of the file.
@@ -434,7 +439,7 @@ Every user-facing action is a `Command` with:
 - input and output types
 - a default keyboard shortcut (optional)
 - a flag saying whether it is read-only
-- the `Permission` a caller needs (`read`, `read_source`, `scan`, `manage`, `register_project`, `admin`)
+- the `Permission` a caller needs (`read`, `read_source`, `scan`, `annotate` (ADR 0068), `manage`, `register_project`, `admin`, and for level 2 `confirm_indexer`, `run_indexer`, `revoke_indexer` and `open_confirmation`, ADR 0033 and ADR 0071). Two client principals exist in single-user mode (ADR 0072): the commands of the HTTP layer run as `browser_client` (the rights of the MCP client plus `run_indexer`, `revoke_indexer` and `open_confirmation`), every MCP channel (`codeskimr mcp` and `/mcp`) runs as `remote_client` (none of the four level 2 rights); neither holds `confirm_indexer`. `ScanOrigin` (`terminal`, `browser`, `watch`, `mcp`) follows from the channel that received the request, never from a field of it
 
 The registry generates:
 
@@ -455,7 +460,7 @@ The registry generates:
 ### 10.2 CLI
 
 ```
-codeskimr                         start the app, open the browser
+codeskimr                         start the app, open the browser (Windows, macOS: in the system tray, ADR 0067; --console stays in the window)
 codeskimr scan <path|git-url>     scan and print a summary (--json for machines, --watch to keep scanning on changes)
 codeskimr serve                   start the server without opening a browser
 codeskimr mcp                     MCP over stdio
@@ -469,10 +474,10 @@ The local commands run as the local owner without login. After 1.0 the team edit
 ### 10.3 REST and WebSocket
 
 - **REST** under `/api/v1`, described by OpenAPI (generated by `utoipa`). The TypeScript client is generated from it.
-- **WebSocket** at `/api/v1/events` streams domain events: scan progress, snapshot created, files changed.
+- **WebSocket** at `/api/v1/events` streams domain events: scan progress, snapshot created, files changed, alerts changed (`alerts_changed`: project id and number of open alerts only, ADR 0068), level 2 progress (`level2_progressed`: project, language id and stage label; `level2_finished`: project, snapshot and counts of languages checked, skipped and failed; ADR 0072).
 - Every error response carries the error code (section 11).
 - **Token for the UI:** the browser UI obtains the installation token through a one-time launch code in the URL fragment, exchanged once at `/api/v1/session/exchange` and kept in `sessionStorage` (ADR 0028). The token is never embedded in served pages.
-- Every route resolves a `Principal` before it calls the application layer. In single-user mode that is the local owner; in server mode it comes from the session cookie or a personal access token (ADR 0019). **Exception (ADR 0041):** the routes `session/launch-code` and `session/exchange`, the public settings route `ui-config` and the files of the UI are not commands of the registry and take no `Principal`. The installation token (launch-code route) or the one-time code (exchange) takes that role; there are no other such routes.
+- Every route resolves a `Principal` before it calls the application layer. In single-user mode that is the local owner; in server mode it comes from the session cookie or a personal access token (ADR 0019). **Exception (ADR 0041):** the routes `session/launch-code` and `session/exchange`, the public settings route `ui-config` and the files of the UI are not commands of the registry and take no `Principal`. The installation token (launch-code route) or the one-time code (exchange) takes that role; there are no other such routes. **Exception (ADR 0071):** `POST /api/v1/level2/confirm-window` is a route outside the registry, because it is the one thing that starts a process; its guard order is Host and Origin, `Sec-Fetch-Site`, JSON content type, token, loopback peer, right `open_confirmation`, body, project, switch, pause (`API-504`, 429 with `Retry-After`), then the launch. `level2.status` and `level2.revoke` are registry commands and not MCP tools. `GET /api/v1/ui-config` also carries `level2_poll_seconds` and `level2_poll_max_seconds`.
 
 ### 10.4 MCP server
 
@@ -494,6 +499,8 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | `get_project` | project? | languages, and per tool of level 2 its state (ready, missing, too old, version unknown) with purpose and install hint (ADR 0033, decision 8) |
 | `check_conventions` | paths or diff | violations of section 3 (duplicates, literals, layering, length, complexity) with error codes |
 | `rescan` | paths? | incremental update, returns the new snapshot id |
+| `list_annotations` | symbol? or project, kind? | notes, tasks and critical marks with target and status (ADR 0068, read-only) |
+| `get_alerts` | project, state? | open alerts for critical symbols: kind, what changed, symbol (ADR 0068, read-only) |
 
 **Resources:** `codeskimr://<project>/architecture`, `codeskimr://<project>/conventions`, `codeskimr://<project>/errors`.
 
@@ -501,7 +508,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 
 - Read-only by default; `rescan` is the only tool with a side effect.
 - stdio is single-user and local and runs as the local owner. Streamable HTTP is bound to `127.0.0.1` and requires a per-installation token in 1.0; in the team edition it requires a personal access token, and tools and resources see only the projects granted to that token's principal (ADR 0019).
-- Every tool declares the permission it needs (all current tools: `read`) and checks it before reading anything.
+- Every tool declares the permission it needs (all current tools: `read`, ADR 0068 adds none that writes) and checks it before reading anything.
 - Access only to registered projects (in the team edition: only granted ones).
 - No access to credentials at all (crate rule in 4.2).
 - Responses are token-efficient: paginated, with fixed limits from config, and they state the snapshot id and its age.
@@ -516,7 +523,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 - Every error that can leave a crate boundary has an **error code**. This covers Rust errors, frontend exceptions, CLI exit messages, REST responses and MCP errors.
 - All codes live in **one central file**: `errors/error-codes.toml`. It is the single source of truth.
 - Codes are grouped by **prefix**. Inside a group, the hundreds digit classifies the error.
-- Codes are **never reused or renumbered**. A retired code is marked `deprecated = true` and stays in the file.
+- Codes are **never reused or renumbered**. A retired code is marked `deprecated = true` and stays in the file. The one exception (ADR 0060): a code that is in no published release may be renumbered once and is then removed, because nobody can have seen it.
 
 ### 11.2 Code format
 
@@ -560,6 +567,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | `CLI` | command line | `cli` |
 | `I18N` | translations | `i18n` |
 | `EXP` | export | `application` |
+| `ANN` | annotations and alerts (ADR 0068) | `application`, `storage` |
 | `UI` | frontend | `web` |
 | `CHK` | convention-check findings (not failures, see 11.6) | `application` |
 
@@ -688,6 +696,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
 ### 12.4 Memory hardening
 
 - Secret buffers are locked against swapping (`VirtualLock` / `mlock` via `memsec`) and zeroed on drop (`zeroize`).
+- A `Credential` keeps its user name and secret in **one** locked buffer (ADR 0077); the content is read as `&str` into that buffer through `expose_user()` / `expose_secret()`, never copied into ordinary memory by the credential itself.
 - Core dumps / Windows error-report memory dumps are disabled for the process.
 - Secrets are never `format!`ed, never logged and never sent over IPC. `SecretString` only exposes its content through an explicit, greppable `expose_secret()` call. CI lists every call site, and each one needs reviewer approval.
 - `unsafe` for memory locking lives only in `codeskimr_secrets::memory` (R-08).
@@ -707,7 +716,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
 - **S-01** Logs are filtered through a redaction layer: token patterns (including the `csk_` access-token prefix), `Authorization` and `Cookie`/`Set-Cookie` headers, OIDC `code`, `state` and `id_token`, and URL user-info are masked.
 - **S-02** A test suite runs logins, failures and panics with canary secrets and asserts that the canary never appears in logs, error messages, REST/MCP responses, crash output or the database file.
 - **S-03** Dependency audit (`cargo-audit`, `cargo-deny`) in every CI run; a known vulnerability blocks the merge.
-- **S-04** In single-user mode, server and MCP bind to `127.0.0.1` and HTTP endpoints that change state require the per-installation token. Non-loopback binding is allowed only in the team server's server mode and only with TLS configured or behind a configured trusted reverse proxy; otherwise start fails with a registered error code. `X-Forwarded-*` is accepted only from trusted peers. CORS is closed; Host and Origin are validated (DNS rebinding). The one exception to the token rule is the exchange of the one-time launch code for the token (`/api/v1/session/exchange`, ADR 0028): it needs a valid, unused code that lives 60 seconds, and `Host` and `Origin` are still checked. Pages are served with a strict Content-Security-Policy (no inline scripts, no inline styles, no framing) and a restrictive `Permissions-Policy`. The launch code travels to the browser in a launch file that is created exclusively (never overwriting or following a link) in a folder only the user can enter (mode 0700 on Unix, access rules for the user alone on Windows) and whose parents nobody else can replace; the code is never on a command line, and copies of the token and the code in memory are wiped. The UI comes from the files embedded in the program or from the folder `ui.dir`; a folder wins, no link below it is followed, and a folder outside the data folder is logged. A project file (`.codeskimr.toml` of a scanned repository) cannot set `editor.*`, `ui.*` or `level2.*`, and `editor.allowed_schemes` never holds `javascript`, `data`, `file` or `vbscript` (ADR 0041).
+- **S-04** In single-user mode, server and MCP bind to `127.0.0.1` and HTTP endpoints that change state require the per-installation token. Non-loopback binding is allowed only in the team server's server mode and only with TLS configured or behind a configured trusted reverse proxy; otherwise start fails with a registered error code. `X-Forwarded-*` is accepted only from trusted peers. CORS is closed; Host and Origin are validated (DNS rebinding). The one exception to the token rule is the exchange of the one-time launch code for the token (`/api/v1/session/exchange`, ADR 0028): it needs a valid, unused code that lives 60 seconds, and `Host` and `Origin` are still checked. Pages are served with a strict Content-Security-Policy (no inline scripts, no inline styles, no framing) and a restrictive `Permissions-Policy`. The launch code travels to the browser in a launch file that is created exclusively (never overwriting or following a link) in a folder only the user can enter (mode 0700 on Unix, access rules for the user alone on Windows) and whose parents nobody else can replace; the code is never on a command line, and copies of the token and the code in memory are wiped. The UI comes from the files embedded in the program or from the folder `ui.dir`; a folder wins, no link below it is followed, and a folder outside the data folder is logged. A project file (`.codeskimr.toml` of a scanned repository) cannot set `editor.*`, `ui.*` or `level2.*`, and `editor.allowed_schemes` never holds `javascript`, `data`, `file` or `vbscript` (ADR 0041). ADR 0071 adds one route outside the registry, `POST /api/v1/level2/confirm-window`, behind the same checks plus `Sec-Fetch-Site` and a loopback peer; it is the one place in the product that starts a process on a request of the browser (the program itself in a new console on Windows, a constant AppleScript on macOS, nothing on Linux), and `codeskimr_server` never names `std::process`.
 - **S-05** Paths from API/MCP input are canonicalised and checked against registered project roots (no path traversal). In the team edition the check also covers the caller's grant, and registrable roots and clone URLs follow a server-side allow-list (path traversal, SSRF).
 - **S-06** Authorisation lives once, in the registry check (10.1). Adapters never decide. Tests cover every command with a restricted principal; for the team edition each route, WebSocket message, CLI command and MCP tool is tested with each role and with "no grant", and denial and "not found" are compared for identical responses. The canary suite (S-02) also scans the identity database.
 
@@ -736,6 +745,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
   - watcher debounce
   - level 2 (`level2.*`: switch, time, memory and output limits, index size, share of mappable uses). Only the user config and CLI flags may set them; the project file cannot
   - excluded folders (`bin`, `obj`, `.git`, `node_modules`, `target`, `dist` …)
+  - annotations (`annotations.*`, ADR 0068): `dismissed_retention_days` (30), `max_text_chars` (4000), `max_title_chars` (500), `max_assignee_chars` (100), `max_name_chars` (500), `max_parameter_chars` (200), `max_parameters` (32), `default_page_size` (100), `max_page_size` (500)
 - **Overrides,** applied in this order: user config file → project config (`.codeskimr.toml` in the repository) → CLI flags. The project config may only lower `scan.max_source_mb` and `scan.parse_timeout_ms`, not raise them above the value of the defaults and the user file, so that a scanned repository cannot lift the protection of the scanning machine (ADR 0040).
 - **Typed config:** the config is deserialised into typed structs and validated at start-up. Invalid values produce `CFG-1xx` errors. There is no `config.get("string")` anywhere in the code.
 - **`consts.rs` / `consts.ts`:** technical constants that are not tunable. One file per crate or feature, never a global constants file.
@@ -765,8 +775,11 @@ The screens (details in Appendix B):
 | 11 | Audit log | `docs/mocks/Audit.dc.html` |
 | 12 | Single sign-on | `docs/mocks/Sso.dc.html` |
 | 13 | Settings: themes and language | `docs/mocks/Themes.dc.html` |
+| 14 | Annotations: marks, notes, tasks | `docs/mocks/Annotations.dc.html` |
+| 15 | Alerts | `docs/mocks/Alerts.dc.html` |
+| 16 | Task board | `docs/mocks/Tasks.dc.html` |
 
-Screens 7 to 12 belong to the team edition (after 1.0, ADR 0019, milestone T2) and exist as mocks so that the UI can be built to them; screen 13 belongs to 1.0 (ADR 0021). The mocks 7 to 13 take a `theme` property (15.3); mocks 1 to 6 are drawn in the theme Hell (layout binding, colours follow the active theme, see 15.3).
+Screens 7 to 12 belong to the team edition (after 1.0, ADR 0019, milestone T2) and exist as mocks so that the UI can be built to them; screen 13 belongs to 1.0 (ADR 0021); screens 14 to 16 belong to the annotations (ADR 0068). Mocks 14 to 16 are static pages: they show all three themes by the class of `body`. The mocks 7 to 13 take a `theme` property (15.3); mocks 1 to 6 are drawn in the theme Hell (layout binding, colours follow the active theme, see 15.3).
 
 The mock sources are written in a design-canvas format; render them through the link above. Read the files for exact values (inline styles). All numbers and names in them are **sample data**.
 
@@ -800,8 +813,10 @@ Defined once in `design/tokens.toml`. TypeScript/CSS variables are generated fro
 | `warn` / `warn-bg` | `#B45309` / `#FFF4E5` | metric medium, attention |
 | `bad` / `bad-bg` | `#B91C1C` / `#FDF2F2` | metric bad, violations |
 | `highlight` / `mark` | `#FFF7D6` / `#FDE68A` | selected member lines / search hit, focus ring |
+| `critical` / `critical-bg` | `#A3197A` / `#FBE8F5` | system-critical mark: stripe, label, shield, alert dot (ADR 0068) |
 | kind colours | class `#2457D6`, interface `#7C3AED`, record `#0F766E`, struct `#B45309`, enum `#BE185D` | kind badges |
 | layer colours | in `meta.layers` order: `#2457D6`, `#0F766E`, `#7C3AED`, `#B45309`, `#BE185D`, `#5B6370`, … | layer dots and bands |
+| syntax colours `syn-keyword`, `-string`, `-number`, `-comment`, `-type`, `-function`, `-attribute` | `#6D28D9`, `#15803D`, `#B45309`, `#5B6370`, `#0E7490`, `#1D4ED8`, `#BE185D` | code in the source column (ADR 0064) |
 | radius | 4 / 6 / 8 / 10 / 14 px | badge / button / card / panel / dialog |
 | spacing | 4, 6, 8, 10, 12, 16, 24, 32 px | — |
 
@@ -829,6 +844,7 @@ The UI offers three themes in the first version (ADR 0021). Every theme defines 
 | `bad` / `bad-bg` | `#B91C1C` / `#FDF2F2` | `#A82D2D` / `#F9DCDC` | `#FF8C8C` / `#401B1B` |
 | `outgoing` | `#C2410C` | `#C2410C` | `#FB923C` |
 | `highlight` / `mark` | `#FFF7D6` / `#FDE68A` | `#FFF7D6` / `#FDE68A` | `#3A3413` / `#6B5A12` |
+| `critical` / `critical-bg` | `#A3197A` / `#FBE8F5` | `#A3197A` / `#FBE8F5` | `#F08BD0` / `#3D1634` |
 
 Kind and layer colours of Petrol equal those of Hell. Dunkel uses lighter variants of the same hues:
 
@@ -839,7 +855,7 @@ Kind and layer colours of Petrol equal those of Hell. Dunkel uses lighter varian
 
 In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version reached only 4.49:1 with `good` and was replaced in all mocks.
 
-- **Rules:** a theme is a table in `tokens.toml` plus its name in `locales/`; adding one needs no code change, an ADR decides which themes ship. CI (job `codegen`) fails if a theme misses a token or if a text/background pair (`ink`, `ink-2`, `muted`, `faint` on `bg` and `surface`; `accent` on `surface`, `bg` and `accent-bg`; `good`, `warn`, `bad` on their `-bg` and on `surface`; `accent-fg` on `accent`; `ink-2` on `line-soft`; `ink` on `accent-bg`; `outgoing`, kind and layer colours on `surface`) is below 4.5:1. `faint` is used on `bg` and `surface` only, never on tinted backgrounds.
+- **Rules:** a theme is a table in `tokens.toml` plus its name in `locales/`; adding one needs no code change, an ADR decides which themes ship. CI (job `codegen`) fails if a theme misses a token or if a text/background pair (`ink`, `ink-2`, `muted`, `faint` on `bg` and `surface`; `accent` on `surface`, `bg` and `accent-bg`; `good`, `warn`, `bad` on their `-bg` and on `surface`; `accent-fg` on `accent`; `ink-2` on `line-soft`; `ink` on `accent-bg`; `outgoing`, kind, layer and syntax colours on `surface`) is below 4.5:1. `faint` is used on `bg` and `surface` only, never on tinted backgrounds.
 - **Choice:** stored per user (see 13); without a team server in the local settings. Until the user chooses, the theme is Petrol, or Dunkel when the operating system is set to dark. The default key is in `config/default.toml`.
 - **Settings page (mock 13):** one preview card per theme with the name, a colour strip and a miniature of the real UI (top bar, rail, list, badges, button) drawn by the actual components inside a container with that `data-theme`. Selecting a card applies it at once. Petrol is the default theme and is drawn as selected in mock 13 and used by mocks 7 to 13. Mocks 1 to 6 are drawn in Hell; for them layout, proportions and labels are binding and the colours follow the active theme, so a Petrol build is not a deviation from them.
 - **Build:** `tokens.toml` generates one CSS file with the variables of all themes, scoped by `data-theme`; the theme is set on `<html>` before the first paint by a same-origin script that reads a `localStorage` mirror of the choice (ADR 0028).
@@ -854,7 +870,7 @@ In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version r
 | `Ctrl K` | quick search (types, members, files, commands; prefixes `t:` `m:` `f:` `>` `@`) |
 | `G` | show selection in the dependency graph |
 | `U` | show usages of the selection |
-| `E` | open in editor at the line (URL scheme from the setting `editor.url_template`, default `vscode://file/{path}:{line}`, scheme on the allow-list `editor.allowed_schemes`, which can never name `javascript`, `data`, `file` or `vbscript`; the server starts no process, ADR 0028, ADR 0041) |
+| `E` | open in editor at the line (URL scheme from the setting `editor.url_template`, default `vscode://file/{path}:{line}`, scheme on the allow-list `editor.allowed_schemes`, which can never name `javascript`, `data`, `file` or `vbscript`; the server starts no process for this, ADR 0028, ADR 0041; the one exception is the console window of the level 2 confirmation, ADR 0071) |
 | `R` | re-scan project |
 | `N` | new project |
 | `F` | fit graph to view |
@@ -877,6 +893,8 @@ In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version r
 - **Explorer → Usages:** "Usages (U)" button, the "Usages" column with counts (click opens), Alt+click in code.
 - **Section open/closed states** in the details panel persist across type changes.
 - **Column header tooltips** explain each metric and its thresholds.
+- **Labels and tabs never wrap.** Tab labels, labels such as "Critical" and counters stay on one line; if space is short, an inactive tab shows only its symbol and counter, except Info, which has no symbol and keeps its name (ADR 0068).
+- **Annotations (ADR 0068):** `K` marks the selection as system critical, `N` adds a note, `T` adds a task. The mark is never shown by colour alone (stripe, label and shield). The member table shows stripe and label, no shield.
 - **Accessibility:** real buttons, links and inputs; visible focus; `aria-label` on icon buttons; text contrast ≥ 4.5:1; colours that must be distinguished also differ in lightness (blue/orange, not red/green alone).
 
 ### 15.5 Performance rules for the UI
@@ -903,11 +921,12 @@ Reference: the budgets are meant for a mid-range developer laptop (class recorde
 | Graph layout (≤ 200 nodes) | < 50 ms |
 | Full scan, 100k LOC (full tier) | < 1 s |
 | Incremental re-scan after saving one file | < 300 ms |
+| Loading the Rust and C# packs on a first scan (benchmark `pack_load`; ADR 0063) | < 1.5 s |
 | Idle CPU (app open, nothing happening) | 0 % (no timers, no polling) |
 | Memory for 1M LOC indexed | < 500 MB |
 | Binary size (full-tier languages built in) | < 60 MB |
 
-**Level 2 (ADR 0033) is not part of this table.** The budgets above are for level 1: the scan is complete and usable before level 2 starts, and the second pass (section 9.3) runs external indexers, whose time and memory depend on the project and its build tools and cannot be measured by the benchmark of CI. Level 2 is bounded by limits instead, which are configuration keys with defaults in `config/default.toml` (section 14): `level2.timeout_seconds` 900, `level2.max_memory_mb` 4096, `level2.max_output_bytes` 512 MiB, `level2.max_index_bytes` 256 MiB. Exceeding one stops the indexer and keeps level 1 (`RES-502`, `RES-504`, `RES-503`, `RES-501`). What the indexers cost on the pinned corpora (one cold run each on the measuring machine, measured by hand, `docs/accuracy.md`) is the reference for choosing those limits:
+**Level 2 (ADR 0033) is not part of this table.** The budgets above are for level 1: the scan is complete and usable before level 2 starts, and the second pass (section 9.3) runs external indexers, whose time and memory depend on the project and its build tools and cannot be measured by the benchmark of CI. Level 2 is bounded by limits instead, which are configuration keys with defaults in `config/default.toml` (section 14): `level2.timeout_seconds` 900, `level2.max_memory_mb` 4096, `level2.max_output_bytes` 512 MiB, `level2.max_index_bytes` 256 MiB. Since ADR 0072 level 2 also runs in the background after a scan from the browser; it stays outside the budgets (the scan has returned by then), is bounded by the same limits and by `level2.max_parallel_runs` 1 and `level2.ui_cooldown_seconds` 60. Exceeding one stops the indexer and keeps level 1 (`RES-502`, `RES-504`, `RES-503`, `RES-501`). What the indexers cost on the pinned corpora (one cold run each on the measuring machine, measured by hand, `docs/accuracy.md`) is the reference for choosing those limits:
 
 | Indexer | Corpus | Time | Peak memory | Index |
 |---|---|---|---|---|
@@ -1100,19 +1119,24 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 |---|---|---|
 | APP-201 | `data_dir_unavailable` | The user data directory cannot be created or opened. |
 | APP-202 | `launch_file_unavailable` | The private file for starting the browser could not be created. |
-| APP-203 | `language_packs_unavailable` | The language packs built into the program could not be written to the data directory. |
 | APP-301 | `instance_already_running` | Another CodeSkimr instance holds the workspace; connecting to it failed. |
 | APP-901 | `unexpected_internal_error` | An unexpected internal error occurred (bug). |
 | APP-601 | `browser_start_failed` | The system did not start a browser for the launch file. |
+| APP-602 | `language_packs_unavailable` | The language packs built into the program could not be written to the data directory. |
+| APP-603 | `tray_start_failed` | The program could not start itself in the background or show its tray icon. |
+| APP-604 | `confirm_window_failed` | The console window for the level 2 confirmation could not be started; the screen shows the command instead. |
 | CFG-101 | `config_invalid_value` | A configuration value is outside its allowed range or has the wrong type. |
 | CFG-102 | `config_parse_failed` | A configuration file is not valid TOML. |
 | CFG-103 | `config_unknown_key` | A configuration file or flag sets a key that does not exist. |
+| CFG-104 | `project_file_not_writable` | The project file `.codeskimr.toml` could not be written. |
+| CFG-105 | `level2_switch_off` | Level 2 is not enabled in the user configuration; the program does not enable it itself. |
 | PRJ-101 | `project_source_invalid` | The given source is neither an existing folder nor a valid Git URL. |
 | PRJ-201 | `project_not_found` | No project with this id exists. |
 | PRJ-301 | `project_already_registered` | A project with the same source is already registered. |
 | PRJ-302 | `snapshot_in_progress` | A scan for this project is already running. |
 | PRJ-303 | `scan_cancelled` | The scan was cancelled by the user; no snapshot was written. (info) |
 | PRJ-501 | `too_many_scans` | As many scans run at the same time as the server allows; try again when one has ended. |
+| PRJ-502 | `scan_report_not_stored` | The report of the scan (its level and what level 2 did per language) could not be stored; the scan and its snapshot are stored. |
 | SRC-201 | `source_path_not_found` | A source folder, a source file or a language pack folder does not exist or cannot be read. |
 | SRC-202 | `git_branch_not_found` | The requested branch does not exist on the remote. |
 | SRC-401 | `git_auth_required` | The remote requires authentication and no usable credential is available. |
@@ -1141,7 +1165,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | STO-901 | `stored_data_invalid` | Data read from the database violates the domain model; this is a bug or a damaged database. |
 | SEC-201 | `credential_not_found` | The referenced credential does not exist in the keystore. |
 | SEC-202 | `credential_damaged` | The keystore entry of the credential cannot be read; delete it and create the credential again. |
-| SEC-301 | `indexer_not_confirmed` | Level 2 is not enabled and confirmed for this project in the user configuration or the user's own project record, so no indexer is started. |
+| SEC-301 | `indexer_not_confirmed` | Level 2 is not enabled in the user configuration (`[level2] enabled`) or not confirmed for this project, so no indexer is started. |
 | SEC-401 | `credential_rejected` | The platform rejected the credential. |
 | SEC-402 | `keystore_access_denied` | The OS keystore denied access. |
 | SEC-403 | `indexer_not_permitted` | The caller may not confirm or start indexers; only the local owner may (ADR 0033, decision 10). |
@@ -1153,14 +1177,15 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | AUTH-401 | `permission_denied` | The caller lacks the permission this action needs. |
 | API-101 | `request_invalid` | The REST request failed validation. |
 | API-102 | `bind_address_not_local` | The server was asked to listen on an address that is not a loopback address. |
-| API-201 | `command_not_found` | The REST request names a command or route that does not exist. |
+| API-201 | `command_not_found` | The request names a command, tool or route that does not exist. |
 | API-301 | `server_bind_failed` | The server could not listen on its address, for example because the port is taken. |
-| API-401 | `token_missing_or_invalid` | A state-changing request lacks a valid installation token. |
+| API-401 | `token_missing_or_invalid` | The request lacks a valid installation token. |
 | API-402 | `host_or_origin_rejected` | The Host or Origin header of the request is not one of this server. |
 | API-403 | `launch_code_invalid` | The one-time launch code is wrong, already used or expired. |
 | API-501 | `request_too_large` | The request body is larger than the server accepts. |
 | API-502 | `server_busy` | The server already serves as many event streams as it allows. |
 | API-503 | `request_timed_out` | The request took longer than the server waits for it. |
+| API-504 | `confirm_window_rate_limited` | A confirmation window was opened a moment ago; try again after the pause. |
 | API-601 | `server_not_reachable` | The command needs a running local server and could not reach it. |
 | MCP-101 | `tool_arguments_invalid` | MCP tool arguments failed validation. |
 | MCP-201 | `project_not_registered` | The requested path is not inside a registered project. |
@@ -1198,7 +1223,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 
 ### B.2 Explorer (`Explorer.dc.html`)
 
-- **Three columns:** tree | details | source.
+- **Three columns:** tree | details | source. With a member selected in the tree there are two: tree | header and source (the source takes the place of the facts and the member table, ADR 0066).
 - **Tree:** layer → namespace → type → groups "Properties & fields" / "Methods" → members. Kind badges and counts; the selected member is highlighted.
 - **Details:**
   - breadcrumb, name with kind pill and base type
@@ -1250,7 +1275,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 
 ### B.9 Groups and roles (`Roles.dc.html`)
 
-- **Role matrix:** permissions (`read`, `read_source`, `scan`, `manage`, `register_project`, `admin`) against Admin (global), Maintainer, Member, Viewer. Note that Viewer sees no source excerpts and that admin access without a grant is audited.
+- **Role matrix:** permissions (`read`, `read_source`, `scan`, `annotate`, `manage`, `register_project`, `admin`) against Admin (global), Maintainer, Member, Viewer. `annotate` (ADR 0068) is held by Admin, Maintainer and Member, not by Viewer. Note that Viewer sees no source excerpts and that admin access without a grant is audited.
 - **Group cards:** members, SSO claim value, grants per project.
 
 ### B.10 Access tokens (`Tokens.dc.html`)
@@ -1272,6 +1297,22 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 
 - **Theme cards** (Hell, Petrol, Dunkel) with live miniature preview, name, short description, colour strip and "Select" or "Selected" pill. Option "Follow system setting".
 - **Language** select. Note that theme and language are stored per user.
+
+### B.14 Annotations (`Annotations.dc.html`)
+
+- **Mark "system critical" (variant B):** edge stripe and label "KRITISCH" on the row in the member table (no shield there), stripe, small shield and a count chip on groups in the tree, shield and label in the details and on diagram nodes.
+- **Tree and table:** counters for notes and tasks (tasks as done/total).
+- **Side panel:** tabs Info, Critical, Notes, Tasks (each with its symbol and its name; amended 2026-11-17 after the product owner found the shield alone unclear); notes with author and date, tasks with a check box, due date and assignee; buttons "Add note" and "Remove mark".
+- **Second board:** the same table with the text of notes and tasks under the row (switch "Show annotations").
+
+### B.15 Alerts (`Alerts.dc.html`)
+
+- **Bell** in the top bar with the number of open alerts; **drawer** with the tabs Open, Changed, Removed, Done; per alert kind label (changed, removed, orphaned), symbol, what changed (for example "CC 7 → 9"), time and trigger (file watcher, Git check); orphaned alerts (target not found) are listed under "Removed" and offer "Reassign" and "Remove mark"; a cross removes an alert; "Remove all" for the current filter.
+- **Second board:** the dependency map with critical nodes (stripe, label "K"), switch "Highlight critical" and "only critical and their neighbours".
+
+### B.16 Task board (`Tasks.dc.html`)
+
+- Page "Annotations": columns Open, In progress, Done with task cards (symbol, text, due date, assignee); filters Mine, Only critical, Due; counters for open tasks and notes.
 
 ---
 

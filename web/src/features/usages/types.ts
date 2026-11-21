@@ -1,3 +1,4 @@
+import type { ScanReport } from "../../shared/project/report";
 /** A symbol on the screen. */
 export interface Place {
   id: number;
@@ -49,6 +50,7 @@ export interface UsagesAnswer {
   snapshot: number;
   symbol: Place;
   signature: string | null;
+  doc: string | null;
   path: string;
   depth: number;
   incoming: Walk | null;
@@ -57,6 +59,10 @@ export interface UsagesAnswer {
   impact: Impact;
   /** `unavailable` while no indexer exists for the project. */
   level2: string;
+  /** Id of the language of the symbol's file (ADR 0072); absent in an export of an older version. */
+  language?: string;
+  /** The report of the last scan; `null` if no scan stored one, absent in an older export. */
+  scan_report?: ScanReport | null;
 }
 
 /** The code line of one hit, from `usages.code`. */

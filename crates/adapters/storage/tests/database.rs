@@ -4,44 +4,18 @@
 mod common;
 
 use std::num::NonZeroU32;
-use std::path::PathBuf;
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use codeskimr_application::ports::{
-    PendingReference, ProjectRepository, Receiver, SnapshotData, SnapshotStore, SymbolFingerprints,
+    PendingReference, ProjectRemoval, ProjectRepository, Receiver, SnapshotData, SnapshotStore,
+    SymbolFingerprints,
 };
 use codeskimr_domain::{
     FileId, Fingerprint, Fingerprints, LanguageId, MetricKind, QualifiedName, ReferenceKind,
     ScanMode, SymbolId, SymbolKind,
 };
 use codeskimr_storage::{SqliteStore, StoreOptions};
-use common::{PROJECT, code_of, data, file, header, metric, project, reference, symbol};
+use common::{PROJECT, TempDb, code_of, data, file, header, metric, project, reference, symbol};
 use rusqlite::Connection;
-
-static NEXT: AtomicU32 = AtomicU32::new(0);
-
-/// A database path in a fresh temporary folder that is removed again on drop.
-#[cfg(test)]
-struct TempDb(PathBuf);
-
-#[cfg(test)]
-impl TempDb {
-    fn new() -> Self {
-        let unique = NEXT.fetch_add(1, Ordering::Relaxed);
-        let folder =
-            std::env::temp_dir().join(format!("codeskimr-storage-{}-{unique}", std::process::id()));
-        Self(folder.join("nested").join("workspace.db"))
-    }
-}
-
-#[cfg(test)]
-impl Drop for TempDb {
-    fn drop(&mut self) {
-        if let Some(root) = self.0.parent().and_then(std::path::Path::parent) {
-            let _ = std::fs::remove_dir_all(root);
-        }
-    }
-}
 
 #[cfg(test)]
 fn keep(count: u32) -> NonZeroU32 {
@@ -70,7 +44,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 14));
+    assert_eq!((mode.as_str(), version), ("wal", 17));
 }
 
 #[test]
@@ -165,16 +139,22 @@ fn scan_with_every_table(snapshot: u64, base: u64) -> SnapshotData {
     scan
 }
 
-#[test]
-fn pruned_snapshots_leave_no_rows_behind() {
-    let db = TempDb::new();
-    let store = SqliteStore::open(&db.0, keep(1)).unwrap();
-    store.save_project(&project(1, "/work/app", &[])).unwrap();
+/// Persists the full scans 10 and 20 of project 1.
+#[cfg(test)]
+fn persist_two_scans(store: &SqliteStore) {
     for (snapshot, base) in [(10, 100), (20, 200)] {
         store
             .persist(scan_with_every_table(snapshot, base))
             .unwrap();
     }
+}
+
+#[test]
+fn pruned_snapshots_leave_no_rows_behind() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(1)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    persist_two_scans(&store);
     let conn = Connection::open(&db.0).unwrap();
     for (table, expected) in [
         ("snapshots", 1),
@@ -193,12 +173,7 @@ fn pruned_snapshots_leave_no_rows_behind() {
         ("snapshot_warnings", 1),
         ("pending_references", 1),
     ] {
-        let rows: i64 = conn
-            .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
-                row.get(0)
-            })
-            .unwrap();
-        assert_eq!(rows, expected, "table {table}");
+        assert_eq!(rows_of(&conn, table), expected, "table {table}");
     }
 }
 
@@ -592,10 +567,17 @@ fn a_version_eleven_database_keeps_its_layers_without_a_limit() {
     drop(SqliteStore::open(&db.0, keep(3)).unwrap());
     let conn = Connection::open(&db.0).unwrap();
     conn.execute_batch(
-        "DROP TABLE snapshot_warnings;
+        "DROP TABLE level2_languages;
+         DROP TABLE level2_reports;
+         DROP TABLE scan_reports;
+         DROP TABLE alert;
+         DROP TABLE annotation_baseline;
+         DROP TABLE annotation;
+         DROP TABLE snapshot_warnings;
          DROP TABLE layer_uses;
          ALTER TABLE layers DROP COLUMN restricted;
          DROP VIEW symbols;
+         ALTER TABLE symbol_rows DROP COLUMN content_hash;
          ALTER TABLE symbol_rows DROP COLUMN origin;
          PRAGMA user_version = 11;
          INSERT INTO projects (id, name, source_kind, location, branch)
@@ -749,4 +731,69 @@ fn symbols_that_level_two_created_are_pruned_with_their_file() {
         .unwrap();
     assert_eq!(origins, 0);
     assert_eq!(rows_of(&conn, "symbol_references"), 1);
+}
+
+/// The names of all tables the migrations created, without the bookkeeping of the migrations.
+#[cfg(test)]
+fn data_tables(conn: &Connection) -> Vec<String> {
+    let mut statement = conn
+        .prepare(
+            "SELECT name FROM sqlite_master WHERE type = 'table' \
+             AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%migration%'",
+        )
+        .unwrap();
+    statement
+        .query_map([], |row| row.get::<_, String>(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect()
+}
+
+#[test]
+fn removing_a_project_leaves_no_rows_in_any_table_and_keeps_the_others() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    store.save_project(&project(2, "/work/other", &[])).unwrap();
+    persist_two_scans(&store);
+    let mut other = scan_with_every_table(30, 300);
+    other.snapshot.project = codeskimr_domain::ProjectId::new(2);
+    store.persist(other).unwrap();
+    Connection::open(&db.0)
+        .unwrap()
+        .execute(
+            "INSERT INTO level2_consent VALUES (1, 1, 1, 'folder', '/work/app', '')",
+            [],
+        )
+        .unwrap();
+    store.remove_project(PROJECT).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    assert_eq!(rows_of(&conn, "projects"), 1);
+    assert_eq!(rows_of(&conn, "snapshots"), 1);
+    assert_eq!(rows_of(&conn, "level2_consent"), 0);
+    // Only the rows of project 2 are left.
+    assert_eq!(rows_of(&conn, "files"), 1);
+    store
+        .remove_project(codeskimr_domain::ProjectId::new(2))
+        .unwrap();
+    for table in data_tables(&conn) {
+        assert_eq!(rows_of(&conn, &table), 0, "table {table}");
+    }
+    assert_eq!(
+        code_of(&store.remove_project(PROJECT).unwrap_err()),
+        "PRJ-201"
+    );
+}
+
+#[test]
+fn removing_a_project_with_shared_rows_of_an_incremental_scan_leaves_nothing() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    full_then_incremental(&store);
+    store.remove_project(PROJECT).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    for table in data_tables(&conn) {
+        assert_eq!(rows_of(&conn, &table), 0, "table {table}");
+    }
 }

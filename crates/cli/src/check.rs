@@ -3,9 +3,9 @@
 use codeskimr_application::conventions::{CheckReport, Detail, Finding, Location};
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
-    CLI_CHECK_DUPLICATE, CLI_CHECK_FINDING, CLI_CHECK_NOT_CHECKED, CLI_CHECK_SUMMARY,
-    CLI_CHECK_TOO_COMPLEX, CLI_CHECK_TOO_LONG, CLI_CHECK_TOO_MANY_PARAMETERS, CLI_CHECK_UNCHECKED,
-    CLI_CHECK_UNMATCHED,
+    CLI_CHECK_DUPLICATE, CLI_CHECK_FINDING, CLI_CHECK_LITERALS, CLI_CHECK_NOT_CHECKED,
+    CLI_CHECK_SUMMARY, CLI_CHECK_TOO_COMPLEX, CLI_CHECK_TOO_LONG, CLI_CHECK_TOO_MANY_PARAMETERS,
+    CLI_CHECK_UNCHECKED, CLI_CHECK_UNMATCHED,
 };
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde::Serialize;
@@ -94,6 +94,10 @@ fn detail_line(
             };
             messages.format(language, key, Some(&args))
         }
+        Detail::Literals { count } => {
+            args.set(arg::COUNT, FluentValue::from(*count));
+            messages.format(language, CLI_CHECK_LITERALS, Some(&args))
+        }
         Detail::Duplicate {
             of,
             similarity_percent,
@@ -126,6 +130,8 @@ struct JsonFinding {
     #[serde(skip_serializing_if = "Option::is_none")]
     limit: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    literals: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     duplicate_of: Option<JsonPlace>,
     #[serde(skip_serializing_if = "Option::is_none")]
     similarity_percent: Option<u32>,
@@ -155,33 +161,17 @@ fn place(location: &Location) -> JsonPlace {
 }
 
 fn json_finding(finding: &Finding) -> JsonFinding {
-    let mut json = JsonFinding {
+    let measure = finding.detail.measure();
+    JsonFinding {
         code: finding.code.id(),
         at: place(&finding.location),
-        lines: None,
-        value: None,
-        limit: None,
-        duplicate_of: None,
-        similarity_percent: None,
-    };
-    match &finding.detail {
-        Detail::TooLong { lines, limit } => {
-            json.lines = Some(*lines);
-            json.limit = Some(*limit);
-        }
-        Detail::Over { value, limit } => {
-            json.value = Some(*value);
-            json.limit = Some(*limit);
-        }
-        Detail::Duplicate {
-            of,
-            similarity_percent,
-        } => {
-            json.duplicate_of = Some(place(of));
-            json.similarity_percent = Some(*similarity_percent);
-        }
+        lines: measure.lines,
+        value: measure.value,
+        limit: measure.limit,
+        literals: measure.literals,
+        duplicate_of: measure.duplicate_of.map(place),
+        similarity_percent: measure.similarity_percent,
     }
-    json
 }
 
 /// The report as one line of JSON. Lines are one-based.

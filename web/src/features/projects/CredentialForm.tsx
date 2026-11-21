@@ -11,6 +11,8 @@ import styles from "./CredentialForm.module.css";
 /** Props of the form: it tells the screen which credential was stored. */
 export interface CredentialFormProps {
   onStored: (id: string) => void;
+  /** Whether the section starts open. */
+  open?: boolean;
 }
 
 /** The inputs of the form, filled in by their refs. */
@@ -155,7 +157,7 @@ export function CredentialForm(props: CredentialFormProps) {
   };
   const onEnter = enterHandler(submit);
   return (
-    <details class={styles.box} onToggle={closeHandler(forget)}>
+    <details class={styles.box} open={props.open} onToggle={closeHandler(forget)}>
       <summary class={styles.summary}>{t(I18N_KEYS.PROJECTS_CREDENTIAL_NEW)}</summary>
       <div class={styles.fields} role="group" aria-label={t(I18N_KEYS.PROJECTS_CREDENTIAL_NEW)}>
         <Inputs fields={fields} onEnter={onEnter} />

@@ -140,6 +140,7 @@ mod tests {
             ["Enum", "EnumMember", "Struct", "Trait", "TypeAlias"]
         );
         assert_eq!(spec.separator, "::");
+        assert_eq!(spec.library_root, "lib.rs");
     }
 
     #[test]

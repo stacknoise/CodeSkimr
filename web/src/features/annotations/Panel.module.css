@@ -1,0 +1,125 @@
+/* The tab list and the body of the side panel (mock Annotations.dc.html: .tabs, .det). */
+.panel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* The container that the width of the tab list is asked from: an inactive tab drops its name when
+   the room is short, and keeps its symbol and counter (blueprint 15.4). */
+.wrap {
+    flex: none;
+    container-type: inline-size;
+    border-bottom: 1px solid var(--line);
+}
+
+.tabs {
+    display: flex;
+    padding: 0 var(--space-8);
+    overflow: hidden;
+}
+
+.tab {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-6);
+    flex: none;
+    padding: var(--space-12) var(--space-8);
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font: 13px var(--font-sans);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.tab:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}
+
+.on {
+    color: var(--accent);
+    box-shadow: inset 0 -2px 0 var(--accent);
+    font-weight: 600;
+}
+
+.name {
+    white-space: nowrap;
+}
+
+.count {
+    padding: 0 var(--space-6);
+    border-radius: 9px;
+    background: var(--accent-bg);
+    font: 600 11px var(--font-sans);
+    white-space: nowrap;
+}
+
+.warn {
+    background: var(--warn-bg);
+    color: var(--warn);
+}
+
+.shield {
+    display: inline-flex;
+    color: var(--muted);
+}
+
+.marked {
+    color: var(--critical);
+}
+
+/* The tab Info has no symbol, so it keeps its name: without it nothing of the tab would be left. */
+@container (max-width: 380px) {
+    .tab:not(.on):not(.iconless) .name {
+        display: none;
+    }
+}
+
+.notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-8);
+    margin: 0;
+    padding: var(--space-6) var(--space-12);
+    border-bottom: 1px solid var(--line);
+    background: var(--accent-bg);
+    color: var(--ink);
+    font-size: 12px;
+}
+
+.notice[role="alert"] {
+    background: var(--bad-bg);
+    color: var(--bad);
+}
+
+.close {
+    flex: none;
+    padding: 0 var(--space-4);
+    border: 0;
+    background: none;
+    color: inherit;
+    font: 16px var(--font-sans);
+    cursor: pointer;
+}
+
+.close:focus-visible {
+    outline: 2px solid var(--accent);
+}
+
+.body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.note {
+    margin: 0;
+    padding: var(--space-16);
+    color: var(--muted);
+}

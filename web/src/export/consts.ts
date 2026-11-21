@@ -7,6 +7,10 @@ export const DATA_ELEMENT_ID = "codeskimr-data";
  * crates/app/src/ui_commands/consts.rs). */
 export const DATA_FORMAT = 1;
 
+/** Steps of the usages walk the export holds (`EXPORT_DEPTH` in
+ * crates/app/src/ui_commands/consts.rs): only the direct usages. */
+export const EXPORT_USAGES_DEPTH = 1;
+
 /** Start of the address part that names the screen; the export is one file, so the screens are
  * told apart by the fragment. */
 export const HASH_PREFIX = "#";

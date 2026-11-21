@@ -3,12 +3,14 @@
 use std::collections::HashSet;
 
 use super::consts::{
-    FORBIDDEN_EDITOR_SCHEMES, PATH_SEPARATORS, PERCENT_MAX, PLACEHOLDER_PATH, SCHEME_EXTRA_CHARS,
-    UNIT_MAX, UNIT_MIN, URL_SCHEME_SEPARATOR, keys,
+    FORBIDDEN_EDITOR_SCHEMES, MAX_PARALLEL_RUNS_LIMIT, PATH_SEPARATORS, PERCENT_MAX,
+    PLACEHOLDER_PATH, SCHEME_EXTRA_CHARS, UI_COOLDOWN_MIN_SECONDS, UNIT_MAX, UNIT_MIN,
+    URL_SCHEME_SEPARATOR, keys,
 };
 use super::error::{ConfigError, Violation};
 use super::model::{
-    Budgets, Config, Conventions, Editor, KeySources, Level2, McpLimits, MetricThresholds, Scan, Ui,
+    Annotations, Budgets, Config, Conventions, Editor, KeySources, Level2, McpLimits,
+    MetricThresholds, Scan, Ui,
 };
 
 fn check_keys(sources: &KeySources) -> Result<(), ConfigError> {
@@ -40,13 +42,15 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     positive(keys::SERVER_PORT, u32::from(config.server.port))?;
     check_conventions(&config.conventions)?;
     check_keys(&config.keys)?;
+    check_annotations(&config.annotations)?;
     check_layers(config)?;
     check_scan(&config.scan)?;
     check_level2(&config.level2)?;
     check_editor(&config.editor)?;
     check_ui(&config.ui)?;
     positive(keys::GRAPH_NODE_WIDTH, config.graph.node_width)?;
-    positive(keys::GRAPH_NODE_HEIGHT, config.graph.node_height)
+    positive(keys::GRAPH_NODE_HEIGHT, config.graph.node_height)?;
+    positive(keys::GRAPH_ROW_BOXES, config.graph.row_boxes)
 }
 
 fn check_conventions(conventions: &Conventions) -> Result<(), ConfigError> {
@@ -66,6 +70,45 @@ fn check_conventions(conventions: &Conventions) -> Result<(), ConfigError> {
         keys::DUPLICATE_SIMILARITY_PERCENT,
         conventions.duplicate_similarity_percent,
     )?;
+    Ok(())
+}
+
+fn check_annotations(annotations: &Annotations) -> Result<(), ConfigError> {
+    positive(
+        keys::ANNOTATIONS_RETENTION_DAYS,
+        annotations.dismissed_retention_days,
+    )?;
+    positive(keys::ANNOTATIONS_MAX_TEXT_CHARS, annotations.max_text_chars)?;
+    positive(
+        keys::ANNOTATIONS_MAX_TITLE_CHARS,
+        annotations.max_title_chars,
+    )?;
+    positive(
+        keys::ANNOTATIONS_MAX_ASSIGNEE_CHARS,
+        annotations.max_assignee_chars,
+    )?;
+    positive(keys::ANNOTATIONS_MAX_NAME_CHARS, annotations.max_name_chars)?;
+    positive(
+        keys::ANNOTATIONS_MAX_PARAMETER_CHARS,
+        annotations.max_parameter_chars,
+    )?;
+    positive(keys::ANNOTATIONS_MAX_PARAMETERS, annotations.max_parameters)?;
+    positive(
+        keys::ANNOTATIONS_DEFAULT_PAGE,
+        annotations.default_page_size,
+    )?;
+    if annotations.default_page_size > annotations.max_page_size {
+        return fail(
+            keys::ANNOTATIONS_DEFAULT_PAGE,
+            Violation::MustNotExceed(keys::ANNOTATIONS_MAX_PAGE),
+        );
+    }
+    if annotations.max_title_chars > annotations.max_text_chars {
+        return fail(
+            keys::ANNOTATIONS_MAX_TITLE_CHARS,
+            Violation::MustNotExceed(keys::ANNOTATIONS_MAX_TEXT_CHARS),
+        );
+    }
     Ok(())
 }
 
@@ -151,6 +194,7 @@ fn check_budgets(budgets: &Budgets) -> Result<(), ConfigError> {
         (keys::GRAPH_LAYOUT_MS, budgets.graph_layout_ms),
         (keys::FULL_SCAN_MS, budgets.full_scan_100k_loc_ms),
         (keys::INCREMENTAL_RESCAN_MS, budgets.incremental_rescan_ms),
+        (keys::PACK_LOAD_MS, budgets.pack_load_ms),
         (keys::MEMORY_MB, budgets.memory_1m_loc_mb),
         (keys::BINARY_SIZE_MB, budgets.binary_size_mb),
     ];
@@ -203,6 +247,23 @@ fn check_level2(level2: &Level2) -> Result<(), ConfigError> {
         );
     }
     positive(keys::LEVEL2_MAX_CREATED_SYMBOLS, level2.max_created_symbols)?;
+    positive(
+        keys::LEVEL2_CONFIRM_WINDOW_COOLDOWN_SECONDS,
+        level2.confirm_window_cooldown_seconds,
+    )?;
+    positive(keys::LEVEL2_MAX_PARALLEL_RUNS, level2.max_parallel_runs)?;
+    if level2.max_parallel_runs > MAX_PARALLEL_RUNS_LIMIT {
+        return fail(
+            keys::LEVEL2_MAX_PARALLEL_RUNS,
+            Violation::MustNotPass(MAX_PARALLEL_RUNS_LIMIT),
+        );
+    }
+    if level2.ui_cooldown_seconds < UI_COOLDOWN_MIN_SECONDS {
+        return fail(
+            keys::LEVEL2_UI_COOLDOWN_SECONDS,
+            Violation::MustReach(UI_COOLDOWN_MIN_SECONDS),
+        );
+    }
     share(keys::LEVEL2_MIN_MAPPED, level2.min_mapped)
 }
 
@@ -265,12 +326,26 @@ fn check_editor(editor: &Editor) -> Result<(), ConfigError> {
 
 fn check_ui(ui: &Ui) -> Result<(), ConfigError> {
     positive(keys::UI_LAUNCH_CODE_SECONDS, ui.launch_code_seconds)?;
+    positive(keys::UI_LEVEL2_POLL_SECONDS, ui.level2_poll_seconds)?;
+    if ui.level2_poll_max_seconds < ui.level2_poll_seconds {
+        return fail(
+            keys::UI_LEVEL2_POLL_MAX_SECONDS,
+            Violation::MustNotBeBelow(keys::UI_LEVEL2_POLL_SECONDS),
+        );
+    }
     let is_bad = |name: &str| name.is_empty() || name.contains(PATH_SEPARATORS);
     if is_bad(&ui.default_theme) {
         return fail(keys::UI_DEFAULT_THEME, Violation::MustBeFolderName);
     }
     if ui.dir.is_empty() {
         return fail(keys::UI_DIR, Violation::MustNotBeEmpty);
+    }
+    if ui
+        .approximate_languages
+        .iter()
+        .any(|id| id.trim().is_empty())
+    {
+        return fail(keys::UI_APPROXIMATE_LANGUAGES, Violation::MustNotBeEmpty);
     }
     Ok(())
 }

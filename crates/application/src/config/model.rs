@@ -1,9 +1,10 @@
 //! The typed configuration. There is no string-keyed access anywhere (blueprint section 14).
 
 use codeskimr_domain::{
-    FingerprintParams, Layer, LayerName, LayoutParams, ModelError, NodeSize, QualifiedName,
+    AnnotationLimits, FingerprintParams, Layer, LayerName, LayoutParams, ModelError, NodeSize,
+    QualifiedName,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::time::Duration;
 
@@ -42,6 +43,8 @@ pub struct Config {
     pub ui: Ui,
     /// The picture of the dependency map.
     pub graph: Graph,
+    /// Limits of annotations and alerts (ADR 0068).
+    pub annotations: Annotations,
     /// Where `find_constants` looks for configuration and translation keys.
     pub keys: KeySources,
 }
@@ -65,7 +68,7 @@ pub struct KeySources {
 }
 
 /// One architecture layer as written in `.codeskimr.toml`.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct LayerRule {
     /// Name of the layer, unique in the project.
@@ -74,7 +77,7 @@ pub struct LayerRule {
     pub namespaces: Vec<String>,
     /// Names of the layers this layer may depend on (ADR 0054). Missing means no limit; an empty
     /// list means none.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub may_use: Option<Vec<String>>,
 }
 
@@ -146,6 +149,8 @@ pub struct Budgets {
     pub full_scan_100k_loc_ms: u32,
     /// Incremental re-scan after saving one file, in milliseconds.
     pub incremental_rescan_ms: u32,
+    /// Loading the Rust and C# packs on a first scan, in milliseconds.
+    pub pack_load_ms: u32,
     /// Idle CPU load in percent.
     pub idle_cpu_percent: u32,
     /// Memory for 1M lines of code, in megabytes.
@@ -255,6 +260,14 @@ pub struct Level2 {
     /// Most symbols one index may make level 2 create (ADR 0055); an index that wants more fails
     /// as a whole.
     pub max_created_symbols: u32,
+    /// Pause in seconds after the console window of the confirmation was opened, during which no
+    /// other window is opened for any project (ADR 0071, decision 4a).
+    pub confirm_window_cooldown_seconds: u32,
+    /// Most level 2 runs at the same time over all projects (ADR 0072).
+    pub max_parallel_runs: u32,
+    /// Pause in seconds after a run that the browser started has ended, before the same project
+    /// may start another one from the browser (ADR 0072).
+    pub ui_cooldown_seconds: u32,
 }
 
 /// The local server (blueprint 10.3).
@@ -285,6 +298,48 @@ pub struct Ui {
     pub dir: String,
     /// How long a one-time launch code is valid, in seconds.
     pub launch_code_seconds: u32,
+    /// How often the projects screen asks for the level 2 state while the confirmation window is
+    /// open, in seconds (ADR 0071, decision 3).
+    pub level2_poll_seconds: u32,
+    /// How long the projects screen keeps asking, in seconds.
+    pub level2_poll_max_seconds: u32,
+    /// Ids of the languages whose usages the screens mark as an approximation.
+    pub approximate_languages: Vec<String>,
+}
+
+/// Limits of annotations and alerts (blueprint 14, ADR 0068).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Annotations {
+    /// Days a dismissed alert is kept before it is purged.
+    pub dismissed_retention_days: u32,
+    /// Most characters of the text of an annotation.
+    pub max_text_chars: u32,
+    /// Most characters of the title of a task.
+    pub max_title_chars: u32,
+    /// Most characters of the assignee of a task.
+    pub max_assignee_chars: u32,
+    /// Most characters of the qualified name of the symbol an annotation is put on.
+    pub max_name_chars: u32,
+    /// Most characters of one parameter type of that symbol.
+    pub max_parameter_chars: u32,
+    /// Most parameter types of that symbol.
+    pub max_parameters: u32,
+    /// Rows of a list of annotations or alerts when the caller gives no limit.
+    pub default_page_size: u32,
+    /// Most rows of one page of such a list.
+    pub max_page_size: u32,
+}
+
+impl Annotations {
+    /// The limits for the texts of annotations.
+    #[must_use]
+    pub const fn limits(&self) -> AnnotationLimits {
+        AnnotationLimits {
+            max_text_chars: self.max_text_chars,
+            max_title_chars: self.max_title_chars,
+        }
+    }
 }
 
 /// Syntax fingerprints (blueprint 10.4).
@@ -329,6 +384,9 @@ pub struct Graph {
     pub sweeps: u32,
     /// Number of passes that move the boxes towards their neighbours.
     pub placement_passes: u32,
+    /// Most boxes in one line of a row; a longer row wraps into several lines, so that a project
+    /// with hundreds of namespaces stays readable.
+    pub row_boxes: u32,
 }
 
 impl Graph {

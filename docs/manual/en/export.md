@@ -12,13 +12,13 @@ codeskimr export <project> --html <file>
 - The project must have been scanned; the **newest snapshot** is exported. Export while no scan is running, otherwise the file can mix two snapshots.
 - The command prints where the file went and how many symbols it holds. A file that already exists is replaced.
 
-The command needs the built export page of the UI: `npm run build` in `web/` makes it (`dist/export/export.html`), The page is part of the program; if there is a UI folder (`ui.dir`, see [Installation](installation.md)), the page from that folder is used instead. If it is missing in both places, the command stops with `EXP-201`.
+The command needs the built export page of the UI: `npm run build` in `web/` makes it (`dist/export/export.html`). The page is part of the program; if there is a UI folder (`ui.dir`, see [Installation](installation.md)), the page from that folder is used instead. If it is missing in both places, the command stops with `EXP-201`.
 
 ## What is in the file
 
 - The tree of layers, namespaces and types.
 - For every type and member: breadcrumb, metrics, signature, documentation comment, file and line range.
-- The usages of every symbol (callers and callees, as deep as `mcp.max_depth` allows, tests included; the toolbar filters work in the page) and the impact of a change.
+- The usages of every symbol (callers and callees, direct usages only, tests included; the toolbar filters work in the page; the depth select is not offered) and the impact of a change.
 - The dependency map as CodeSkimr laid it out.
 - Name, commit and date of the scan.
 
@@ -33,14 +33,14 @@ The page looks and behaves like the app. Navigation uses the address fragment (`
 
 ## Unchecked usages stay visible
 
-Every usage keeps its mark (verified, unchecked, presumed) and the page shows the same notice as the app when no indexer checked anything ([Usages](usages.md#certainty-verified-unchecked-presumed)). A strip under the top bar counts verified and unchecked direct usages of the whole export, so a page that is read months later still says how far it can be trusted.
+Every usage keeps its mark (verified, unchecked, presumed) and the page shows the same notice as the app when level 2 checked none of the hits ([Usages](usages.md#certainty-verified-unchecked-presumed)). A strip under the top bar counts verified and unchecked direct usages of the whole export, so a page that is read months later still says how far it can be trusted.
 
 ## Limits
 
 - It is a snapshot. Scanning, adding projects and settings are not part of it.
 - Only types and the members of types are listed, like in the explorer; free functions outside a type are not.
 - The quick search is a plain match on names (start, part, letters in order), not the ranking of the app.
-- The size grows with the references, because the usages of every symbol are embedded. Large projects give files of many megabytes.
+- The size grows about linearly with the references, because the direct usages of every symbol are embedded. As a guide: about 1.4 MB for 400 symbols, about 5 MB for 1,300 and about 64 MB for 7,400 (the whole CodeSkimr source). Very large projects give files of many megabytes. Walks through other symbols (depth 2 and more) are only in the app: they grow much faster than the project and made the file too big to open.
 
 ## Errors
 

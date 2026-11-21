@@ -1,6 +1,11 @@
-import { createEffect, For, Match, onCleanup, Show, Switch } from "solid-js";
+import { createEffect, For, onCleanup, Show } from "solid-js";
+import { Dynamic } from "solid-js/web";
+import { AlertsDrawer } from "../features/alerts/Drawer";
+import { hideDrawer, refreshCount } from "../features/alerts/store";
+import { BoardScreen } from "../features/annotations/BoardScreen";
 import { ConnectionScreen } from "../features/session/ConnectionScreen";
 import { GraphScreen } from "../features/graph/GraphScreen";
+import { LayersScreen } from "../features/layers/LayersScreen";
 import { ExplorerScreen } from "../features/explorer/ExplorerScreen";
 import { listenToScans } from "../features/scan/events";
 import { ScanScreen } from "../features/scan/ScanScreen";
@@ -13,15 +18,21 @@ import { StatusBar } from "../features/status/StatusBar";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
 import { t } from "../shared/i18n/i18n";
 import { I18N_KEYS } from "../shared/i18n/keys";
+import { activeProject } from "../shared/project/active";
 import { KIND } from "../shared/session/consts";
 import { sessionState } from "../shared/session/session";
 import { cx } from "../shared/ui/cx";
+import { screenAt, type ScreenTable } from "../shared/ui/screenAt";
 import {
+  ANNOTATIONS_ROUTE,
   EXPLORER_ROUTE,
   FLUSH_PATHS,
   FOOTER_ROUTES,
   GRAPH_ROUTE,
+  LAYERS_ROUTE,
   MAIN_ROUTES,
+  PROJECT_PATHS,
+  PROJECTS_ROUTE,
   SCAN_ROUTE,
   SETTINGS_ROUTE,
   USAGES_ROUTE,
@@ -29,39 +40,54 @@ import {
 import styles from "./App.module.css";
 import { RailLink, TopBar } from "./Frame";
 import { ProjectCrumb } from "./ProjectCrumb";
-import { currentPath } from "./router";
+import { currentPath, navigate } from "./router";
+
+/** The screens of the app by their path; the projects screen answers every other path. */
+const SCREENS: ScreenTable = [
+  [SETTINGS_ROUTE.path, SettingsScreen],
+  [LAYERS_ROUTE.path, LayersScreen],
+  [GRAPH_ROUTE.path, GraphScreen],
+  [SCAN_ROUTE.path, ScanScreen],
+  [EXPLORER_ROUTE.path, ExplorerScreen],
+  [ANNOTATIONS_ROUTE.path, BoardScreen],
+  [USAGES_ROUTE.path, UsagesScreen],
+];
 
 /** The screen of the current path. */
 function Screen() {
-  return (
-    <Switch fallback={<ProjectsScreen />}>
-      <Match when={currentPath() === SETTINGS_ROUTE.path}>
-        <SettingsScreen />
-      </Match>
-      <Match when={currentPath() === GRAPH_ROUTE.path}>
-        <GraphScreen />
-      </Match>
-      <Match when={currentPath() === SCAN_ROUTE.path}>
-        <ScanScreen />
-      </Match>
-      <Match when={currentPath() === EXPLORER_ROUTE.path}>
-        <ExplorerScreen />
-      </Match>
-      <Match when={currentPath() === USAGES_ROUTE.path}>
-        <UsagesScreen />
-      </Match>
-    </Switch>
-  );
+  return <Dynamic component={screenAt(SCREENS, currentPath(), ProjectsScreen)} />;
+}
+
+/** Sends the user to the projects when a screen of a project is shown while none is open. */
+function sendBackWithoutProject() {
+  createEffect(() => {
+    if (PROJECT_PATHS.includes(currentPath()) && activeProject() === null) {
+      navigate(PROJECTS_ROUTE.path);
+    }
+  });
+}
+
+/** The number on the bell follows the project; the drawer belongs to one project. */
+function followProjectOnBell() {
+  createEffect(() => {
+    const project = activeProject();
+    hideDrawer();
+    if (sessionState().kind === KIND.connected) {
+      void refreshCount(project);
+    }
+  });
 }
 
 /** The frame of every screen: top bar, rail, main area and status bar (blueprint 15.2). */
 export function App() {
   useSearchShortcut(openSearch);
+  sendBackWithoutProject();
   createEffect(() => {
     if (sessionState().kind === KIND.connected) {
       onCleanup(listenToScans());
     }
   });
+  followProjectOnBell();
   return (
     <div class={styles.root}>
       <TopBar>
@@ -83,6 +109,7 @@ export function App() {
         </main>
       </div>
       <QuickSearch />
+      <AlertsDrawer />
       <StatusBar />
     </div>
   );

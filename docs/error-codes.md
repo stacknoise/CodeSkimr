@@ -12,10 +12,12 @@ Owner: `codeskimr`
 |---|---|---|---|---|---|
 | APP-201 | `data_dir_unavailable` | error | no | 0.1.0 | The user data directory cannot be created or opened. |
 | APP-202 | `launch_file_unavailable` | error | yes | 0.1.0 | The private file for starting the browser could not be created. |
-| APP-203 | `language_packs_unavailable` | error | yes | 0.1.0 | The language packs built into the program could not be written to the data directory. |
 | APP-301 | `instance_already_running` | error | no | 0.1.0 | Another CodeSkimr instance holds the workspace; connecting to it failed. |
 | APP-901 | `unexpected_internal_error` | error | no | 0.1.0 | An unexpected internal error occurred (bug). |
 | APP-601 | `browser_start_failed` | error | yes | 0.1.0 | The system did not start a browser for the launch file. |
+| APP-602 | `language_packs_unavailable` | error | yes | 0.1.0 | The language packs built into the program could not be written to the data directory. |
+| APP-603 | `tray_start_failed` | error | yes | 0.1.0 | The program could not start itself in the background or show its tray icon. |
+| APP-604 | `confirm_window_failed` | error | yes | 0.9.0 | The console window for the level 2 confirmation could not be started; the screen shows the command instead. |
 
 ## CFG – Configuration
 
@@ -26,6 +28,8 @@ Owner: `codeskimr_application`
 | CFG-101 | `config_invalid_value` | error | no | 0.1.0 | A configuration value is outside its allowed range or has the wrong type. |
 | CFG-102 | `config_parse_failed` | error | no | 0.1.0 | A configuration file is not valid TOML. |
 | CFG-103 | `config_unknown_key` | error | no | 0.1.0 | A configuration file or flag sets a key that does not exist. |
+| CFG-104 | `project_file_not_writable` | error | no | 0.9.0 | The project file `.codeskimr.toml` could not be written. |
+| CFG-105 | `level2_switch_off` | error | no | 0.9.0 | Level 2 is not enabled in the user configuration; the program does not enable it itself. |
 
 ## PRJ – Projects and snapshots
 
@@ -39,6 +43,7 @@ Owner: `codeskimr_application`
 | PRJ-302 | `snapshot_in_progress` | error | no | 0.1.0 | A scan for this project is already running. |
 | PRJ-303 | `scan_cancelled` | info | yes | 0.1.0 | The scan was cancelled by the user; no snapshot was written. |
 | PRJ-501 | `too_many_scans` | error | yes | 0.1.0 | As many scans run at the same time as the server allows; try again when one has ended. |
+| PRJ-502 | `scan_report_not_stored` | warning | no | 0.9.0 | The report of the scan (its level and what level 2 did per language) could not be stored; the scan and its snapshot are stored. |
 
 ## SRC – Sources: file system, Git, watcher
 
@@ -109,7 +114,7 @@ Owner: `codeskimr_secrets, codeskimr_application`
 |---|---|---|---|---|---|
 | SEC-201 | `credential_not_found` | error | no | 0.1.0 | The referenced credential does not exist in the keystore. |
 | SEC-202 | `credential_damaged` | error | no | 0.1.0 | The keystore entry of the credential cannot be read; delete it and create the credential again. |
-| SEC-301 | `indexer_not_confirmed` | error | no | 0.1.0 | Level 2 is not enabled and confirmed for this project in the user configuration or the user's own project record, so no indexer is started. |
+| SEC-301 | `indexer_not_confirmed` | error | no | 0.1.0 | Level 2 is not enabled in the user configuration (`[level2] enabled`) or not confirmed for this project, so no indexer is started. |
 | SEC-401 | `credential_rejected` | error | no | 0.1.0 | The platform rejected the credential. |
 | SEC-402 | `keystore_access_denied` | error | no | 0.1.0 | The OS keystore denied access. |
 | SEC-403 | `indexer_not_permitted` | error | no | 0.1.0 | The caller may not confirm or start indexers; only the local owner may (ADR 0033, decision 10). |
@@ -142,14 +147,15 @@ Owner: `codeskimr_server`
 |---|---|---|---|---|---|
 | API-101 | `request_invalid` | error | no | 0.1.0 | The REST request failed validation. |
 | API-102 | `bind_address_not_local` | error | no | 0.1.0 | The server was asked to listen on an address that is not a loopback address. |
-| API-201 | `command_not_found` | error | no | 0.1.0 | The REST request names a command or route that does not exist. |
+| API-201 | `command_not_found` | error | no | 0.1.0 | The request names a command, tool or route that does not exist. |
 | API-301 | `server_bind_failed` | error | no | 0.1.0 | The server could not listen on its address, for example because the port is taken. |
-| API-401 | `token_missing_or_invalid` | error | no | 0.1.0 | A state-changing request lacks a valid installation token. |
+| API-401 | `token_missing_or_invalid` | error | no | 0.1.0 | The request lacks a valid installation token. |
 | API-402 | `host_or_origin_rejected` | error | no | 0.1.0 | The Host or Origin header of the request is not one of this server. |
 | API-403 | `launch_code_invalid` | error | no | 0.1.0 | The one-time launch code is wrong, already used or expired. |
 | API-501 | `request_too_large` | error | no | 0.1.0 | The request body is larger than the server accepts. |
 | API-502 | `server_busy` | error | yes | 0.1.0 | The server already serves as many event streams as it allows. |
 | API-503 | `request_timed_out` | error | yes | 0.1.0 | The request took longer than the server waits for it. |
+| API-504 | `confirm_window_rate_limited` | error | yes | 0.9.0 | A confirmation window was opened a moment ago; try again after the pause. |
 | API-601 | `server_not_reachable` | error | yes | 0.1.0 | The command needs a running local server and could not reach it. |
 
 ## MCP – MCP server
@@ -190,6 +196,21 @@ Owner: `codeskimr_application`
 |---|---|---|---|---|---|
 | EXP-201 | `export_bundle_missing` | error | no | 0.1.0 | The built export page of the UI is missing or unusable. |
 | EXP-601 | `export_write_failed` | error | no | 0.1.0 | The export file could not be written. |
+
+## ANN – Annotations and alerts (ADR 0068)
+
+Owner: `codeskimr_application, codeskimr_storage`
+
+| Code | Name | Severity | Retryable | Since | Description |
+|---|---|---|---|---|---|
+| ANN-101 | `annotation_target_not_found` | error | no | 0.1.0 | The symbol an annotation is meant for is not in the newest snapshot of the project. |
+| ANN-102 | `annotation_text_too_long` | error | no | 0.1.0 | The text or the title of an annotation is longer than the configured limit. |
+| ANN-103 | `annotation_invalid` | error | no | 0.1.0 | The fields of an annotation do not fit its kind (for example a due date on a note), or a required text or title is missing or empty. |
+| ANN-104 | `annotation_assignee_too_long` | error | no | 0.1.0 | The assignee of a task is longer than the configured limit. |
+| ANN-105 | `annotation_target_too_long` | error | no | 0.1.0 | The qualified name or a parameter type of the symbol of an annotation is longer than the configured limit, or the symbol has more parameter types than allowed. |
+| ANN-201 | `annotation_not_found` | error | no | 0.1.0 | No annotation with this id exists. |
+| ANN-202 | `alert_not_found` | error | no | 0.1.0 | No alert with this id exists. |
+| ANN-301 | `critical_already_marked` | error | no | 0.1.0 | The symbol already has a critical mark; a symbol has at most one. |
 
 ## UI – Frontend
 

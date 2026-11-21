@@ -1,5 +1,5 @@
 .panel {
-    width: 320px;
+    width: var(--panel-width, 320px) /* fallback */;
     flex: none;
     background: var(--surface);
     border-left: 1px solid var(--line);
@@ -16,6 +16,7 @@
 }
 
 .title {
+    overflow-wrap: anywhere;
     margin: 2px 0 0;
     font: 700 18px var(--font-mono);
 }

@@ -13,6 +13,10 @@ pub const PROJECT_UPSERT: &str = "INSERT INTO projects (id, name, source_kind, l
     location = excluded.location, branch = excluded.branch, credential = excluded.credential";
 /// Whether a project exists: id.
 pub const PROJECT_EXISTS: &str = "SELECT COUNT(*) FROM projects WHERE id = ?1";
+/// Removes a project; layers, consent, tool reports and annotations follow by cascade: id.
+pub const PROJECT_DELETE: &str = "DELETE FROM projects WHERE id = ?1";
+/// All snapshots of a project: project id.
+pub const SNAPSHOTS_OF_PROJECT: &str = "SELECT id FROM snapshots WHERE project_id = ?1";
 /// Removes the layers of a project (their namespaces go with them): project id.
 pub const LAYERS_DELETE: &str = "DELETE FROM layers WHERE project_id = ?1";
 /// Adds a layer: project id, position, name, whether it has a `may_use` list.
@@ -58,8 +62,19 @@ pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files,
 pub const SNAPSHOT_PROJECT: &str = "SELECT project_id FROM snapshots WHERE id = ?1";
 /// The snapshots that hold a file: file id.
 pub const SNAPSHOTS_WITH_FILE: &str = "SELECT DISTINCT snapshot_id FROM files WHERE id = ?1";
-/// Removes the references that stand in a file: file id.
-pub const REFERENCES_OF_FILE_DELETE: &str = "DELETE FROM symbol_references WHERE file_id = ?1";
+/// Removes the references that level 2 verified in a file: file id.
+pub const VERIFIED_REFERENCES_OF_FILE_DELETE: &str =
+    "DELETE FROM symbol_references WHERE file_id = ?1 AND verified = 1";
+/// Removes the level 1 references of a file whose range overlaps the range of a verified reference
+/// (level 1 may start earlier than the indexer, as with `a::foo()`), because the verified one
+/// answers there: file id.
+pub const SHADOWED_REFERENCES_DELETE: &str = "DELETE FROM symbol_references WHERE file_id = ?1 \
+    AND verified = 0 AND EXISTS (SELECT 1 FROM symbol_references AS checked \
+    WHERE checked.file_id = symbol_references.file_id AND checked.verified = 1 \
+    AND (checked.start_line, checked.start_column) \
+        <= (symbol_references.end_line, symbol_references.end_column) \
+    AND (symbol_references.start_line, symbol_references.start_column) \
+        <= (checked.end_line, checked.end_column))";
 
 /// Adds a snapshot header: id, project, commit, created, mode, files, symbols, references.
 pub const SNAPSHOT_INSERT: &str = "INSERT INTO snapshots \
@@ -133,11 +148,11 @@ pub const ORIGIN_SYMBOLS_DELETE: &str =
 pub const FILE_INSERT: &str = "INSERT INTO files \
     (snapshot_id, id, path, language, content_hash, loc) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
 /// Adds a symbol: id, file, kind, name, qualified name, parent, visibility, static,
-/// start line and column, end line and column, signature, doc, origin.
+/// start line and column, end line and column, signature, doc, origin, content hash.
 pub const SYMBOL_INSERT: &str = "INSERT INTO symbol_rows (id, file_id, kind, name, \
     qualified_name, parent_id, visibility, is_static, start_line, start_column, end_line, \
-    end_column, signature, doc, origin) \
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)";
+    end_column, signature, doc, origin, content_hash) \
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)";
 /// Adds a reference: id, snapshot that writes it, from, to, file, start line and column, end line
 /// and column, kind, confidence, verified.
 pub const REFERENCE_INSERT: &str = "INSERT INTO symbol_references (id, first_snapshot, \
@@ -361,11 +376,14 @@ pub const TYPE_COUNT: &str = "SELECT COUNT(*) FROM type_summary WHERE snapshot_i
 
 /// Namespaces, modules and types of one kind with their member count: snapshot, kind.
 pub const OUTLINE_OF_KIND: &str = "SELECT s.kind, s.id, s.name, s.qualified_name, s.parent_id, \
-    (SELECT COUNT(*) FROM symbols m WHERE m.snapshot_id = s.snapshot_id AND m.parent_id = s.id) \
+    (SELECT COUNT(*) FROM symbols m WHERE m.snapshot_id = s.snapshot_id AND m.parent_id = s.id), \
+    (SELECT f.language FROM files f WHERE f.snapshot_id = s.snapshot_id AND f.id = s.file_id) \
     FROM symbols s WHERE s.snapshot_id = ?1 AND s.kind = ?2";
+/// The language of a file: snapshot, file id.
+pub const FILE_LANGUAGE: &str = "SELECT language FROM files WHERE snapshot_id = ?1 AND id = ?2";
 /// Member table of a symbol: snapshot, symbol, complexity metric.
 pub const MEMBER_ROWS: &str = "SELECT s.id, s.name, s.kind, s.visibility, s.signature, \
-    s.start_line, s.end_line, \
+    s.start_line, s.end_line, s.qualified_name, \
     (SELECT x.value FROM metrics x WHERE x.snapshot_id = s.snapshot_id AND x.symbol_id = s.id \
         AND x.kind = ?3), \
     COALESCE((SELECT u.usages FROM usage_counts u WHERE u.snapshot_id = s.snapshot_id \
@@ -475,3 +493,171 @@ pub const SNAPSHOT_NAMES_SET: &str = "UPDATE snapshots SET names_stored = 1 WHER
 pub const SNAPSHOT_NAMES_STORED: &str = "SELECT names_stored FROM snapshots WHERE id = ?1";
 /// Removes a reference that the new snapshot does not contain: id.
 pub const REFERENCE_DELETE: &str = "DELETE FROM symbol_references WHERE id = ?1";
+
+/// Whether the newest snapshot of the project holds a symbol: project, kind, qualified name.
+pub const ANNOTATION_TARGET_EXISTS: &str = "SELECT COUNT(*) FROM symbols WHERE snapshot_id = \
+    (SELECT MAX(id) FROM snapshots WHERE project_id = ?1) AND kind = ?2 AND qualified_name = ?3";
+/// The number of annotations of a kind on a symbol other than the given one: project, target kind,
+/// name, parameters, annotation kind, annotation id (0 for a new one).
+pub const ANNOTATION_KIND_COUNT: &str = "SELECT COUNT(*) FROM annotation WHERE project_id = ?1 \
+    AND target_kind = ?2 AND target_name = ?3 AND target_params = ?4 AND kind = ?5 AND id <> ?6";
+/// Adds an annotation: project, target kind, name, parameters, kind, title, text, status, due,
+/// assignee, author, created, updated.
+pub const ANNOTATION_INSERT: &str = "INSERT INTO annotation (project_id, target_kind, target_name, \
+    target_params, kind, title, text, status, due, assignee, author, created, updated) \
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)";
+/// One annotation: id.
+pub const ANNOTATION_BY_ID: &str = "SELECT id, project_id, target_kind, target_name, target_params, kind, title, text, status, \
+    due, assignee, author, created, updated, without_target \
+    FROM annotation WHERE id = ?1";
+/// Replaces target and content of an annotation: id, target kind, name, parameters, title, text,
+/// status, due, assignee, updated, without target.
+pub const ANNOTATION_UPDATE: &str = "UPDATE annotation SET target_kind = ?2, target_name = ?3, \
+    target_params = ?4, title = ?5, text = ?6, status = ?7, due = ?8, assignee = ?9, updated = ?10, \
+    without_target = ?11 WHERE id = ?1";
+/// Whether the project has an annotation at all: project.
+pub const ANNOTATION_ANY: &str = "SELECT EXISTS (SELECT 1 FROM annotation WHERE project_id = ?1)";
+/// Marks the annotations of a project whose symbol the snapshot lacks: project, snapshot.
+pub const ANNOTATION_LOSE_TARGET: &str = "UPDATE annotation SET without_target = 1 \
+    WHERE project_id = ?1 AND without_target = 0 AND NOT EXISTS \
+    (SELECT 1 FROM symbol_rows s JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?2 \
+     WHERE s.qualified_name = annotation.target_name AND s.kind = annotation.target_kind)";
+/// Unmarks the annotations of a project whose symbol the snapshot has: project, snapshot.
+pub const ANNOTATION_FIND_TARGET: &str = "UPDATE annotation SET without_target = 0 \
+    WHERE project_id = ?1 AND without_target = 1 AND EXISTS \
+    (SELECT 1 FROM symbol_rows s JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?2 \
+     WHERE s.qualified_name = annotation.target_name AND s.kind = annotation.target_kind)";
+/// Deletes an annotation with its baseline and alerts: id.
+pub const ANNOTATION_DELETE: &str = "DELETE FROM annotation WHERE id = ?1";
+/// The annotations of a project, optionally of one kind: project, kind or null.
+pub const ANNOTATIONS_OF_PROJECT: &str = "SELECT id, project_id, target_kind, target_name, target_params, kind, title, text, status, \
+    due, assignee, author, created, updated, without_target \
+    FROM annotation WHERE project_id = ?1 AND (?2 IS NULL OR kind = ?2) ORDER BY id";
+/// The annotations of one symbol, optionally of one kind: project, kind or null, target kind, name,
+/// parameters.
+pub const ANNOTATIONS_OF_TARGET: &str = "SELECT id, project_id, target_kind, target_name, target_params, kind, title, text, status, \
+    due, assignee, author, created, updated, without_target \
+    FROM annotation WHERE project_id = ?1 AND (?2 IS NULL OR kind = ?2) AND target_name = ?4 \
+     AND target_kind = ?3 AND target_params = ?5 ORDER BY id";
+/// The kind of an annotation: id.
+pub const ANNOTATION_KIND: &str = "SELECT kind FROM annotation WHERE id = ?1";
+/// The baseline of an annotation: annotation id.
+pub const BASELINE_BY_ANNOTATION: &str = "SELECT content_hash, signature_hash, loc, cc \
+    FROM annotation_baseline WHERE annotation_id = ?1";
+/// Replaces the baseline of an annotation: annotation id, content hash, signature hash, loc, cc.
+pub const BASELINE_UPSERT: &str = "INSERT INTO annotation_baseline \
+    (annotation_id, content_hash, signature_hash, loc, cc) VALUES (?1, ?2, ?3, ?4, ?5) \
+    ON CONFLICT (annotation_id) DO UPDATE SET content_hash = excluded.content_hash, \
+    signature_hash = excluded.signature_hash, loc = excluded.loc, cc = excluded.cc";
+/// Drops the baseline of an annotation that now has another symbol: annotation id.
+pub const BASELINE_DELETE: &str = "DELETE FROM annotation_baseline WHERE annotation_id = ?1";
+/// Counts the open alert of an annotation once more and keeps its latest sighting: annotation id,
+/// now, kind, snapshot, commit, trigger, changes, references, closest, seen content, seen
+/// signature, seen loc, seen cc.
+pub const ALERT_RAISE_OPEN: &str = concat!(
+    "UPDATE alert SET counter = counter + 1, last_seen = ?2, ",
+    "kind = ?3, snapshot_id = ?4, commit_hash = ?5, trigger = ?6, changes = ?7, refs = ?8, ",
+    "closest = ?9, seen_content = ?10, seen_signature = ?11, seen_loc = ?12, seen_cc = ?13 ",
+    "WHERE annotation_id = ?1 AND state = 'open'"
+);
+/// Like `ALERT_RAISE_OPEN`, but the counter stays: the open alert only says what the symbol looks
+/// like now (a symbol that came back after it was removed).
+pub const ALERT_UPDATE_OPEN: &str = concat!(
+    "UPDATE alert SET last_seen = ?2, ",
+    "kind = ?3, snapshot_id = ?4, commit_hash = ?5, trigger = ?6, changes = ?7, refs = ?8, ",
+    "closest = ?9, seen_content = ?10, seen_signature = ?11, seen_loc = ?12, seen_cc = ?13 ",
+    "WHERE annotation_id = ?1 AND state = 'open'"
+);
+/// Adds an open alert with the counter one: annotation id, now, kind, snapshot, commit, trigger,
+/// changes, references, closest, seen content, seen signature, seen loc, seen cc.
+pub const ALERT_INSERT: &str = "INSERT INTO alert (annotation_id, state, counter, first_seen, \
+    last_seen, kind, snapshot_id, commit_hash, trigger, changes, refs, closest, seen_content, \
+    seen_signature, seen_loc, seen_cc) \
+    VALUES (?1, 'open', 1, ?2, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)";
+/// The open alert of an annotation: annotation id.
+pub const ALERT_OPEN_OF_ANNOTATION: &str = "SELECT a.id, a.annotation_id, a.state, a.counter, a.first_seen, a.last_seen, a.dismissed, \
+    a.kind, a.snapshot_id, a.commit_hash, a.trigger, a.changes, a.refs, a.closest, \
+    a.seen_content, a.seen_signature, a.seen_loc, a.seen_cc \
+    FROM alert a WHERE a.annotation_id = ?1 AND a.state = 'open'";
+/// One alert: id.
+pub const ALERT_BY_ID: &str = "SELECT a.id, a.annotation_id, a.state, a.counter, a.first_seen, a.last_seen, a.dismissed, \
+    a.kind, a.snapshot_id, a.commit_hash, a.trigger, a.changes, a.refs, a.closest, \
+    a.seen_content, a.seen_signature, a.seen_loc, a.seen_cc \
+    FROM alert a WHERE a.id = ?1";
+/// The alerts of a project, optionally in one state, newest sighting first: project, state or null.
+pub const ALERTS_OF_PROJECT: &str = "SELECT a.id, a.annotation_id, a.state, a.counter, a.first_seen, a.last_seen, a.dismissed, \
+    a.kind, a.snapshot_id, a.commit_hash, a.trigger, a.changes, a.refs, a.closest, \
+    a.seen_content, a.seen_signature, a.seen_loc, a.seen_cc \
+    FROM alert a JOIN annotation n ON n.id = a.annotation_id WHERE n.project_id = ?1 \
+     AND (?2 IS NULL OR a.state = ?2) ORDER BY a.last_seen DESC, a.id DESC";
+/// Dismisses an open alert: id, now.
+pub const ALERT_DISMISS: &str =
+    "UPDATE alert SET state = 'dismissed', dismissed = ?2 WHERE id = ?1 AND state = 'open'";
+/// Deletes the dismissed alerts that were dismissed before a time: time.
+pub const ALERT_PURGE: &str = "DELETE FROM alert WHERE state = 'dismissed' AND dismissed < ?1";
+
+/// The symbols of a snapshot with a qualified name, with the content hash and the lines and
+/// complexity: snapshot, name, origin of level 1, label of the lines metric, label of the complexity
+/// metric.
+pub const STATE_SYMBOLS: &str = "SELECT s.kind, s.qualified_name, s.signature, s.content_hash, \
+    COALESCE((SELECT CAST(m.value AS INTEGER) FROM metric_rows m \
+        WHERE m.symbol_id = s.id AND m.kind = ?4), 0), \
+    COALESCE((SELECT CAST(m.value AS INTEGER) FROM metric_rows m \
+        WHERE m.symbol_id = s.id AND m.kind = ?5), 0) \
+    FROM symbol_rows s JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1 \
+    WHERE s.origin = ?3 AND s.qualified_name = ?2 ORDER BY s.id";
+/// The content hashes below a namespace, through the symbols that have none (nested namespaces):
+/// snapshot, kind of the namespace, its qualified name.
+pub const STATE_CHILD_HASHES: &str = "WITH RECURSIVE tree(id) AS ( \
+    SELECT s.id FROM symbol_rows s JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1 \
+        WHERE s.kind = ?2 AND s.qualified_name = ?3 \
+    UNION ALL \
+    SELECT c.id FROM symbol_rows c JOIN tree t ON c.parent_id = t.id WHERE c.content_hash IS NULL) \
+    SELECT c.content_hash FROM symbol_rows c JOIN tree t ON c.parent_id = t.id \
+    WHERE c.content_hash IS NOT NULL";
+/// How many names written in the files of a snapshot are one of two texts: snapshot, qualified
+/// name, simple name.
+pub const STATE_REMAINING_NAMES: &str = "SELECT COUNT(*) FROM pending_references p \
+    WHERE p.file_id IN (SELECT id FROM files WHERE snapshot_id = ?1) \
+    AND (p.target = ?2 OR p.target = ?3)";
+/// How many of the indexes of `ENSURE_STATE_INDEXES` exist.
+pub const STATE_INDEX_PROBE: &str = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND \
+    name IN ('symbols_by_name', 'symbols_by_simple_name', 'pending_references_by_target')";
+/// The indexes the alert step reads through: by qualified name and by simple name for the symbols of
+/// an annotation, and by target for the names that still point at a vanished one. They are made
+/// when the first critical annotation needs them and not with the schema, because every scan pays
+/// for them on writing.
+pub const ENSURE_STATE_INDEXES: &str = "\
+    CREATE INDEX IF NOT EXISTS symbols_by_name ON symbol_rows (qualified_name); \
+    CREATE INDEX IF NOT EXISTS symbols_by_simple_name ON symbol_rows (name); \
+    CREATE INDEX IF NOT EXISTS pending_references_by_target ON pending_references (target);";
+/// Kind and qualified name of the symbols of a snapshot with a simple name, of level 1: snapshot,
+/// name, origin of level 1.
+pub const STATE_SAME_NAME: &str = "SELECT s.kind, s.qualified_name FROM symbol_rows s \
+    JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1 \
+    WHERE s.name = ?2 AND s.origin = ?3 ORDER BY s.id";
+
+/// Replaces the header of the newest scan: project id, time, level, origin. Inserts nothing for a
+/// project that does not exist.
+pub const SCAN_REPORT_UPSERT: &str = "INSERT INTO scan_reports (project_id, scanned_at, level, origin) \
+    SELECT id, ?2, ?3, ?4 FROM projects WHERE id = ?1 \
+    ON CONFLICT (project_id) DO UPDATE SET scanned_at = excluded.scanned_at, \
+    level = excluded.level, origin = excluded.origin";
+/// The header of the newest scan: project id.
+pub const SCAN_REPORT_BY_PROJECT: &str =
+    "SELECT scanned_at, level, origin FROM scan_reports WHERE project_id = ?1";
+/// Replaces the header of the newest second pass: project id, time, origin.
+pub const LEVEL2_REPORT_UPSERT: &str = "INSERT INTO level2_reports (project_id, run_at, origin) \
+    SELECT id, ?2, ?3 FROM projects WHERE id = ?1 \
+    ON CONFLICT (project_id) DO UPDATE SET run_at = excluded.run_at, origin = excluded.origin";
+/// The header of the newest second pass: project id.
+pub const LEVEL2_REPORT_BY_PROJECT: &str =
+    "SELECT run_at, origin FROM level2_reports WHERE project_id = ?1";
+/// Removes the language lines of a project: project id.
+pub const LEVEL2_LANGUAGES_DELETE: &str = "DELETE FROM level2_languages WHERE project_id = ?1";
+/// Adds one language line: project id, language, outcome, files, stale, reason, code.
+pub const LEVEL2_LANGUAGE_INSERT: &str = "INSERT INTO level2_languages \
+    (project_id, language, outcome, files, stale, reason, code) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)";
+/// The language lines of a project in the order of the language id: project id.
+pub const LEVEL2_LANGUAGES_BY_PROJECT: &str = "SELECT language, outcome, files, stale, reason, code \
+    FROM level2_languages WHERE project_id = ?1 ORDER BY language";

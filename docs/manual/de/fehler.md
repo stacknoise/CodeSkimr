@@ -31,14 +31,17 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 |---|---|---|
 | `APP-201` | der Datenordner kann nicht angelegt oder geöffnet werden | Pfad und Rechte prüfen (`--data-dir`) |
 | `APP-202` | die private Datei zum Starten des Browsers konnte nicht angelegt werden; wird auch abgelehnt, wenn ihr Ordner ein Link oder eine Junction ist (Windows) | Rechte des Datenordners prüfen; `codeskimr serve` starten und die Adresse von Hand öffnen |
-| `APP-203` (offen) | die im Programm enthaltenen Sprachpakete konnten nicht in den Datenordner geschrieben werden. **Offen:** Die Verpackung der eingebetteten Pakete wird noch fertiggestellt (Issue #351), Ursache und Text können sich vor 1.0 noch ändern | Platz schaffen und Rechte des Datenordners prüfen; ein Ordner `languages/` neben dem Programm wird stattdessen genutzt ([Installation](installation.md#bauen)) |
 | `APP-301` | eine andere CodeSkimr-Instanz hält den Arbeitsbereich, die Verbindung zu ihr ist fehlgeschlagen | die andere Instanz schließen oder `--data-dir` nutzen |
 | `APP-601` | das System hat keinen Browser gestartet | die von `codeskimr serve` ausgegebene Adresse von Hand öffnen |
+| `APP-603` | das Programm konnte sich nicht im Hintergrund starten oder sein Tray-Symbol nicht anzeigen | mit `--console` starten, dann bleibt es im Fenster; das Log liegt im Datenordner (`codeskimr.log`) |
+| `APP-604` | das Konsolenfenster für die Bestätigung von Ebene 2 ließ sich nicht starten | den angezeigten Befehl kopieren und in einem Terminal ausführen |
+| `APP-602` | die im Programm enthaltenen Sprachpakete konnten nicht in den Datenordner geschrieben werden | Platz schaffen und Rechte des Datenordners prüfen; ein Ordner `languages/` neben dem Programm (mit mindestens einem `<Sprache>/language.toml`) wird stattdessen genutzt ([Installation](installation.md#bauen)) |
 | `PRJ-101` | die Quelle ist weder ein vorhandener Ordner noch eine gültige Git-Adresse, oder die Adresse enthält Geheimnisse oder Leerzeichen oder beginnt mit einem Bindestrich, oder der Branchname ist ungültig, oder der Ordner ist relativ | absoluten Pfad angeben; Geheimnisse aus der Adresse nehmen ([Quellen und Zugangsdaten](quellen-und-zugangsdaten.md)) |
 | `PRJ-201` | kein solches Projekt | zuerst eintragen und scannen |
-| `PRJ-302` | ein Scan dieses Projekts läuft schon | abwarten |
+| `PRJ-302` | ein Scan dieses Projekts läuft schon (auch beim Entfernen des Projekts) | abwarten oder abbrechen |
 | `PRJ-303` | der Scan wurde abgebrochen, es gibt keinen neuen Snapshot | bei Bedarf neu starten |
 | `PRJ-501` | so viele Scans wie erlaubt (4) laufen gleichzeitig | warten, bis einer beendet ist |
+| `PRJ-502` | der Bericht eines Scans (seine Stufe) konnte nicht gespeichert werden; der Scan selbst ist gespeichert | erneut scannen; freien Platz im Datenordner prüfen |
 | `SRC-201` | ein Quellordner, eine Quelldatei oder ein Sprachpaket-Ordner existiert nicht oder ist nicht lesbar | Pfad und Rechte prüfen |
 | `SRC-401`, `SEC-*` | Anmeldung an einer Git-Gegenstelle oder der Schlüsselspeicher ist fehlgeschlagen | siehe [Quellen und Zugangsdaten](quellen-und-zugangsdaten.md#probleme) |
 | `NET-601` | die Browser-Anmeldung von `credential login` wurde nicht abgeschlossen | erneut ausführen |
@@ -47,6 +50,8 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | `PRS-201` | kein Sprachpaket für einen Dateityp | die Dateien dieses Typs werden nicht analysiert; Paket installieren |
 | `PRS-501` | eine Datei brauchte zu lange zum Parsen | `scan.parse_timeout_ms` erhöhen, wenn die Datei in Ordnung ist |
 | `CFG-101`, `CFG-102`, `CFG-103` | ungültiger Wert, nicht lesbare Datei, unbekannter Schlüssel in der Konfiguration | die in der Meldung genannte Einstellung korrigieren |
+| `CFG-104` | die Datei `.codeskimr.toml` ließ sich beim Speichern der Schichten in der Oberfläche nicht schreiben | Projektordner beschreibbar machen oder die `[[layers]]`-Tabellen von Hand eintragen |
+| `CFG-105` | Ebene 2 ist in der Benutzerkonfiguration nicht eingeschaltet | `[level2]` / `enabled = true` in die eigene `config.toml` schreiben; CodeSkimr tut das nie selbst |
 | `RES-*` | Ebene 2 (Indexer): Werkzeug fehlt oder zu alt (`RES-201`), Index zu groß, Zeitlimit, Ausgabe- oder Speichergrenze (`RES-501` bis `RES-504`), Indexer fehlgeschlagen (`RES-601`), Index beschädigt (`RES-101`), zu wenige Vorkommen zuordenbar (`RES-302`); Ebene 1 bleibt in jedem Fall | siehe [Sprach-Indexer](indexer.md#fehler) |
 | `SEC-301`, `SEC-403` | Ebene 2 ist nicht eingeschaltet und bestätigt, oder der Aufrufer darf sie nicht bestätigen | einschalten und `codeskimr level2 confirm <Projekt>` in einem Terminal ausführen |
 | `PRJ-303` | kein Fehler: Sie haben den Scan abgebrochen | erneut starten |

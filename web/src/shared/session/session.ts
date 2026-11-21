@@ -17,6 +17,18 @@ const [state, setState] = createSignal<SessionState>({ kind: KIND.connecting });
 /** The state of the connection. */
 export const sessionState = state;
 
+const [reachable, setReachable] = createSignal(true);
+
+/** Whether the last call to the local server got an answer. A closed console window ends the
+ * server while the page stays open: this turns `false` then, and `true` again once the server
+ * answers. */
+export const serverReachable = reachable;
+
+/** Tells the session whether a call of the UI reached the server. */
+export function noteReachable(answered: boolean): void {
+  setReachable(answered);
+}
+
 whenInvalidated(() => setState({ kind: KIND.reopen, reason: REASON.missing }));
 
 interface Exchanged {

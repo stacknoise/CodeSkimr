@@ -2,6 +2,8 @@
 #![allow(dead_code, missing_docs)]
 
 use std::num::NonZeroU32;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use codeskimr_application::ports::SnapshotData;
 use codeskimr_codes::Coded;
@@ -131,6 +133,7 @@ pub fn data(snapshot: Snapshot) -> SnapshotData {
         references: Vec::new(),
         metrics: Vec::new(),
         fingerprints: Vec::new(),
+        hashes: Vec::new(),
         removed: Vec::new(),
         pending: Vec::new(),
         dropped_references: Vec::new(),
@@ -177,4 +180,26 @@ pub fn scanned_project(
     scan.metrics = metrics;
     store.persist(scan).unwrap();
     store
+}
+
+static NEXT: AtomicU32 = AtomicU32::new(0);
+
+/// A database path in a fresh temporary folder that is removed again on drop.
+pub struct TempDb(pub PathBuf);
+
+impl TempDb {
+    pub fn new() -> Self {
+        let unique = NEXT.fetch_add(1, Ordering::Relaxed);
+        let folder =
+            std::env::temp_dir().join(format!("codeskimr-storage-{}-{unique}", std::process::id()));
+        Self(folder.join("nested").join("workspace.db"))
+    }
+}
+
+impl Drop for TempDb {
+    fn drop(&mut self) {
+        if let Some(root) = self.0.parent().and_then(std::path::Path::parent) {
+            let _ = std::fs::remove_dir_all(root);
+        }
+    }
 }

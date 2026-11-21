@@ -328,6 +328,16 @@ impl IndexRunner for ProcessIndexRunner {
         }
     }
 
+    fn locate(&self, program: &str) -> Option<String> {
+        let path = self
+            .source_env
+            .iter()
+            .find(|(name, _)| name.to_string_lossy().eq_ignore_ascii_case(PATH_ENV))
+            .map(|(_, value)| value.clone())?;
+        // No project here: the data folder stands in for the folder `PATH` must not lead into.
+        resolve(program, &path, &self.data_dir).map(|found| found.to_string_lossy().into_owned())
+    }
+
     fn run(&self, job: &IndexJob<'_>, cancel: &CancelToken) -> Result<IndexArtifact, CodedError> {
         self.execute(job, cancel).map_err(|error| {
             Self::log(job.spec, &error);

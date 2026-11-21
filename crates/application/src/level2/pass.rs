@@ -1,5 +1,5 @@
 //! The second pass of a scan: runs the indexer of each language, if the user allowed it, and
-//! replaces the level 1 references of the files it checked (ADR 0033).
+//! replaces the level 1 references of the files it checked where it answers (ADR 0033).
 //!
 //! The pass never fails the scan. Whatever goes wrong, the snapshot of level 1 stays as it was
 //! written and the report says why a language was skipped.
@@ -10,8 +10,8 @@ use std::sync::Arc;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    FolderPath, LanguageId, Principal, Project, Reference, RelativePath, Snapshot, SourceFile,
-    Symbol,
+    FileId, FolderPath, LanguageId, Level2Stage, Principal, Project, Reference, RelativePath,
+    Snapshot, SourceFile, Span, Symbol,
 };
 
 use super::authorize_run;
@@ -20,11 +20,12 @@ use super::report::{LanguageReport, Level2Outcome, Level2Result, Skipped};
 use crate::cancel::CancelToken;
 use crate::config::Level2;
 use crate::error::CodedError;
+use crate::events::{Event, EventBus, Level2Progressed};
 use crate::ids::IdSequence;
 use crate::ports::{
     ConsentStore, FileDiscovery, ImportRequest, Imported, IndexJob, IndexRunner, IndexerSpec,
     IndexerStatus, Level2Replacement, PreviousIndex, ProjectRepository, ReferenceImporter,
-    SnapshotStore,
+    SnapshotStore, StoredNames,
 };
 
 /// The ports and settings of the second pass, wired by the composition root.
@@ -50,6 +51,8 @@ pub struct Level2Pass {
     /// How to run the indexer of each language that has one. Languages that name the same
     /// indexer (TypeScript, JavaScript and TSX; Java and Kotlin) share one run.
     pub indexers: Vec<(LanguageId, IndexerSpec)>,
+    /// Where the run tells which language it works on (ADR 0072).
+    pub events: EventBus,
 }
 
 /// The languages that one run of one indexer covers.
@@ -127,6 +130,37 @@ impl Level2Pass {
         })
     }
 
+    /// Whether `principal` may run the indexers of `project` now (`authorize_run`), without
+    /// running anything. The run asks again when it starts, so a consent that goes away in
+    /// between is honoured.
+    ///
+    /// # Errors
+    /// `NotPermitted` (`SEC-403`) or `NotConfirmed` (`SEC-301`).
+    pub fn authorize(
+        &self,
+        principal: &Principal,
+        project: &Project,
+        root: &FolderPath,
+    ) -> Result<(), Skipped> {
+        authorize_run(principal, &self.settings, &self.consent, project, root)
+            .map(|_| ())
+            .map_err(Skipped::from)
+    }
+
+    /// The languages that have an indexer.
+    pub fn languages(&self) -> impl Iterator<Item = &LanguageId> {
+        self.indexers.iter().map(|(language, _)| language)
+    }
+
+    fn announce(&self, snapshot: &Snapshot, language: &LanguageId, stage: Level2Stage) {
+        self.events
+            .publish(&Event::Level2Progressed(Level2Progressed {
+                project: snapshot.project,
+                language: language.clone(),
+                stage,
+            }));
+    }
+
     fn skip_all(&self, reason: &Skipped) -> Vec<LanguageReport> {
         self.indexers
             .iter()
@@ -188,8 +222,10 @@ impl Level2Pass {
             limits: self.settings.limits(),
             permit: &permit,
         };
+        self.announce(scan.snapshot, language, Level2Stage::Running);
         let artifact = self.runner.run(&job, scan.cancel).map_err(Skipped::from)?;
         let (current, stale) = self.unchanged(scan, group)?;
+        self.announce(scan.snapshot, language, Level2Stage::Importing);
         let imported = self.import(scan, group.spec, artifact.path(), &current)?;
         if scan.cancel.is_cancelled() {
             return Err(Skipped::Cancelled);
@@ -205,6 +241,7 @@ impl Level2Pass {
         index: &Path,
         files: &[SourceFile],
     ) -> Result<Imported, Skipped> {
+        let import_sites = self.import_sites(scan, files)?;
         self.importer
             .import(&ImportRequest {
                 index,
@@ -217,10 +254,31 @@ impl Level2Pass {
                 min_mapped: self.settings.min_mapped,
                 symbol_kinds: &spec.symbol_kinds,
                 separator: &spec.separator,
+                library_root: &spec.library_root,
                 max_created_symbols: usize::try_from(self.settings.max_created_symbols)
                     .unwrap_or(usize::MAX),
+                import_sites: &import_sites,
             })
             .map_err(Skipped::from)
+    }
+
+    /// Where level 1 read the names of the imports of `files`. A snapshot that does not hold its
+    /// names gives none (its imports then count as uses, as before); a failure of the store
+    /// fails the import.
+    fn import_sites(
+        &self,
+        scan: &Scan<'_>,
+        files: &[SourceFile],
+    ) -> Result<Vec<(FileId, Span)>, Skipped> {
+        let ids: Vec<FileId> = files.iter().map(|file| file.id).collect();
+        let names = self
+            .projects
+            .stored_names(scan.snapshot.id, StoredNames::ImportsOf(&ids))
+            .map_err(Skipped::from)?;
+        Ok(names
+            .into_iter()
+            .map(|name| (name.file, name.span))
+            .collect())
     }
 
     /// The files of the group whose content is still the one of the snapshot, and the number of
@@ -273,6 +331,7 @@ impl Level2Pass {
             stale,
             mapped: imported.mapped,
             dropped: imported.dropped,
+            outside_scan: imported.outside_scan,
         };
         Ok((checked, fresh))
     }

@@ -12,26 +12,101 @@ use tokio::time::timeout;
 const UPGRADE: &str = "GET /api/v1/events HTTP/1.1\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n";
 const STREAM_CAP: usize = 16;
 const CONNECTION_CAP: usize = 256;
+const SETTLE_GRACE: Duration = Duration::from_millis(200);
+/// How far the paused clock moves before the server gets real time to react (see [`collect_stepped`]).
+const CLOCK_STEP: Duration = Duration::from_secs(5);
+/// How long a stalled body may stay unanswered, in paused-clock time.
+const STALL_LIMIT: Duration = Duration::from_secs(120);
+
+/// Gives the server a moment of real time to see what the client just did.
+///
+/// The tests with a paused clock jump ahead as soon as the runtime has nothing to do. On macOS the
+/// operating system can report a fresh connection or fresh bytes on a loopback socket a moment
+/// after the client side has finished with them, so the paused clock would already have run out a
+/// deadline (the test's own or the server's) before the server had seen anything. A blocking task
+/// keeps the clock from jumping meanwhile.
+#[cfg(test)]
+async fn settle() {
+    tokio::task::spawn_blocking(|| std::thread::sleep(SETTLE_GRACE))
+        .await
+        .unwrap();
+}
+
+/// Connects and lets the server accept the connection (see [`settle`]).
+#[cfg(test)]
+async fn connect(server: &Running) -> TcpStream {
+    let stream = TcpStream::connect(server.address).await.unwrap();
+    settle().await;
+    stream
+}
 
 /// The status line the server answers to `request`, or none if it closes without an answer.
 #[cfg(test)]
 async fn status_of(stream: &mut TcpStream, request: &str) -> Option<String> {
     stream.write_all(request.as_bytes()).await.unwrap();
+    status_line(stream).await
+}
+
+/// Like [`status_of`], but lets the server read the request before the answer is awaited (see
+/// [`settle`]), for the tests with a paused clock.
+#[cfg(test)]
+async fn status_of_settled(stream: &mut TcpStream, request: &str) -> Option<String> {
+    stream.write_all(request.as_bytes()).await.unwrap();
+    settle().await;
+    status_line(stream).await
+}
+
+/// The first line of what the server sends next, or none if it sends nothing.
+#[cfg(test)]
+async fn status_line(stream: &mut TcpStream) -> Option<String> {
     let mut buffer = vec![0_u8; 512];
     let read = stream.read(&mut buffer).await.unwrap_or_default();
     let text = String::from_utf8_lossy(buffer.get(..read).unwrap_or_default()).into_owned();
     text.lines().next().map(str::to_owned)
 }
 
-/// What the server sends until it closes the connection, or none if it does not within `limit`.
+/// What the server sends until it closes the connection, or none if it does not within `limit`
+/// of paused-clock time (see [`collect_stepped`]).
 #[cfg(test)]
 async fn until_closed(stream: &mut TcpStream, limit: Duration) -> Option<Vec<u8>> {
-    let mut rest = Vec::new();
-    timeout(limit, stream.read_to_end(&mut rest))
-        .await
-        .ok()?
-        .ok()?;
-    Some(rest)
+    collect_stepped(stream, limit, |_| false).await
+}
+
+/// Reads what the server sends while the paused clock moves in steps of `CLOCK_STEP`.
+///
+/// A single long wait on a paused clock lets the runtime jump to the deadline as soon as it is
+/// idle, even if the operating system has not yet reported the server's answer or its close on the
+/// loopback socket (macOS, issue #528). After every step the server gets real time to act and to
+/// be seen (see [`settle`]). The result is the bytes received once the server closed the
+/// connection or `is_complete` accepted them, or none if `limit` of clock time passed before.
+#[cfg(test)]
+async fn collect_stepped(
+    stream: &mut TcpStream,
+    limit: Duration,
+    is_complete: fn(&[u8]) -> bool,
+) -> Option<Vec<u8>> {
+    let mut collected = Vec::new();
+    let mut buffer = [0_u8; 1024];
+    let mut waited = Duration::ZERO;
+    loop {
+        match stream.try_read(&mut buffer) {
+            Ok(read) if read > 0 => {
+                collected.extend_from_slice(buffer.get(..read).unwrap_or_default());
+                if is_complete(&collected) {
+                    return Some(collected);
+                }
+                continue;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {}
+            Ok(_) | Err(_) => return Some(collected),
+        }
+        if waited >= limit {
+            return None;
+        }
+        tokio::time::advance(CLOCK_STEP).await;
+        waited += CLOCK_STEP;
+        settle().await;
+    }
 }
 
 #[cfg(test)]
@@ -106,7 +181,9 @@ async fn a_client_that_is_silent_is_not_answered_beyond_the_connection_cap() {
 #[tokio::test(start_paused = true)]
 async fn a_stream_whose_client_never_answers_the_pings_is_closed() {
     let server = start(owner()).await;
-    let (mut stream, status) = open_stream(&server).await;
+    let mut stream = connect(&server).await;
+    let request = format!("{UPGRADE}Host: {}\r\n\r\n", server.address);
+    let status = status_of_settled(&mut stream, &request).await;
     assert!(status.unwrap().contains("101"));
     let rest = until_closed(&mut stream, Duration::from_secs(300)).await;
     assert_ne!(rest.unwrap().len(), 0, "it pinged before it gave up");
@@ -115,7 +192,7 @@ async fn a_stream_whose_client_never_answers_the_pings_is_closed() {
 #[tokio::test(start_paused = true)]
 async fn a_connection_without_a_single_byte_is_closed() {
     let server = start(owner()).await;
-    let mut stream = TcpStream::connect(server.address).await.unwrap();
+    let mut stream = connect(&server).await;
     let closed = until_closed(&mut stream, Duration::from_secs(60)).await;
     assert!(
         closed.is_some(),
@@ -126,7 +203,7 @@ async fn a_connection_without_a_single_byte_is_closed() {
 #[tokio::test(start_paused = true)]
 async fn a_head_that_never_ends_closes_the_connection() {
     let server = start(owner()).await;
-    let mut stream = TcpStream::connect(server.address).await.unwrap();
+    let mut stream = connect(&server).await;
     stream
         .write_all(b"GET /api/v1/commands HTTP/1.1\r\nHost: ")
         .await
@@ -138,28 +215,19 @@ async fn a_head_that_never_ends_closes_the_connection() {
 /// The answer to a POST to `path` whose body stops after two bytes and never ends.
 #[cfg(test)]
 async fn answer_to_stalled_body(server: &Running, path: &str) -> String {
-    let mut stream = TcpStream::connect(server.address).await.unwrap();
+    let mut stream = connect(server).await;
     let head = format!(
         "POST {path} HTTP/1.1\r\nHost: {}\r\nAuthorization: Bearer {TOKEN}\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{{\"",
         server.address
     );
     stream.write_all(head.as_bytes()).await.unwrap();
-    let mut answer = Vec::new();
-    let finished = timeout(Duration::from_secs(120), async {
-        let mut buffer = [0_u8; 1024];
-        loop {
-            let read = stream.read(&mut buffer).await.unwrap_or_default();
-            answer.extend_from_slice(buffer.get(..read).unwrap_or_default());
-            if read == 0
-                || answer.windows(4).any(|part| part == b"\r\n\r\n") && answer.ends_with(b"}")
-            {
-                break;
-            }
-        }
+    settle().await;
+    let answer = collect_stepped(&mut stream, STALL_LIMIT, |answer| {
+        answer.windows(4).any(|part| part == b"\r\n\r\n") && answer.ends_with(b"}")
     })
     .await;
-    assert!(finished.is_ok());
-    String::from_utf8_lossy(&answer).into_owned()
+    assert!(answer.is_some(), "the server answered the stalled body");
+    String::from_utf8_lossy(&answer.unwrap_or_default()).into_owned()
 }
 
 #[tokio::test(start_paused = true)]
@@ -209,12 +277,12 @@ async fn an_mcp_body_that_never_ends_is_answered_with_a_timeout_code() {
 #[tokio::test(start_paused = true)]
 async fn an_mcp_body_without_the_token_is_not_read_at_all() {
     let server = common::start_mcp(owner()).await;
-    let mut stream = TcpStream::connect(server.address).await.unwrap();
+    let mut stream = connect(&server).await;
     let head = format!(
         "POST /mcp HTTP/1.1\r\nHost: {}\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{{\"",
         server.address
     );
-    let status = status_of(&mut stream, &head).await.unwrap();
+    let status = status_of_settled(&mut stream, &head).await.unwrap();
     assert!(status.contains("401"), "{status}");
 }
 
@@ -227,7 +295,7 @@ async fn post_answer(
     (length, sent): (usize, &str),
     leave: bool,
 ) -> String {
-    let mut stream = TcpStream::connect(server.address).await.unwrap();
+    let mut stream = connect(server).await;
     let head = format!(
         "POST {path} HTTP/1.1\r\nHost: {}\r\nAuthorization: Bearer {TOKEN}\r\nContent-Type: application/json\r\nContent-Length: {length}\r\n\r\n{sent}",
         server.address

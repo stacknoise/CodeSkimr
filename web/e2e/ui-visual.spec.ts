@@ -8,16 +8,18 @@
 //
 // `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/visual/ for the review by eye.
 // Runs after ui-usages.spec.ts: the worker shares one server and every scan adds a project.
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
-import type { Page, TestInfo } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import {
   addLayeredProject,
   addScannedProject,
+  openScannedProject,
   expect,
   keepLaunchFile,
   SCAN_MS,
   selectAdd,
+  shot,
   test,
   type Harness,
 } from "./fixtures";
@@ -129,16 +131,6 @@ async function openUi(page: Page, harness: Harness, theme = "hell"): Promise<voi
   await page.goto(`file://${copy}`);
 }
 
-/** Saves the screen for the review by eye when asked to, and always attaches it to the report. */
-async function shot(page: Page, name: string, info: TestInfo): Promise<void> {
-  const body = await page.screenshot();
-  await info.attach(name, { body, contentType: "image/png" });
-  if (process.env["UPDATE_SCREENSHOTS"]) {
-    mkdirSync(SHOTS, { recursive: true });
-    writeFileSync(path.join(SHOTS, `${name}.png`), body);
-  }
-}
-
 const SOURCE = [
   "namespace Vis;",
   "",
@@ -153,6 +145,16 @@ const SOURCE = [
   "}",
   "",
 ].join("\n");
+
+/** Adds the project `name`, opens it and selects its type `Calculator`. */
+async function openCalculator(page: Page, harness: Harness, name: string): Promise<void> {
+  const row = await addScannedProject(page, harness, name, SOURCE);
+  await row.click({ position: { x: 4, y: 4 } });
+  await page.keyboard.press("Enter");
+  await page.getByText("Vis", { exact: true }).click();
+  await page.getByText("Calculator", { exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Calculator" })).toBeVisible();
+}
 
 /** One type with 40 members, so a search for "Item" fills the list of the quick search. */
 const MANY_MEMBERS = [
@@ -196,18 +198,12 @@ for (const theme of THEMES) {
         { name: "form", mock: "nav ~ main form", real: "main form", only: ["x", "width"] },
         { name: "list", mock: "nav ~ main table", real: "main table", only: ["x", "width"] },
       ]);
-      await shot(page, `projects-${theme}`, info);
+      await shot(page, SHOTS, `projects-${theme}`, info);
     });
 
     test("Explorer (2)", async ({ page, harness }, info) => {
       await prepare(page, theme);
-      const row = await addScannedProject(page, harness, `visexplorer${theme}`, SOURCE);
-      await row.click({ position: { x: 4, y: 4 } });
-      await page.keyboard.press("Enter");
-      await page.getByText("(no layer)").click();
-      await page.getByText("Vis", { exact: true }).click();
-      await page.getByText("Calculator", { exact: true }).click();
-      await expect(page.getByRole("heading", { name: "Calculator" })).toBeVisible();
+      await openCalculator(page, harness, `visexplorer${theme}`);
       const mock = await openMock(page, "Explorer");
       await compare(page, mock, [
         ...SHELL,
@@ -216,13 +212,20 @@ for (const theme of THEMES) {
           mock: "nav ~ section:nth-of-type(1)",
           real: "main section[aria-label='Structure']",
         },
+        // The right column holds the tabs of the annotations (mock 14) above the source.
         {
           name: "source column",
           mock: "nav ~ section:nth-of-type(3)",
+          real: "main section[aria-label='Side panel']",
+        },
+        {
+          name: "source pane",
+          mock: "nav ~ section:nth-of-type(3)",
           real: "main section[aria-label='Source']",
+          only: ["x", "width"],
         },
       ]);
-      await shot(page, `explorer-${theme}`, info);
+      await shot(page, SHOTS, `explorer-${theme}`, info);
     });
 
     test("Quick search (4)", async ({ page, harness }, info) => {
@@ -251,7 +254,7 @@ for (const theme of THEMES) {
           only: ["x", "width"],
         },
       ]);
-      await shot(page, `search-${theme}`, info);
+      await shot(page, SHOTS, `search-${theme}`, info);
     });
 
     test("Settings (13)", async ({ page, harness }, info) => {
@@ -275,12 +278,12 @@ for (const theme of THEMES) {
           only: ["x", "width"],
         },
       ]);
-      await shot(page, `settings-${theme}`, info);
+      await shot(page, SHOTS, `settings-${theme}`, info);
     });
 
     test("Scan and performance (5)", async ({ page, harness }, info) => {
       await prepare(page, theme);
-      await addScannedProject(page, harness, `visscan${theme}`, SOURCE);
+      await openScannedProject(page, harness, `visscan${theme}`, SOURCE);
       await page.getByRole("link", { name: "Scans and performance" }).click();
       await expect(page.getByRole("heading", { name: "Scan finished" })).toBeVisible();
       const mock = await openMock(page, "Scan");
@@ -299,7 +302,7 @@ for (const theme of THEMES) {
           only: ["x", "width"],
         },
       ]);
-      await shot(page, `scan-${theme}`, info);
+      await shot(page, SHOTS, `scan-${theme}`, info);
     });
 
     test("Usages (6)", async ({ page, harness }, info) => {
@@ -321,7 +324,56 @@ for (const theme of THEMES) {
         },
         { name: "side panel", mock: "nav ~ aside", real: "main aside" },
       ]);
-      await shot(page, `usages-${theme}`, info);
+      await shot(page, SHOTS, `usages-${theme}`, info);
+    });
+
+    test("Annotations in the explorer (14)", async ({ page, harness }, info) => {
+      await prepare(page, theme);
+      await openCalculator(page, harness, `visnotes${theme}`);
+      await page.keyboard.press("k");
+      await expect(page.getByText("Marked as system critical.")).toBeVisible();
+      const mock = await openMock(page, "Annotations");
+      await compare(page, mock, [
+        { name: "top bar", mock: "header", real: "header", only: ["y", "height"] },
+        {
+          name: "tab list",
+          mock: ".tabs",
+          real: "[role=tablist][aria-label='Annotations of the symbol']",
+          only: ["height"],
+        },
+      ]);
+      await shot(page, SHOTS, `annotations-${theme}`, info);
+    });
+
+    test("Alerts (15)", async ({ page, harness }, info) => {
+      await prepare(page, theme);
+      const row = await addScannedProject(page, harness, `visalerts${theme}`, SOURCE);
+      await row.click({ position: { x: 4, y: 4 } });
+      await page.keyboard.press("Enter");
+      await expect(page.getByRole("tree")).toBeVisible();
+      await page.getByRole("button", { name: /^Alerts/ }).click();
+      await expect(page.getByRole("dialog", { name: "Alerts" })).toBeVisible();
+      const mock = await openMock(page, "Alerts");
+      await compare(page, mock, [
+        { name: "drawer", mock: ".drawer", real: "[role=dialog]", only: ["y", "width"] },
+      ]);
+      await shot(page, SHOTS, `alerts-${theme}`, info);
+    });
+
+    test("Task board (16)", async ({ page, harness }, info) => {
+      await prepare(page, theme);
+      await openCalculator(page, harness, `visboard${theme}`);
+      await page.keyboard.press("t");
+      await page.getByLabel("Title").fill("Check the calculator");
+      await page.keyboard.press("Control+Enter");
+      await page.getByRole("link", { name: "Annotations", exact: true }).click();
+      await expect(page.getByText("Check the calculator")).toBeVisible();
+      const mock = await openMock(page, "Tasks");
+      await compare(page, mock, [
+        { name: "top bar", mock: "header", real: "header", only: ["y", "height"] },
+        { name: "screen", mock: ".mid", real: "main", only: ["x", "y"] },
+      ]);
+      await shot(page, SHOTS, `board-${theme}`, info);
     });
 
     test("Dependencies (3)", async ({ page, harness }, info) => {
@@ -343,7 +395,7 @@ for (const theme of THEMES) {
         },
         { name: "side panel", mock: "nav ~ aside", real: "main aside" },
       ]);
-      await shot(page, `graph-${theme}`, info);
+      await shot(page, SHOTS, `graph-${theme}`, info);
     });
   });
 }
@@ -391,7 +443,7 @@ for (const theme of THEMES) {
       expect(actual["footer.background-color"]).toBe(rgb(tokens["surface"] ?? ""));
       expect(actual["footer.border-top-color"]).toBe(rgb(tokens["line"] ?? ""));
       await compare(page, await openMock(page, "Main"), SHELL);
-      await shot(page, `frame-${theme}`, info);
+      await shot(page, SHOTS, `frame-${theme}`, info);
     });
   });
 }

@@ -137,11 +137,10 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_application"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "codeskimr_codes",
  "codeskimr_domain",
- "secrecy",
  "serde",
  "thiserror",
  "toml",
@@ -150,7 +149,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_codegen"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "serde",
  "toml",
@@ -158,21 +157,21 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_codes"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "codeskimr_codegen",
 ]
 
 [[package]]
 name = "codeskimr_domain"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "codeskimr_codes",
 ]
 
 [[package]]
 name = "codeskimr_fsguard"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "libc",
  "windows-sys 0.61.2",
@@ -191,7 +190,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_scip"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "codeskimr_application",
  "codeskimr_codes",
@@ -202,7 +201,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_source"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "blake3",
  "codeskimr_application",
@@ -212,7 +211,6 @@ dependencies = [
  "gix",
  "ignore",
  "notify",
- "secrecy",
  "serde_json",
  "thiserror",
  "toml",
@@ -221,7 +219,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_storage"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "codeskimr_application",
  "codeskimr_codes",
@@ -2441,16 +2439,6 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
-
-[[package]]
-name = "secrecy"
-version = "0.10.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e891af845473308773346dc847b2c23ee78fe442e0472ac50e22a18a93d3ae5a"
-dependencies = [
- "serde",
- "zeroize",
-]
 
 [[package]]
 name = "security-framework"

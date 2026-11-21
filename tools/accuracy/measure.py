@@ -142,12 +142,15 @@ def import_level2(opt, db, source):
     pack = tomllib.loads((ROOT / "languages" / opt.language / "language.toml").read_text())
     kinds = [f"{scip}={kind}" for scip, kind in pack["indexer"].get("symbol_kinds", {}).items()] if not opt.no_created else []
     done = subprocess.run([opt.import_scip, dbfile, str(project_id), opt.scip, str(level2["min_mapped"]), str(source),
-                           str(level2["max_index_bytes"]), str(max_file), str(level2["max_created_symbols"]), pack["separator"], *kinds],
+                           str(level2["max_index_bytes"]), str(max_file), str(level2["max_created_symbols"]), pack["separator"], pack["indexer"].get("library_root", ""), *kinds],
                           capture_output=True, text=True)
     if done.returncode:
         sys.exit("import failed: " + done.stderr)
     stats = json.loads(done.stdout)
     print("import:", done.stdout.strip(), file=sys.stderr)
+    cause = stats["by_cause"]
+    if cause["skipped_namespace"] + cause["skipped_item"] != stats["outside_scan"]:
+        print(f"warning: the split of outside_scan by cause ({cause['skipped_namespace']} + {cause['skipped_item']}) differs from the counter of the import ({stats['outside_scan']})", file=sys.stderr)
     uncovered = scanned - stats["files_replaced"]
     if uncovered < 0 or uncovered > opt.allow_uncovered:
         sys.exit(f"the index covers {stats['files_replaced']} of {scanned} scanned files (allowed to miss: {opt.allow_uncovered}): it does not belong to this corpus commit")
@@ -172,12 +175,22 @@ def by_origin(rows):
 
 def without_symbol(stats):
     """The blind spot of the sample: uses of symbols that the index defines in the project but level 1 has no symbol for
-    (types and variants that a macro generates). The sample is drawn from the symbols of level 1, so it cannot see them.
-    `None` without an index."""
+    (types and variants that a macro generates, module paths). The sample is drawn from the symbols of level 1, so it cannot
+    see them. `uses` is the in-scope part (the symbol lies in a file of the scan), `outside_scan` the uses of symbols that
+    the index defines only in folders the scan skips (ADR 0061); `project_uses` is `mapped + unmapped` (the denominator of
+    `level2.min_mapped`), `share_with_outside_scan` counts both against all of them. `by_cause` splits the uses that
+    needed the file-root rule (`crate_root`, `module_file`), the uses outside the scan (`skipped_namespace`,
+    `skipped_item`) and what stays unmapped (`other`); before ADR 0061 the first four were all unmapped (659 of 8805 on
+    the Rust corpus). `None` without an index."""
     if stats is None:
         return None
     project = stats["mapped"] + stats["unmapped"]
-    return {"uses": stats["unmapped"], "project_uses": project, "share": round(stats["unmapped"] / project, 3) if project else None}
+    outside = stats["outside_scan"]
+    total = project + outside
+    return {"uses": stats["unmapped"], "outside_scan": outside, "project_uses": project,
+            "share": round(stats["unmapped"] / project, 3) if project else None,
+            "share_with_outside_scan": round((stats["unmapped"] + outside) / total, 3) if total else None,
+            "by_cause": stats["by_cause"]}
 
 
 # Kind of a symbol -> category of a declaration for TruthJava and TruthCSharp.

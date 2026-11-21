@@ -22,6 +22,13 @@ pub struct UiSettings {
     pub editor: EditorSettings,
     /// The theme used until the user chooses one.
     pub default_theme: String,
+    /// How often the projects screen asks for the level 2 state while the confirmation window is
+    /// open, in seconds (ADR 0071, decision 3).
+    pub level2_poll_seconds: u32,
+    /// How long the projects screen keeps asking, in seconds.
+    pub level2_poll_max_seconds: u32,
+    /// Ids of the languages whose usages the screens mark as an approximation.
+    pub approximate_languages: Vec<String>,
 }
 
 /// Everything the UI side of the server needs from the configuration.

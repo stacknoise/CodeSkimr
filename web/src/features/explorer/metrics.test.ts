@@ -51,6 +51,25 @@ describe("tilesOf", () => {
   });
 });
 
+describe("tilesOf with an upper bound", () => {
+  it("puts the note on the three coupling tiles and on no other", () => {
+    const noted = tilesOf(INFO, LIMITS, "en", true).filter((tile) => tile.hint !== null);
+    expect(noted.map((tile) => tile.id)).toEqual(["ce", "ca", "instability"]);
+    expect(noted[0]?.hint).toBe("upper bound");
+    expect(noted[0]?.tip).toMatch(/upper bound/);
+  });
+
+  it("says nothing when level 2 confirmed the language", () => {
+    expect(tilesOf(INFO, LIMITS, "en").every((tile) => tile.hint === null)).toBe(true);
+  });
+
+  it("speaks German in the German interface", () => {
+    setLanguage("de");
+    const ce = tilesOf(INFO, LIMITS, "de", true).find((tile) => tile.id === "ce");
+    expect(ce?.hint).toBe("Obergrenze");
+  });
+});
+
 describe("tipFor", () => {
   it("names the limits only when the thresholds are known", () => {
     expect(tipFor("cc", I18N_KEYS.EXPLORER_METRIC_CC_TIP, LIMITS)).toMatch(/5.*10/);

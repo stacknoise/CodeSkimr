@@ -244,7 +244,9 @@ pub fn request<'a>(
         min_mapped: 0.0,
         symbol_kinds: &[],
         separator: "",
+        library_root: "",
         max_created_symbols: 0,
+        import_sites: &[],
     }
 }
 

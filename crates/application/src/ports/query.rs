@@ -2,8 +2,8 @@
 //! (adapter: `codeskimr_storage`).
 
 use codeskimr_domain::{
-    LayerEdge, Metric, NamespaceGraph, ProjectId, QualifiedName, RelativePath, Snapshot,
-    SnapshotId, Span, Symbol, SymbolId, SymbolKind, SymbolName,
+    LanguageId, LayerEdge, Metric, NamespaceGraph, ProjectId, QualifiedName, RelativePath,
+    Snapshot, SnapshotId, Span, Symbol, SymbolId, SymbolKind, SymbolName,
 };
 
 use crate::error::CodedError;
@@ -73,6 +73,8 @@ pub struct SymbolDetail {
     pub symbol: Symbol,
     /// File that declares it.
     pub path: RelativePath,
+    /// Language of that file.
+    pub language: LanguageId,
     /// Direct members, ordered by id.
     pub members: Vec<MemberRef>,
     /// Measured values of the symbol itself.
@@ -110,6 +112,21 @@ pub trait CodeIndex: Send + Sync {
         snapshot: SnapshotId,
         key: &SymbolKey,
     ) -> Result<Option<SymbolDetail>, CodedError>;
+
+    /// One symbol with its path, language and metrics but without the member list and the
+    /// same-name count (`members` is empty, `same_name` is 0): the cheap lookup for screens that
+    /// need neither, such as the explorer, which reads its member table separately. The default
+    /// is the full lookup.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn symbol_card(
+        &self,
+        snapshot: SnapshotId,
+        id: SymbolId,
+    ) -> Result<Option<SymbolDetail>, CodedError> {
+        self.symbol(snapshot, &SymbolKey::Id(id))
+    }
 
     /// Fuzzy search over the paths of the files of a snapshot that declare a type, best match
     /// first, at most `limit` hits.

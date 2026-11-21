@@ -7,15 +7,12 @@ use codeskimr_application::config::Config;
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
-use codeskimr_application::ports::{
-    CodeIndex, IndexRunner, ProjectCatalog, ProjectRepository, ProjectScanner, SimilarityIndex,
-    UsageIndex,
-};
+use codeskimr_application::ports::{IndexRunner, ProjectScanner};
 use codeskimr_cli::{GlobalOptions, McpArgs};
 use codeskimr_codes::ErrorCode;
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::{HttpService, McpServer, Ports, Tools, serve_stdio};
-use codeskimr_source::FolderKeys;
+use codeskimr_source::{FolderKeys, FolderText};
 use codeskimr_storage::SqliteStore;
 
 use crate::clock::SystemClock;
@@ -166,6 +163,7 @@ fn convention_checker(analysis: &Analysis, config: &Config) -> Arc<ConventionChe
     Arc::new(ConventionChecker::new(
         Arc::clone(&analysis.discovery),
         Arc::clone(&analysis.analyzer),
+        Arc::new(FolderText),
         config.conventions.clone(),
     ))
 }
@@ -191,25 +189,22 @@ fn build_ports(
         running,
     ));
     let snippets = analysis.snippets;
-    let projects: Arc<dyn ProjectRepository> = store.clone();
-    let usages: Arc<dyn UsageIndex> = store.clone();
-    let similarity: Arc<dyn SimilarityIndex> = store.clone();
-    let catalog: Arc<dyn ProjectCatalog> = store.clone();
     let tool_check = tool_checker(&store, (locations, runner))?;
-    let index: Arc<dyn CodeIndex> = store;
     Ok(Ports {
-        projects,
-        index,
-        usages,
-        similarity,
+        projects: store.clone(),
+        usages: store.clone(),
+        similarity: store.clone(),
         snippets,
         checker,
         clock: Arc::new(SystemClock),
         scanner,
-        catalog,
+        catalog: store.clone(),
         tool_check,
         messages,
         keys: Arc::new(FolderKeys),
         key_sources: config.keys.clone(),
+        annotations: store.clone(),
+        reports: store.clone(),
+        index: store,
     })
 }

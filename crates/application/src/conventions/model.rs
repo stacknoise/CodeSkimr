@@ -58,6 +58,11 @@ pub enum Detail {
         /// The configured maximum.
         limit: u32,
     },
+    /// `CHK-101`: the function contains literals outside the exceptions of rule R-06.
+    Literals {
+        /// How many there are.
+        count: u32,
+    },
     /// `CHK-102`: the function is a near copy of an earlier one.
     Duplicate {
         /// The function that came first in path and line order.
@@ -65,6 +70,55 @@ pub enum Detail {
         /// Fingerprint similarity in percent, rounded down.
         similarity_percent: u32,
     },
+}
+
+/// The numbers of a [`Detail`] by name, for the callers that print or serialise a finding. A
+/// field the detail does not have is `None`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Measure<'a> {
+    /// `CHK-104`: code lines of the function.
+    pub lines: Option<u32>,
+    /// `CHK-105` and `CHK-106`: the cognitive complexity or the number of parameters.
+    pub value: Option<u32>,
+    /// The most that is allowed: the maximum of the lines or of the value.
+    pub limit: Option<u32>,
+    /// `CHK-101`: the number of literals in the function.
+    pub literals: Option<u32>,
+    /// `CHK-102`: the earlier function this one copies.
+    pub duplicate_of: Option<&'a Location>,
+    /// `CHK-102`: the similarity in whole percent.
+    pub similarity_percent: Option<u32>,
+}
+
+impl Detail {
+    /// The numbers of this detail by name.
+    #[must_use]
+    pub fn measure(&self) -> Measure<'_> {
+        match self {
+            Self::TooLong { lines, limit } => Measure {
+                lines: Some(*lines),
+                limit: Some(*limit),
+                ..Measure::default()
+            },
+            Self::Over { value, limit } => Measure {
+                value: Some(*value),
+                limit: Some(*limit),
+                ..Measure::default()
+            },
+            Self::Literals { count } => Measure {
+                literals: Some(*count),
+                ..Measure::default()
+            },
+            Self::Duplicate {
+                of,
+                similarity_percent,
+            } => Measure {
+                duplicate_of: Some(of),
+                similarity_percent: Some(*similarity_percent),
+                ..Measure::default()
+            },
+        }
+    }
 }
 
 /// One violation of the code rules.

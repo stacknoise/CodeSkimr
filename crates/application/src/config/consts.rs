@@ -19,6 +19,11 @@ pub const ASSIGNMENT: &str = " = ";
 pub const NO_PREFIX: &str = "";
 
 /// Smallest allowed share (instability).
+/// Shortest pause after a level 2 run of the browser, in seconds (`level2.ui_cooldown_seconds`).
+pub const UI_COOLDOWN_MIN_SECONDS: u32 = 10;
+/// Most level 2 runs at the same time that the configuration may allow.
+pub const MAX_PARALLEL_RUNS_LIMIT: u32 = 8;
+
 pub const UNIT_MIN: f64 = 0.0;
 /// Largest allowed share (instability).
 pub const UNIT_MAX: f64 = 1.0;
@@ -53,6 +58,8 @@ pub mod keys {
     pub const FULL_SCAN_MS: &str = "budgets.full_scan_100k_loc_ms";
     /// `budgets.incremental_rescan_ms`
     pub const INCREMENTAL_RESCAN_MS: &str = "budgets.incremental_rescan_ms";
+    /// `budgets.pack_load_ms`
+    pub const PACK_LOAD_MS: &str = "budgets.pack_load_ms";
     /// `budgets.idle_cpu_percent`
     pub const IDLE_CPU_PERCENT: &str = "budgets.idle_cpu_percent";
     /// `budgets.memory_1m_loc_mb`
@@ -75,10 +82,30 @@ pub mod keys {
     pub const MCP_MAX_SNIPPET_BYTES: &str = "mcp.max_snippet_bytes";
     /// `snapshots.retention_count`
     pub const RETENTION_COUNT: &str = "snapshots.retention_count";
+    /// `annotations.dismissed_retention_days`
+    pub const ANNOTATIONS_RETENTION_DAYS: &str = "annotations.dismissed_retention_days";
+    /// `annotations.max_text_chars`
+    pub const ANNOTATIONS_MAX_TEXT_CHARS: &str = "annotations.max_text_chars";
+    /// `annotations.default_page_size`
+    pub const ANNOTATIONS_DEFAULT_PAGE: &str = "annotations.default_page_size";
+    /// `annotations.max_page_size`
+    pub const ANNOTATIONS_MAX_PAGE: &str = "annotations.max_page_size";
+    /// `annotations.max_assignee_chars`
+    pub const ANNOTATIONS_MAX_ASSIGNEE_CHARS: &str = "annotations.max_assignee_chars";
+    /// `annotations.max_name_chars`
+    pub const ANNOTATIONS_MAX_NAME_CHARS: &str = "annotations.max_name_chars";
+    /// `annotations.max_parameter_chars`
+    pub const ANNOTATIONS_MAX_PARAMETER_CHARS: &str = "annotations.max_parameter_chars";
+    /// `annotations.max_parameters`
+    pub const ANNOTATIONS_MAX_PARAMETERS: &str = "annotations.max_parameters";
+    /// `annotations.max_title_chars`
+    pub const ANNOTATIONS_MAX_TITLE_CHARS: &str = "annotations.max_title_chars";
     /// `graph.node_width`
     pub const GRAPH_NODE_WIDTH: &str = "graph.node_width";
     /// `graph.node_height`
     pub const GRAPH_NODE_HEIGHT: &str = "graph.node_height";
+    /// `graph.row_boxes`
+    pub const GRAPH_ROW_BOXES: &str = "graph.row_boxes";
     /// `similarity.ngram_size`
     pub const NGRAM_SIZE: &str = "similarity.ngram_size";
     /// `similarity.window_size`
@@ -129,6 +156,13 @@ pub mod keys {
     pub const LEVEL2_MIN_MAPPED: &str = "level2.min_mapped";
     /// `level2.max_created_symbols`
     pub const LEVEL2_MAX_CREATED_SYMBOLS: &str = "level2.max_created_symbols";
+    /// `level2.confirm_window_cooldown_seconds`
+    pub const LEVEL2_CONFIRM_WINDOW_COOLDOWN_SECONDS: &str =
+        "level2.confirm_window_cooldown_seconds";
+    /// `level2.ui_cooldown_seconds`
+    pub const LEVEL2_UI_COOLDOWN_SECONDS: &str = "level2.ui_cooldown_seconds";
+    /// `level2.max_parallel_runs`
+    pub const LEVEL2_MAX_PARALLEL_RUNS: &str = "level2.max_parallel_runs";
     /// `server.port`
     pub const SERVER_PORT: &str = "server.port";
     /// `editor.url_template`
@@ -141,6 +175,12 @@ pub mod keys {
     pub const UI_DIR: &str = "ui.dir";
     /// `ui.launch_code_seconds`
     pub const UI_LAUNCH_CODE_SECONDS: &str = "ui.launch_code_seconds";
+    /// `ui.level2_poll_seconds`
+    pub const UI_LEVEL2_POLL_SECONDS: &str = "ui.level2_poll_seconds";
+    /// `ui.approximate_languages`
+    pub const UI_APPROXIMATE_LANGUAGES: &str = "ui.approximate_languages";
+    /// `ui.level2_poll_max_seconds`
+    pub const UI_LEVEL2_POLL_MAX_SECONDS: &str = "ui.level2_poll_max_seconds";
 }
 
 /// Characters that make a folder name a path.
@@ -168,3 +208,14 @@ pub const SCAN_TABLE: &str = "scan";
 /// lift the protection of the machine that scans it (#54). The user file and the flags may still
 /// raise them.
 pub const LOWER_ONLY_SCAN_KEYS: [&str; 2] = ["max_source_mb", "parse_timeout_ms"];
+
+/// Header of a table in an array of tables, as it starts a layer in `.codeskimr.toml`.
+pub const LAYER_TABLE_HEADER: &str = "[[layers]]";
+/// First character of every table header line.
+pub const TABLE_HEADER_START: char = '[';
+/// Separates the kept part of the project file from the written layers.
+pub const BLOCK_SEPARATOR: &str = "\n\n";
+/// Ends a line.
+pub const LINE_END: char = '\n';
+/// Ends a line in a file written on Windows.
+pub const WINDOWS_LINE_END: &str = "\r\n";

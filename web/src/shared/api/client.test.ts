@@ -45,6 +45,26 @@ describe("api", () => {
     await expect(api("/x")).rejects.toBeInstanceOf(ApiError);
   });
 
+  it("keeps the wait of Retry-After in seconds and nothing else", async () => {
+    const answer = (value: string | null) =>
+      new Response(JSON.stringify({ code: "API-504" }), {
+        status: 429,
+        headers: value === null ? {} : { "Retry-After": value },
+      });
+    fetchMock.mockResolvedValue(answer("90"));
+    await expect(api("/x")).rejects.toMatchObject({ code: "API-504", retryAfter: 90 });
+    fetchMock.mockResolvedValue(answer("Wed, 21 Oct 2026 07:28:00 GMT"));
+    await expect(api("/x")).rejects.toMatchObject({ retryAfter: null });
+    fetchMock.mockResolvedValue(answer(null));
+    await expect(api("/x")).rejects.toMatchObject({ retryAfter: null });
+    fetchMock.mockResolvedValue(answer("3600"));
+    await expect(api("/x")).rejects.toMatchObject({ retryAfter: 3600 });
+    for (const unlikely of ["0", "3601", "999999"]) {
+      fetchMock.mockResolvedValue(answer(unlikely));
+      await expect(api("/x")).rejects.toMatchObject({ retryAfter: null });
+    }
+  });
+
   it("drops a token that the server refuses", async () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ code: "API-401" }), { status: 401 }));
     storeToken("csk_old");

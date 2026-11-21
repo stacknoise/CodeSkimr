@@ -1,36 +1,45 @@
 //! Tests of the scan pipeline, the scanner, the job typestate and the event bus with fake ports.
 
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
+use std::time::Duration;
 
 #[cfg(test)]
 mod common;
+#[cfg(test)]
+#[path = "common/alerts.rs"]
+mod fakes;
 
 use codeskimr_application::cancel::CancelToken;
-use codeskimr_application::config::Config;
+use codeskimr_application::config::{Config, ConfigLayer, LayerSource};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::{Event, EventBus, StopReason};
 use codeskimr_application::ids::IdSequence;
 use codeskimr_application::level2::{Level2Pass, confirm};
-use codeskimr_application::pipeline::{Job, JobResult, Scanner, ScannerPorts};
+use codeskimr_application::pipeline::{
+    Job, JobResult, Level2Run, ReportStep, Scanner, ScannerPorts,
+};
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
     FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
     IndexerSpec, IndexerStatus, Level2Replacement, MetricsCalculator, PathsReport,
     PendingReference, PreviousIndex, PreviousState, ProjectRepository, ProjectScanner, Receiver,
-    ReferenceImporter, ReferenceResolver, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
-    SymbolFingerprints, ToolSpec, ToolVersion,
+    ReferenceImporter, ReferenceResolver, ReportWrite, ScanReport, ScanReportStore, SnapshotData,
+    SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints, ToolSpec, ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    BranchName, CommitHash, Confidence, ContentHash, FileId, Fingerprint, Fingerprints, FolderPath,
-    LanguageId, Loc, Metric, MetricKind, MetricValue, ModelError, Permission, PermissionSet,
-    Position, Principal, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
-    ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, Span,
-    Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, SymbolOrigin, Timestamp,
+    AlertTrigger, BranchName, CommitHash, Confidence, ContentHash, FileId, Fingerprint,
+    Fingerprints, FolderPath, LanguageId, Loc, Metric, MetricKind, MetricValue, ModelError,
+    Permission, PermissionSet, Position, Principal, Project, ProjectId, ProjectName, ProjectSource,
+    QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanLevel, ScanMode,
+    ScanOrigin, Snapshot, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId, SymbolKind,
+    SymbolName, SymbolOrigin, Timestamp,
 };
 use common::InMemoryConsent;
+use fakes::{MemoryAnnotations, MemoryStates, step, symbol};
 
 /// The newest snapshot as the repository reports it.
 #[derive(Default, Clone)]
@@ -53,6 +62,8 @@ struct World {
     found: Option<Vec<(&'static str, bool)>>,
     missing_project: bool,
     panic_in_analyze: bool,
+    /// The project is a folder, not a Git repository.
+    folder_project: bool,
     /// The naming rules of the packs, and those the previous snapshot was scanned with.
     rules: (&'static str, Option<&'static str>),
     persisted: Mutex<Vec<SnapshotData>>,
@@ -60,6 +71,9 @@ struct World {
     /// How many names each resolution got.
     resolved: Mutex<Vec<usize>>,
     counted: Mutex<Vec<usize>>,
+    /// Milliseconds the fake analyzer says it spent loading packs; each question adds a step.
+    pack_load_ms: AtomicU64,
+    pack_load_step_ms: u64,
 }
 
 impl World {
@@ -172,6 +186,11 @@ fn counted(symbol: SymbolId) -> SymbolCounts {
 }
 
 impl FileAnalyzer for World {
+    fn pack_load_time(&self) -> Duration {
+        let step = self.pack_load_step_ms;
+        Duration::from_millis(self.pack_load_ms.fetch_add(step, Ordering::SeqCst))
+    }
+
     fn naming_rules(&self) -> String {
         self.rules.0.to_owned()
     }
@@ -201,6 +220,7 @@ impl FileAnalyzer for World {
             pending,
             fingerprints: vec![fingerprinted(symbol.id)],
             counts: vec![counted(symbol.id)],
+            hashes: Vec::new(),
             symbols: vec![symbol],
         })
     }
@@ -282,6 +302,11 @@ impl ProjectRepository for World {
     fn project(&self, _: ProjectId) -> Result<Project, CodedError> {
         if self.missing_project {
             Err(CodedError::new(ErrorCode::ProjectNotFound))
+        } else if self.folder_project {
+            Ok(Project {
+                source: ProjectSource::Folder(model(FolderPath::new("/work/demo"))?),
+                ..project()?
+            })
         } else {
             project()
         }
@@ -416,6 +441,19 @@ fn full_scan_runs_all_stages_and_persists_once() {
     assert_eq!(world.persisted_count(), 1);
     assert_eq!(stages_seen(&events), StageKind::ALL);
     assert!(matches!(events.last(), Some(Event::SnapshotCreated(_))));
+}
+
+#[test]
+fn the_end_event_tells_how_long_loading_packs_took() {
+    let world = Arc::new(World {
+        pack_load_step_ms: 40,
+        ..World::default()
+    });
+    let (_, events) = run(&world, ScanMode::Full);
+    let Some(Event::SnapshotCreated(created)) = events.last() else {
+        panic!("no end event");
+    };
+    assert_eq!(created.pack_load, Duration::from_millis(40));
 }
 
 /// The previous snapshot with `a.rs` unchanged and `b.rs` changed; `c.rs` is gone.
@@ -800,6 +838,43 @@ fn a_level_two_reference_from_an_unchanged_file_to_a_symbol_of_a_changed_file_is
     Ok(())
 }
 
+/// The module symbol of a file, named after the file as level 1 does (`lib`, `mod`).
+fn module_symbol(id: u64, file: u64, name: &str) -> Result<Symbol, CodedError> {
+    Ok(Symbol {
+        kind: SymbolKind::Module,
+        ..old_symbol(id, file, name)?
+    })
+}
+
+#[test]
+fn a_level_two_use_of_the_module_of_a_changed_file_is_dropped_until_level_two_runs_again()
+-> Result<(), CodedError> {
+    // ADR 0061: `a.rs` (unchanged) names the module of `b.rs` (changed), as `use crate::b` does
+    // in a `lib.rs` or `mod.rs`. Level 1 does not make that reference again; the next level 2 pass
+    // does, from the new module symbol.
+    let mut previous = previous_snapshot()?;
+    previous.index.symbols.push(module_symbol(212, 101, "mod")?);
+    previous.index.references.push(Reference {
+        kind: ReferenceKind::Read,
+        ..verified(old_call(312, 212)?)
+    });
+    let world = world_over(previous);
+    let (result, _) = run(&world, ScanMode::Incremental);
+    let JobResult::Finished(_) = result else {
+        panic!("scan did not finish");
+    };
+    let persisted = world.last_persisted()?;
+    assert!(
+        persisted.references.iter().all(|r| r.to.get() != 212),
+        "the module of the changed file left with its file"
+    );
+    assert!(
+        persisted.symbols.iter().all(|s| s.id.get() != 212),
+        "and its symbol is not carried"
+    );
+    Ok(())
+}
+
 #[test]
 fn a_change_that_keeps_the_declarations_resolves_only_the_names_that_pointed_into_it()
 -> Result<(), CodedError> {
@@ -1022,6 +1097,15 @@ fn ids_are_unique_and_stage_labels_round_trip() {
 }
 
 #[test]
+fn every_stage_has_its_own_label_in_execution_order() {
+    let expected = [
+        "fetch", "discover", "analyze", "resolve", "measure", "persist",
+    ];
+    let labels: Vec<_> = StageKind::ALL.iter().map(|s| s.label()).collect();
+    assert_eq!(labels, expected);
+}
+
+#[test]
 fn a_reference_that_is_kept_is_not_resolved_a_second_time() -> Result<(), CodedError> {
     let mut previous = previous_snapshot()?;
     // `m::b` is declared in the unchanged a.rs as well; the call at 303 to it stays valid, and the
@@ -1238,12 +1322,30 @@ fn rust_indexer() -> IndexerSpec {
         install_hint: String::new(),
         symbol_kinds: Vec::new(),
         separator: String::new(),
+        library_root: String::new(),
     }
 }
 
 /// A scanner with a confirmed second pass whose runner counts, and that counter.
 fn level2_scanner(world: &Arc<World>) -> Result<(Scanner, Arc<CountingRunner>), CodedError> {
-    let consent: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
+    level2_scanner_over(world, &Arc::new(InMemoryConsent::default()))
+}
+
+/// The same over the consent that the caller keeps, so that a test can revoke it.
+fn level2_scanner_over(
+    world: &Arc<World>,
+    store: &Arc<InMemoryConsent>,
+) -> Result<(Scanner, Arc<CountingRunner>), CodedError> {
+    level2_scanner_on(world, store, &EventBus::new())
+}
+
+/// The same publishing on `bus`, for the scanner and for the second pass.
+fn level2_scanner_on(
+    world: &Arc<World>,
+    store: &Arc<InMemoryConsent>,
+    bus: &EventBus,
+) -> Result<(Scanner, Arc<CountingRunner>), CodedError> {
+    let consent: Arc<dyn ConsentStore> = store.clone();
     confirm(
         &Principal::local_owner(),
         consent.as_ref(),
@@ -1260,11 +1362,17 @@ fn level2_scanner(world: &Arc<World>) -> Result<(Scanner, Arc<CountingRunner>), 
         store: world.clone(),
         ids,
         max_file_bytes: u64::from(u32::MAX),
-        settings: Config::resolve(&[]).map_err(CodedError::caused_by)?.level2,
+        settings: Config::resolve(&[ConfigLayer::parse(
+            LayerSource::User,
+            "[level2]\nenabled = true\n",
+        )
+        .map_err(CodedError::caused_by)?])
+        .map_err(CodedError::caused_by)?
+        .level2,
         indexers: vec![(model(LanguageId::new("rust"))?, rust_indexer())],
+        events: bus.clone(),
     };
-    let bus = EventBus::new();
-    Ok((scanner(world, &bus).with_level2(pass), runner))
+    Ok((scanner(world, bus).with_level2(pass), runner))
 }
 
 fn runs(runner: &CountingRunner) -> u32 {
@@ -1485,5 +1593,330 @@ fn paths_of_a_scan_that_had_to_be_a_full_one_are_reported_as_ignored() -> Result
         job.paths_report().ignored,
         "other naming rules make a full scan"
     );
+    Ok(())
+}
+
+/// The scanner with the alert step over the fakes; the critical symbol `Demo.Box.Work` is in the
+/// snapshot the states hold.
+fn alerting(
+    world: &Arc<World>,
+    bus: &EventBus,
+) -> (Scanner, Arc<MemoryAnnotations>, Arc<MemoryStates>) {
+    let annotations = Arc::new(MemoryAnnotations::default());
+    let states = Arc::new(MemoryStates::default());
+    annotations.critical(SymbolKind::Method, "Demo.Box.Work", &[]);
+    states.set(vec![symbol(SymbolKind::Method, "Demo.Box.Work", "one")]);
+    let scanner = scanner(world, bus).with_alerts(step(&annotations, &states, bus));
+    (scanner, annotations, states)
+}
+
+fn scan_once(scanner: &Scanner, job: Job<codeskimr_application::pipeline::Queued>) -> JobResult {
+    scanner.run(&Principal::local_owner(), job)
+}
+
+#[test]
+fn the_alert_of_a_git_project_says_it_came_with_a_fetch_whatever_started_the_scan() {
+    let world = Arc::new(World::default());
+    let bus = EventBus::new();
+    let (scanner, annotations, states) = alerting(&world, &bus);
+    let job = || Job::new(ProjectId::new(7), ScanMode::Full).from_watcher();
+    assert!(matches!(scan_once(&scanner, job()), JobResult::Finished(_)));
+    states.set(vec![symbol(SymbolKind::Method, "Demo.Box.Work", "two")]);
+    assert!(matches!(scan_once(&scanner, job()), JobResult::Finished(_)));
+    let alerts = annotations.open_alerts();
+    assert_eq!(alerts.len(), 1);
+    assert_eq!(alerts[0].sighting.trigger, AlertTrigger::Fetch);
+}
+
+#[test]
+fn the_alert_of_a_folder_project_names_what_started_the_scan() {
+    let world = Arc::new(World {
+        folder_project: true,
+        ..World::default()
+    });
+    let bus = EventBus::new();
+    let (scanner, annotations, states) = alerting(&world, &bus);
+    scan_once(&scanner, Job::new(ProjectId::new(7), ScanMode::Full));
+    states.set(vec![symbol(SymbolKind::Method, "Demo.Box.Work", "two")]);
+    scan_once(&scanner, Job::new(ProjectId::new(7), ScanMode::Full));
+    states.set(vec![symbol(SymbolKind::Method, "Demo.Box.Work", "three")]);
+    scan_once(
+        &scanner,
+        Job::new(ProjectId::new(7), ScanMode::Incremental).from_watcher(),
+    );
+    let alerts = annotations.open_alerts();
+    assert_eq!(alerts[0].counter, 2);
+    assert_eq!(alerts[0].sighting.trigger, AlertTrigger::Watcher);
+}
+
+#[test]
+fn a_failure_of_the_alert_step_leaves_the_snapshot_and_its_event_as_they_are() {
+    let world = Arc::new(World::default());
+    let bus = EventBus::new();
+    let events = bus.subscribe();
+    let (scanner, annotations, _) = alerting(&world, &bus);
+    *annotations.fail.lock().unwrap() = Some(ErrorCode::DiskFull);
+    let result = scan_once(&scanner, Job::new(ProjectId::new(7), ScanMode::Full));
+    let JobResult::Finished(job) = result else {
+        panic!("a failed alert step must not fail the scan");
+    };
+    assert_eq!(job.snapshot().stats.files, 2);
+    assert_eq!(world.persisted_count(), 1);
+    let events: Vec<Event> = events.try_iter().collect();
+    assert!(matches!(events.last(), Some(Event::SnapshotCreated(_))));
+    assert!(
+        events
+            .iter()
+            .all(|event| !matches!(event, Event::ScanStopped(_)))
+    );
+}
+
+#[test]
+fn the_alert_step_runs_after_the_snapshot_is_stored() {
+    let world = Arc::new(World::default());
+    let bus = EventBus::new();
+    let (scanner, annotations, _) = alerting(&world, &bus);
+    scan_once(&scanner, Job::new(ProjectId::new(7), ScanMode::Full));
+    assert_eq!(world.persisted_count(), 1);
+    assert_eq!(annotations.calls_named("refresh_targets"), 1);
+}
+
+/// Keeps what the scanner stores, or refuses to.
+#[derive(Default)]
+struct MemoryReports {
+    writes: Mutex<Vec<ReportWrite>>,
+    refuse: bool,
+}
+
+impl ScanReportStore for MemoryReports {
+    fn store_report(&self, write: &ReportWrite) -> Result<(), CodedError> {
+        if self.refuse {
+            return Err(CodedError::new(ErrorCode::DatabaseFailed));
+        }
+        self.writes
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .push(write.clone());
+        Ok(())
+    }
+
+    fn report(&self, _: ProjectId) -> Result<Option<ScanReport>, CodedError> {
+        Ok(None)
+    }
+}
+
+fn run_with_reports(
+    reports: &Arc<MemoryReports>,
+    job: Job<codeskimr_application::pipeline::Queued>,
+) -> JobResult {
+    let world = Arc::new(World::default());
+    scanner(&world, &EventBus::new())
+        .with_reports(ReportStep::new(reports.clone(), world.clone()))
+        .run(&Principal::local_owner(), job)
+}
+
+#[test]
+fn a_scan_stores_its_channel_and_level_and_a_scan_without_level_2_leaves_the_second_report_alone() {
+    let reports = Arc::new(MemoryReports::default());
+    let job = Job::new(ProjectId::new(7), ScanMode::Full).started_from(ScanOrigin::Mcp);
+    assert!(matches!(
+        run_with_reports(&reports, job),
+        JobResult::Finished(_)
+    ));
+    let writes = reports.writes.lock().unwrap();
+    assert_eq!(writes.len(), 1);
+    assert_eq!(writes[0].last.origin, ScanOrigin::Mcp);
+    assert_eq!(writes[0].last.level, ScanLevel::One);
+    assert_eq!(writes[0].level2, None);
+}
+
+#[test]
+fn a_report_that_cannot_be_stored_is_a_warning_and_the_snapshot_stays() {
+    let reports = Arc::new(MemoryReports {
+        refuse: true,
+        ..MemoryReports::default()
+    });
+    let job = Job::new(ProjectId::new(7), ScanMode::Full);
+    let JobResult::Finished(job) = run_with_reports(&reports, job) else {
+        panic!("the scan must finish");
+    };
+    let codes: Vec<_> = job.warnings().iter().map(|warning| warning.code).collect();
+    assert_eq!(codes, [ErrorCode::ScanReportNotStored]);
+    assert_eq!(job.snapshot().stats.files, 2);
+}
+
+#[test]
+fn without_a_wired_second_pass_no_level_2_report_is_stored() {
+    let reports = Arc::new(MemoryReports::default());
+    let world = Arc::new(World::default());
+    let scanner = scanner(&world, &EventBus::new())
+        .with_reports(ReportStep::new(reports.clone(), world.clone()));
+    let job = Job::new(ProjectId::new(7), ScanMode::Full).with_level2();
+    // No pass is wired, so nothing runs and nothing is stored for level 2.
+    assert!(matches!(
+        scanner.run(&Principal::local_owner(), job),
+        JobResult::Finished(_)
+    ));
+    assert_eq!(reports.writes.lock().unwrap()[0].level2, None);
+}
+
+/// Level 1 of the browser: stored, no indexer started yet.
+fn level_one_of(
+    world: &Arc<World>,
+    scanner: &Scanner,
+) -> Result<
+    codeskimr_application::pipeline::Job<codeskimr_application::pipeline::Finished>,
+    CodedError,
+> {
+    let job = Job::new(ProjectId::new(7), ScanMode::Full).started_from(ScanOrigin::Browser);
+    match scanner.run(&Principal::local_owner(), job) {
+        JobResult::Finished(job) => {
+            assert_eq!(world.persisted_count(), 1);
+            Ok(job)
+        }
+        _ => Err(CodedError::new(ErrorCode::UnexpectedInternalError)),
+    }
+}
+
+fn run_level_two(
+    scanner: &Scanner,
+    finished: &codeskimr_application::pipeline::Job<codeskimr_application::pipeline::Finished>,
+    (principal, cancel): (&Principal, &CancelToken),
+) -> Vec<codeskimr_application::level2::LanguageReport> {
+    scanner.run_level2(&Level2Run {
+        principal,
+        snapshot: finished.snapshot(),
+        root: finished.root(),
+        cancel,
+        origin: ScanOrigin::Browser,
+    })
+}
+
+#[test]
+fn level_two_after_level_one_starts_the_indexer_once_and_level_one_is_already_stored()
+-> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let (scanner, runner) = level2_scanner(&world)?;
+    let finished = level_one_of(&world, &scanner)?;
+    assert_eq!(runs(&runner), 0, "the scan itself starts no indexer");
+    let reports = run_level_two(
+        &scanner,
+        &finished,
+        (&Principal::local_owner(), &CancelToken::new()),
+    );
+    assert_eq!(runs(&runner), 1);
+    assert_eq!(reports.len(), 1);
+    Ok(())
+}
+
+#[test]
+fn a_cancelled_token_stops_level_two_before_the_indexer_and_keeps_level_one()
+-> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let (scanner, runner) = level2_scanner(&world)?;
+    let finished = level_one_of(&world, &scanner)?;
+    let cancel = CancelToken::new();
+    cancel.cancel();
+    let reports = run_level_two(&scanner, &finished, (&Principal::local_owner(), &cancel));
+    assert_eq!(runs(&runner), 0);
+    assert!(matches!(
+        reports[0].outcome,
+        codeskimr_application::level2::Level2Outcome::Skipped(
+            codeskimr_application::level2::Skipped::Cancelled
+        )
+    ));
+    assert_eq!(world.persisted_count(), 1, "level 1 is as it was");
+    Ok(())
+}
+
+#[test]
+fn a_caller_without_the_right_to_run_indexers_gets_no_run_even_after_level_one()
+-> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let (scanner, runner) = level2_scanner(&world)?;
+    let finished = level_one_of(&world, &scanner)?;
+    let remote = Principal::limited(
+        PermissionSet::none()
+            .with(Permission::Read)
+            .with(Permission::Scan),
+    );
+    let gate = scanner.level2_gate(&remote, ProjectId::new(7), finished.root());
+    assert_eq!(
+        gate,
+        Err(codeskimr_application::level2::Skipped::NotPermitted)
+    );
+    let reports = run_level_two(&scanner, &finished, (&remote, &CancelToken::new()));
+    assert_eq!(runs(&runner), 0);
+    assert!(matches!(
+        reports[0].outcome,
+        codeskimr_application::level2::Level2Outcome::Skipped(
+            codeskimr_application::level2::Skipped::NotPermitted
+        )
+    ));
+    Ok(())
+}
+
+#[test]
+fn a_consent_that_is_gone_when_the_run_starts_stops_it() -> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let consent = Arc::new(InMemoryConsent::default());
+    let (scanner, runner) = level2_scanner_over(&world, &consent)?;
+    let finished = level_one_of(&world, &scanner)?;
+    let owner = Principal::local_owner();
+    assert!(
+        scanner
+            .level2_gate(&owner, ProjectId::new(7), finished.root())
+            .is_ok()
+    );
+    // The owner revokes between the answer of the command and the start of the run.
+    codeskimr_application::level2::revoke(&owner, consent.as_ref(), ProjectId::new(7))?;
+    let reports = run_level_two(&scanner, &finished, (&owner, &CancelToken::new()));
+    assert_eq!(runs(&runner), 0);
+    assert!(matches!(
+        reports[0].outcome,
+        codeskimr_application::level2::Level2Outcome::Skipped(
+            codeskimr_application::level2::Skipped::NotConfirmed
+        )
+    ));
+    Ok(())
+}
+
+#[test]
+fn a_level_two_run_tells_the_language_and_the_end_and_nothing_else() -> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let bus = EventBus::new();
+    let (scanner, _runner) =
+        level2_scanner_on(&world, &Arc::new(InMemoryConsent::default()), &bus)?;
+    let finished = level_one_of(&world, &scanner)?;
+    let events = bus.subscribe();
+    let _ = run_level_two(
+        &scanner,
+        &finished,
+        (&Principal::local_owner(), &CancelToken::new()),
+    );
+    let seen: Vec<Event> = events.try_iter().collect();
+    assert!(matches!(
+        seen.first(),
+        Some(Event::Level2Progressed(progress)) if progress.language.as_str() == "rust"
+    ));
+    assert!(matches!(
+        seen.last(),
+        Some(Event::Level2Finished(done)) if done.project == ProjectId::new(7)
+    ));
     Ok(())
 }

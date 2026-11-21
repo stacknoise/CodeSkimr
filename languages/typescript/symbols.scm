@@ -96,6 +96,46 @@
  (export_statement "export" @modifier declaration: (ambient_declaration (lexical_declaration "const" @modifier
   (variable_declarator name: (identifier) @name) @symbol.field))))
 
+; Constants inside a namespace body, like the ones of a module above.
+(internal_module
+ body: (statement_block
+ (comment)+ @doc
+ . (export_statement "export" @modifier declaration: (lexical_declaration "const" @modifier
+  (variable_declarator name: (identifier) @name
+   value: [(number) (string) (template_string) (true) (false) (null) (undefined) (array)
+            (object) (new_expression) (call_expression) (member_expression)
+            (subscript_expression) (identifier) (regex) (unary_expression) (binary_expression)
+            (ternary_expression) (await_expression) (as_expression) (satisfies_expression)
+            (non_null_expression) (parenthesized_expression) (class)]) @symbol.field))))
+(internal_module
+ body: (statement_block
+ (comment)+ @doc
+ . (lexical_declaration "const" @modifier
+  (variable_declarator name: (identifier) @name
+   value: [(number) (string) (template_string) (true) (false) (null) (undefined) (array)
+            (object) (new_expression) (call_expression) (member_expression)
+            (subscript_expression) (identifier) (regex) (unary_expression) (binary_expression)
+            (ternary_expression) (await_expression) (as_expression) (satisfies_expression)
+            (non_null_expression) (parenthesized_expression) (class)]) @symbol.field)))
+(internal_module
+ body: (statement_block
+ (export_statement "export" @modifier declaration: (lexical_declaration "const" @modifier
+  (variable_declarator name: (identifier) @name
+   value: [(number) (string) (template_string) (true) (false) (null) (undefined) (array)
+            (object) (new_expression) (call_expression) (member_expression)
+            (subscript_expression) (identifier) (regex) (unary_expression) (binary_expression)
+            (ternary_expression) (await_expression) (as_expression) (satisfies_expression)
+            (non_null_expression) (parenthesized_expression) (class)]) @symbol.field))))
+(internal_module
+ body: (statement_block
+ (lexical_declaration "const" @modifier
+  (variable_declarator name: (identifier) @name
+   value: [(number) (string) (template_string) (true) (false) (null) (undefined) (array)
+            (object) (new_expression) (call_expression) (member_expression)
+            (subscript_expression) (identifier) (regex) (unary_expression) (binary_expression)
+            (ternary_expression) (await_expression) (as_expression) (satisfies_expression)
+            (non_null_expression) (parenthesized_expression) (class)]) @symbol.field)))
+
 ; A function value is a function (its symbol is the function expression, so its body is measured).
 ; Local ones count too, like local functions.
 ((comment)* @doc

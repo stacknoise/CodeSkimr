@@ -8,22 +8,25 @@ use codeskimr_application::config::{Conventions, KeySources, McpLimits};
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    AnalyzeRequest, Clock, CodeIndex, CodeSpan, DependencyEdge, DependencyPage, DependencyQuery,
-    DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, FileHit, ImpactPage, ImpactedSymbol,
-    KeyEntry, KeyKind, KeySearch, LanguageShare, MemberRef, PathsReport, PreviousIndex,
-    ProjectCatalog, ProjectKeys, ProjectOverview, ProjectRepository, ProjectScanner,
-    ProjectToolCheck, Rescanned, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex,
-    SnippetFingerprinter, SymbolDetail, SymbolKey, SymbolLabel, TypeFocus, UsageEntry, UsageIndex,
-    UsagePage,
+    AlertDismissal, AlertFilter, AlertPurge, AlertRaise, AnalyzeRequest, AnnotationCreation,
+    AnnotationFilter, AnnotationStore, AnnotationUpdate, Clock, CodeIndex, CodeSpan,
+    DependencyEdge, DependencyPage, DependencyQuery, DiscoveredFile, Excerpt, FileAnalyzer,
+    FileDiscovery, FileFacts, FileHit, ImpactPage, ImpactedSymbol, KeyEntry, KeyKind, KeySearch,
+    LanguageLine, LanguageOutcome, LanguageShare, LastScan, Level2Report, MemberRef, PathsReport,
+    PreviousIndex, ProjectCatalog, ProjectKeys, ProjectOverview, ProjectRepository, ProjectScanner,
+    ProjectToolCheck, ReportWrite, Rescanned, ScanReport, ScanReportStore, SearchHit, SimilarHit,
+    SimilarQuery, SimilarityIndex, SnippetFingerprinter, SourceText, SymbolDetail, SymbolKey,
+    SymbolLabel, TypeFocus, UsageEntry, UsageIndex, UsagePage,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
-    BodyCounts, Confidence, ContentHash, Direction, FileId, Fingerprint, Fingerprints, FolderPath,
-    LanguageId, Layer, LayerEdge, LayerName, Loc, Metric, MetricKind, MetricValue, NamespaceGraph,
-    Position, Principal, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
-    ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats,
-    SourceFile, Span, Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, Timestamp,
-    ToolFinding, ToolReport, ToolRole, ToolState, UsageQuery, Visibility,
+    Alert, Annotation, AnnotationId, BodyCounts, Confidence, ContentHash, Direction, FileId,
+    Fingerprint, Fingerprints, FolderPath, LanguageId, Layer, LayerEdge, LayerName, Loc, Metric,
+    MetricKind, MetricValue, NamespaceGraph, Position, Principal, Project, ProjectId, ProjectName,
+    ProjectSource, QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanLevel,
+    ScanMode, ScanOrigin, SkipReason, Snapshot, SnapshotId, SnapshotStats, SourceFile, Span,
+    Symbol, SymbolBaseline, SymbolCounts, SymbolId, SymbolKind, SymbolName, Timestamp, ToolFinding,
+    ToolReport, ToolRole, ToolState, UsageQuery, Visibility,
 };
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::{Ports, Tools};
@@ -188,6 +191,7 @@ fn detail() -> SymbolDetail {
         same_name: 0,
         symbol: symbol_named(1, SymbolKind::Class, "App.Domain.Order"),
         path: RelativePath::new("src/order.cs").unwrap(),
+        language: LanguageId::new("csharp").unwrap(),
         members,
         metrics: vec![Metric {
             symbol: SymbolId::new(1),
@@ -492,6 +496,22 @@ impl SnippetFingerprinter for FakeSnippets {
 /// A disk with one function of 50 code lines.
 pub struct FakeDisk;
 
+/// The fake disk has no text lines: a function never carries the marker of a reasoned exception.
+impl SourceText for FakeDisk {
+    fn excerpt(
+        &self,
+        _: &FolderPath,
+        _: &RelativePath,
+        _: (u32, u32),
+        _: (u32, u64),
+    ) -> Result<Excerpt, CodedError> {
+        Ok(Excerpt {
+            lines: Vec::new(),
+            truncated: false,
+        })
+    }
+}
+
 impl FileDiscovery for FakeDisk {
     fn discover(
         &self,
@@ -530,6 +550,7 @@ impl FileAnalyzer for FakeDisk {
             body: Some(BodyCounts {
                 cognitive: Some(20),
                 parameters: Some(7),
+                literals: Some(3),
                 ..BodyCounts::default()
             }),
             counted: true,
@@ -539,6 +560,7 @@ impl FileAnalyzer for FakeDisk {
             symbols: vec![function],
             pending: Vec::new(),
             fingerprints: Vec::new(),
+            hashes: Vec::new(),
             counts: vec![counts],
         })
     }
@@ -547,6 +569,7 @@ impl FileAnalyzer for FakeDisk {
 pub fn checker() -> Arc<ConventionChecker> {
     let disk = Arc::new(FakeDisk);
     Arc::new(ConventionChecker::new(
+        disk.clone(),
         disk.clone(),
         disk,
         Conventions {
@@ -606,6 +629,28 @@ pub fn tools_checking(check: Arc<FakeToolCheck>) -> Tools {
 }
 
 fn assemble(
+    setup: (FakeIndex, Arc<FakeUsages>, bool),
+    scanner: Arc<FakeScanner>,
+    tool_check: Arc<FakeToolCheck>,
+) -> Tools {
+    assemble_with(limits(), setup, scanner, tool_check)
+}
+
+/// Tools that may list up to `max_limit` entries, for a test that needs the whole answer.
+pub fn tools_listing(max_limit: u32) -> Tools {
+    assemble_with(
+        McpLimits {
+            max_limit,
+            ..limits()
+        },
+        (scanned(), Arc::new(FakeUsages::default()), true),
+        Arc::new(FakeScanner::default()),
+        Arc::new(FakeToolCheck::default()),
+    )
+}
+
+fn assemble_with(
+    limits: McpLimits,
     (index, usages, has_prints): (FakeIndex, Arc<FakeUsages>, bool),
     scanner: Arc<FakeScanner>,
     tool_check: Arc<FakeToolCheck>,
@@ -628,8 +673,10 @@ fn assemble(
             messages: Arc::new(Messages::load().unwrap()),
             keys: Arc::new(FakeKeys),
             key_sources: key_sources(),
+            annotations: Arc::new(FakeAnnotations::default()),
+            reports: Arc::new(FakeReports),
         },
-        limits(),
+        limits,
         PROJECT,
     )
 }
@@ -660,6 +707,39 @@ impl ProjectCatalog for FakeCatalog {
                 parse_micros: None,
             })
             .collect())
+    }
+}
+
+/// A stored report of a browser scan at level 2: C# checked in part, Go without its tools, and
+/// Rust not confirmed.
+pub struct FakeReports;
+
+impl ScanReportStore for FakeReports {
+    fn store_report(&self, _write: &ReportWrite) -> Result<(), CodedError> {
+        Err(CodedError::new(ErrorCode::DatabaseFailed))
+    }
+
+    fn report(&self, _project: ProjectId) -> Result<Option<ScanReport>, CodedError> {
+        let line = |language: &str, outcome| LanguageLine {
+            language: LanguageId::new(language).unwrap(),
+            outcome,
+        };
+        Ok(Some(ScanReport {
+            last: LastScan {
+                at: Timestamp(500),
+                level: ScanLevel::Two,
+                origin: ScanOrigin::Browser,
+            },
+            level2: Some(Level2Report {
+                at: Timestamp(510),
+                origin: ScanOrigin::Browser,
+                languages: vec![
+                    line("csharp", LanguageOutcome::Checked { files: 7, stale: 2 }),
+                    line("go", LanguageOutcome::Skipped(SkipReason::ToolsUnavailable)),
+                    line("rust", LanguageOutcome::Skipped(SkipReason::NotConfirmed)),
+                ],
+            }),
+        }))
     }
 }
 
@@ -754,4 +834,122 @@ impl ProjectKeys for FakeKeys {
             key("other.setting", KeyKind::Config, "config/default.toml", 9),
         ])
     }
+}
+
+/// Annotations and alerts that a test hands to the tools; nothing can be written to it.
+#[derive(Default)]
+pub struct FakeAnnotations {
+    pub annotations: Vec<Annotation>,
+    pub alerts: Vec<Alert>,
+}
+
+fn read_only<T>() -> Result<T, CodedError> {
+    Err(CodedError::new(ErrorCode::UnexpectedInternalError))
+}
+
+impl AnnotationStore for FakeAnnotations {
+    fn create_annotation(&self, _creation: &AnnotationCreation) -> Result<Annotation, CodedError> {
+        read_only()
+    }
+
+    fn update_annotation(&self, _update: &AnnotationUpdate) -> Result<Annotation, CodedError> {
+        read_only()
+    }
+
+    fn delete_annotation(&self, _id: AnnotationId) -> Result<(), CodedError> {
+        read_only()
+    }
+
+    fn list_annotations(&self, filter: &AnnotationFilter) -> Result<Vec<Annotation>, CodedError> {
+        Ok(self
+            .annotations
+            .iter()
+            .filter(|found| {
+                found.project == filter.project
+                    && filter.kind.is_none_or(|kind| found.content.kind == kind)
+                    && filter
+                        .target
+                        .as_ref()
+                        .is_none_or(|target| &found.target == target)
+            })
+            .cloned()
+            .collect())
+    }
+
+    fn refresh_targets(
+        &self,
+        _project: ProjectId,
+        _snapshot: SnapshotId,
+    ) -> Result<u64, CodedError> {
+        read_only()
+    }
+
+    fn baseline(&self, _annotation: AnnotationId) -> Result<Option<SymbolBaseline>, CodedError> {
+        read_only()
+    }
+
+    fn store_baseline(
+        &self,
+        _annotation: AnnotationId,
+        _baseline: &SymbolBaseline,
+    ) -> Result<(), CodedError> {
+        read_only()
+    }
+
+    fn raise_alert(&self, _raise: &AlertRaise) -> Result<Alert, CodedError> {
+        read_only()
+    }
+
+    fn list_alerts(&self, filter: &AlertFilter) -> Result<Vec<Alert>, CodedError> {
+        let mine: Vec<&Annotation> = self
+            .annotations
+            .iter()
+            .filter(|found| found.project == filter.project)
+            .collect();
+        Ok(self
+            .alerts
+            .iter()
+            .filter(|alert| {
+                mine.iter().any(|found| found.id == alert.annotation)
+                    && filter.state.is_none_or(|state| alert.state == state)
+            })
+            .cloned()
+            .collect())
+    }
+
+    fn dismiss_alert(&self, _dismissal: &AlertDismissal) -> Result<Alert, CodedError> {
+        read_only()
+    }
+
+    fn purge_dismissed(&self, _purge: &AlertPurge) -> Result<u64, CodedError> {
+        read_only()
+    }
+}
+
+/// Tools over the same fakes, with these annotations and alerts.
+pub fn tools_annotated(annotations: FakeAnnotations) -> Tools {
+    Tools::new(
+        Ports {
+            projects: Arc::new(FakeProjects),
+            index: Arc::new(scanned()),
+            usages: Arc::new(FakeUsages::default()),
+            similarity: Arc::new(FakeSimilarity {
+                asked: Mutex::default(),
+                has_prints: true,
+            }),
+            snippets: Arc::new(FakeSnippets),
+            checker: checker(),
+            clock: Arc::new(FixedClock),
+            scanner: Arc::new(FakeScanner::default()),
+            catalog: Arc::new(FakeCatalog),
+            tool_check: Arc::new(FakeToolCheck::default()),
+            messages: Arc::new(Messages::load().unwrap()),
+            keys: Arc::new(FakeKeys),
+            key_sources: key_sources(),
+            annotations: Arc::new(annotations),
+            reports: Arc::new(FakeReports),
+        },
+        limits(),
+        PROJECT,
+    )
 }

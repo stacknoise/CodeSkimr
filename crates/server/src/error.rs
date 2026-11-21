@@ -42,9 +42,17 @@ impl From<CodedError> for Failure {
 #[must_use]
 pub fn status_of(code: ErrorCode) -> StatusCode {
     match code {
-        ErrorCode::PermissionDenied | ErrorCode::HostOrOriginRejected => StatusCode::FORBIDDEN,
+        // A caller that may not confirm an indexer is forbidden, like any denied caller.
+        ErrorCode::PermissionDenied
+        | ErrorCode::HostOrOriginRejected
+        | ErrorCode::IndexerNotPermitted => StatusCode::FORBIDDEN,
         ErrorCode::RequestTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
         ErrorCode::RequestTimedOut => StatusCode::REQUEST_TIMEOUT,
+        ErrorCode::ConfirmWindowRateLimited => StatusCode::TOO_MANY_REQUESTS,
+        // ADR 0071, decision 11: the state of the configuration, not the request, is the reason;
+        // a start that failed is the server's.
+        ErrorCode::Level2SwitchOff => StatusCode::CONFLICT,
+        ErrorCode::ConfirmWindowFailed => StatusCode::INTERNAL_SERVER_ERROR,
         _ => match code.class() {
             Class::InvalidInput => StatusCode::BAD_REQUEST,
             Class::NotFound => StatusCode::NOT_FOUND,

@@ -4,8 +4,8 @@ use std::str::FromStr;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    Confidence, FileId, MetricKind, MetricValue, ModelError, Position, ReferenceKind, ScanMode,
-    Span, SymbolId, SymbolKind, SymbolName, Visibility,
+    Confidence, FileId, MetricKind, MetricValue, ModelError, Position, QualifiedName,
+    ReferenceKind, ScanMode, Span, SymbolId, SymbolKind, SymbolName, Visibility,
 };
 
 fn at(line: u32, column: u32) -> Position {
@@ -103,4 +103,15 @@ fn every_model_error_has_a_registered_code() {
         assert_eq!(error.code(), ErrorCode::UnexpectedInternalError);
         assert_ne!(error.to_string(), "");
     }
+}
+
+#[test]
+fn a_name_is_inside_its_own_first_segments_only() -> Result<(), ModelError> {
+    let name = QualifiedName::new("Shop.Ui.Cart")?;
+    assert!(name.is_inside("Shop"));
+    assert!(name.is_inside("Shop.Ui.Cart"));
+    assert!(!name.is_inside("Sho"));
+    assert!(!QualifiedName::new("Shopping.Ui")?.is_inside("Shop"));
+    assert!(QualifiedName::new("shop::ui")?.is_inside("shop"));
+    Ok(())
 }

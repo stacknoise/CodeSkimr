@@ -1,3 +1,4 @@
+import type { ScanReport } from "../../shared/project/report";
 import type { SCAN_MODE, SOURCE_KIND, TOOL_STATE } from "./consts";
 
 /** The newest scan of a project. */
@@ -31,6 +32,8 @@ export interface ToolInfo {
   languages: string[];
   found: string | null;
   required: string | null;
+  /** Where the tool was found; only the listing of the settings knows it. */
+  path?: string | null;
   /** Message keys in the Fluent files of `locales/`, named by the language pack. */
   purpose_key: string;
   install_key: string;
@@ -60,6 +63,16 @@ export interface ProjectRow {
   /** The last check of the tools, `null` if the project was never checked (absent in an export,
    * which does not run on the machine of the reader). */
   tools?: ToolsInfo | null;
+  /** What the last scan was and what level 2 did (ADR 0072); `null` while no scan stored a report,
+   * absent in an export. */
+  report?: ScanReport | null;
+}
+
+/** Whether a scan from the browser started stage 2 (ADR 0072, decision 4). */
+export interface Level2Start {
+  state: "started" | "not_started" | "not_requested";
+  /** Why it did not start: `not_permitted`, `not_confirmed`, `busy` or `paused`. */
+  reason?: string | null;
 }
 
 /** The output of `projects.add` and `projects.rescan`. */
@@ -71,4 +84,20 @@ export interface Scanned {
   references: number;
   seconds: number;
   tools: ToolsInfo;
+  level2?: Level2Start;
+}
+
+/** The state of the level 2 switch of a project (`level2.status`, ADR 0071, decision 3). */
+export interface Level2Status {
+  state: "on" | "off" | "not_enabled" | "locked";
+  /** Whether a confirmation exists; only informative if the state is `not_enabled`. */
+  confirmed: boolean;
+  /** `window` if the server can open the console window, `copy` if the screen shows the command. */
+  launch: "window" | "copy";
+}
+
+/** The answer of `POST /api/v1/level2/confirm-window`. */
+export interface ConfirmWindow {
+  launch: "window" | "copy";
+  command?: string;
 }

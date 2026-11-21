@@ -49,6 +49,23 @@ export const KIND_TONE: Record<string, string> = {
   event: "enum",
   enum_member: "struct",
 };
+/** The short name of a language in the tree; a language without one shows its id. */
+export const LANGUAGE_SHORT: Record<string, string> = {
+  c: "C",
+  cpp: "C++",
+  csharp: "C#",
+  go: "Go",
+  java: "Java",
+  javascript: "JS",
+  kotlin: "Kt",
+  php: "PHP",
+  python: "Py",
+  ruby: "Rb",
+  rust: "Rs",
+  tsx: "TSX",
+  typescript: "TS",
+};
+
 export const KIND_TONE_OTHER = "other";
 
 /** Kinds that the tree groups under "Properties & fields". */
@@ -69,6 +86,8 @@ export const TYPE_KINDS: readonly string[] = [
   "enum",
   "union",
 ];
+/** Kinds that the tree groups under "Type aliases". */
+export const ALIAS_KINDS: readonly string[] = ["type_alias"];
 /** Kinds that the tree groups under "Methods". */
 export const METHOD_KINDS: readonly string[] = ["method", "constructor", "function"];
 /** Kinds that the "Properties" chip of the member table shows. */
@@ -87,9 +106,12 @@ export const KEY = {
   enter: "Enter",
   space: " ",
   reveal: ".",
-  usages: "u",
-  graph: "g",
 } as const;
+/** The letters that act on the selection: the action each one runs, by the name of its key in
+ * `ExplorerKeys` (keys.ts). */
+export const PLAIN_KEYS: Readonly<
+  Record<string, "usages" | "graph" | "critical" | "note" | "task" | undefined>
+> = { u: "usages", g: "graph", k: "critical", n: "note", t: "task" };
 /** One row down and up. */
 export const STEP_DOWN = 1;
 export const STEP_UP = -1;
@@ -100,13 +122,16 @@ export const MEMBER_STEP: Readonly<Record<string, number>> = {
 };
 export const NOT_FOUND = -1;
 
-/** What a row of the tree is. */
-/** Depth of the rows below a namespace row. */
-export const TYPE_DEPTH = 2;
+/** Separates the file and the lines in a location. */
+export const LOCATION_SEPARATOR = ":";
+
+/** Columns of the member table: name, annotations, signature, access, CC, uses, lines. */
+export const COLUMN_COUNT = 7;
 
 /** Id of the complexity metric, which names the limits of its column. */
 export const CC_METRIC = "cc";
 
+/** What a row of the tree is. */
 export const ROW = {
   layer: "layer",
   namespace: "namespace",
@@ -115,6 +140,12 @@ export const ROW = {
   member: "member",
 } as const;
 export type RowKind = (typeof ROW)[keyof typeof ROW];
+
+/** Separates the folders of the path of a file. */
+export const PATH_SEPARATOR = "/";
+
+/** One part of a namespace name; the parts are separated by `.` or `::`. */
+export const NAME_PART = /[^.:]+/g;
 
 /** Keys of expanded rows are built from a prefix and the names, separated by this. */
 export const KEY_SEPARATOR = "\u0001";
@@ -127,7 +158,12 @@ export const BASE_INDENT_PX = 8;
 export const CARET = { closed: "▶", open: "▼" } as const;
 
 /** The member groups of the tree. */
-export const GROUP = { fields: "fields", methods: "methods", nested: "nested" } as const;
+export const GROUP = {
+  fields: "fields",
+  methods: "methods",
+  nested: "nested",
+  aliases: "aliases",
+} as const;
 
 /** The chips of the member table. */
 export const CHIP = {
@@ -212,6 +248,10 @@ export const TILES = [
   },
 ] as const;
 
+/** The tiles of the coupling counts (ADR 0037); while level 2 has not confirmed the language of the
+ * symbol they say "upper bound". */
+export const BOUND_TILES: readonly string[] = ["ce", "ca", "instability"];
+
 /** Decimals of a metric value with a fraction. */
 export const METRIC_DECIMALS = 2;
 /** Shown for a missing value. */
@@ -251,3 +291,52 @@ export const PATH_JOINER = "/";
 
 /** Keyboard hints on the three buttons of the header. */
 export const HOTKEY = { usages: "U", graph: "G", editor: "E" } as const;
+/** Keys under which the sizes of the columns are kept, and their limits in pixels (mock 2 shows
+ * the first values). */
+export const PANE_KEY = {
+  tree: "explorer.tree",
+  source: "explorer.source",
+  panel: "explorer.panel",
+} as const;
+export const PANE_BOUNDS = {
+  tree: { initial: 290, min: 200, max: 640 },
+  source: { initial: 560, min: 280, max: 1100 },
+  panel: { initial: 400, min: 280, max: 640 },
+} as const;
+
+/** The columns of the member table that sort it. */
+export const SORT_COLUMN = {
+  name: "name",
+  signature: "signature",
+  access: "access",
+  complexity: "complexity",
+  usages: "usages",
+  lines: "lines",
+} as const;
+export type SortColumn = (typeof SORT_COLUMN)[keyof typeof SORT_COLUMN];
+
+/** The directions of a sort, as `aria-sort` names them. */
+export const SORT_DIRECTION = { ascending: "ascending", descending: "descending" } as const;
+export type SortDirection = (typeof SORT_DIRECTION)[keyof typeof SORT_DIRECTION];
+
+/** The member table is sorted by name until a column head is pressed. */
+export const DEFAULT_SORT = {
+  column: SORT_COLUMN.name,
+  direction: SORT_DIRECTION.ascending,
+} as const;
+
+/** The columns of numbers sort the largest first when they are chosen. */
+export const NUMBER_COLUMNS: readonly SortColumn[] = [
+  SORT_COLUMN.complexity,
+  SORT_COLUMN.usages,
+  SORT_COLUMN.lines,
+];
+
+/** The marks next to the name of the column that sorts the table. */
+export const SORT_MARK = { ascending: "▲", descending: "▼" } as const;
+
+/** Compares names without regard to case and accents. */
+export const NAME_COLLATION: Intl.CollatorOptions = { sensitivity: "base", numeric: true };
+
+/** The sign that turns the order of a comparison for the direction of a sort. */
+export const SORT_SIGN = { ascending: 1, descending: -1 } as const;

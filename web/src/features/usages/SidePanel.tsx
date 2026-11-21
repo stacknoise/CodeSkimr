@@ -10,8 +10,12 @@ import {
   MISSING,
 } from "./consts";
 import { Breakable } from "../../shared/ui/Breakable";
+import { accuracyNote } from "./accuracyNote";
+import { approximationNote, isApproximate } from "./approximation";
 import { shortName } from "./names";
 import type { UsagesAnswer } from "./types";
+import { panelStyle } from "../../shared/layout/panelStyle";
+import { panelWidth } from "./layout";
 import styles from "./SidePanel.module.css";
 
 function Tile(props: { value: number; label: string; accent?: boolean }) {
@@ -22,6 +26,20 @@ function Tile(props: { value: number; label: string; accent?: boolean }) {
       </div>
       <span>{props.label}</span>
     </div>
+  );
+}
+
+/** The documentation comment of the symbol, left out when the code has none. */
+function Description(props: { doc: string | null }) {
+  return (
+    <Show when={props.doc}>
+      {(doc) => (
+        <section class={styles.block}>
+          <h3>{t(I18N_KEYS.USAGES_DESCRIPTION_TITLE)}</h3>
+          <p class={styles.description}>{doc()}</p>
+        </section>
+      )}
+    </Show>
   );
 }
 
@@ -60,13 +78,21 @@ function Impact(props: { answer: UsagesAnswer }) {
   );
 }
 
-/** How sure the usages are, and the reason when no indexer checked them. This is what keeps the
+/** How sure the usages are, and the reason when level 2 did not check them. This is what keeps the
  * screen honest: unchecked results are counted apart from verified ones (ADR 0033). */
 function Accuracy(props: { answer: UsagesAnswer }) {
   const summary = () => props.answer.summary;
   return (
     <section class={styles.accuracy}>
-      <h3>{t(I18N_KEYS.USAGES_ACCURACY_TITLE)}</h3>
+      <h3>
+        {t(I18N_KEYS.USAGES_ACCURACY_TITLE)}
+        <Show when={isApproximate(props.answer.language)}>
+          <span class={styles.approx}>{t(I18N_KEYS.USAGES_APPROX_CHIP)}</span>
+        </Show>
+      </h3>
+      <Show when={approximationNote(props.answer.language)}>
+        {(note) => <p class={styles.warning}>{note()}</p>}
+      </Show>
       <p>
         {t(I18N_KEYS.USAGES_ACCURACY, {
           verified: summary().verified,
@@ -74,8 +100,12 @@ function Accuracy(props: { answer: UsagesAnswer }) {
           presumed: summary().probable,
         })}
       </p>
-      <Show when={props.answer.level2 === LEVEL2_UNAVAILABLE || summary().unchecked > 0}>
+      <Show when={accuracyNote(props.answer)}>{(note) => <p>{note()}</p>}</Show>
+      <Show when={props.answer.level2 === LEVEL2_UNAVAILABLE}>
         <p class={styles.warning}>{t(I18N_KEYS.USAGES_LEVEL2_UNAVAILABLE)}</p>
+      </Show>
+      <Show when={props.answer.level2 !== LEVEL2_UNAVAILABLE && summary().unchecked > 0}>
+        <p class={styles.warning}>{t(I18N_KEYS.USAGES_LEVEL2_PARTIAL)}</p>
       </Show>
     </section>
   );
@@ -85,7 +115,11 @@ function Accuracy(props: { answer: UsagesAnswer }) {
 export function SidePanel(props: { answer: UsagesAnswer; onOpen: () => void }) {
   const symbol = () => props.answer.symbol;
   return (
-    <aside class={styles.panel} aria-label={t(I18N_KEYS.USAGES_TITLE)}>
+    <aside
+      class={styles.panel}
+      style={panelStyle(panelWidth)}
+      aria-label={t(I18N_KEYS.USAGES_TITLE)}
+    >
       <div>
         <div class={styles.kind}>
           {[symbol().kind, symbol().layer ?? MISSING].join(KIND_SEPARATOR)}
@@ -102,6 +136,7 @@ export function SidePanel(props: { answer: UsagesAnswer; onOpen: () => void }) {
         <Tile value={props.answer.summary.files} label={t(I18N_KEYS.USAGES_FILES)} />
         <Tile value={props.answer.summary.layers} label={t(I18N_KEYS.USAGES_LAYERS)} />
       </div>
+      <Description doc={props.answer.doc} />
       <Impact answer={props.answer} />
       <section class={styles.block}>
         <h3>{t(I18N_KEYS.USAGES_WORKS_TITLE)}</h3>

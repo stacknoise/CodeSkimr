@@ -55,10 +55,16 @@ fn limit_growth(conn: &Connection, pages: NonZeroU32) -> rusqlite::Result<()> {
 pub struct SqliteStore {
     conn: Mutex<Connection>,
     retention: NonZeroU32,
-    /// The reverse index and the places of the snapshot that was asked about last; a snapshot
-    /// never changes.
-    pub(crate) reverse: Mutex<Option<(SnapshotId, Arc<crate::lookup::SnapshotLookup>)>>,
+    /// The reverse index and the places of the snapshot that was asked about last. They are kept
+    /// only while no other connection has committed since (`data_version`): the level 2 import of
+    /// a scan from the browser or of `codeskimr scan` replaces the references of a snapshot
+    /// through its own store.
+    pub(crate) reverse: Mutex<Option<KeptLookup>>,
 }
+
+/// What [`SqliteStore`] keeps of the reverse index: the snapshot, its lookup and the
+/// `data_version` of the database when it was built.
+pub(crate) type KeptLookup = (SnapshotId, Arc<crate::lookup::SnapshotLookup>, i64);
 
 impl SqliteStore {
     /// Opens the database file, creating it and its folder if needed, and applies the migrations.

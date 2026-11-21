@@ -2,6 +2,7 @@ import { createMemo, For, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
+import { isCritical, RowMarks } from "../annotations/RowMarks";
 import { Icon } from "../../shared/ui/Icon";
 import {
   CARET,
@@ -15,7 +16,18 @@ import {
   ROW_ID_PREFIX,
   TRUE,
 } from "./consts";
-import { collapseAll, currentMember, currentType, setTreeFilter, treeFilter } from "./explorer";
+import {
+  collapseAll,
+  currentMember,
+  currentType,
+  setTreeFilter,
+  setTreeScroll,
+  treeFilter,
+  treeScroll,
+} from "./explorer";
+import { treeWidth } from "./layout";
+import { languageName } from "../projects/format";
+import { LANGUAGE_SHORT } from "./consts";
 import { KindBadge } from "./KindBadge";
 import { onTreeKey } from "./keys";
 import { indent, siblingPlaces, type Place, type TreeRow } from "./tree";
@@ -27,7 +39,8 @@ function selected(row: TreeRow): boolean {
   if (row.kind === ROW.member) {
     return row.member === currentMember();
   }
-  return row.kind === ROW.type && row.type === currentType() && currentMember() === null;
+  const ownsType = row.kind === ROW.type || (row.kind === ROW.namespace && row.type !== null);
+  return ownsType && row.type === currentType() && currentMember() === null;
 }
 
 /** What the tree reports to the screen. */
@@ -62,6 +75,45 @@ function Caret(props: { row: TreeRow; onToggle: (row: TreeRow) => void }) {
   );
 }
 
+/** The short name of the language of a type row; the title has the full name. */
+function LanguageTag(props: { id: string | null }) {
+  return (
+    <Show when={props.id}>
+      {(id) => (
+        <span class={styles.language} title={languageName(id())}>
+          {LANGUAGE_SHORT[id()] ?? id()}
+        </span>
+      )}
+    </Show>
+  );
+}
+
+/** What a row says: the dot of a layer or the badge of a kind, the name, the language,
+ * the marks of the annotations and the count or signature at the right edge. In a narrow tree the
+ * language and the marks give way first, whole, and the name stays readable. */
+function RowContent(props: { row: TreeRow }) {
+  const row = () => props.row;
+  return (
+    <>
+      <Show when={row().layerIndex !== null}>
+        <Dot index={row().layerIndex} />
+      </Show>
+      <Show when={row().symbolKind}>{(kind) => <KindBadge kind={kind()} />}</Show>
+      <span class={styles.label}>{row().label}</span>
+      <span class={styles.tail}>
+        <LanguageTag id={row().language} />
+        <RowMarks
+          target={row().target}
+          scope={row().scope}
+          names={row().names}
+          folded={row().expandable && !row().open}
+        />
+      </span>
+      <span class={styles.meta}>{row().meta}</span>
+    </>
+  );
+}
+
 function Item(props: {
   row: TreeRow;
   place: Place | undefined;
@@ -80,6 +132,7 @@ function Item(props: {
         props.cursor && styles.cursor,
         row().kind === ROW.layer && styles.layer,
         row().kind === ROW.group && styles.group,
+        isCritical(row().target) && styles.critical,
       )}
       style={{
         top: `${props.index * ROW_HEIGHT_PX}px`,
@@ -93,12 +146,7 @@ function Item(props: {
       onClick={() => props.actions.onActivate(row())}
     >
       <Caret row={row()} onToggle={props.actions.onToggle} />
-      <Show when={row().layerIndex !== null}>
-        <Dot index={row().layerIndex} />
-      </Show>
-      <Show when={row().symbolKind}>{(kind) => <KindBadge kind={kind()} />}</Show>
-      <span class={styles.label}>{row().label}</span>
-      <span class={styles.meta}>{row().meta}</span>
+      <RowContent row={row()} />
     </div>
   );
 }
@@ -170,10 +218,14 @@ export function TreePane(props: {
   note: string | null;
 }) {
   const cursorIndex = createMemo(() => props.rows.findIndex((row) => row.key === props.cursor));
-  const view = useWindow(() => props.rows, cursorIndex);
+  const view = useWindow(() => props.rows, cursorIndex, treeScroll());
   const places = createMemo(() => siblingPlaces(props.rows));
   return (
-    <section class={styles.pane} aria-label={t(I18N_KEYS.EXPLORER_STRUCTURE_LABEL)}>
+    <section
+      class={styles.pane}
+      style={{ width: `${treeWidth.size()}px` }}
+      aria-label={t(I18N_KEYS.EXPLORER_STRUCTURE_LABEL)}
+    >
       <Tools onReveal={props.actions.onReveal} />
       <Show when={props.note}>{(note) => <p class={styles.note}>{note()}</p>}</Show>
       <div
@@ -185,7 +237,10 @@ export function TreePane(props: {
         aria-activedescendant={
           cursorIndex() === NOT_FOUND ? undefined : `${ROW_ID_PREFIX}${cursorIndex()}`
         }
-        onScroll={view.onScroll}
+        onScroll={(event) => {
+          view.onScroll(event);
+          setTreeScroll(event.currentTarget.scrollTop);
+        }}
         onKeyDown={(event) => onTreeKey(event, props.rows, cursorIndex(), props.actions)}
       >
         <Window view={view} places={places()} cursorIndex={cursorIndex()} actions={props.actions} />

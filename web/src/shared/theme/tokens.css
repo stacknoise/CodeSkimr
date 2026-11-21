@@ -41,6 +41,8 @@
   --outgoing: #C2410C;
   --highlight: #FFF7D6;
   --mark: #FDE68A;
+  --critical: #A3197A;
+  --critical-bg: #FBE8F5;
   --kind-class: #2457D6;
   --kind-interface: #7C3AED;
   --kind-record: #0F766E;
@@ -52,6 +54,13 @@
   --layer-4: #B45309;
   --layer-5: #BE185D;
   --layer-6: #5B6370;
+  --syn-keyword: #6D28D9;
+  --syn-string: #15803D;
+  --syn-number: #B45309;
+  --syn-comment: #5B6370;
+  --syn-type: #0E7490;
+  --syn-function: #1D4ED8;
+  --syn-attribute: #BE185D;
 }
 
 [data-theme="petrol"] {
@@ -77,6 +86,8 @@
   --outgoing: #C2410C;
   --highlight: #FFF7D6;
   --mark: #FDE68A;
+  --critical: #A3197A;
+  --critical-bg: #FBE8F5;
   --kind-class: #2457D6;
   --kind-interface: #7C3AED;
   --kind-record: #0F766E;
@@ -88,6 +99,13 @@
   --layer-4: #B45309;
   --layer-5: #BE185D;
   --layer-6: #5B6370;
+  --syn-keyword: #6D28D9;
+  --syn-string: #15803D;
+  --syn-number: #B45309;
+  --syn-comment: #5B6370;
+  --syn-type: #0E7490;
+  --syn-function: #1D4ED8;
+  --syn-attribute: #BE185D;
 }
 
 [data-theme="dunkel"] {
@@ -113,6 +131,8 @@
   --outgoing: #FB923C;
   --highlight: #3A3413;
   --mark: #6B5A12;
+  --critical: #F08BD0;
+  --critical-bg: #3D1634;
   --kind-class: #6E9BFF;
   --kind-interface: #A78BFA;
   --kind-record: #2DD4BF;
@@ -124,4 +144,11 @@
   --layer-4: #F59E0B;
   --layer-5: #F472B6;
   --layer-6: #97A4B4;
+  --syn-keyword: #C4B5FD;
+  --syn-string: #86EFAC;
+  --syn-number: #FDBA74;
+  --syn-comment: #97A4B4;
+  --syn-type: #67E8F9;
+  --syn-function: #93C5FD;
+  --syn-attribute: #F9A8D4;
 }

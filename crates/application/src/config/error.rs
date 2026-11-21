@@ -28,6 +28,10 @@ pub enum Violation {
     MustNotBeBelow(&'static str),
     /// The value must not exceed the named other key.
     MustNotExceed(&'static str),
+    /// The value must be at least this much.
+    MustReach(u32),
+    /// The value must not be more than this.
+    MustNotPass(u32),
     /// The value must lie between 0 and 1.
     MustBeShare,
     /// The value must lie between 0 and 100.

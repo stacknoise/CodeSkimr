@@ -5,14 +5,13 @@ use std::fs;
 use std::path::Path;
 
 use codeskimr_application::ports::ProjectRepository;
-use codeskimr_cli::{GlobalOptions, ScanArgs};
+use codeskimr_cli::GlobalOptions;
 use codeskimr_domain::{ProjectId, ScanMode};
 
+use crate::alert_tests::session;
 use crate::config_files;
 use crate::locations::Locations;
 use crate::mcp_http_tests::locations;
-use crate::memory_keystore::secrets;
-use crate::scan::{self, Session};
 use crate::wiring::open_store;
 
 const PROJECT: ProjectId = ProjectId::new(1);
@@ -91,23 +90,6 @@ fn apply(folder: &Path, changes: &[Change]) {
             None => fs::remove_file(folder.join(path)).unwrap(),
         }
     }
-}
-
-fn session(folder: &Path, locations: &Locations) -> Session {
-    let args = ScanArgs {
-        source: folder.to_string_lossy().into_owned(),
-        branch: None,
-        credential: None,
-        json: false,
-        watch: false,
-    };
-    scan::open(
-        scan::prepare(&args).unwrap(),
-        &GlobalOptions::default(),
-        locations,
-        &secrets(),
-    )
-    .unwrap()
 }
 
 /// Every reference of the newest snapshot as text: file, place, kind, confidence, from and to.
@@ -196,6 +178,11 @@ fn assert_same(changes: &[Change]) {
 fn assert_same_in_steps(steps: &[&[Change]]) {
     let (full, incremental) = both_ways(BASE, steps);
     assert_eq!(incremental, full);
+}
+
+/// The result after two steps with one change each is the one of a full scan.
+fn assert_two_steps(first: Change, second: Change) {
+    assert_same_in_steps(&[&[first], &[second]]);
 }
 
 fn assert_python_same(steps: &[&[Change]]) {
@@ -366,22 +353,16 @@ fn an_edit_inside_a_body_gives_the_same_result() {
     )]);
 }
 
+const HELPER_FIRST: &str =
+    "namespace Demo;\n\n// first\npublic class Helper\n{\n    public static void Go() { }\n}\n";
+const HELPER_SECOND: &str = "namespace Demo;\n\n// first\n// second\npublic class Helper\n{\n    public static void Go() { }\n}\n";
+
 #[test]
 fn an_edit_that_only_adds_a_comment_gives_the_same_result() {
-    assert_same_in_steps(&[
-        &[(
-            "Helper.cs",
-            Some(
-                "namespace Demo;\n\n// first\npublic class Helper\n{\n    public static void Go() { }\n}\n",
-            ),
-        )],
-        &[(
-            "Helper.cs",
-            Some(
-                "namespace Demo;\n\n// first\n// second\npublic class Helper\n{\n    public static void Go() { }\n}\n",
-            ),
-        )],
-    ]);
+    assert_two_steps(
+        ("Helper.cs", Some(HELPER_FIRST)),
+        ("Helper.cs", Some(HELPER_SECOND)),
+    );
 }
 
 #[test]
@@ -394,22 +375,14 @@ fn a_name_that_an_import_makes_visible_follows_an_edit_of_the_imported_file() {
     )]);
 }
 
+const GADGET: &str =
+    "namespace Demo.Lib;\n\npublic class Gadget\n{\n    public static void Run() { }\n}\n";
+const TOOL: &str =
+    "namespace Demo.Elsewhere;\n\npublic class Tool\n{\n    public static void Run() { }\n}\n";
+
 #[test]
 fn a_name_that_an_import_makes_visible_follows_a_rename_and_a_second_candidate() {
-    assert_same_in_steps(&[
-        &[(
-            "Lib.cs",
-            Some(
-                "namespace Demo.Lib;\n\npublic class Gadget\n{\n    public static void Run() { }\n}\n",
-            ),
-        )],
-        &[(
-            "Elsewhere.cs",
-            Some(
-                "namespace Demo.Elsewhere;\n\npublic class Tool\n{\n    public static void Run() { }\n}\n",
-            ),
-        )],
-    ]);
+    assert_two_steps(("Lib.cs", Some(GADGET)), ("Elsewhere.cs", Some(TOOL)));
 }
 
 #[test]
@@ -531,12 +504,32 @@ fn a_new_class_with_the_name_of_a_receiver_changes_the_unchanged_members() {
     )]);
 }
 
+/// The text of a file that lives as long as the test binary, which the steps need.
+fn leaked(text: String) -> &'static str {
+    Box::leak(text.into_boxed_str())
+}
+
+/// `Tool.cs`: a class `Tool` with one static method, in `namespace`.
+fn tool_in(namespace: &str) -> &'static str {
+    leaked(format!(
+        "namespace {namespace};\n\npublic class Tool\n{{\n    public static void Run() {{ }}\n}}\n"
+    ))
+}
+
+/// `Importer.cs`: a class that imports `namespace` and calls `Tool.Run()`.
+fn importer_of(namespace: &str) -> &'static str {
+    leaked(format!(
+        "using {namespace};\n\nnamespace Elsewhere;\n\npublic class Importer\n{{\n    public void Go() {{ Tool.Run(); }}\n}}\n"
+    ))
+}
+
 #[test]
 fn a_moved_namespace_changes_the_files_that_import_it() {
-    let lib = "namespace Demo.Lib;\n\npublic class Tool\n{\n    public static void Run() { }\n}\n";
-    let importer = "using Demo.Lib;\n\nnamespace Elsewhere;\n\npublic class Importer\n{\n    public void Go() { Tool.Run(); }\n}\n";
-    let moved =
-        "namespace Demo.Moved;\n\npublic class Tool\n{\n    public static void Run() { }\n}\n";
+    let (lib, importer, moved) = (
+        tool_in("Demo.Lib"),
+        importer_of("Demo.Lib"),
+        tool_in("Demo.Moved"),
+    );
     assert_same_for(
         BASE,
         &[
@@ -549,9 +542,7 @@ fn a_moved_namespace_changes_the_files_that_import_it() {
 
 #[test]
 fn a_namespace_that_an_import_waited_for_is_found_when_it_appears() {
-    let importer = "using Demo.Late;\n\nnamespace Elsewhere;\n\npublic class Importer\n{\n    public void Go() { Tool.Run(); }\n}\n";
-    let late =
-        "namespace Demo.Late;\n\npublic class Tool\n{\n    public static void Run() { }\n}\n";
+    let (importer, late) = (importer_of("Demo.Late"), tool_in("Demo.Late"));
     assert_same_for(
         BASE,
         &[
@@ -561,86 +552,77 @@ fn a_namespace_that_an_import_waited_for_is_found_when_it_appears() {
     );
 }
 
-#[test]
-fn typescript_follows_a_renamed_class_a_second_candidate_and_a_new_method() {
-    assert_same_for(
-        TYPESCRIPT_BASE,
-        &[
-            &[(
-                "target.ts",
-                Some("export class Target {\n  act(): void {}\n  more(): void {}\n}\n"),
-            )],
-            &[(
-                "other.ts",
-                Some(
-                    "export class Target {\n  act(): void {}\n}\n\nexport function helper(): number {\n  return 2;\n}\n",
-                ),
-            )],
-            &[(
-                "target.ts",
-                Some("export class Goal {\n  act(): void {}\n}\n"),
-            )],
-            &[("util.ts", None)],
-        ],
-    );
-}
+/// The steps of the rename scenario for typescript.
+const TYPESCRIPT_RENAME_STEPS: &[&[Change]] = &[
+    &[(
+        "target.ts",
+        Some("export class Target {\n  act(): void {}\n  more(): void {}\n}\n"),
+    )],
+    &[(
+        "other.ts",
+        Some(
+            "export class Target {\n  act(): void {}\n}\n\nexport function helper(): number {\n  return 2;\n}\n",
+        ),
+    )],
+    &[(
+        "target.ts",
+        Some("export class Goal {\n  act(): void {}\n}\n"),
+    )],
+    &[("util.ts", None)],
+];
+
+/// The steps of the rename scenario for java.
+const JAVA_RENAME_STEPS: &[&[Change]] = &[
+    &[(
+        "other/Helper.java",
+        Some("package other;\n\npublic class Helper {\n    public static void go() { }\n}\n"),
+    )],
+    &[(
+        "demo/Target.java",
+        Some("package demo;\n\npublic class Goal {\n    public void act() { }\n}\n"),
+    )],
+    &[("demo/Helper.java", None)],
+];
+
+/// The steps of the rename scenario for kotlin.
+const KOTLIN_RENAME_STEPS: &[&[Change]] = &[
+    &[(
+        "Target.kt",
+        Some("package demo\n\nclass Target {\n    fun act() { }\n    fun more() { }\n}\n"),
+    )],
+    &[("Other.kt", Some("package other\n\nfun helper() { }\n"))],
+    &[(
+        "Target.kt",
+        Some("package demo\n\nclass Goal {\n    fun act() { }\n}\n"),
+    )],
+];
+
+/// The steps of the rename scenario for rust.
+const RUST_RENAME_STEPS: &[&[Change]] = &[
+    &[(
+        "other.rs",
+        Some(
+            "pub fn helper() {}\n\npub struct Target;\n\nimpl Target {\n    pub fn act(&self) {}\n}\n",
+        ),
+    )],
+    &[(
+        "target.rs",
+        Some("pub struct Goal;\n\nimpl Goal {\n    pub fn act(&self) {}\n}\n"),
+    )],
+    &[("util.rs", None)],
+];
 
 #[test]
-fn java_follows_a_renamed_class_a_second_candidate_and_a_deleted_file() {
-    assert_same_for(
-        JAVA_BASE,
-        &[
-            &[(
-                "other/Helper.java",
-                Some(
-                    "package other;\n\npublic class Helper {\n    public static void go() { }\n}\n",
-                ),
-            )],
-            &[(
-                "demo/Target.java",
-                Some("package demo;\n\npublic class Goal {\n    public void act() { }\n}\n"),
-            )],
-            &[("demo/Helper.java", None)],
-        ],
-    );
-}
-
-#[test]
-fn kotlin_follows_a_renamed_class_a_second_candidate_and_a_new_method() {
-    assert_same_for(
-        KOTLIN_BASE,
-        &[
-            &[(
-                "Target.kt",
-                Some("package demo\n\nclass Target {\n    fun act() { }\n    fun more() { }\n}\n"),
-            )],
-            &[("Other.kt", Some("package other\n\nfun helper() { }\n"))],
-            &[(
-                "Target.kt",
-                Some("package demo\n\nclass Goal {\n    fun act() { }\n}\n"),
-            )],
-        ],
-    );
-}
-
-#[test]
-fn rust_follows_a_renamed_type_a_second_candidate_and_a_deleted_module() {
-    assert_same_for(
-        RUST_BASE,
-        &[
-            &[(
-                "other.rs",
-                Some(
-                    "pub fn helper() {}\n\npub struct Target;\n\nimpl Target {\n    pub fn act(&self) {}\n}\n",
-                ),
-            )],
-            &[(
-                "target.rs",
-                Some("pub struct Goal;\n\nimpl Goal {\n    pub fn act(&self) {}\n}\n"),
-            )],
-            &[("util.rs", None)],
-        ],
-    );
+fn each_language_follows_a_renamed_type_a_second_candidate_and_a_change() {
+    let scenarios = [
+        (TYPESCRIPT_BASE, TYPESCRIPT_RENAME_STEPS),
+        (JAVA_BASE, JAVA_RENAME_STEPS),
+        (KOTLIN_BASE, KOTLIN_RENAME_STEPS),
+        (RUST_BASE, RUST_RENAME_STEPS),
+    ];
+    for (base, steps) in scenarios {
+        assert_same_for(base, steps);
+    }
 }
 
 #[test]
@@ -857,6 +839,43 @@ mod random {
             text
         }
 
+        /// One line per file the file imports.
+        fn using_lines(&self, line: impl Fn(u64) -> String) -> String {
+            self.usings.iter().fold(String::new(), |mut text, using| {
+                writeln!(text, "{}", line(*using)).unwrap();
+                text
+            })
+        }
+
+        /// The declaration of every method of the class, one text per method.
+        fn method_lines(&self, declare: impl Fn(u64) -> String) -> String {
+            self.declared().into_iter().map(declare).collect()
+        }
+
+        /// The body of `run`: the calls, then the calls of the free functions.
+        fn run_lines(
+            &self,
+            indent: &str,
+            calls: (
+                impl Fn(u64, u64) -> String,
+                impl Fn(usize, u64, u64) -> String,
+                impl Fn(u64) -> String,
+            ),
+        ) -> String {
+            let (direct, local, free) = calls;
+            self.call_lines(indent, direct, local) + &self.free_call_lines(indent, free)
+        }
+
+        /// What the class says about its base class, nothing if it has none.
+        fn base_clause(&self, say: impl Fn(u64) -> String) -> String {
+            self.base.map(say).unwrap_or_default()
+        }
+
+        /// `with` where the class has a base class and its methods override, `without` otherwise.
+        fn overriding<'a>(&self, with: &'a str, without: &'a str) -> &'a str {
+            if self.base.is_some() { with } else { without }
+        }
+
         fn own(&self) -> u64 {
             self.calls.len() as u64 % METHODS
         }
@@ -923,52 +942,42 @@ mod random {
 
         fn kotlin(&self) -> String {
             let mut text = format!("package demo.n{}\n\n", self.namespace);
-            for using in &self.usings {
-                writeln!(text, "import demo.n{using}.*").unwrap();
-            }
-            let base = self.base.map(|b| format!(" : K{b}()")).unwrap_or_default();
+            text += &self.using_lines(|using| format!("import demo.n{using}.*"));
+            let base = self.base_clause(|b| format!(" : K{b}()"));
             writeln!(text, "\nopen class K{}{base} {{", self.class).unwrap();
-            let keyword = if self.base.is_some() {
-                "override"
-            } else {
-                "open"
-            };
-            for method in self.declared() {
-                writeln!(text, "    {keyword} fun m{method}() {{ }}").unwrap();
-            }
+            let keyword = self.overriding("override", "open");
+            text += &self.method_lines(|method| format!("    {keyword} fun m{method}() {{ }}\n"));
             writeln!(text, "    fun run() {{").unwrap();
-            text += &self.call_lines(
+            text += &self.run_lines(
                 "        ",
-                |c, m| format!("K{c}().m{m}()"),
-                |i, c, m| format!("val v{i} = K{c}()\nv{i}.m{m}()"),
+                (
+                    |c, m| format!("K{c}().m{m}()"),
+                    |i, c, m| format!("val v{i} = K{c}()\nv{i}.m{m}()"),
+                    |f| format!("f{f}()"),
+                ),
             );
-            text += &self.free_call_lines("        ", |f| format!("f{f}()"));
             writeln!(text, "        this.m{}()\n    }}\n}}", self.own()).unwrap();
             text += &self.free_declarations(|f| format!("\nfun f{f}() {{ }}\n"));
             text
         }
 
+        // codeskimr: allow CHK-102 assembles the file text of one language from the shared parts
         fn typescript(&self) -> String {
-            let mut text = String::new();
-            for using in &self.usings {
-                writeln!(text, "import {{ K{using} }} from \"./F{using}\";").unwrap();
-            }
-            let base = self
-                .base
-                .map(|b| format!(" extends K{b}"))
-                .unwrap_or_default();
+            let mut text =
+                self.using_lines(|using| format!("import {{ K{using} }} from \"./F{using}\";"));
+            let base = self.base_clause(|b| format!(" extends K{b}"));
             writeln!(text, "\nexport class K{}{base} {{", self.class).unwrap();
-            let keyword = if self.base.is_some() { "override " } else { "" };
-            for method in self.declared() {
-                writeln!(text, "  {keyword}m{method}(): void {{}}").unwrap();
-            }
+            let keyword = self.overriding("override ", "");
+            text += &self.method_lines(|method| format!("  {keyword}m{method}(): void {{}}\n"));
             writeln!(text, "  run(): void {{").unwrap();
-            text += &self.call_lines(
+            text += &self.run_lines(
                 "    ",
-                |c, m| format!("new K{c}().m{m}();"),
-                |i, c, m| format!("const v{i} = new K{c}();\nv{i}.m{m}();"),
+                (
+                    |c, m| format!("new K{c}().m{m}();"),
+                    |i, c, m| format!("const v{i} = new K{c}();\nv{i}.m{m}();"),
+                    |f| format!("f{f}();"),
+                ),
             );
-            text += &self.free_call_lines("    ", |f| format!("f{f}();"));
             writeln!(text, "    this.m{}();\n  }}\n}}", self.own()).unwrap();
             text += &self.free_declarations(|f| format!("\nexport function f{f}(): void {{}}\n"));
             text
@@ -1000,15 +1009,11 @@ mod random {
         }
 
         fn python(&self) -> String {
-            let mut text = String::new();
-            for using in &self.usings {
-                writeln!(text, "from f{using} import *").unwrap();
-            }
+            let mut text = self.using_lines(|using| format!("from f{using} import *"));
             let base = self.base.map(|b| format!("(K{b})")).unwrap_or_default();
             writeln!(text, "\n\nclass K{}{base}:", self.class).unwrap();
-            for method in self.declared() {
-                writeln!(text, "    def m{method}(self):\n        pass\n").unwrap();
-            }
+            text +=
+                &self.method_lines(|method| format!("    def m{method}(self):\n        pass\n\n"));
             writeln!(text, "    def run(self):").unwrap();
             text += &self.call_lines(
                 "        ",

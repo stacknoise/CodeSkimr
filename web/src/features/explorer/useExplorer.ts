@@ -7,6 +7,7 @@ import {
   currentMember,
   currentType,
   expandedRows,
+  loadSymbol,
   openRows,
   revealNested,
   setTreeCursor,
@@ -28,6 +29,7 @@ function labels(): TreeLabels {
     fields: t(I18N_KEYS.EXPLORER_GROUP_FIELDS),
     methods: t(I18N_KEYS.EXPLORER_GROUP_METHODS),
     nested: t(I18N_KEYS.EXPLORER_GROUP_TYPES),
+    aliases: t(I18N_KEYS.EXPLORER_GROUP_ALIASES),
   };
 }
 
@@ -35,8 +37,15 @@ function labels(): TreeLabels {
  * and a group fold; a member is shown with its type. Nothing but a click on an already shown
  * type changes which rows are open (blueprint 15.4). */
 export function activate(project: number, row: TreeRow): void {
-  const shown = row.kind === ROW.type && row.type === currentType() && currentMember() === null;
-  if (row.type !== null && (row.kind === ROW.type || row.kind === ROW.member)) {
+  const shown = row.kind !== ROW.member && row.type === currentType() && currentMember() === null;
+  if (row.kind === ROW.namespace && row.type !== null && !shown) {
+    // The row of a module: shown first, folded on the second click, like a type.
+    openRows([row.key]);
+    void selectType(project, row.type, null);
+    loadHeld(project, row);
+  } else if (row.kind === ROW.namespace) {
+    foldNamespace(project, row);
+  } else if (row.type !== null && (row.kind === ROW.type || row.kind === ROW.member)) {
     if (shown) {
       void toggleType(project, row.type);
     } else {
@@ -47,10 +56,24 @@ export function activate(project: number, row: TreeRow): void {
   }
 }
 
+/** Reads the symbols that hold the members of a namespace row, so its groups can show. */
+function loadHeld(project: number, row: TreeRow): void {
+  row.held.forEach((id) => void loadSymbol(project, id));
+}
+
+/** Opens or closes a namespace row; an opened one reads what it holds. */
+function foldNamespace(project: number, row: TreeRow): void {
+  if (toggleRow(row.key)) {
+    loadHeld(project, row);
+  }
+}
+
 /** The caret, `Right` and `Left`: opens or closes the row and leaves the selection. */
 export function fold(project: number, row: TreeRow): void {
   if (row.kind === ROW.type && row.type !== null) {
     void toggleType(project, row.type);
+  } else if (row.kind === ROW.namespace) {
+    foldNamespace(project, row);
   } else {
     toggleRow(row.key);
   }
@@ -68,8 +91,10 @@ function useTree() {
     const outline = treeOutline();
     const type = currentType();
     if (outline && type !== null) {
-      openRows(revealKeys(outline, type).filter((key) => key !== typeKey(type)));
-      setTreeCursor(typeKey(type));
+      const keys = revealKeys(outline, type);
+      const last = keys.pop();
+      openRows(keys);
+      setTreeCursor(last ?? typeKey(type));
     }
   };
   return { rows, cursor: treeCursor, setCursor: setTreeCursor, reveal };
@@ -81,7 +106,7 @@ export function pick(project: number, owner: number, member: MemberRow): void {
   if (TYPE_KINDS.includes(member.kind)) {
     void revealNested(project, owner, member.id);
   } else {
-    void selectType(project, owner, member.id);
+    void selectType(project, owner, member.id, true);
   }
 }
 

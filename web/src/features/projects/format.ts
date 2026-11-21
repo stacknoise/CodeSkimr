@@ -10,6 +10,7 @@ import {
   PARSE_TIME_DECIMALS,
   SECONDS_DECIMALS,
   TIME_UNITS,
+  CLOCK_OPTIONS,
 } from "./consts";
 import type { LanguageInfo } from "./types";
 
@@ -79,4 +80,9 @@ export function parseTime(micros: number, language: string): string {
     maximumFractionDigits: PARSE_TIME_DECIMALS,
   }).format(micros / MICROS_PER_SECOND);
   return `${value} s`;
+}
+
+/** The time of day of a moment (milliseconds since the epoch) in the language of the screen. */
+export function clock(moment: number, language: string): string {
+  return new Date(moment).toLocaleTimeString(language, CLOCK_OPTIONS);
 }

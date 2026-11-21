@@ -104,6 +104,20 @@
       "target": "length"
     },
     {
+      "at": "51:17",
+      "from": "metrics.rules",
+      "kind": "call",
+      "receiver": null,
+      "target": "lambda"
+    },
+    {
+      "at": "56:9",
+      "from": "metrics.arrow",
+      "kind": "call",
+      "receiver": null,
+      "target": "nested"
+    },
+    {
       "at": "61:13",
       "from": "metrics.Counter.tick",
       "kind": "read",

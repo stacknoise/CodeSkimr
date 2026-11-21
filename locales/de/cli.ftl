@@ -4,6 +4,8 @@ cli-error-line = Fehler[{ $code }]: { $message }
 cli-scan-started = Scanne { $path } …
 cli-scan-finished = { $files } Dateien in { $seconds } s gescannt.
 cli-scan-tool-missing = Werkzeug fehlt für { $languages }: { $tool } – { $purpose } { $install }
+cli-scan-tool-not-runnable = Werkzeug gefunden, startet aber nicht, gebraucht für { $languages }: { $tool } – { $found } { $purpose } { $install }
+cli-scan-tool-not-runnable-silent = Werkzeug gefunden, startet aber nicht, gebraucht für { $languages }: { $tool } (ohne Fehlermeldung) – { $purpose } { $install }
 cli-scan-tool-too-old = Werkzeug zu alt für { $languages }: { $tool } { $found } ist installiert, { $required } wird gefordert – { $purpose } { $install }
 cli-scan-tool-too-new = Werkzeug zu neu für { $languages }: { $tool } { $found } ist installiert, das ist mehr, als das Projekt erlaubt (es nennt { $required }) – { $purpose } { $install }
 cli-scan-tool-unknown = Version des Werkzeugs nicht lesbar für { $languages }: { $tool } (gefordert: { $required }) – { $purpose } { $install }
@@ -16,6 +18,13 @@ cli-cmd-scan = Einen Ordner oder eine Git-URL scannen und eine Zusammenfassung a
 cli-cmd-mcp = Das MCP-Protokoll über Standardein- und -ausgabe bereitstellen
 cli-cmd-serve = Den lokalen Server starten, ohne den Browser zu öffnen
 cli-serve-listening = Lauscht auf { $url }. Beenden mit Strg+C.
+cli-start-keep-open = Dieses Fenster offen lassen, solange du CodeSkimr benutzt.
+cli-start-tray = CodeSkimr läuft jetzt im Infobereich (Tray). Über das Menü des Symbols öffnest du den Browser oder das Log und beendest das Programm. Log: { $log }
+cli-arg-console = In diesem Konsolenfenster bleiben, statt im Infobereich der Taskleiste zu laufen
+cli-tray-open = CodeSkimr öffnen
+cli-tray-log = Log anzeigen
+cli-tray-quit = CodeSkimr beenden
+cli-tray-tooltip = CodeSkimr
 cli-arg-source = Ordner oder Git-URL, die gescannt werden soll
 cli-arg-branch = Branch einer Git-Quelle (Standard: main)
 cli-arg-json = Die Zusammenfassung als JSON ausgeben
@@ -28,11 +37,15 @@ cli-credentials-hint = Geheimnisse in einer Git-URL (Benutzerangaben, Query oder
 cli-arg-watch = Nach dem Scan weiterlaufen und bei Dateiänderungen erneut scannen
 cli-watch-started = Änderungen werden beobachtet. Mit Strg+C beenden.
 cli-watch-updated = { $changed } geänderte Dateien in { $millis } ms erneut gescannt.
-cli-cmd-check = Dateien gegen die Code-Regeln prüfen (Länge, Duplikate, kognitive Komplexität, Parameter) und bei Funden mit 1 beenden
+cli-cmd-check = Dateien gegen die Code-Regeln prüfen (Länge, Duplikate, kognitive Komplexität, Parameter, Literale) und bei Funden mit 1 beenden
 cli-arg-paths = Dateien oder Ordner, relativ zum aktuellen Ordner (Standard: alles)
 cli-check-finding = { $path }:{ $line }: { $code } { $message }
 cli-check-too-complex = { $name } hat die kognitive Komplexität { $value }, erlaubt sind höchstens { $limit }.
 cli-check-too-many-parameters = { $name } hat { $value } Parameter, erlaubt sind höchstens { $limit }.
+cli-check-literals = { $name } enthält { $count ->
+    [one] ein Literal
+   *[other] { $count } Literale
+}; Werte gehören in Konstanten, Konfiguration oder Textdateien.
 cli-check-too-long = { $name } hat { $lines } Codezeilen, erlaubt sind höchstens { $limit }.
 cli-check-duplicate = { $name } kopiert { $original } ({ $path }:{ $line }), zu { $percent } % ähnlich.
 cli-check-unchecked = { $path } übersprungen: { $code } { $message }
@@ -70,6 +83,7 @@ cli-credential-unusable-hint = Zugangsdaten gelten nur für eine Git-Quelle, nic
 cli-scan-level2-checked = Stufe 2: { $language } geprüft ({ $files } Dateien)
 cli-scan-level2-partial = Stufe 2: { $language } geprüft ({ $files } Dateien, { $stale } seit dem Scan geändert und bei Stufe 1 geblieben)
 cli-scan-level2-skipped = Stufe 2: { $language } übersprungen ({ $reason })
+cli-scan-level2-outside-scan = Stufe 2: { $language } Verwendungen von Code in Ordnern, die der Scan überspringt, nicht gezählt: { $count }
 cli-level2-reason-not-permitted = dieser Aufrufer darf keine Indexer starten
 cli-level2-reason-not-confirmed = für dieses Projekt nicht aktiviert und bestätigt
 cli-level2-reason-unavailable = Indexer oder Werkzeugkette fehlt oder ist zu alt
@@ -80,6 +94,9 @@ cli-cmd-level2 = Stufe 2 (Indexer) für ein Projekt erlauben oder verbieten
 cli-cmd-level2-confirm = Indexer für ein Projekt erlauben (fragt vorher nach)
 cli-cmd-level2-revoke = Indexer für ein Projekt verbieten
 cli-arg-level2-project = Id des Projekts oder Ordner oder Git-Adresse, aus der es gescannt wurde
+cli-arg-level2-from-ui = Wird von der Seite im Browser gesetzt: das Fenster wurde für sie geöffnet
+cli-level2-from-ui-notice = Dieses Fenster wurde von der CodeSkimr-Seite in deinem Browser geöffnet. Falls du nicht darauf geklickt hast, schließe es.
+cli-level2-from-ui-wait = Drücke Enter, um dieses Fenster zu schließen.
 cli-level2-warning = Stufe 2 startet die Build-Werkzeuge dieses Projekts (Compiler, Paketverwaltung und den Indexer der Sprache) auf diesem Rechner. Sie führen den Code und die Skripte des Projekts mit deinen Rechten aus: Sie können Dateien deines Benutzerkontos lesen und ändern und das Netzwerk nutzen. Die Indexer laufen nicht in einer Sandbox. Die Bestätigung gilt für Quelle, Ort und Branch des Projekts, nicht für einen Commit: Was der Branch später enthält, wird unter ihr ausgeführt. Bestätige nur für Code, dem du vertraust.
 cli-level2-target = Projekt: { $project }
     Ort: { $place }
@@ -90,3 +107,50 @@ cli-level2-declined = Nichts geändert: Stufe 2 bleibt für Projekt { $project }
 cli-level2-revoked = Stufe 2 ist für Projekt { $project } wieder verboten.
 cli-scan-warning-ambiguous-reference = Warnung RES-301: { $count } Stellen passen auf mehrere Symbole und sind als wahrscheinlich gespeichert.
 cli-scan-warning-other = Warnung { $code }: { $count }-mal.
+cli-cmd-annotations = Notizen, Aufgaben und Kritisch-Markierungen an Symbolen
+cli-cmd-annotations-list = Die Anmerkungen eines Projekts auflisten
+cli-cmd-annotations-add = Einem Symbol eine Kritisch-Markierung, eine Notiz oder eine Aufgabe hinzufügen
+cli-cmd-annotations-update = Eine Anmerkung ändern oder einem anderen Symbol zuordnen
+cli-cmd-annotations-remove = Eine Anmerkung samt Alarmen löschen
+cli-cmd-alerts = Alarme für kritische Symbole, die sich geändert haben, entfernt wurden oder ihren Platz verloren haben
+cli-cmd-alerts-list = Die Alarme eines Projekts auflisten
+cli-cmd-alerts-dismiss = Einen Alarm entfernen
+cli-cmd-alerts-dismiss-all = Alle offenen Alarme eines Filters entfernen; braucht --yes
+cli-arg-note-project = Nummer des Projekts oder der Ordner oder die Git-Adresse, aus der es gescannt wurde
+cli-arg-annotation = Nummer der Anmerkung
+cli-arg-alert = Nummer des Alarms
+cli-arg-symbol = Vollständiger Name des Symbols
+cli-arg-symbol-kind = Art des Symbols, zum Beispiel class, method oder namespace
+cli-arg-param = Parametertyp des Symbols, einmal je Parameter, um Überladungen zu unterscheiden
+cli-arg-kind = Art der Anmerkung: critical, note oder task
+cli-arg-status = Status einer Aufgabe: open, in_progress oder done
+cli-arg-title = Titel einer Aufgabe
+cli-arg-text = Text der Anmerkung oder Begründung einer Kritisch-Markierung
+cli-arg-due = Fälligkeitsdatum einer Aufgabe in Sekunden seit dem 1. Januar 1970
+cli-arg-assignee = Wem eine Aufgabe zugeordnet ist
+cli-arg-clear-text = Den Text entfernen
+cli-arg-clear-due = Das Fälligkeitsdatum entfernen
+cli-arg-clear-assignee = Den Bearbeiter entfernen
+cli-arg-limit = Anzahl der Zeilen; ohne Angabe die eingestellte Seitengröße
+cli-arg-offset = Zeilen, die übersprungen werden, um die nächste Seite zu lesen
+cli-arg-alert-state = Nur Alarme in diesem Zustand: open (Standard) oder dismissed
+cli-arg-alert-kinds = Nur Alarme dieser Art: changed, removed oder orphaned; darf mehrfach stehen
+cli-arg-yes = Bestätigt, dass alle passenden Alarme entfernt werden
+cli-annotation-line = Nr. { $id } [{ $kind }] { $name }{ $parts ->
+    [0] { "" }
+   *[other] : { $summary }
+}
+cli-annotation-saved = Anmerkung Nr. { $id } an { $name } gespeichert.
+cli-annotation-removed = Anmerkung Nr. { $id } gelöscht.
+cli-annotation-none = Keine Anmerkungen.
+cli-annotations-page = { $shown } von { $total } gezeigt; weiter mit --offset { $next }.
+cli-alert-line = Nr. { $id } [{ $state }/{ $kind }] { $name }{ $parts ->
+    [0] { "" }
+   *[other] : { $detail }
+}
+cli-alert-none = Keine Alarme.
+cli-alerts-page = { $shown } von { $total } Alarmen gezeigt, { $open } offen; weiter mit --offset { $next }.
+cli-alerts-dismissed = { $dismissed ->
+    [one] Ein Alarm entfernt, { $open } noch offen.
+   *[other] { $dismissed } Alarme entfernt, { $open } noch offen.
+}

@@ -7,10 +7,12 @@ use codeskimr_application::ports::{
     Level2Replacement, ProjectRepository, SnapshotData, SnapshotStore, SymbolKey, UsageIndex,
 };
 use codeskimr_domain::{
-    Direction, FileId, MetricKind, Reference, ScanMode, SnapshotId, Symbol, SymbolId, SymbolKind,
-    SymbolOrigin, UsageQuery,
+    Direction, FileId, MetricKind, Position, Reference, ScanMode, SnapshotId, Span, Symbol,
+    SymbolId, SymbolKind, SymbolOrigin, UsageQuery,
 };
-use common::{PROJECT, code_of, data, file, header, metric, project, reference, store, symbol};
+use common::{
+    PROJECT, code_of, data, file, header, metric, project, reference, span, store, symbol,
+};
 
 const SNAPSHOT: u64 = 10;
 
@@ -104,12 +106,29 @@ fn the_read_models_follow_the_new_references() {
 }
 
 #[test]
-fn a_replacement_without_references_removes_those_of_the_file() {
+fn a_replacement_without_references_keeps_the_level_one_references_of_the_file() {
     let store = registered();
     store
         .replace_level2(replacement(&[71], Vec::new()))
         .unwrap();
-    assert_eq!(stored(&store), [(92, false)]);
+    assert_eq!(stored(&store), [(91, false), (92, false)]);
+}
+
+#[test]
+fn a_level_one_reference_stays_where_level_two_finds_nothing_and_goes_where_it_answers() {
+    let store = registered();
+    let elsewhere = Reference {
+        span: span(7),
+        ..verified(900, 71, 82, 84)
+    };
+    store
+        .replace_level2(replacement(&[71], vec![elsewhere]))
+        .unwrap();
+    assert_eq!(stored(&store), [(91, false), (92, false), (900, true)]);
+    store
+        .replace_level2(replacement(&[71], vec![verified(901, 71, 82, 84)]))
+        .unwrap();
+    assert_eq!(stored(&store), [(92, false), (901, true)]);
 }
 
 #[test]
@@ -205,8 +224,9 @@ fn the_coupling_follows_the_new_references() {
     let ce = |symbol| coupling_of(&store, symbol, MetricKind::EfferentCoupling);
     let ca = |symbol| coupling_of(&store, symbol, MetricKind::AfferentCoupling);
     assert_eq!((ce(81), ca(83)), (Some(1.0), Some(1.0)));
+    // The verified reference answers where `Run` was thought to call `Go`: it stays inside `Alpha`.
     store
-        .replace_level2(replacement(&[71], Vec::new()))
+        .replace_level2(replacement(&[71], vec![verified(900, 71, 82, 81)]))
         .unwrap();
     assert_eq!((ce(81), ca(83)), (Some(0.0), Some(0.0)));
     assert_eq!(
@@ -339,9 +359,9 @@ fn a_second_replacement_replaces_the_created_symbols_and_the_references_to_them(
         })
         .unwrap();
     assert_eq!(symbols_of_index(&store), [(310, Some(81))]);
-    // Level 1 references 91 and 92 went with the first replacement of their files; 900 went with
-    // its target.
-    assert_eq!(stored(&store), Vec::<(u64, bool)>::new());
+    // Level 1 reference 92 went where 900 answered; 900 went with its target; 91 was never
+    // answered and stays.
+    assert_eq!(stored(&store), [(91, false)]);
 }
 
 #[test]
@@ -360,4 +380,72 @@ fn a_replacement_with_bad_symbols_changes_nothing() {
     }
     assert_eq!(symbols_of_index(&store), []);
     assert_eq!(stored(&store), [(91, false), (92, false)]);
+}
+
+/// What the newest snapshot says about the direct users of `symbol`: `(from, verified)`.
+#[cfg(test)]
+fn verified_users_of(
+    store: &codeskimr_storage::SqliteStore,
+    snapshot: u64,
+    symbol: u64,
+) -> Vec<(u64, bool)> {
+    let query = UsageQuery {
+        symbol: SymbolId::new(symbol),
+        direction: Direction::Incoming,
+        depth: 1,
+        include_tests: true,
+    };
+    let page = store.usages(SnapshotId::new(snapshot), &query, 10).unwrap();
+    page.entries
+        .iter()
+        .map(|e| (e.from.id.get(), e.reference.verified))
+        .collect()
+}
+
+/// Level 2 ran, then the UI rescanned (an incremental scan, level 1 only): the verified usage of an
+/// unchanged file stays verified in the newest snapshot, and a usage that level 2 never checked
+/// stays unchecked.
+#[test]
+fn a_later_incremental_scan_keeps_the_verified_usages_of_unchanged_files() {
+    let store = registered();
+    store
+        .replace_level2(replacement(&[71], vec![verified(900, 71, 82, 83)]))
+        .unwrap();
+    assert_eq!(verified_users_of(&store, SNAPSHOT, 83), [(82, true)]);
+    let mut next = data(header(20, ScanMode::Incremental));
+    next.files = vec![file(20, 73, "gamma.cs", "h-gamma")];
+    store.persist(next).unwrap();
+    assert_eq!(verified_users_of(&store, 20, 83), [(82, true)]);
+    // The reference of `beta.cs` was never checked by level 2.
+    assert_eq!(verified_users_of(&store, 20, 81), [(84, false)]);
+}
+
+#[test]
+fn a_store_that_kept_the_index_sees_what_another_connection_replaced() {
+    // The server answers queries from one store and keeps the index of the snapshot; a scan of
+    // the browser, or `codeskimr scan` in another process, writes through its own store.
+    let db = common::TempDb::new();
+    let serving = codeskimr_storage::SqliteStore::open(&db.0, std::num::NonZeroU32::MIN).unwrap();
+    serving.save_project(&project(1, "/work/app", &[])).unwrap();
+    serving.persist(scan()).unwrap();
+    assert_eq!(users_of(&serving, 83), [82], "the index is built and kept");
+    let writer = codeskimr_storage::SqliteStore::open(&db.0, std::num::NonZeroU32::MIN).unwrap();
+    writer
+        .replace_level2(replacement(&[71], vec![verified(900, 71, 82, 84)]))
+        .unwrap();
+    assert_eq!(users_of(&serving, 83), Vec::<u64>::new());
+    assert_eq!(users_of(&serving, 84), [82]);
+}
+
+#[test]
+fn a_level_one_reference_that_starts_before_the_verified_one_is_answered_by_it() {
+    let store = registered();
+    // Level 1 stands from line 2, column 0; the verified reference starts later, inside it.
+    let mut inner = verified(900, 71, 82, 84);
+    let at = |line, column| Position { line, column };
+    inner.span = Span::new(at(2, 4), at(2, 8)).unwrap();
+    store
+        .replace_level2(replacement(&[71], vec![inner]))
+        .unwrap();
+    assert_eq!(stored(&store), [(92, false), (900, true)]);
 }

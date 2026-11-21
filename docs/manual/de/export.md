@@ -18,7 +18,7 @@ Der Befehl braucht die gebaute Export-Seite der Oberfläche: `npm run build` in 
 
 - Der Baum aus Schichten, Namensräumen und Typen.
 - Zu jedem Typ und Member: Brotkrumenpfad, Metriken, Signatur, Dokumentationskommentar, Datei und Zeilenbereich.
-- Die Verwendungen jedes Symbols (Aufrufer und Aufgerufene, so tief, wie `mcp.max_depth` erlaubt, Tests eingeschlossen; die Filter der Werkzeugleiste wirken in der Seite) und die Auswirkung einer Änderung.
+- Die Verwendungen jedes Symbols (Aufrufer und Aufgerufene, nur direkte Verwendungen, Tests eingeschlossen; die Filter der Werkzeugleiste wirken in der Seite; die Tiefenauswahl gibt es nicht) und die Auswirkung einer Änderung.
 - Die Abhängigkeitskarte, wie CodeSkimr sie angeordnet hat.
 - Name, Commit und Datum des Scans.
 
@@ -33,14 +33,14 @@ Die Seite sieht aus und verhält sich wie die App. Die Navigation nutzt das Adre
 
 ## Ungeprüfte Verwendungen bleiben sichtbar
 
-Jede Verwendung behält ihre Markierung (geprüft, ungeprüft, vermutet), und die Seite zeigt denselben Hinweis wie die App, wenn kein Indexer etwas geprüft hat ([Verwendungen](verwendungen.md#verlässlichkeit-geprüft-ungeprüft-vermutet)). Ein Streifen unter der Kopfleiste zählt die geprüften und ungeprüften direkten Verwendungen des ganzen Exports, sodass eine Seite, die Monate später gelesen wird, noch sagt, wie weit man ihr trauen kann.
+Jede Verwendung behält ihre Markierung (geprüft, ungeprüft, vermutet), und die Seite zeigt denselben Hinweis wie die App, wenn Ebene 2 keine der Fundstellen geprüft hat ([Verwendungen](verwendungen.md#verlässlichkeit-geprüft-ungeprüft-vermutet)). Ein Streifen unter der Kopfleiste zählt die geprüften und ungeprüften direkten Verwendungen des ganzen Exports, sodass eine Seite, die Monate später gelesen wird, noch sagt, wie weit man ihr trauen kann.
 
 ## Grenzen
 
 - Es ist eine Momentaufnahme. Scannen, Projekte hinzufügen und Einstellungen gehören nicht dazu.
 - Aufgelistet werden nur Typen und die Member von Typen, wie im Explorer; freie Funktionen außerhalb eines Typs nicht.
 - Die Schnellsuche ist ein einfacher Abgleich auf Namen (Anfang, Teil, Buchstaben in Reihenfolge), nicht die Rangfolge der App.
-- Die Größe wächst mit den Verweisen, weil die Verwendungen jedes Symbols eingebettet sind. Große Projekte ergeben Dateien von vielen Megabyte.
+- Die Größe wächst etwa linear mit den Verweisen, weil die direkten Verwendungen jedes Symbols eingebettet sind. Als Anhaltspunkt: etwa 1,4 MB bei 400 Symbolen, etwa 5 MB bei 1.300 und etwa 64 MB bei 7.400 (der ganze CodeSkimr-Quelltext). Sehr große Projekte ergeben Dateien von vielen Megabyte. Wege über weitere Symbole (Tiefe 2 und mehr) gibt es nur in der App: Sie wachsen viel schneller als das Projekt und machten die Datei zu groß zum Öffnen.
 
 ## Fehler
 

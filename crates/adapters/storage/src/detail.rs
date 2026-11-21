@@ -5,8 +5,8 @@ use codeskimr_application::ports::{
     CodeIndex, CodeSpan, FileHit, MemberRef, SearchHit, SymbolDetail, SymbolKey, TypeFocus,
 };
 use codeskimr_domain::{
-    FileId, LayerEdge, Metric, MetricValue, NamespaceGraph, ProjectId, QualifiedName, RelativePath,
-    Snapshot, SnapshotId, Symbol, SymbolId, SymbolName,
+    FileId, LanguageId, LayerEdge, Metric, MetricValue, NamespaceGraph, ProjectId, QualifiedName,
+    RelativePath, Snapshot, SnapshotId, Symbol, SymbolId, SymbolName,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 
@@ -136,6 +136,13 @@ fn metrics(conn: &Connection, snapshot: i64, symbol: SymbolId) -> StorageResult<
     Ok(found)
 }
 
+fn file_language(conn: &Connection, snapshot: i64, file: FileId) -> StorageResult<LanguageId> {
+    let language: String = conn
+        .prepare_cached(sql::FILE_LANGUAGE)?
+        .query_row(params![snapshot, column_int(file.get())?], |row| row.get(0))?;
+    Ok(LanguageId::new(language)?)
+}
+
 fn detail(
     conn: &Connection,
     snapshot: i64,
@@ -158,6 +165,23 @@ fn detail(
         members: members(conn, snapshot, symbol.id)?,
         metrics: metrics(conn, snapshot, symbol.id)?,
         same_name: small_from(same_name)?,
+        language: file_language(conn, snapshot, symbol.file)?,
+        symbol,
+        path,
+    }))
+}
+
+/// Like `detail`, without the member list and the same-name count: neither is needed by the
+/// explorer, and the count scans every symbol of the snapshot that has the name.
+fn card(conn: &Connection, snapshot: i64, key: &SymbolKey) -> StorageResult<Option<SymbolDetail>> {
+    let Some((symbol, path)) = find_symbol(conn, snapshot, key)? else {
+        return Ok(None);
+    };
+    Ok(Some(SymbolDetail {
+        members: Vec::new(),
+        metrics: metrics(conn, snapshot, symbol.id)?,
+        same_name: 0,
+        language: file_language(conn, snapshot, symbol.file)?,
         symbol,
         path,
     }))
@@ -225,6 +249,7 @@ impl CodeIndex for SqliteStore {
         Self::latest_snapshot(self, project)
     }
 
+    // codeskimr: allow CHK-102 hands the port call to the search of the store
     fn search(
         &self,
         snapshot: SnapshotId,
@@ -240,6 +265,15 @@ impl CodeIndex for SqliteStore {
         key: &SymbolKey,
     ) -> Result<Option<SymbolDetail>, CodedError> {
         self.symbol_detail(snapshot, key)
+    }
+
+    fn symbol_card(
+        &self,
+        snapshot: SnapshotId,
+        id: SymbolId,
+    ) -> Result<Option<SymbolDetail>, CodedError> {
+        self.read(|conn| card(conn, column_int(snapshot.get())?, &SymbolKey::Id(id)))
+            .map_err(CodedError::from)
     }
 
     fn layer_edges(&self, snapshot: SnapshotId) -> Result<Vec<LayerEdge>, CodedError> {

@@ -26,6 +26,7 @@ use crate::consts::{
     NIBBLE_BITS, NIBBLE_MASK, PATH_SEPARATOR, PORT_SEPARATOR, REQUEST_TIMEOUT_SECS,
     SLOW_DOWN_STEP_SECS, USERINFO_MARKER,
 };
+use crate::encoding::credential;
 
 /// Why the sign-in did not finish. The reason is not told: the answers of the platform may
 /// contain codes that belong to the user.
@@ -176,7 +177,7 @@ impl DeviceFlow {
             let answer = self.poll(&client, &device_code)?;
             match (answer.access_token, answer.error.as_deref()) {
                 (Some(token), _) if !token.expose_secret().is_empty() => {
-                    return Ok(self.signed(token, answer.refresh_token));
+                    return self.signed(&token, answer.refresh_token);
                 }
                 (None, Some(ERROR_PENDING)) => {}
                 (None, Some(ERROR_SLOW_DOWN)) => {
@@ -205,17 +206,24 @@ impl DeviceFlow {
         let answer: TokenReply = post(&client()?, &self.token_url, &body)?;
         match answer.access_token {
             Some(token) if !token.expose_secret().is_empty() => {
-                Ok(self.signed(token, answer.refresh_token))
+                self.signed(&token, answer.refresh_token)
             }
             _ => Err(DeviceFlowError::Failed),
         }
     }
 
-    fn signed(&self, token: SecretString, refresh: Option<SecretString>) -> SignedIn {
-        SignedIn {
-            credential: Credential::new(SecretString::from(self.user.clone()), token),
+    fn signed(
+        &self,
+        token: &SecretString,
+        refresh: Option<SecretString>,
+    ) -> Result<SignedIn, DeviceFlowError> {
+        // The token moves into locked memory here and the heap copy is wiped on drop.
+        let credential =
+            credential(&self.user, token.expose_secret()).map_err(|_| DeviceFlowError::Failed)?;
+        Ok(SignedIn {
+            credential,
             refresh: refresh.filter(|text| !text.expose_secret().is_empty()),
-        }
+        })
     }
 
     fn request_code(&self, client: &Client) -> Result<DeviceReply, DeviceFlowError> {

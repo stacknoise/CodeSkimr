@@ -6,7 +6,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use codeskimr_application::cancel::CancelToken;
-use codeskimr_application::config::Config;
+use codeskimr_application::config::{Config, ConfigLayer, LayerSource};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::level2;
 use codeskimr_application::ports::{
@@ -58,6 +58,7 @@ fn spec(mode: &str) -> IndexerSpec {
         install_hint: "install it".to_owned(),
         symbol_kinds: Vec::new(),
         separator: String::new(),
+        library_root: String::new(),
     }
 }
 
@@ -164,7 +165,8 @@ impl Fixture {
         let runner =
             ProcessIndexRunner::new(data.path().to_path_buf(), mask).with_environment(source);
         let store = confirmed_store();
-        let config = Config::defaults().unwrap();
+        let switch = ConfigLayer::parse(LayerSource::User, "[level2]\nenabled = true\n").unwrap();
+        let config = Config::resolve(&[switch]).unwrap();
         let permit = level2::authorize_run(
             &Principal::local_owner(),
             &config.level2,
@@ -539,7 +541,7 @@ fn a_missing_indexer_is_unavailable_and_nothing_runs() {
 }
 
 #[test]
-fn a_program_whose_version_command_fails_counts_as_missing() {
+fn a_program_whose_version_command_fails_is_found_but_not_runnable() {
     let fixture = Fixture::new();
     let mut broken = spec("ok");
     // The fake indexer exits with an error for an argument it does not know, as the `rustup` shim
@@ -550,7 +552,9 @@ fn a_program_whose_version_command_fails_counts_as_missing() {
     };
     assert_eq!(
         problems.first().map(|p| &p.issue),
-        Some(&ToolIssue::Missing)
+        Some(&ToolIssue::NotRunnable {
+            output: String::new()
+        })
     );
 }
 
@@ -565,6 +569,14 @@ fn an_indexer_older_than_required_is_unavailable() {
         fixture.runner.check(&spec("ok")),
         IndexerStatus::Ready { .. }
     ));
+}
+
+#[test]
+fn the_listing_knows_where_a_tool_is_found_and_nothing_for_a_tool_that_is_not() {
+    let fixture = Fixture::new();
+    let path = fixture.runner.locate("fake_indexer").unwrap();
+    assert!(path.contains("fake_indexer"), "{path}");
+    assert_eq!(fixture.runner.locate("no-such-tool-anywhere"), None);
 }
 
 #[test]

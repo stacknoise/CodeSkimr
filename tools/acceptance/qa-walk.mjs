@@ -1,6 +1,7 @@
 // QA walk before 1.0: opens every screen of the rail in each theme and language over the
 // end-to-end server (release build), takes a screenshot of each, and records what a reviewer
-// would trip over: console errors, failed requests, horizontal overflow, text that looks like an
+// would trip over (after the rail screens it opens a type, its usages, the map on every level
+// and the projects screen with the report of the scan): console errors, failed requests, horizontal overflow, text that looks like an
 // untranslated key and strings that are identical in German and English.
 // Needs `npm run build` in web/ and a Chromium (CODESKIMR_CHROMIUM).
 //
@@ -16,8 +17,16 @@ const out = path.resolve(outArg);
 mkdirSync(out, { recursive: true });
 
 const THEMES = ["hell", "petrol", "dunkel"];
+/** Labels of the controls the plain walk does not click, in both languages. */
+const CONTROL = {
+    namespaces: /^Namespaces$/,
+    depthTwo: /^(2 levels|2 Stufen)$/,
+    layers: /^(Layers|Schichten)$/,
+    typeFocus: /^(Type focus|Typ-Fokus)$/,
+    violationsOnly: /(violations only|nur Verstöße)/,
+};
 const LANGUAGES = ["de", "en"];
-const SUSPICIOUS = /^[a-z][a-z0-9]*(-[a-z0-9]+)+$(?<!scip-[a-z]+|haac-bridge)|undefined|NaN|\[object|\{\s*\$/;
+const SUSPICIOUS = /^[a-z][a-z0-9]*(-[a-z0-9]+)+$(?<!scip-[a-z]+|haac-bridge|rust-analyzer)|undefined|NaN|\[object|\{\s*\$/;
 
 const server = await startServer();
 const report = { findings: [], texts: {} };
@@ -69,6 +78,55 @@ function watchProblems(page, problems) {
     });
 }
 
+/** One step of the deeper walk: a control that cannot be reached is a finding, not a crash. */
+async function step(problems, name, action) {
+    try {
+        await action();
+    } catch (error) {
+        problems.push(`${name}: not reachable (${String(error.message).split("\n")[0].slice(0, 120)})`);
+    }
+}
+
+/** The screens the plain walk cannot see: a type in the explorer with its coupling tiles, the
+ * usages of it, the map on every level with "violations only", and the projects screen after the
+ * scan with its report (ADR 0037, 0072). Each screen is checked like the others. */
+async function deeper(page, check, problems) {
+    /** The rail links have an icon and a label, so they are found by their route. */
+    const open = (route) => page.locator(`a[href$="${route}"]`).first().click();
+    await step(problems, "explorer-type", async () => {
+        await page.keyboard.press("Escape");
+        await open("/explorer");
+        await page.keyboard.press("Control+k");
+        await page.keyboard.type("a");
+        await page.waitForTimeout(800);
+        await page.keyboard.press("Enter");
+        await check("explorer-type");
+    });
+    await step(problems, "usages", async () => {
+        await page.keyboard.press("u");
+        await check("usages");
+        await page.keyboard.press("Enter");
+    });
+    await step(problems, "graph", async () => {
+        await open("/graph");
+        await check("graph-layers");
+        await page.getByLabel(CONTROL.violationsOnly).check();
+        await check("graph-violations-only");
+        await page.getByLabel(CONTROL.violationsOnly).uncheck();
+        await page.getByRole("button", { name: CONTROL.namespaces }).click();
+        await check("graph-namespaces");
+        await page.getByRole("button", { name: CONTROL.depthTwo }).click();
+        await check("graph-namespaces-depth-2");
+        await page.getByRole("button", { name: CONTROL.layers }).click();
+        await page.getByRole("button", { name: CONTROL.typeFocus }).click();
+        await check("graph-type-focus");
+    });
+    await step(problems, "projects-after-scan", async () => {
+        await open("/");
+        await check("projects-after-scan");
+    });
+}
+
 async function walk(theme, language) {
     const { browser, page } = await openUi(server, folder, "codeskimr-qa-");
     const problems = [];
@@ -102,7 +160,10 @@ async function walk(theme, language) {
     await page.waitForTimeout(1500);
     const links = await page.getByRole("link").all();
     const names = [];
-    for (const l of links) names.push((await l.textContent())?.trim() ?? "");
+    for (const l of links)
+        names.push(
+            (await l.getAttribute("aria-label")) ?? (await l.textContent())?.trim() ?? "",
+        );
     for (let i = 0; i < names.length; i++) {
         await page.getByRole("link").nth(i).click();
         await check(`rail${i}-${names[i].replace(/\W+/g, "_")}`);
@@ -110,6 +171,7 @@ async function walk(theme, language) {
     await page.keyboard.press("Control+k");
     await page.keyboard.type("a");
     await check("quicksearch");
+    await deeper(page, check, problems);
     for (const p of problems)
         report.findings.push({ theme, language, problem: p });
     await browser.close();

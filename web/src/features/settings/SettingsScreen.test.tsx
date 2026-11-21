@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@solidjs/testing-library";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setLanguage } from "../../shared/i18n/i18n";
+import { currentPath } from "../../app/router";
 import { SettingsScreen } from "./SettingsScreen";
 
 beforeEach(() => {
@@ -43,5 +44,11 @@ describe("SettingsScreen", () => {
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "de" } });
     expect(screen.getByText("Einstellungen")).toBeInTheDocument();
     expect(localStorage.getItem("codeskimr.language")).toBe("de");
+  });
+
+  it("leads to the layer editor", () => {
+    render(() => <SettingsScreen />);
+    fireEvent.click(screen.getByRole("button", { name: "Edit layers" }));
+    expect(currentPath()).toBe("/layers");
   });
 });

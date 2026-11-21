@@ -12,6 +12,7 @@ use axum::middleware::{from_fn, from_fn_with_state};
 use axum::routing::{MethodRouter, any_service, get, post};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
+use codeskimr_application::level2::ConfirmationDesk;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Principal;
 use tokio::net::TcpListener;
@@ -20,8 +21,8 @@ use tokio::sync::{Semaphore, watch};
 use crate::assets::Assets;
 use crate::commands::CommandApi;
 use crate::consts::{
-    COMMAND_PATH, COMMANDS_PATH, EVENTS_PATH, EXCHANGE_PATH, LAUNCH_CODE_PATH, MAX_EVENT_STREAMS,
-    MCP_PATH, UI_CONFIG_PATH,
+    COMMAND_PATH, COMMANDS_PATH, CONFIRM_WINDOW_PATH, EVENTS_PATH, EXCHANGE_PATH, LAUNCH_CODE_PATH,
+    MAX_EVENT_STREAMS, MCP_PATH, UI_CONFIG_PATH,
 };
 use crate::guard::{Guard, require_token, screen};
 use crate::launch::LaunchCodes;
@@ -30,7 +31,7 @@ use crate::settings::UiOptions;
 use crate::state::AppState;
 use crate::token::InstallationToken;
 use crate::ui;
-use crate::{events, routes, session};
+use crate::{confirm_window, events, routes, session};
 
 /// The local server before it listens.
 pub struct Server {
@@ -40,6 +41,7 @@ pub struct Server {
     token: InstallationToken,
     ui: UiOptions,
     mcp: Option<MethodRouter<AppState>>,
+    confirmation: Option<Arc<ConfirmationDesk>>,
 }
 
 /// A server that listens and has not started to answer yet.
@@ -75,6 +77,7 @@ fn build_router(state: AppState, guard: Arc<Guard>, mcp: Option<MethodRouter<App
         .route(UI_CONFIG_PATH, get(ui::config))
         .route(LAUNCH_CODE_PATH, post(session::issue).get(session::state))
         .route(EXCHANGE_PATH, post(session::exchange))
+        .route(CONFIRM_WINDOW_PATH, post(confirm_window::open))
         .fallback(routes::not_found)
         .method_not_allowed_fallback(routes::wrong_method);
     if let Some(mcp) = mcp {
@@ -108,7 +111,16 @@ impl Server {
             token,
             ui,
             mcp: None,
+            confirmation: None,
         }
+    }
+
+    /// Offers `POST /api/v1/level2/confirm-window`, which asks `desk` to open the console window
+    /// of the level 2 confirmation (ADR 0071). Without a desk the route answers as an unknown one.
+    #[must_use]
+    pub fn with_confirmation(mut self, desk: Arc<ConfirmationDesk>) -> Self {
+        self.confirmation = Some(desk);
+        self
     }
 
     /// Offers MCP at `/mcp` through `service`, on the same listener, with the same `Host` and
@@ -153,6 +165,7 @@ impl Server {
             launch: Arc::new(LaunchCodes::new(self.ui.launch_lifetime)),
             ui: Arc::new(self.ui.settings),
             assets: assets_of(self.ui.dir, self.ui.embedded),
+            confirmation: self.confirmation,
         };
         let router = build_router(state, guard, self.mcp);
         Ok(BoundServer {
@@ -183,6 +196,32 @@ impl BoundServer {
         shutdown: impl Future<Output = ()> + Send + 'static,
     ) -> Result<(), CodedError> {
         listen::run(self.listener, self.router, self.stop, shutdown).await;
+        Ok(())
+    }
+}
+
+impl BoundServer {
+    /// [`BoundServer::serve`], but every request carries `peer` as the address of the connected
+    /// program, whatever the connection says. It exists for tests of the routes that refuse a peer
+    /// that is not on this machine, because a test cannot connect from such an address (issue
+    /// #531). The program never calls it: a test (`tests/peer_seam.rs`) scans every source file of
+    /// the repository for a caller.
+    ///
+    /// # Errors
+    /// As [`BoundServer::serve`].
+    #[doc(hidden)]
+    pub async fn serve_as_peer(
+        self,
+        peer: SocketAddr,
+        shutdown: impl Future<Output = ()> + Send + 'static,
+    ) -> Result<(), CodedError> {
+        let router = self.router.layer(from_fn(
+            move |mut request: Request, next: axum::middleware::Next| async move {
+                request.extensions_mut().insert(crate::peer::PeerAddr(peer));
+                next.run(request).await
+            },
+        ));
+        listen::run(self.listener, router, self.stop, shutdown).await;
         Ok(())
     }
 }

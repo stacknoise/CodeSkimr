@@ -2,8 +2,8 @@
 //! first file of its language is analyzed, and the scan time leaves that load out. This runs the
 //! real binary on a folder with one Rust and one C# file (C# has the longest pack) and takes the
 //! load time that the scan reports. Every run is a new process with an empty database, so both
-//! packs are loaded every time. The result has no absolute budget; a regression against the base
-//! fails like for every benchmark.
+//! packs are loaded every time. The result is checked against `budgets.pack_load_ms` (ADR 0063), and a
+//! regression against the base fails like for every benchmark.
 
 use std::fs;
 use std::io;

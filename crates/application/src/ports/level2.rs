@@ -2,7 +2,7 @@
 
 use std::path::Path;
 
-use codeskimr_domain::{FileId, FolderPath, Reference, SourceFile, Symbol, SymbolKind};
+use codeskimr_domain::{FileId, FolderPath, Reference, SourceFile, Span, Symbol, SymbolKind};
 
 use crate::error::CodedError;
 
@@ -32,8 +32,15 @@ pub struct ImportRequest<'a> {
     pub symbol_kinds: &'a [(String, SymbolKind)],
     /// The separator of qualified names of the language.
     pub separator: &'a str,
+    /// The file name of the root that wins when a module symbol has several files and the folders
+    /// do not decide (ADR 0061); empty if the pack names none.
+    pub library_root: &'a str,
     /// Most symbols the import may create; an index that wants more fails as a whole.
     pub max_created_symbols: usize,
+    /// Where level 1 read the name in an import statement (file and range of the name, a dotted
+    /// path as a whole): a use of a symbol inside such a range is no usage (issue #250). Empty if
+    /// the snapshot holds no names.
+    pub import_sites: &'a [(FileId, Span)],
 }
 
 /// The references of the files that an index covers.
@@ -48,8 +55,12 @@ pub struct Imported {
     pub references: Vec<Reference>,
     /// Uses that became references.
     pub mapped: u64,
-    /// Uses that were dropped: library symbols and symbols the snapshot does not know.
+    /// Uses that were dropped: library symbols, symbols outside the scan and symbols the snapshot
+    /// does not know.
     pub dropped: u64,
+    /// Of the dropped uses, those of symbols that the index defines only in files the scan
+    /// skipped (ADR 0061); they are not held against the index.
+    pub outside_scan: u64,
 }
 
 /// Reads an index and maps it onto a snapshot.

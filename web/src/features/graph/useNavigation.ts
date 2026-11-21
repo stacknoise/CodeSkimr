@@ -1,6 +1,6 @@
 import { createSignal, onCleanup, onMount } from "solid-js";
 import { isTyping } from "../../shared/keys/keydown";
-import { BUTTON_MIDDLE, KEY } from "./consts";
+import { BUTTON_MIDDLE, BUTTON_PRIMARY, BUTTON_TAG, KEY } from "./consts";
 import type { View } from "./types";
 import { notches, pan, zoomAt } from "./viewport";
 
@@ -34,9 +34,17 @@ function useListeners(
   });
 }
 
-/** Mouse navigation of the map: the wheel zooms around the pointer; dragging with the space key
- * held, or with the middle button, pans. Returns the handlers for the pointer and whether a drag
- * is possible or running (for the cursor). */
+/** Whether the primary button went down on the empty ground and not on a card or a box. */
+function onBackground(event: PointerEvent): boolean {
+  const target = event.target;
+  return (
+    event.button === BUTTON_PRIMARY && !(target instanceof Element && target.closest(BUTTON_TAG))
+  );
+}
+
+/** Mouse navigation of the map: the wheel zooms around the pointer; dragging the background with
+ * the primary button, with the middle button or with the space key held pans. Returns the
+ * handlers for the pointer and whether a drag is possible or running (for the cursor). */
 export function useNavigation(
   area: () => HTMLElement | undefined,
   view: () => View,
@@ -56,7 +64,7 @@ export function useNavigation(
   return {
     grabbing: () => spaceDown() || dragging(),
     start: (event: PointerEvent) => {
-      if (spaceDown() || event.button === BUTTON_MIDDLE) {
+      if (spaceDown() || event.button === BUTTON_MIDDLE || onBackground(event)) {
         event.preventDefault();
         setDragging(true);
         area()?.setPointerCapture(event.pointerId);

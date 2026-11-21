@@ -1,0 +1,93 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "local_functions"
+    },
+    {
+      "decisions": 1,
+      "loc": 4,
+      "operands": [
+        6,
+        7
+      ],
+      "operators": [
+        6,
+        6
+      ],
+      "symbol": "local_functions.Panel"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "local_functions.Panel.shut"
+    }
+  ],
+  "loc": 5,
+  "references": [
+    {
+      "at": "2:27",
+      "from": "local_functions.Panel.shut",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "count"
+    },
+    {
+      "at": "3:22",
+      "from": "local_functions.Panel",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "count"
+    },
+    {
+      "at": "4:9",
+      "from": "local_functions.Panel",
+      "kind": "call",
+      "receiver": null,
+      "target": "shut"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "local_functions",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-6:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "local_functions.Panel",
+      "parent": "local_functions",
+      "signature": null,
+      "span": "1:7-5:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "local_functions.Panel.shut",
+      "parent": "local_functions.Panel",
+      "signature": null,
+      "span": "2:15-2:38",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

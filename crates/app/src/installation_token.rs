@@ -14,7 +14,6 @@ use codeskimr_application::ports::{AuthError, Credential, CredentialStore};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::CredentialId;
 use codeskimr_server::{InstallationToken, TOKEN_PREFIX};
-use secrecy::{ExposeSecret, SecretString};
 use zeroize::Zeroizing;
 
 use crate::consts::{
@@ -56,9 +55,14 @@ pub fn load_or_create_locked(
     if let Some(folder) = lock_file.parent() {
         fs::create_dir_all(folder).map_err(internal)?;
     }
+    // Read and write access, not append only: Windows refuses to lock a file that was opened for
+    // appending (`LockFileEx` needs read or write data access), which ended every start with
+    // APP-901. The file is never written to.
     let file = File::options()
+        .read(true)
+        .write(true)
         .create(true)
-        .append(true)
+        .truncate(false)
         .open(lock_file)
         .map_err(internal)?;
     acquire(&file)?;
@@ -87,9 +91,7 @@ fn digest_of(
     id: &CredentialId,
 ) -> Result<InstallationToken, AuthError> {
     store.with_credential(id, |credential| {
-        Ok(InstallationToken::from_token(
-            credential.secret().expose_secret(),
-        ))
+        Ok(InstallationToken::from_token(credential.expose_secret()))
     })
 }
 
@@ -97,16 +99,13 @@ fn fresh_credential() -> Result<Credential, CodedError> {
     let mut bytes = Zeroizing::new([u8::default(); TOKEN_RANDOM_BYTES]);
     getrandom::fill(bytes.as_mut())
         .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?;
-    let mut text = String::with_capacity(TOKEN_PREFIX.len() + TOKEN_HEX_LEN);
+    let mut text = Zeroizing::new(String::with_capacity(TOKEN_PREFIX.len() + TOKEN_HEX_LEN));
     text.push_str(TOKEN_PREFIX);
     for byte in bytes.iter() {
         text.extend(hex_digit(byte >> HEX_DIGIT_BITS));
         text.extend(hex_digit(byte & HEX_LOW_MASK));
     }
-    Ok(Credential::new(
-        SecretString::from(TOKEN_CREDENTIAL_USER),
-        SecretString::from(text),
-    ))
+    Ok(codeskimr_secrets::credential(TOKEN_CREDENTIAL_USER, &text)?)
 }
 
 fn hex_digit(value: u8) -> Option<char> {
@@ -118,9 +117,7 @@ fn hex_digit(value: u8) -> Option<char> {
 pub(crate) fn stored_token(store: &impl CredentialStore) -> String {
     let id = CredentialId::new(TOKEN_CREDENTIAL_ID).unwrap();
     store
-        .with_credential(&id, |credential| {
-            Ok(credential.secret().expose_secret().to_owned())
-        })
+        .with_credential(&id, |credential| Ok(credential.expose_secret().to_owned()))
         .unwrap()
 }
 
@@ -197,8 +194,10 @@ mod tests {
         let folder = tempfile::tempdir().unwrap();
         let lock = folder.path().join("token.lock");
         let holder = File::options()
+            .read(true)
+            .write(true)
             .create(true)
-            .append(true)
+            .truncate(false)
             .open(&lock)
             .unwrap();
         fs4::FileExt::try_lock(&holder).unwrap();

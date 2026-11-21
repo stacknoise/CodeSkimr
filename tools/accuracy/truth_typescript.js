@@ -1,6 +1,8 @@
 // Reference answers for TypeScript from the TypeScript language service: reads targets as JSON on
 // stdin ({file, line (1-based), column (0-based), name}) and prints per target the [file, line]
-// pairs of all other references inside the project folder (argument 2).
+// pairs of all other references inside the project folder (argument 2). A reference inside an import
+// declaration (`import { x } from ...`) is no use: level 1 and level 2 drop it on purpose (issue #250), so
+// the reference does not list it either (decision of 2026-11-20, docs/accuracy.md).
 const path = require("path");
 const fs = require("fs");
 const ts = require(process.env.TYPESCRIPT_MODULE || "typescript");
@@ -54,6 +56,11 @@ function nameColumn(text, lines, t) {
   return found - source.getPositionOfLineAndCharacter(t.line - 1, 0);
 }
 
+// Whether `position` lies inside an import declaration of `source` (imports are top-level statements).
+function inImport(source, position) {
+  return source.statements.some((s) => ts.isImportDeclaration(s) && position >= s.getStart(source) && position < s.end);
+}
+
 const targets = JSON.parse(fs.readFileSync(0, "utf8"));
 const out = targets.map((t) => {
   const file = path.join(root, t.file);
@@ -67,6 +74,7 @@ const out = targets.map((t) => {
     for (const ref of group.references) {
       if (ref.isDefinition || !ref.fileName.startsWith(root) || ref.fileName.includes("node_modules")) continue;
       const source = ts.createSourceFile(ref.fileName, fs.readFileSync(ref.fileName, "utf8"), ts.ScriptTarget.Latest);
+      if (inImport(source, ref.textSpan.start)) continue;
       const line = source.getLineAndCharacterOfPosition(ref.textSpan.start).line + 1;
       uses.add(JSON.stringify([path.relative(root, ref.fileName).split(path.sep).join("/"), line]));
     }

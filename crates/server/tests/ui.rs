@@ -181,6 +181,9 @@ async fn the_settings_are_public_and_hold_no_secret() {
     assert_eq!(reply.status, 200);
     let json = reply.json();
     assert_eq!(json["default_theme"], "petrol");
+    assert_eq!(json["level2_poll_seconds"], 2);
+    assert_eq!(json["level2_poll_max_seconds"], 300);
+    assert_eq!(json["approximate_languages"][0], "python");
     assert_eq!(
         json["editor"]["url_template"],
         "vscode://file/{path}:{line}"

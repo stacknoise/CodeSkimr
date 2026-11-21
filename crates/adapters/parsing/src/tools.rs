@@ -66,4 +66,14 @@ impl ToolCatalog for PackTools {
     fn plan_of(&self, language: &LanguageId) -> Option<ToolPlan> {
         self.by_language.get(language).cloned()
     }
+
+    fn plans(&self) -> Vec<(LanguageId, ToolPlan)> {
+        let mut plans: Vec<_> = self
+            .by_language
+            .iter()
+            .map(|(language, plan)| (language.clone(), plan.clone()))
+            .collect();
+        plans.sort_by(|left, right| left.0.as_str().cmp(right.0.as_str()));
+        plans
+    }
 }

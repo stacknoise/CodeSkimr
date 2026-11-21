@@ -21,6 +21,7 @@ mod locals;
 mod mapping;
 mod model;
 mod path;
+mod roots;
 mod symbol;
 mod table;
 mod wire;
@@ -32,6 +33,7 @@ pub use error::{Corruption, ScipError};
 pub use importer::ScipImporter;
 pub use mapping::{
     ImportOutcome, ImportStats, SnapshotView, import_references, import_with_creation,
+    import_with_sites,
 };
 pub use model::{
     AnonymousCreation, Arity, ConstructorSite, Occurrence, PositionEncoding, ScipDocument,

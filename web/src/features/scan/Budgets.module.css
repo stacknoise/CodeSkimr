@@ -16,26 +16,38 @@
     margin-bottom: var(--space-10);
 }
 
+/* Name, target and value stand in three fixed columns, the same in every row: the rows share the
+   columns of the grid, so a long name that wraps does not push the numbers sideways. */
+.rows {
+    display: grid;
+    grid-template-columns: minmax(min-content, 1fr) max-content max-content;
+    column-gap: var(--space-12);
+}
+
 .row {
-    display: flex;
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
     align-items: center;
-    gap: var(--space-8);
     padding: 7px 0;
     border-top: 1px solid var(--line-soft);
 }
 
 .name {
-    flex: 1;
+    min-width: 0;
 }
 
 .goal {
     font: 12px var(--font-mono);
     color: var(--muted);
+    white-space: nowrap;
+    text-align: right;
 }
 
 .value {
     font: 600 12px var(--font-mono);
     min-width: 64px;
+    white-space: nowrap;
     text-align: right;
     color: var(--muted);
 }

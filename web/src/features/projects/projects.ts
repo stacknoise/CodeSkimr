@@ -2,12 +2,15 @@ import { createSignal } from "solid-js";
 import { ApiError } from "../../shared/api/client";
 import { runCommand } from "../../shared/api/commands";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
+import { closeProject } from "../../shared/project/active";
 import { COMMAND, POLL_MS } from "./consts";
+import { forgetLevel2 } from "./level2";
+import { keepRunningOnly, noteLevel2Start, resetLevel2Runs } from "./level2run";
 import type { ProjectRow, Scanned, ToolsInfo } from "./types";
 
 /** Why the last action failed: a registered code, or `null` for a failure without one (the
  * server could not be reached). */
-export type Failure = { code: ErrorCode | null };
+export type Failure = { code: ErrorCode | null; retryAfter?: number | null };
 
 const [rows, setRows] = createSignal<ProjectRow[]>([]);
 const [loaded, setLoaded] = createSignal(false);
@@ -41,13 +44,17 @@ export const scanSeconds = lastSeconds;
 
 /** The failure of a caught error, in the shape the screen shows. */
 export function failed(error: unknown): Failure {
-  return { code: error instanceof ApiError ? error.code : null };
+  return error instanceof ApiError
+    ? { code: error.code, retryAfter: error.retryAfter }
+    : { code: null };
 }
 
 /** Reads the list again. A failure is kept for the screen; the old rows stay. */
 export async function refreshProjects(): Promise<void> {
   try {
-    setRows(await runCommand<ProjectRow[]>(COMMAND.list));
+    const list = await runCommand<ProjectRow[]>(COMMAND.list);
+    setRows(list);
+    keepRunningOnly(new Set(list.filter((row) => row.running).map((row) => row.id)));
     setListFailure(null);
   } catch (error) {
     setListFailure(failed(error));
@@ -68,6 +75,7 @@ async function whileReading<T>(work: () => Promise<T>): Promise<T> {
 }
 
 function remember(scanned: Scanned): void {
+  noteLevel2Start(scanned.project, scanned.level2);
   setLastSeconds((previous) => new Map(previous).set(scanned.project, scanned.seconds));
   if (scanned.tools.checked_at !== null) {
     // An incremental scan does not check the tools: its empty view must not hide a warning.
@@ -129,19 +137,55 @@ function mark(project: number, on: boolean): void {
   });
 }
 
-/** Scans a project again, incrementally if it was scanned before. */
-export async function rescanProject(project: number): Promise<void> {
+/** Scans a project again, incrementally if it was scanned before. A scan from the browser runs
+ * stage 2 after stage 1 where it is confirmed; `level2: false` makes this one scan stage 1 only
+ * (ADR 0072, decision 1). */
+export async function rescanProject(project: number, level2 = true): Promise<void> {
   if (scanning().has(project)) {
     return;
   }
   mark(project, true);
   setActionFailure(null);
   try {
-    remember(await whileReading(() => runCommand<Scanned>(COMMAND.rescan, { project })));
+    remember(
+      await whileReading(() =>
+        runCommand<Scanned>(COMMAND.rescan, level2 ? { project } : { project, level2 }),
+      ),
+    );
   } catch (error) {
     setActionFailure(failed(error));
   } finally {
     mark(project, false);
+    await refreshProjects();
+  }
+}
+
+/** Forgets what this tab keeps per project, so a project that gets the id later starts clean. */
+function forget(project: number): void {
+  const without = <V>(previous: ReadonlyMap<number, V>) => {
+    const next = new Map(previous);
+    next.delete(project);
+    return next;
+  };
+  setCheckedTools(without);
+  setLastSeconds(without);
+  forgetLevel2(project);
+  resetLevel2Runs(project);
+  closeProject(project);
+}
+
+/** Removes a project from the app: its scans and stored results go, its files do not. Returns
+ * whether it worked; a failure is kept for the screen. */
+export async function removeProject(project: number): Promise<boolean> {
+  setActionFailure(null);
+  try {
+    await runCommand(COMMAND.remove, { project });
+    forget(project);
+    return true;
+  } catch (error) {
+    setActionFailure(failed(error));
+    return false;
+  } finally {
     await refreshProjects();
   }
 }

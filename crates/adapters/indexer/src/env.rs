@@ -237,8 +237,38 @@ mod home_dir_tests {
             env: Vec::new(),
             install_hint: String::new(),
             symbol_kinds: Vec::new(),
+            library_root: String::new(),
             separator: String::new(),
         }
+    }
+
+    #[test]
+    fn the_token_of_the_installation_and_other_secrets_of_the_server_do_not_reach_the_indexer() {
+        let real = std::env::temp_dir().join("codeskimr-env-secrets");
+        std::fs::create_dir_all(&real).unwrap();
+        let secret = "ck_0123456789abcdef";
+        let source = [
+            (OsString::from("CODESKIMR_TOKEN"), OsString::from(secret)),
+            (
+                OsString::from("CODESKIMR_INSTALLATION_TOKEN"),
+                OsString::from(secret),
+            ),
+            (OsString::from("GITHUB_TOKEN"), OsString::from(secret)),
+            (OsString::from("DB_PASSWORD"), OsString::from(secret)),
+            (OsString::from("HOME"), real.clone().into_os_string()),
+        ];
+        let folders = Folders {
+            scratch: &real,
+            home: &real,
+            project_root: &real,
+        };
+        let built = build(source, &spec(&[]), &folders);
+        assert!(
+            built
+                .iter()
+                .all(|(name, value)| value != secret && !name.to_string_lossy().contains("TOKEN")),
+            "{built:?}"
+        );
     }
 
     #[test]

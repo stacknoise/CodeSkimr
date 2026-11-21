@@ -4,10 +4,13 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::{Permission, RelativePath, SnapshotId};
+use codeskimr_domain::{FolderPath, Permission, RelativePath, SnapshotId};
 
+use super::allowed::is_allowed;
 use super::duplicates::{Fingerprinted, duplicates};
-use super::length::{Callable, callables, too_complex, too_long, too_many_parameters};
+use super::length::{
+    Callable, callables, too_complex, too_long, too_many_parameters, with_literals,
+};
 use super::model::{CheckReport, CheckRequest, Finding, StoredProject, Unchecked};
 use super::stored::{Rules, against_stored};
 use crate::access;
@@ -16,14 +19,15 @@ use crate::config::Conventions;
 use crate::consts::{CHECK_FIRST_ID, CHECK_SNAPSHOT_ID, PATH_SEPARATOR};
 use crate::error::CodedError;
 use crate::ids::IdSequence;
-use crate::ports::{AnalyzeRequest, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts};
+use crate::ports::{
+    AnalyzeRequest, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, SourceText,
+};
 use crate::selection::Selection;
 
-/// The rules with a `CHK` code that this version cannot check yet. Literals need positions the
-/// language packs do not deliver; layering needs the layer of every reference (issue #45). The
-/// cognitive complexity and the parameters are added for the languages whose pack counts them
-/// (ADR 0048).
-const NOT_CHECKED: &[ErrorCode] = &[ErrorCode::LiteralFound, ErrorCode::LayerViolation];
+/// The rules with a `CHK` code that this version cannot check yet: layering needs the layer of
+/// every reference (issue #45). The cognitive complexity, the parameters and the literals are added
+/// for the languages whose pack does not report them (ADR 0048, ADR 0058).
+const NOT_CHECKED: &[ErrorCode] = &[ErrorCode::LayerViolation];
 
 /// A file after analysis, with the callables it declares.
 struct Analysed {
@@ -36,21 +40,25 @@ struct Analysed {
 pub struct ConventionChecker {
     discovery: Arc<dyn FileDiscovery>,
     analyzer: Arc<dyn FileAnalyzer>,
+    text: Arc<dyn SourceText>,
     limits: Conventions,
 }
 
 impl ConventionChecker {
     /// Builds the checker over the same ports a scan uses. The analyzer must have fingerprints
-    /// switched on, otherwise no duplicate is found.
+    /// switched on, otherwise no duplicate is found. `text` is read for the marker that exempts a
+    /// pure mapping function from `CHK-102` (ADR 0070).
     #[must_use]
     pub fn new(
         discovery: Arc<dyn FileDiscovery>,
         analyzer: Arc<dyn FileAnalyzer>,
+        text: Arc<dyn SourceText>,
         limits: Conventions,
     ) -> Self {
         Self {
             discovery,
             analyzer,
+            text,
             limits,
         }
     }
@@ -91,7 +99,11 @@ impl ConventionChecker {
             }
         }
         let unmatched = selection.unmatched(&files);
-        self.report(&analysed, request.stored.as_ref(), (unchecked, unmatched))
+        self.report(
+            &analysed,
+            (request.stored.as_ref(), request.root),
+            (unchecked, unmatched),
+        )
     }
 
     fn analyse(
@@ -116,7 +128,7 @@ impl ConventionChecker {
     fn report(
         &self,
         analysed: &[Analysed],
-        stored: Option<&StoredProject<'_>>,
+        (stored, root): (Option<&StoredProject<'_>>, &FolderPath),
         (unchecked, unmatched): (Vec<Unchecked>, Vec<String>),
     ) -> Result<CheckReport, CodedError> {
         let mut findings: Vec<Finding> = analysed
@@ -136,6 +148,7 @@ impl ConventionChecker {
             findings.extend(self.outside((analysed, &items), stored, &inside)?);
         }
         findings.extend(inside);
+        findings.retain(|finding| !self.allowed(analysed, root, finding));
         findings.sort_by_key(|finding| {
             (
                 finding.location.path.clone(),
@@ -152,11 +165,22 @@ impl ConventionChecker {
         })
     }
 
+    /// Whether `finding` is a copy that its function excuses with the marker (ADR 0070).
+    fn allowed(&self, analysed: &[Analysed], root: &FolderPath, finding: &Finding) -> bool {
+        finding.code == ErrorCode::DuplicateBlock
+            && analysed
+                .iter()
+                .flat_map(|done| &done.callables)
+                .find(|callable| callable.location == finding.location)
+                .is_some_and(|callable| is_allowed(self.text.as_ref(), root, callable))
+    }
+
     /// The findings about length, cognitive complexity and parameters.
     fn measured(&self, callables: &[Callable]) -> Vec<Finding> {
         let mut findings = too_long(callables, self.limits.max_function_lines);
         findings.extend(too_complex(callables, self.limits.max_cognitive_complexity));
         findings.extend(too_many_parameters(callables, self.limits.max_parameters));
+        findings.extend(with_literals(callables));
         findings
     }
 
@@ -181,8 +205,9 @@ impl ConventionChecker {
     }
 }
 
-/// The rules this check did not (fully) check: the fixed ones, and the cognitive complexity and the
-/// parameters when a function of a language whose pack does not count them was among the files.
+/// The rules this check did not (fully) check: the fixed ones, and the cognitive complexity, the
+/// parameters and the literals when a function of a language whose pack does not report them was
+/// among the files.
 fn not_checked(analysed: &[Analysed]) -> Vec<ErrorCode> {
     let mut rules = NOT_CHECKED.to_vec();
     let all = || analysed.iter().flat_map(|done| &done.callables);
@@ -191,6 +216,9 @@ fn not_checked(analysed: &[Analysed]) -> Vec<ErrorCode> {
     }
     if all().any(|callable| callable.parameters.is_none()) {
         rules.push(ErrorCode::TooManyParameters);
+    }
+    if all().any(|callable| callable.literals.is_none()) {
+        rules.push(ErrorCode::LiteralFound);
     }
     rules
 }

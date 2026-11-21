@@ -50,7 +50,9 @@ fn import(
         min_mapped,
         symbol_kinds: &[],
         separator: "",
+        library_root: "",
         max_created_symbols: 0,
+        import_sites: &[],
     })
 }
 
@@ -87,7 +89,9 @@ fn a_missing_index_is_a_coded_failure_and_the_threshold_is_kept() {
         min_mapped: 0.5,
         symbol_kinds: &[],
         separator: "",
+        library_root: "",
         max_created_symbols: 0,
+        import_sites: &[],
     });
     assert_eq!(
         missing.expect_err("fails").code(),

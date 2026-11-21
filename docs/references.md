@@ -25,7 +25,7 @@ Which kinds a name can point to depends on the kind of occurrence (`resolve/kind
 
 ## Uses in test files
 
-A call, read, write or type use in a test file is reported with the kind `test` (issue #406). The test files of a language are the `test_patterns` of its pack (globs on the path relative to the project, `**` crosses folders). Imports, base types and overrides keep their kind, because they decide what a file sees and what a type inherits. `find_usages` leaves `test` references out unless `include_tests` is set, and neither do coupling, the usage counts and the layer graph (issue #430). The resolve stage asks the analysis port (`FileAnalyzer::is_test_file`) for every file of the scan, changed or kept, so a full scan and an incremental scan give the same kinds.
+A call, read, write or type use in a test file is reported with the kind `test` (issue #406). The test files of a language are the `test_patterns` of its pack (globs on the path relative to the project, `**` crosses folders). Imports, base types and overrides keep their kind, because they decide what a file sees and what a type inherits. A symbol that lies in a test file is no target of a name written in a file that is no test file (issue #469): test helpers do not ship, so a library call of the same name (`request.headers()`) is not taken for the helper, which showed as a false edge on the dependency map. A test file may use the helpers of other test files. `find_usages` leaves `test` references out unless `include_tests` is set, and neither do coupling, the usage counts and the layer graph (issue #430). The resolve stage asks the analysis port (`FileAnalyzer::is_test_file`) for every file of the scan, changed or kept, so a full scan and an incremental scan give the same kinds.
 
 ## Known limits (follow-up work)
 
@@ -37,7 +37,7 @@ A call, read, write or type use in a test file is reported with the kind `test` 
 
 ## Level 2 (ADR 0033)
 
-Level 2 references come from SCIP indexes of the language tooling and replace the level 1 references of every file the index covers; they are `certain` and `verified`. The import (decoder, mapping, replacing per file) is `crates/adapters/scip`, see `docs/level2-import.md`. It is not wired into the scan yet.
+Level 2 references come from SCIP indexes of the language tooling and replace the level 1 references at the places where they answer; they are `certain` and `verified`. Level 1 references of a covered file where level 2 found nothing stay, unchecked. The import (decoder, mapping, replacing per file) is `crates/adapters/scip`, see `docs/level2-import.md`. It is not wired into the scan yet.
 
 ## Ambiguous references (`RES-301`)
 

@@ -83,39 +83,58 @@ fn layer_pair<'a>(
     })
 }
 
-/// A dependency with its layer and whether it breaks the layering.
-fn dependency(
-    project: &Project,
-    layers: &[LayerEdge],
-    scope: (Direction, Option<&str>),
-    edge: &DependencyEdge,
-) -> Dependency {
-    let layer = project.layer_name_of(edge.other.qualified_name.as_str());
-    let violates_layering = layer_pair(scope.0, scope.1, layer.as_deref())
-        .and_then(|(from, to)| edge_between(layers, from, to))
-        .is_some_and(|found| found.violates_layering);
-    Dependency {
-        id: edge.other.id.get(),
-        qualified_name: edge.other.qualified_name.as_str().to_owned(),
-        kind: edge.other.kind.label(),
-        path: edge.path.as_str().to_owned(),
-        layer,
-        count: edge.count,
-        violates_layering,
+/// A dependency edge with its layer and whether it breaks the layering. Only the edges that are
+/// listed are turned into a [`Dependency`], so a large type or namespace costs no text for the
+/// ones that are cut.
+struct Placed<'e> {
+    edge: &'e DependencyEdge,
+    layer: Option<String>,
+    violates_layering: bool,
+}
+
+impl<'e> Placed<'e> {
+    fn new(
+        project: &Project,
+        layers: &[LayerEdge],
+        scope: (Direction, Option<&str>),
+        edge: &'e DependencyEdge,
+    ) -> Self {
+        let layer = project.layer_name_of(edge.other.qualified_name.as_str());
+        let violates_layering = layer_pair(scope.0, scope.1, layer.as_deref())
+            .and_then(|(from, to)| edge_between(layers, from, to))
+            .is_some_and(|found| found.violates_layering);
+        Self {
+            edge,
+            layer,
+            violates_layering,
+        }
+    }
+
+    fn into_dependency(self) -> Dependency {
+        let edge = self.edge;
+        Dependency {
+            id: edge.other.id.get(),
+            qualified_name: edge.other.qualified_name.as_str().to_owned(),
+            kind: edge.other.kind.label(),
+            path: edge.path.as_str().to_owned(),
+            layer: self.layer,
+            count: edge.count,
+            violates_layering: self.violates_layering,
+        }
     }
 }
 
-/// The links to other layers that the listed dependencies add up to, in the order of the names.
+/// The links to other layers that the dependencies add up to, in the order of the names.
 fn links(
     direction: Direction,
     own: Option<&str>,
     layers: &[LayerEdge],
-    found: &[Dependency],
+    found: &[Placed<'_>],
 ) -> Vec<LayerLink> {
     let mut counts: BTreeMap<&str, u32> = BTreeMap::new();
-    for dependency in found {
-        if let Some(layer) = dependency.layer.as_deref() {
-            *counts.entry(layer).or_default() += dependency.count;
+    for placed in found {
+        if let Some(layer) = placed.layer.as_deref() {
+            *counts.entry(layer).or_default() += placed.edge.count;
         }
     }
     counts
@@ -130,6 +149,15 @@ fn links(
                 in_cycle: recorded.is_some_and(|edge| edge.in_cycle),
             })
         })
+        .collect()
+}
+
+/// The first `limit` edges as dependencies.
+fn listed(placed: Vec<Placed<'_>>, limit: u32) -> Vec<Dependency> {
+    placed
+        .into_iter()
+        .take(limit as usize)
+        .map(Placed::into_dependency)
         .collect()
 }
 
@@ -200,7 +228,7 @@ impl Tools {
                     direction,
                     include_tests: args.include_tests.unwrap_or(false),
                 };
-                self.symbol_answer(&scope, &ask, &layer_edges)?
+                self.symbol_answer(&scope, &ask, (&layer_edges, limit.value))?
             }
             Subject::Layer(name) => layer_answer(&scope, name, direction, &layer_edges)?,
         };
@@ -211,7 +239,7 @@ impl Tools {
         &self,
         scope: &Scope,
         ask: &Ask<'_>,
-        layers: &[LayerEdge],
+        (layers, limit): (&[LayerEdge], u32),
     ) -> Result<Answer, McpError> {
         let direction = ask.direction;
         let found = self.find_symbol(scope, ask.text)?;
@@ -226,25 +254,32 @@ impl Tools {
         let own = scope
             .project
             .layer_name_of(found.symbol.qualified_name.as_str());
-        let context = (direction, own.as_deref());
-        let dependencies: Vec<Dependency> = page
+        let placed: Vec<Placed<'_>> = page
             .edges
             .iter()
-            .map(|edge| dependency(&scope.project, layers, context, edge))
+            .map(|edge| Placed::new(&scope.project, layers, (direction, own.as_deref()), edge))
             .collect();
+        let violations = placed.iter().filter(|p| p.violates_layering).count();
+        let links = links(direction, own.as_deref(), layers, &placed);
+        let dependencies = listed(placed, limit);
         Ok(Answer {
             snapshot: scope.info,
-            target: Target {
-                kind: crate::consts::TARGET_SYMBOL,
-                name: found.symbol.qualified_name.as_str().to_owned(),
-            },
+            target: symbol_target(&found.symbol),
             direction: direction_label(direction),
             total: page.total,
-            violations: dependencies.iter().filter(|d| d.violates_layering).count(),
-            layers: links(direction, own.as_deref(), layers, &dependencies),
+            violations,
+            layers: links,
             dependencies,
             notice: None,
         })
+    }
+}
+
+/// The target of an answer about one symbol.
+fn symbol_target(symbol: &codeskimr_domain::Symbol) -> Target {
+    Target {
+        kind: crate::consts::TARGET_SYMBOL,
+        name: symbol.qualified_name.as_str().to_owned(),
     }
 }
 

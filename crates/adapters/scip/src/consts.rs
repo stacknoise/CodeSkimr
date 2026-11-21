@@ -1,5 +1,7 @@
 //! Wire format numbers of `scip.proto` and the limits and markers the import uses.
 
+use codeskimr_domain::Position;
+
 /// Field number of `Index.metadata`.
 pub(crate) const INDEX_METADATA: u32 = 1;
 /// Field number of `Index.documents`.
@@ -180,6 +182,9 @@ pub(crate) const MAX_LOCAL_NAME_TOTAL_BYTES: usize = 16 * 1024 * 1024;
 pub(crate) const IDENTIFIER_EXTRA_CHARS: [char; 2] = ['_', '$'];
 /// Most targets one symbol gets by adopting overload heads; more is not an overload set.
 pub(crate) const MAX_OVERLOAD_TARGETS: usize = 64;
+/// Most targets one SCIP symbol keeps over all its definitions (a partial class has one per file,
+/// real ones stay far below); further definitions of the symbol add no target.
+pub(crate) const MAX_TARGETS_PER_SYMBOL: usize = 1024;
 /// Most same-named symbols of one line that are weighed up to find the one declared at a place.
 pub(crate) const MAX_LINE_CANDIDATES: usize = 16;
 /// The first segment of a path that starts at the crate root.
@@ -198,6 +203,9 @@ pub(crate) const GROUP_OPENED_DEPTH: u32 = 1;
 pub(crate) const MAX_DOCUMENTS: usize = 1_000_000;
 /// Most occurrences, over all documents, an index may hold (24 bytes each in memory).
 pub(crate) const MAX_OCCURRENCES: usize = 16_000_000;
+/// Most references one import may produce over all documents (24 bytes each in memory); more
+/// fails the import, level 1 stays.
+pub(crate) const MAX_REFERENCES_PER_IMPORT: usize = 16_000_000;
 /// Most distinct symbols an index may hold.
 pub(crate) const MAX_SYMBOLS: usize = 4_000_000;
 
@@ -259,3 +267,13 @@ pub(crate) const PATH_DOT: char = '.';
 pub(crate) const SCAN_BUDGET_FACTOR: usize = 16;
 /// The separator of a pack that creates nothing.
 pub(crate) const NO_SEPARATOR: &str = "";
+/// The start of a file: the range of a file root (the definition of a module that is a whole file)
+/// begins here (ADR 0061).
+pub(crate) const FILE_START: Position = Position { line: 0, column: 0 };
+/// Most roots one symbol keeps. A symbol with more definitions of that shape is not a package with
+/// a library and a build script, and every use of it would have to be weighed against all of them.
+pub(crate) const MAX_ROOTS_PER_SYMBOL: usize = 64;
+/// The folder of a file in the root of the project.
+pub(crate) const ROOT_FOLDER: &str = "";
+/// The library root of a pack that names none: the folders alone decide between several roots.
+pub(crate) const NO_LIBRARY_ROOT: &str = "";

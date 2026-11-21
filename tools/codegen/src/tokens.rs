@@ -15,7 +15,7 @@ pub const MIN_CONTRAST: f64 = 4.5;
 const DARK_LUMINANCE: f64 = 0.18;
 
 /// The tokens every theme has to define, in the order they are written.
-pub const COLOR_TOKENS: [&str; 32] = [
+pub const COLOR_TOKENS: [&str; 41] = [
     "bg",
     "surface",
     "line",
@@ -37,6 +37,8 @@ pub const COLOR_TOKENS: [&str; 32] = [
     "outgoing",
     "highlight",
     "mark",
+    "critical",
+    "critical-bg",
     "kind-class",
     "kind-interface",
     "kind-record",
@@ -48,11 +50,18 @@ pub const COLOR_TOKENS: [&str; 32] = [
     "layer-4",
     "layer-5",
     "layer-6",
+    "syn-keyword",
+    "syn-string",
+    "syn-number",
+    "syn-comment",
+    "syn-type",
+    "syn-function",
+    "syn-attribute",
 ];
 
 /// Text on background pairs that must reach [`MIN_CONTRAST`] (blueprint 15.3): the first token
 /// is the text, the others are the backgrounds it is used on.
-const PAIRS: [(&str, &[&str]); 11] = [
+const PAIRS: [(&str, &[&str]); 12] = [
     ("ink", &["bg", "surface"]),
     ("ink-2", &["bg", "surface", "line-soft"]),
     ("muted", &["bg", "surface"]),
@@ -64,10 +73,11 @@ const PAIRS: [(&str, &[&str]); 11] = [
     ("accent-fg", &["accent"]),
     ("ink", &["accent-bg"]),
     ("outgoing", &["surface"]),
+    ("critical", &["critical-bg", "surface", "bg"]),
 ];
 
 /// Further text tokens that are read on `surface`.
-const ON_SURFACE: [&str; 11] = [
+const ON_SURFACE: [&str; 18] = [
     "kind-class",
     "kind-interface",
     "kind-record",
@@ -79,6 +89,13 @@ const ON_SURFACE: [&str; 11] = [
     "layer-4",
     "layer-5",
     "layer-6",
+    "syn-keyword",
+    "syn-string",
+    "syn-number",
+    "syn-comment",
+    "syn-type",
+    "syn-function",
+    "syn-attribute",
 ];
 
 /// `[meta]`.

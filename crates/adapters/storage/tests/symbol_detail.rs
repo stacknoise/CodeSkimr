@@ -37,6 +37,15 @@ fn finds_a_symbol_by_id_with_members_and_metrics() {
 }
 
 #[test]
+fn a_symbol_names_the_language_of_its_file() {
+    let found = store()
+        .symbol(SNAPSHOT, &SymbolKey::Id(SymbolId::new(22)))
+        .unwrap()
+        .unwrap();
+    assert_eq!(found.language.as_str(), "csharp");
+}
+
+#[test]
 fn finds_a_symbol_by_qualified_name() {
     let key = SymbolKey::Qualified(QualifiedName::new("App.Order.Total").unwrap());
     let found = store().symbol(SNAPSHOT, &key).unwrap().unwrap();
@@ -78,4 +87,27 @@ fn a_name_two_symbols_share_gives_the_lowest_id_and_counts_the_others() {
         .unwrap()
         .unwrap();
     assert_eq!(alone.same_name, 0);
+}
+
+#[test]
+fn the_card_of_a_symbol_has_the_same_symbol_path_and_metrics_but_no_members_and_no_count() {
+    let symbols = vec![
+        symbol(21, 11, SymbolKind::Class, "App.Order", None),
+        symbol(24, 11, SymbolKind::Class, "App.Order", None),
+    ];
+    let store = scanned(&[], symbols, vec![], vec![]);
+    let id = SymbolId::new(24);
+    let full = store.symbol(SNAPSHOT, &SymbolKey::Id(id)).unwrap().unwrap();
+    let card = store.symbol_card(SNAPSHOT, id).unwrap().unwrap();
+    assert_eq!(
+        (&card.symbol, &card.path, &card.language, &card.metrics),
+        (&full.symbol, &full.path, &full.language, &full.metrics)
+    );
+    assert_eq!((card.members.len(), card.same_name), (0, 0));
+    assert!(
+        store
+            .symbol_card(SNAPSHOT, SymbolId::new(99))
+            .unwrap()
+            .is_none()
+    );
 }

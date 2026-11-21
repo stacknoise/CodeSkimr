@@ -1,8 +1,6 @@
 //! The named stages of the scan pipeline (blueprint section 7).
 
-use crate::consts::{
-    STAGE_ANALYZE, STAGE_DISCOVER, STAGE_FETCH, STAGE_MEASURE, STAGE_PERSIST, STAGE_RESOLVE,
-};
+use crate::consts::{STAGE_FETCH, STAGE_LABELS};
 
 /// Identifies a pipeline stage in events and errors.
 ///
@@ -36,15 +34,14 @@ impl StageKind {
     ];
 
     /// The label used on the wire.
+    ///
+    /// The labels sit in a table in execution order; the variants are declared in that order and
+    /// a test pins the labels against [`Self::ALL`]. The fallback is therefore never reached.
     #[must_use]
-    pub const fn label(self) -> &'static str {
-        match self {
-            Self::Fetch => STAGE_FETCH,
-            Self::Discover => STAGE_DISCOVER,
-            Self::Analyze => STAGE_ANALYZE,
-            Self::Resolve => STAGE_RESOLVE,
-            Self::Measure => STAGE_MEASURE,
-            Self::Persist => STAGE_PERSIST,
-        }
+    pub fn label(self) -> &'static str {
+        STAGE_LABELS
+            .get(self as usize)
+            .copied()
+            .unwrap_or(STAGE_FETCH)
     }
 }

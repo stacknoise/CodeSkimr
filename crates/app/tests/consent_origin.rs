@@ -23,9 +23,11 @@ const FORBIDDEN: [&str; 7] = [
 /// The words a `use level2::{...}` may not import.
 const IMPORTS: [&str; 2] = ["confirm", "revoke"];
 /// The definitions, the re-exports, the storage adapter, the one interactive command and its
-/// tests (compiled only for tests).
-const ALLOWED: [&str; 6] = [
+/// tests (compiled only for tests), and the command `level2.revoke`.
+const ALLOWED: [&str; 7] = [
     "app/src/level2_consent.rs",
+    // The command `level2.revoke` (ADR 0071): the one more caller, and only of `revoke`.
+    "app/src/ui_commands/level2_revoke.rs",
     "app/src/level2_consent_tests.rs",
     "application/src/level2/mod.rs",
     "application/src/ports/consent.rs",
@@ -109,4 +111,45 @@ fn only_the_interactive_command_confirms_level_two() {
         .filter(|file| reaches_consent(&fs::read_to_string(file).unwrap()))
         .collect();
     assert_eq!(offenders, Vec::<&PathBuf>::new());
+}
+
+/// The command `level2.revoke` may take a confirmation back and nothing else: it never names the
+/// way to a confirmation or to the store of a consent (ADR 0071, decision 4).
+#[test]
+fn the_revoke_command_never_reaches_the_way_to_confirm() {
+    let file = product::product_sources()
+        .into_iter()
+        .find(|file| file.ends_with("app/src/ui_commands/level2_revoke.rs"))
+        .unwrap();
+    let code = squeezed(&fs::read_to_string(file).unwrap());
+    assert!(code.contains("level2::revoke("));
+    for name in [
+        "level2::confirm",
+        "store_consent",
+        "ConsentGrant",
+        "ConsentWriter",
+    ] {
+        assert!(!code.contains(name), "{name}");
+    }
+}
+
+/// The route and the command of the window never name the functions of the consent; they only
+/// ask the server to open the window.
+#[test]
+fn opening_the_window_is_no_way_to_a_consent() {
+    let files = product::product_sources();
+    let window: Vec<_> = files
+        .iter()
+        .filter(|file| {
+            file.ends_with("server/src/confirm_window.rs")
+                || file.ends_with("app/src/confirmation_window.rs")
+        })
+        .collect();
+    assert_eq!(window.len(), 2);
+    for file in window {
+        assert!(
+            !reaches_consent(&fs::read_to_string(file).unwrap()),
+            "{file:?}"
+        );
+    }
 }

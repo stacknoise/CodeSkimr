@@ -1,5 +1,5 @@
 .panel {
-    width: 300px;
+    width: var(--panel-width, 300px) /* fallback */;
     flex: none;
     overflow: auto;
     display: flex;
@@ -72,6 +72,15 @@
     border-radius: var(--radius-card);
     background: var(--bg);
 }
+.accuracy .approx {
+    margin-left: var(--space-8);
+    padding: 1px var(--space-8);
+    border: 1px solid var(--warn);
+    border-radius: var(--radius-badge);
+    color: var(--warn);
+    font-size: 11px;
+    font-weight: 600;
+}
 .accuracy .warning {
     color: var(--warn);
 }
@@ -122,4 +131,9 @@
 .open kbd {
     font: 500 11px var(--font-mono);
     opacity: 0.75;
+}
+
+.block p.description {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
 }

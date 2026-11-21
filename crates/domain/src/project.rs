@@ -97,6 +97,17 @@ pub enum ProjectSource {
     },
 }
 
+impl ProjectSource {
+    /// The place the code lives at (folder or repository address) and, for Git, the branch.
+    #[must_use]
+    pub fn place_and_branch(&self) -> (String, Option<String>) {
+        match self {
+            Self::Folder(folder) => (folder.to_string(), None),
+            Self::Git { url, branch, .. } => (url.as_str().to_owned(), Some(branch.to_string())),
+        }
+    }
+}
+
 /// A named architecture layer made of namespace prefixes (blueprint 6.1, `LayerEdge`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Layer {

@@ -5,7 +5,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use codeskimr_domain::{LanguageId, ModelError, SymbolKind};
+use codeskimr_domain::{LanguageId, SymbolKind};
 use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use tree_sitter::{Language, Query};
 
@@ -35,6 +35,8 @@ pub struct LanguagePack {
     /// Whether a name without receiver inside a function can mean a member of its type (ADR 0053).
     pub(crate) bare_names_reach_members: bool,
     pub(crate) comment_nodes: HashSet<String>,
+    /// Node kinds whose start and end the content hash marks (blocks without delimiting tokens).
+    pub(crate) block_nodes: HashSet<String>,
     pub(crate) doc_prefixes: Vec<String>,
     pub(crate) doc_before_declaration: Option<HashSet<String>>,
     pub(crate) static_keywords: HashSet<String>,
@@ -88,8 +90,7 @@ impl LanguagePack {
         let invalid = |reason: String| ParsingError::invalid(folder, reason);
         let id = pack_id(&manifest.id, folder)?;
         let visibility = Visibilities::resolve(manifest.visibility).map_err(invalid)?;
-        let modifier_kinds =
-            modifier_kinds(manifest.modifier_kinds).map_err(|e| invalid(e.to_string()))?;
+        let modifier_kinds = modifier_kinds(manifest.modifier_kinds).map_err(invalid)?;
         let kinds_by_parent = parent_kinds(manifest.kinds_by_parent).map_err(invalid)?;
         Ok(Self {
             kinds_by_parent,
@@ -104,6 +105,7 @@ impl LanguagePack {
             file_in_names: manifest.file_in_names,
             bare_names_reach_members: manifest.bare_names_reach_members,
             comment_nodes: manifest.comment_nodes.into_iter().collect(),
+            block_nodes: manifest.block_nodes.into_iter().collect(),
             doc_prefixes: manifest.doc_prefixes,
             doc_before_declaration: manifest.doc_before_declaration.map(into_set),
             static_keywords: manifest.static_keywords.into_iter().collect(),
@@ -167,12 +169,15 @@ impl LanguagePack {
 }
 
 /// The kinds that a modifier keyword gives to a declaration.
-fn modifier_kinds(
-    labels: HashMap<String, String>,
-) -> Result<HashMap<String, SymbolKind>, ModelError> {
+fn modifier_kinds(labels: HashMap<String, String>) -> Result<HashMap<String, SymbolKind>, String> {
     labels
         .into_iter()
-        .map(|(keyword, label)| Ok((keyword, SymbolKind::from_str(&label)?)))
+        .map(|(keyword, label)| {
+            Ok((
+                keyword,
+                SymbolKind::from_str(&label).map_err(|e| e.to_string())?,
+            ))
+        })
         .collect()
 }
 

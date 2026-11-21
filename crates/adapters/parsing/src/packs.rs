@@ -237,7 +237,7 @@ fn folder(dir: &Path) -> String {
 
 /// The folders below `root` that hold a `language.toml`, in order. `LanguagePacks::load` and
 /// `tiers` use this one search, so the tier shown is that of the pack the scan loads.
-fn pack_dirs(root: &Path) -> Result<Vec<PathBuf>, ParsingError> {
+pub(crate) fn pack_dirs(root: &Path) -> Result<Vec<PathBuf>, ParsingError> {
     let mut dirs = Vec::new();
     for entry in fs::read_dir(root).map_err(ParsingError::Unreadable)? {
         let dir = entry.map_err(ParsingError::Unreadable)?.path();

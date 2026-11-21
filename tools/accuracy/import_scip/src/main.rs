@@ -5,34 +5,36 @@
 //! the public `codeskimr_scip` library on an index that a person made by hand, and writes only into
 //! the throw-away database of the measurement.
 //!
-//! `import_scip <database> <project id> <index.scip> <min_mapped> <source folder> <max_index_bytes> <max_file_bytes> <max_created_symbols> <separator> [SCIP kind=symbol kind ...]`
+//! `import_scip <database> <project id> <index.scip> <min_mapped> <source folder> <max_index_bytes> <max_file_bytes> <max_created_symbols> <separator> <library_root> [SCIP kind=symbol kind ...]`
 //!
 //! Like the product (`ScipImporter`), it converts the columns of documents that are not UTF-8 with
 //! the lines of the files in the source folder before the mapping. The limits come from the caller
 //! (`measure.py` reads them from `config/default.toml`), and so does the table of the kinds that create
 //! symbols (ADR 0055) from the language pack; without a pair nothing is created.
 
+mod causes;
+
 use std::collections::HashSet;
 use std::num::NonZeroU32;
 use std::path::Path;
 use std::process::ExitCode;
 
+use crate::causes::{Causes, causes};
 use codeskimr_application::level2::renumbered;
 use codeskimr_application::ports::{
     Level2Replacement, ProjectRepository, SnapshotStore, SourceText,
 };
-use codeskimr_domain::{
-    FolderPath, ProjectId, RelativePath, SnapshotId, SymbolKind,
-};
+use codeskimr_domain::{FolderPath, ProjectId, RelativePath, SnapshotId, SymbolKind};
 use codeskimr_scip::{
-    Creation, ImportOutcome, SnapshotView, convert_columns, import_with_creation, read_index,
+    Creation, ImportOutcome, ImportStats, SnapshotView, convert_columns, import_with_creation,
+    read_index,
 };
 use codeskimr_source::FolderText;
 use codeskimr_storage::SqliteStore;
 
 /// The arguments, in order: database, project id, index, `min_mapped`, source folder,
-/// `max_index_bytes`, `max_file_bytes`.
-const ARGUMENTS: usize = 9;
+/// `max_index_bytes`, `max_file_bytes`, `max_created_symbols`, separator, library root.
+const ARGUMENTS: usize = 10;
 /// Lines of a file from the first one to the last.
 const ALL_LINES: (u32, u32) = (1, u32::MAX);
 
@@ -46,6 +48,7 @@ struct Job<'a> {
     max_file_bytes: u64,
     max_created: usize,
     separator: &'a str,
+    library_root: &'a str,
     kinds: Vec<(String, SymbolKind)>,
 }
 
@@ -59,7 +62,14 @@ fn lines(job: &Job<'_>, path: &RelativePath) -> Option<Vec<String>> {
 }
 
 /// Reads the snapshot, maps the index onto it and returns the outcome and the snapshot id.
-fn import(store: &SqliteStore, job: &Job<'_>) -> Result<(SnapshotId, ImportOutcome), String> {
+/// What the import produced, with the split of the uses of namespaces by cause.
+struct Imported {
+    snapshot: SnapshotId,
+    outcome: ImportOutcome,
+    causes: Causes,
+}
+
+fn import(store: &SqliteStore, job: &Job<'_>) -> Result<Imported, String> {
     let files = store.latest_files(job.project).map_err(|e| e.to_string())?;
     let previous = store.latest_index(job.project).map_err(|e| e.to_string())?;
     let snapshot = files.first().map(|file| file.snapshot).ok_or("no files")?;
@@ -77,10 +87,18 @@ fn import(store: &SqliteStore, job: &Job<'_>) -> Result<(SnapshotId, ImportOutco
         kinds: &job.kinds,
         separator: job.separator,
         max_symbols: job.max_created,
+        library_root: job.library_root,
+        // The limit of references per import stays at its default, as in the program.
+        ..Creation::off()
     };
     let outcome = import_with_creation(&index, &view, job.min_mapped, &creation)
         .map_err(|e| e.to_string())?;
-    Ok((snapshot, outcome))
+    let causes = causes(&index, &files, &previous.symbols, &outcome);
+    Ok(Imported {
+        snapshot,
+        outcome,
+        causes,
+    })
 }
 
 /// Stores the references of the covered files with fresh ids.
@@ -133,7 +151,8 @@ fn kinds(pairs: &[String]) -> Result<Vec<(String, SymbolKind)>, String> {
         .collect()
 }
 
-fn run(args: &[String]) -> Result<String, String> {
+/// The database and the job that the arguments name.
+fn job_of(args: &[String]) -> Result<(&Path, Job<'_>), String> {
     let [
         database,
         project,
@@ -144,6 +163,7 @@ fn run(args: &[String]) -> Result<String, String> {
         max_file,
         max_created,
         separator,
+        library_root,
         pairs @ ..,
     ] = args
     else {
@@ -158,24 +178,44 @@ fn run(args: &[String]) -> Result<String, String> {
         max_file_bytes: number(max_file)?,
         max_created: number(max_created)?,
         separator,
+        library_root,
         kinds: kinds(pairs)?,
     };
-    let store =
-        SqliteStore::open(Path::new(database), NonZeroU32::MIN).map_err(|e| e.to_string())?;
-    let (snapshot, outcome) = import(&store, &job)?;
-    let stats = outcome.stats;
-    let created = outcome.symbols.len();
-    replace(&store, snapshot, outcome)?;
-    Ok(format!(
-        "{{\"mapped\": {}, \"library\": {}, \"unmapped\": {}, \"ignored\": {}, \"files_replaced\": {}, \"files_unmatched\": {}, \"created\": {}}}",
+    Ok((Path::new(database), job))
+}
+
+/// The counters as one line of JSON, for `measure.py`.
+fn report(stats: ImportStats, created: usize, causes: Causes) -> String {
+    format!(
+        "{{\"mapped\": {}, \"library\": {}, \"unmapped\": {}, \"outside_scan\": {}, \"ignored\": {}, \"files_replaced\": {}, \"files_unmatched\": {}, \"created\": {}, \"by_cause\": {{\"crate_root\": {}, \"module_file\": {}, \"skipped_namespace\": {}, \"skipped_item\": {}, \"other\": {}}}}}",
         stats.mapped,
         stats.library,
         stats.unmapped,
+        stats.outside_scan,
         stats.ignored,
         stats.files_replaced,
         stats.files_unmatched,
-        created
-    ))
+        created,
+        causes.crate_root,
+        causes.module_file,
+        causes.skipped_namespace,
+        causes.skipped_item,
+        stats.unmapped,
+    )
+}
+
+fn run(args: &[String]) -> Result<String, String> {
+    let (database, job) = job_of(args)?;
+    let store = SqliteStore::open(database, NonZeroU32::MIN).map_err(|e| e.to_string())?;
+    let Imported {
+        snapshot,
+        outcome,
+        causes,
+    } = import(&store, &job)?;
+    let stats = outcome.stats;
+    let created = outcome.symbols.len();
+    replace(&store, snapshot, outcome)?;
+    Ok(report(stats, created, causes))
 }
 
 fn main() -> ExitCode {

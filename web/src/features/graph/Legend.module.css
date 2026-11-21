@@ -34,3 +34,10 @@
 .total {
     color: var(--muted);
 }
+
+.critical {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-6);
+    white-space: nowrap;
+}

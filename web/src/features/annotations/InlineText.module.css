@@ -1,0 +1,34 @@
+/* The text under a row and the switch that shows it (mock Annotations.dc.html: .inl). */
+.inline {
+    padding: var(--space-8) var(--space-12) var(--space-8) 46px;
+    background: var(--accent-bg);
+    color: var(--ink-2);
+    font-size: 12px;
+}
+
+.line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-4);
+    overflow-wrap: anywhere;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+.switch {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-6);
+    flex: none;
+    color: var(--ink-2);
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.switch input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}

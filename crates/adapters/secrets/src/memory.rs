@@ -8,7 +8,7 @@ use std::fmt;
 use std::ops::Deref;
 use std::ptr::NonNull;
 
-use codeskimr_application::ports::AuthError;
+use codeskimr_application::ports::{AuthError, LockedSecret};
 use zeroize::Zeroize;
 
 /// Secret bytes in memory that the operating system may not write to the swap file.
@@ -107,6 +107,12 @@ impl Deref for LockedBytes {
             Some(block) => unsafe { block.as_ref() },
             None => &[],
         }
+    }
+}
+
+impl LockedSecret for LockedBytes {
+    fn bytes(&self) -> &[u8] {
+        self
     }
 }
 

@@ -11,8 +11,8 @@ mod tests {
     };
     use codeskimr_application::error::CodedError;
     use codeskimr_application::ports::{
-        AnalyzeRequest, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, SimilarHit,
-        SimilarQuery, SimilarityIndex, SymbolFingerprints,
+        AnalyzeRequest, DiscoveredFile, Excerpt, FileAnalyzer, FileDiscovery, FileFacts,
+        SimilarHit, SimilarQuery, SimilarityIndex, SourceText, SymbolFingerprints,
     };
     use codeskimr_codes::{Coded, ErrorCode};
     use codeskimr_domain::{
@@ -28,7 +28,7 @@ mod tests {
         /// A second function with the same body inside the first one.
         inner: bool,
         /// Cognitive complexity and parameters of its functions; `None` is a pack that does not count.
-        counted: Option<(u32, u32)>,
+        counted: Option<(u32, u32, u32)>,
     }
 
     /// Files by path; `broken` fails to analyse.
@@ -121,6 +121,20 @@ mod tests {
         Ok(symbols)
     }
 
+    fn counts_of(body: &Body, symbol: &Symbol) -> SymbolCounts {
+        SymbolCounts {
+            symbol: symbol.id,
+            loc: Loc(body.loc),
+            body: Some(BodyCounts {
+                cognitive: body.counted.map(|(cognitive, _, _)| cognitive),
+                parameters: body.counted.map(|(_, parameters, _)| parameters),
+                literals: body.counted.map(|(_, _, literals)| literals),
+                ..BodyCounts::default()
+            }),
+            counted: true,
+        }
+    }
+
     impl FileAnalyzer for Disk {
         fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError> {
             let path = request.file.path.as_str();
@@ -148,19 +162,11 @@ mod tests {
                     .collect::<Result<_, _>>()?,
                 counts: symbols
                     .iter()
-                    .map(|symbol| SymbolCounts {
-                        symbol: symbol.id,
-                        loc: Loc(body.loc),
-                        body: Some(BodyCounts {
-                            cognitive: body.counted.map(|(cognitive, _)| cognitive),
-                            parameters: body.counted.map(|(_, parameters)| parameters),
-                            ..BodyCounts::default()
-                        }),
-                        counted: true,
-                    })
+                    .map(|symbol| counts_of(body, symbol))
                     .collect(),
                 symbols,
                 pending: Vec::new(),
+                hashes: Vec::new(),
                 file,
             })
         }
@@ -183,8 +189,102 @@ mod tests {
     }
 
     fn checker_with(disk: Disk, limits: Conventions) -> ConventionChecker {
+        checker_noted(disk, limits, &Notes::default())
+    }
+
+    fn checker_noted(disk: Disk, limits: Conventions, notes: &Notes) -> ConventionChecker {
         let disk = Arc::new(disk);
-        ConventionChecker::new(disk.clone(), disk, limits)
+        ConventionChecker::new(disk.clone(), disk, Arc::new(notes.clone()), limits)
+    }
+
+    /// The text above every declaration: a comment line `note`, optionally after a blank line.
+    #[derive(Clone, Default)]
+    struct Notes {
+        note: Option<&'static str>,
+        blank_between: bool,
+    }
+
+    impl SourceText for Notes {
+        fn excerpt(
+            &self,
+            _: &FolderPath,
+            _: &RelativePath,
+            (first, last): (u32, u32),
+            _: (u32, u64),
+        ) -> Result<Excerpt, CodedError> {
+            let lines = (first..=last)
+                .map(|line| match (last - line, self.note) {
+                    (1, Some(note)) if !self.blank_between => note.to_owned(),
+                    (1, Some(_)) => String::new(),
+                    (2, Some(note)) if self.blank_between => note.to_owned(),
+                    _ => "let x = 1;".to_owned(),
+                })
+                .collect();
+            Ok(Excerpt {
+                lines,
+                truncated: false,
+            })
+        }
+    }
+
+    const REASON: &str = "// codeskimr: allow CHK-102 maps the storage row into the model";
+
+    /// The files `a.rs` and `b.rs` with the same body; its cognitive complexity is `cognitive`.
+    fn twins(cognitive: u32) -> Disk {
+        let body = || Body {
+            loc: 9,
+            seed: 0,
+            inner: false,
+            counted: Some((cognitive, 1, 0)),
+        };
+        Disk {
+            files: vec![("a.rs", body()), ("b.rs", body())],
+            broken: None,
+        }
+    }
+
+    fn copies_with(cognitive: u32, notes: &Notes) -> usize {
+        let checker = checker_noted(twins(cognitive), limits(), notes);
+        let report = run(&checker, Principal::local_owner(), &[]).expect("checked");
+        report.findings.len()
+    }
+
+    #[test]
+    fn a_pure_mapping_function_with_a_reasoned_marker_is_not_a_copy() {
+        let notes = Notes {
+            note: Some(REASON),
+            blank_between: false,
+        };
+        assert_eq!(copies_with(0, &notes), 0);
+    }
+
+    #[test]
+    fn without_a_marker_or_a_reason_the_copy_is_reported() {
+        let bare = "// codeskimr: allow CHK-102";
+        let notes = |note| Notes {
+            note,
+            blank_between: false,
+        };
+        assert_eq!(copies_with(0, &notes(None)), 1);
+        assert_eq!(copies_with(0, &notes(Some(bare))), 1);
+    }
+
+    #[test]
+    fn a_marker_cut_off_by_a_blank_line_does_not_count() {
+        let notes = Notes {
+            note: Some(REASON),
+            blank_between: true,
+        };
+        assert_eq!(copies_with(0, &notes), 1);
+    }
+
+    #[test]
+    fn a_function_with_branches_cannot_be_excused() {
+        let notes = Notes {
+            note: Some(REASON),
+            blank_between: false,
+        };
+        assert_eq!(copies_with(1, &notes), 1);
     }
 
     fn root() -> FolderPath {
@@ -303,7 +403,7 @@ mod tests {
         assert_eq!(codes_with(limits), [ErrorCode::FunctionTooLong]);
     }
 
-    fn counted(cognitive: u32, parameters: u32) -> Disk {
+    fn counted(cognitive: u32, parameters: u32, literals: u32) -> Disk {
         Disk {
             files: vec![(
                 "src/a.rs",
@@ -311,7 +411,7 @@ mod tests {
                     loc: 12,
                     seed: 0,
                     inner: false,
-                    counted: Some((cognitive, parameters)),
+                    counted: Some((cognitive, parameters, literals)),
                 },
             )],
             broken: None,
@@ -320,33 +420,40 @@ mod tests {
 
     #[test]
     fn a_function_above_the_cognitive_limit_or_the_parameter_limit_is_reported() {
-        let report = run(&checker(counted(16, 6)), Principal::local_owner(), &[]).expect("checked");
+        let report =
+            run(&checker(counted(16, 6, 3)), Principal::local_owner(), &[]).expect("checked");
         let codes: Vec<ErrorCode> = report.findings.iter().map(|finding| finding.code).collect();
         assert_eq!(
             codes,
-            [ErrorCode::ComplexityTooHigh, ErrorCode::TooManyParameters]
+            [
+                ErrorCode::LiteralFound,
+                ErrorCode::ComplexityTooHigh,
+                ErrorCode::TooManyParameters
+            ]
         );
+        assert_eq!(report.findings[0].detail, Detail::Literals { count: 3 });
         assert_eq!(
-            report.findings[0].detail,
+            report.findings[1].detail,
             Detail::Over {
                 value: 16,
                 limit: 15
             }
         );
         assert_eq!(
-            report.findings[1].detail,
+            report.findings[2].detail,
             Detail::Over { value: 6, limit: 5 }
         );
         assert_eq!(
             report.not_checked,
-            [ErrorCode::LiteralFound, ErrorCode::LayerViolation],
-            "a language that counts both is checked for both"
+            [ErrorCode::LayerViolation],
+            "a language that reports all three is checked for all three"
         );
     }
 
     #[test]
     fn a_function_at_the_limits_is_clean() {
-        let report = run(&checker(counted(15, 5)), Principal::local_owner(), &[]).expect("checked");
+        let report =
+            run(&checker(counted(15, 5, 0)), Principal::local_owner(), &[]).expect("checked");
         assert_eq!(report.findings.len(), 0);
     }
 
@@ -402,10 +509,10 @@ mod tests {
         assert_eq!(
             report.not_checked,
             [
-                ErrorCode::LiteralFound,
                 ErrorCode::LayerViolation,
                 ErrorCode::ComplexityTooHigh,
-                ErrorCode::TooManyParameters
+                ErrorCode::TooManyParameters,
+                ErrorCode::LiteralFound
             ]
         );
     }
@@ -441,7 +548,7 @@ mod tests {
                 Detail::Duplicate { of, .. } => {
                     Some((finding.location.path.as_str(), of.path.as_str()))
                 }
-                Detail::TooLong { .. } | Detail::Over { .. } => None,
+                Detail::TooLong { .. } | Detail::Over { .. } | Detail::Literals { .. } => None,
             })
             .collect();
         assert_eq!(found, [("b.rs", "a.rs"), ("c.rs", "a.rs")]);
@@ -506,7 +613,7 @@ mod tests {
                     finding.location.path.as_str().to_owned(),
                     of.path.as_str().to_owned(),
                 )),
-                Detail::TooLong { .. } | Detail::Over { .. } => None,
+                Detail::TooLong { .. } | Detail::Over { .. } | Detail::Literals { .. } => None,
             })
             .collect()
     }
@@ -525,6 +632,46 @@ mod tests {
         let stored = Stored(vec![hit("old/x.rs", 91)]);
         let found = duplicates_against(&stored, vec![("a.rs", short(0))]);
         assert_eq!(found, [("a.rs".to_owned(), "old/x.rs".to_owned())]);
+    }
+
+    /// How many copies of stored code are reported for one mapping function under `notes`.
+    fn stored_copies_with(notes: &Notes) -> usize {
+        let disk = Disk {
+            files: vec![(
+                "a.rs",
+                Body {
+                    loc: 9,
+                    seed: 0,
+                    inner: false,
+                    counted: Some((0, 1, 0)),
+                },
+            )],
+            broken: None,
+        };
+        let stored = Stored(vec![hit("old/x.rs", 91)]);
+        let request = CheckRequest {
+            principal: &Principal::local_owner(),
+            root: &root(),
+            paths: &[],
+            stored: Some(StoredProject {
+                index: &stored,
+                snapshot: SnapshotId::new(1),
+            }),
+        };
+        let report = checker_noted(disk, limits(), notes)
+            .check(&request)
+            .expect("checked");
+        report.findings.len()
+    }
+
+    #[test]
+    fn a_marked_mapping_function_is_no_copy_of_stored_code_either() {
+        let marked = Notes {
+            note: Some(REASON),
+            blank_between: false,
+        };
+        assert_eq!(stored_copies_with(&Notes::default()), 1);
+        assert_eq!(stored_copies_with(&marked), 0);
     }
 
     #[test]

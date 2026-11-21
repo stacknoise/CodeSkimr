@@ -3,7 +3,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } fro
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
-import { test as base, expect, type Locator, type Page } from "@playwright/test";
+import { test as base, expect, type Locator, type Page, type TestInfo } from "@playwright/test";
 
 /** The server of the tests: the real one, over an in-memory keystore (crates/app/src/e2e.rs). */
 export interface Harness {
@@ -142,6 +142,32 @@ export async function addScannedProject(
   return row;
 }
 
+/** Adds a scanned project like `addScannedProject` and selects its row in the project list, so that
+ * the sections of the project (level 2, scan, tools) are shown below the list. */
+export async function selectScannedProject(
+  page: Page,
+  harness: Harness,
+  name: string,
+  source: string,
+): Promise<void> {
+  const row = await addScannedProject(page, harness, name, source);
+  await row.click({ position: { x: 4, y: 4 } });
+}
+
+/** Adds a scanned project like `addScannedProject` and opens it (the screens of a project stay shut
+ * until one is open); the explorer is shown afterwards. */
+export async function openScannedProject(
+  page: Page,
+  harness: Harness,
+  name: string,
+  source: string,
+) {
+  const row = await addScannedProject(page, harness, name, source);
+  await row.click({ position: { x: 4, y: 4 } });
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("tree")).toBeVisible();
+}
+
 /** The layer file and the two sources of a small project with a Domain and a Presentation layer. */
 function layeredFiles(prefix: string): Record<string, string> {
   return {
@@ -178,12 +204,22 @@ export async function addLayeredProject(page: Page, harness: Harness, name: stri
 }
 
 /** From a project row: opens it in the explorer and selects the member `Add` of the type
- * `Calculator` in `namespace` (the layer is "(no layer)"). */
+ * `Calculator` in `namespace` (the project has no layers). */
 export async function selectAdd(page: Page, row: Locator, namespace: string): Promise<void> {
   await row.click({ position: { x: 4, y: 4 } });
   await page.keyboard.press("Enter");
-  await page.getByText("(no layer)").click();
   await page.getByText(namespace, { exact: true }).click();
   await page.getByText("Calculator", { exact: true }).click();
   await page.getByRole("button", { name: /Add/ }).first().click();
+}
+
+/** Attaches the screen to the report and, when `UPDATE_SCREENSHOTS` is set, writes it to `dir` for
+ * the review by eye. */
+export async function shot(page: Page, dir: string, name: string, info: TestInfo): Promise<void> {
+  const body = await page.screenshot();
+  await info.attach(name, { body, contentType: "image/png" });
+  if (process.env["UPDATE_SCREENSHOTS"]) {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, `${name}.png`), body);
+  }
 }

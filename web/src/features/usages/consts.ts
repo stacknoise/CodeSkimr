@@ -20,10 +20,11 @@ export const WAYS = [
 
 /** Depth that asks for as many steps as the configuration allows. */
 export const DEPTH_ALL = 0;
-/** Depth shown at first (mock 6). */
-export const DEFAULT_DEPTH = 2;
-/** The depths of the select, in the order of the mock. */
-export const DEPTHS: readonly number[] = [DEFAULT_DEPTH, 1, 3, DEPTH_ALL];
+/** Depth shown at first: only direct usages, never those that reach a symbol through another one
+ * (product owner, 2026-11-20). The select offers deeper walks on request. */
+export const DEFAULT_DEPTH = 1;
+/** The depths of the select, ascending, "all" last. */
+export const DEPTHS: readonly number[] = [DEFAULT_DEPTH, 2, 3, DEPTH_ALL];
 
 /** Tests are shown at first (mock 6). */
 export const DEFAULT_SHOW_TESTS = true;
@@ -54,7 +55,7 @@ export const GRAPH = {
   top: 40,
   bottom: 56,
   columnWidth: 236,
-  columnGap: 30,
+  columnGap: 90,
   cardHeight: 50,
   focusHeight: 64,
   rowGap: 20,
@@ -90,6 +91,8 @@ export const STEP_NEXT = 1;
 export const STEP_PREVIOUS = -1;
 /** `indexOf` found nothing. */
 export const NOT_FOUND = -1;
+/** The depth of a direct reference; deeper hits reach the symbol only through others. */
+export const DIRECT_DEPTH = 1;
 /** No hit is selected. */
 export const NO_HIT = -1;
 
@@ -99,7 +102,7 @@ export const MISSING = "–";
 export const LOCATION_JOIN = ":";
 
 /** Roles of the groups of the toolbar. */
-export const ROLE = { group: "group", region: "region", alert: "alert" } as const;
+export const ROLE = { group: "group", region: "region" } as const;
 /** Rating of the verification of a hit, named as the styles name it. */
 export const STATE = {
   verified: "verified",
@@ -126,3 +129,45 @@ export const SCROLL_NEAREST: ScrollIntoViewOptions = { block: "nearest" };
 export const PATH = { move: "M", curve: "C", space: " " } as const;
 export const PAIR_SEPARATOR = ">";
 export const JOIN_NONE = "";
+
+/** Zoom of the graph: the notch of a zoom button, the first scale, and the key and limits of the
+ * height of the hit list (mock 6 shows 250 px). */
+export const ZOOM_BUTTON_NOTCHES = 2;
+export const HITS_PANE_KEY = "usages.hits";
+export const HITS_PANE_BOUNDS = { initial: 250, min: 80, max: 700 } as const;
+/** Symbols on the buttons that zoom, and the text of the one that fits the graph. */
+export const ZOOM_SYMBOL = { in: "+", out: "−", fit: "⤢" } as const;
+/** The smallest scale a new graph opens with; a larger graph is centred on the focus instead. */
+export const START_MIN_SCALE = 0.6;
+
+/** The width of the side panel, and the key under which it is remembered. */
+export const PANEL_PANE_KEY = "usages.panel";
+export const PANEL_PANE_BOUNDS = { initial: 300, min: 240, max: 720 } as const;
+
+/** A character that can be part of an identifier: a word is only a whole word next to others. */
+export const IDENTIFIER_CHAR = /[\p{L}\p{N}_]/u;
+
+/** The columns of the hit list; every one can be widened with its handle except the place column, which takes what is left. */
+export const HIT_COLUMNS = [
+  { id: "kind", label: I18N_KEYS.USAGES_COL_KIND, bounds: { initial: 84, min: 50, max: 240 } },
+  { id: "where", label: I18N_KEYS.USAGES_COL_WHERE, bounds: { initial: 220, min: 60, max: 600 } },
+  { id: "code", label: I18N_KEYS.USAGES_COL_CODE, bounds: { initial: 520, min: 120, max: 1600 } },
+  { id: "place", label: I18N_KEYS.USAGES_COL_PLACE, bounds: null },
+  { id: "state", label: I18N_KEYS.USAGES_COL_STATE, bounds: { initial: 84, min: 50, max: 240 } },
+] as const;
+/** Storage key prefix of the widths of the columns. */
+export const HIT_COLUMN_KEY = "usages.hits.col.";
+/** Pixels a column grows or shrinks with one press of an arrow key. */
+export const COLUMN_KEY_STEP_PX = 12;
+
+/** Separates the words of a filter text. */
+export const WORD_SEPARATOR = /\s+/;
+/** The width of the column that takes what is left, the unit of the others and what joins the widths. */
+export const LEFTOVER_COLUMN_WIDTH = "minmax(0, 1fr)";
+export const PIXEL_UNIT = "px";
+export const COLUMN_JOIN = " ";
+
+/** The keys that move a column handle, and by how many steps (a key not listed moves nothing). */
+export const COLUMN_KEY_DELTA: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1 };
+/** No movement. */
+export const NO_DELTA = 0;

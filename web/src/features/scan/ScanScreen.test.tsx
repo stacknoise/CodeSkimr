@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from "@solidjs/testing-library";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { openProject } from "../../shared/project/active";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { recordTime, resetTimings } from "../../shared/api/timings";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
@@ -80,6 +81,7 @@ useServerSession();
 beforeEach(() => {
   vi.stubGlobal("WebSocket", FakeSocket);
   resetRuns();
+  openProject(ROW.id);
   serve({
     "projects.list": () => answer([ROW]),
     "status.info": () => answer(STATUS),
@@ -246,6 +248,23 @@ describe("ScanScreen", () => {
     const row = screen.getByText("Scan 100k lines").parentElement as HTMLElement;
     const value = row.lastElementChild as HTMLElement;
     expect(value.className).not.toMatch(/good|bad/);
+    stop();
+  });
+
+  it("leaves the time of loading language packs out of the measured scan time", async () => {
+    setLanguage("en");
+    const stop = await shown();
+    FakeSocket.last?.send({ ...RUNNING, stage: "fetch", done: 1, total: 1 });
+    FakeSocket.last?.send({
+      type: "snapshot_created",
+      project: 1,
+      snapshot: 6,
+      pack_load_ms: 60_000,
+    });
+    await screen.findByText("Scan finished");
+    const row = screen.getByText("Scan 100k lines").parentElement as HTMLElement;
+    // The load took longer than the whole run in the browser, so nothing is left to measure.
+    expect(within(row).getByText("0 ms")).toBeInTheDocument();
     stop();
   });
 

@@ -4,7 +4,7 @@ CodeSkimr reads a code repository once and turns it into navigable documentation
 
 Everything runs on your machine. The server listens on `127.0.0.1` only; your code is not uploaded anywhere.
 
-> **Status:** preview. The first preview version is `0.9.0-preview.1`; 1.0 is not released yet. See [CHANGELOG.md](CHANGELOG.md).
+> **Status:** 1.0. See [CHANGELOG.md](CHANGELOG.md) and the release notes in `docs/release/`.
 
 ## What it does
 
@@ -19,7 +19,7 @@ Everything runs on your machine. The server listens on `127.0.0.1` only; your co
 
 ## Install
 
-Preview packages for Windows (x86_64), Linux (x86_64) and macOS (Apple Silicon) are attached to the releases of this repository once the first preview is published (`LIES-MICH.md` / `README-PREVIEW.md` in the package explain the first start). Installers come with 1.0. Otherwise build from source:
+Releases carry one single file per system (Windows x86_64, Linux x86_64, macOS Apple Silicon) with a SHA-256 sum and a GitHub provenance attestation; UI and language packs are inside. The files are not signed yet (first task after 1.0); the manual chapter "Installation" explains the SmartScreen and Gatekeeper warnings. Otherwise build from source:
 
 ```
 cd web && npm ci && npm run build && cd ..

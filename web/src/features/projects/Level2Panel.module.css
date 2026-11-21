@@ -1,0 +1,130 @@
+.panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+    padding: var(--space-16);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+}
+
+.header h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.live {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+.live:empty {
+    display: none;
+}
+
+.text {
+    margin: 0;
+    color: var(--ink-2);
+}
+
+.notice,
+.ask {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    padding: var(--space-12) var(--space-16);
+    background: var(--accent-bg);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-panel);
+    color: var(--ink);
+}
+
+.ask {
+    background: var(--warn-bg);
+    border-color: var(--warn);
+}
+
+.notice p,
+.ask p {
+    margin: 0;
+}
+
+.waiting {
+    color: var(--muted);
+}
+
+.error {
+    padding: var(--space-12) var(--space-16);
+    background: var(--bad-bg);
+    border: 1px solid var(--bad);
+    border-radius: var(--radius-panel);
+    color: var(--ink);
+}
+
+.error p {
+    margin: 0;
+}
+
+.snippet,
+.code {
+    margin: 0;
+    padding: var(--space-8) var(--space-12);
+    background: var(--line-soft);
+    border-radius: var(--radius-button);
+    color: var(--ink);
+    font: 12px var(--font-mono);
+    overflow-wrap: anywhere;
+}
+
+.path {
+    margin: 0;
+    color: var(--muted);
+    font: 12px var(--font-mono);
+    overflow-wrap: anywhere;
+}
+
+.command {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-8);
+}
+
+.code {
+    flex: 1 1 280px;
+}
+
+.buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8);
+}
+
+.buttons:empty {
+    display: none;
+}
+
+.button,
+.primary {
+    padding: var(--space-4) var(--space-12);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-badge);
+    background: var(--surface);
+    color: var(--ink);
+    font: 500 12px var(--font-sans);
+    cursor: pointer;
+}
+
+.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-fg);
+}

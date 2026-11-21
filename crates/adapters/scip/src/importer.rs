@@ -9,10 +9,10 @@ use codeskimr_application::ports::{ImportRequest, Imported, ReferenceImporter, S
 use codeskimr_domain::{FolderPath, Reference, RelativePath};
 
 use crate::columns::convert_columns;
-use crate::consts::FIRST_LINE;
+use crate::consts::{FIRST_LINE, MAX_REFERENCES_PER_IMPORT};
 use crate::create::Creation;
 use crate::decode::read_index;
-use crate::mapping::{SnapshotView, import_with_creation};
+use crate::mapping::{SnapshotView, import_with_sites};
 
 /// Imports SCIP indexes. `text` gives the lines of the project files, which the conversion of
 /// UTF-16 and UTF-32 columns needs.
@@ -42,6 +42,17 @@ impl std::fmt::Debug for ScipImporter {
     }
 }
 
+/// What the import may create and how many references it may produce, from the request.
+fn creation_of<'a>(request: &ImportRequest<'a>) -> Creation<'a> {
+    Creation {
+        kinds: request.symbol_kinds,
+        separator: request.separator,
+        max_symbols: request.max_created_symbols,
+        library_root: request.library_root,
+        max_references: MAX_REFERENCES_PER_IMPORT,
+    }
+}
+
 impl ReferenceImporter for ScipImporter {
     fn import(&self, request: &ImportRequest<'_>) -> Result<Imported, CodedError> {
         let mut index =
@@ -60,13 +71,14 @@ impl ReferenceImporter for ScipImporter {
             symbols: request.symbols,
             references: request.references,
         };
-        let creation = Creation {
-            kinds: request.symbol_kinds,
-            separator: request.separator,
-            max_symbols: request.max_created_symbols,
-        };
-        let outcome = import_with_creation(&index, &view, request.min_mapped, &creation)
-            .map_err(CodedError::caused_by)?;
+        let creation = creation_of(request);
+        let outcome = import_with_sites(
+            &index,
+            &view,
+            (request.min_mapped, &creation),
+            request.import_sites,
+        )
+        .map_err(CodedError::caused_by)?;
         let references: Vec<Reference> = outcome
             .references
             .into_iter()
@@ -78,6 +90,7 @@ impl ReferenceImporter for ScipImporter {
             references,
             mapped: outcome.stats.mapped,
             dropped: outcome.stats.dropped(),
+            outside_scan: outcome.stats.outside_scan,
         })
     }
 }

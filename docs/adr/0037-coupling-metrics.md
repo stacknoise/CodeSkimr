@@ -1,6 +1,6 @@
 # 0037 – Coupling metrics: definition and per-snapshot storage
 
-Status: proposed
+Status: accepted (Anton, 2026-11-20, decision card, option A: the counting as written; the tiles of level 1 say "upper bound")
 
 ## Context
 
@@ -34,3 +34,4 @@ Option 2.
 - ADR 0032's condition holds again: everything in `metric_rows` depends on one file.
 - The level 2 import (ADR 0033) replaces references after the scan. The storage calculates coupling of the newest snapshot again from the stored references in the same transaction, so the figures follow the imported references. Older snapshots that share the replaced files keep their level 1 coupling.
 - Blueprint 6.1 lists the kinds already; its granularity text can point to this ADR when the blueprint is next edited.
+- Level 1 marks 89 % of the references of CodeSkimr itself as `probable` (`RES-301`, `docs/acceptance/qa-m5.md`), and the definition counts them whatever their confidence. The figures of a snapshot without a confirmed level 2 run are therefore an upper bound. The coupling tiles of the explorer are to say so (a hint "upper bound" while level 2 has not confirmed the project; a separate package, issue to follow); the figure itself does not change. A second figure from verified references only (and a count weighted by the number of references) are not part of this decision; each would need its own ADR.

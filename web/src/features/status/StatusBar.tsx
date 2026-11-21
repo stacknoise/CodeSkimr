@@ -4,7 +4,7 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import { lastQueryMs } from "../../shared/api/timings";
 import { KIND } from "../../shared/session/consts";
 import { activeProject } from "../../shared/project/active";
-import { sessionState } from "../../shared/session/session";
+import { serverReachable, sessionState } from "../../shared/session/session";
 import { cx } from "../../shared/ui/cx";
 import { LANGUAGES } from "../../shared/i18n/consts";
 import { projects, projectsLoaded, refreshProjects } from "../projects/projects";
@@ -16,6 +16,13 @@ import { refreshStatus, statusInfo } from "./status";
 function Connection() {
   return (
     <Switch>
+      <Match when={sessionState().kind === KIND.connected && !serverReachable()}>
+        <span class={styles.lost} role="alert">
+          {STATUS_DOT} {t(I18N_KEYS.STATUS_DISCONNECTED)}
+          {COUNT_SEPARATOR}
+          {t(I18N_KEYS.STATUS_SERVER_GONE)}
+        </span>
+      </Match>
       <Match when={sessionState().kind === KIND.connected}>
         <span class={styles.ok}>
           {STATUS_DOT} {t(I18N_KEYS.STATUS_CONNECTED)}

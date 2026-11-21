@@ -8,7 +8,6 @@
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
@@ -20,8 +19,7 @@ use serde::{Deserialize, Serialize};
 use super::consts::{
     PREFERENCE_EXTRA_CHAR, PREFERENCE_MAX_CHARS, PREFERENCES_FILE, PREFERENCES_GET,
     PREFERENCES_GET_DESCRIPTION, PREFERENCES_GET_TITLE, PREFERENCES_MAX_BYTES, PREFERENCES_SET,
-    PREFERENCES_SET_DESCRIPTION, PREFERENCES_SET_TITLE, PREFERENCES_TEMP_SEPARATOR,
-    PREFERENCES_TEMP_SUFFIX,
+    PREFERENCES_SET_DESCRIPTION, PREFERENCES_SET_TITLE,
 };
 
 /// What the user has chosen. `None` means: no choice, the UI decides (system setting, default).
@@ -97,28 +95,13 @@ impl PreferencesFile {
         if let Some(parent) = self.path.parent() {
             fs::create_dir_all(parent).map_err(|_| unavailable())?;
         }
-        let temp = self.temp_path();
+        let temp = super::temp_file::beside(&self.path);
         let written = create_private(&temp).and_then(|mut file| file.write_all(text.as_bytes()));
         let moved = written.and_then(|()| fs::rename(&temp, &self.path));
         if moved.is_err() {
             let _ = fs::remove_file(&temp);
         }
         moved.map_err(|_| unavailable())
-    }
-
-    /// A name for the new file that no other call and no earlier run has used.
-    fn temp_path(&self) -> PathBuf {
-        static COUNTER: AtomicU64 = AtomicU64::new(u64::MIN);
-        let unique = [
-            std::process::id().to_string(),
-            COUNTER.fetch_add(1, Ordering::Relaxed).to_string(),
-        ]
-        .join(PREFERENCES_TEMP_SEPARATOR);
-        let mut name = self.path.clone().into_os_string();
-        name.push(PREFERENCES_TEMP_SEPARATOR);
-        name.push(unique);
-        name.push(PREFERENCES_TEMP_SUFFIX);
-        PathBuf::from(name)
     }
 }
 

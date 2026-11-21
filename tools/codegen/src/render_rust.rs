@@ -2,7 +2,7 @@
 
 use std::fmt::Write;
 
-use crate::consts::GENERATED_NOTICE;
+use crate::consts::{CLASS_NAMES, GENERATED_NOTICE, INTERNAL_CLASS};
 use crate::registry::{Code, Group, Registry, pascal_case};
 
 /// Escapes a string for use inside a Rust string literal.
@@ -68,15 +68,10 @@ fn entry_literal(code: &Code) -> String {
 
 /// Maps a class digit to the `Class` variant name.
 fn class_variant(digit: u8) -> &'static str {
-    match digit {
-        1 => "InvalidInput",
-        2 => "NotFound",
-        3 => "Conflict",
-        4 => "Permission",
-        5 => "Limit",
-        6 => "External",
-        _ => "Internal",
-    }
+    CLASS_NAMES
+        .iter()
+        .find(|(known, _, _)| *known == digit)
+        .map_or(INTERNAL_CLASS.1, |(_, _, variant)| variant)
 }
 
 /// Renders the `ErrorCode` enum.

@@ -234,6 +234,9 @@ pub fn ui_options() -> UiOptions {
                 allowed_schemes: vec!["vscode".to_owned()],
             },
             default_theme: "petrol".to_owned(),
+            level2_poll_seconds: 2,
+            level2_poll_max_seconds: 300,
+            approximate_languages: vec!["python".to_owned()],
         },
     }
 }

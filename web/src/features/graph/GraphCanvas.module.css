@@ -72,9 +72,38 @@
     color: var(--muted);
 }
 
+.text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+}
+
+.context {
+    max-width: 100%;
+    font: 10px var(--font-mono);
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .name {
+    max-width: 100%;
     font: 500 12px var(--font-mono);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* A system-critical box (mock 15, second board): the thick stripe in the colour of the mark and the
+   label "K"; the stripe replaces the colour of the layer on the left edge. */
+.critical {
+    border-left-color: var(--critical);
+    border-left-width: 5px;
+}
+
+.mark {
+    margin-left: var(--space-8);
+    flex: none;
 }

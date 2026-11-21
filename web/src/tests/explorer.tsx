@@ -16,7 +16,19 @@ export const OUTLINE: Outline = {
     {
       name: "Domain",
       namespaces: [
-        { name: "Shop.Domain", types: [{ id: 7, name: "Order", kind: "class", members: 2 }] },
+        {
+          name: "Shop.Sales",
+          types: [
+            {
+              id: 7,
+              name: "Order",
+              qualified_name: "Shop.Domain.Order",
+              kind: "class",
+              members: 2,
+              language: "csharp",
+            },
+          ],
+        },
       ],
     },
   ],
@@ -31,6 +43,7 @@ export const ORDER: SymbolInfo = {
   visibility: "public",
   is_static: false,
   path: "src/Order.cs",
+  language: "csharp",
   first_line: 3,
   last_line: 40,
   signature: null,
@@ -45,6 +58,7 @@ export const ORDER: SymbolInfo = {
     {
       id: 8,
       name: "Total",
+      qualified_name: "Shop.Domain.Order.Total",
       kind: "method",
       visibility: "public",
       signature: "decimal Total()",
@@ -57,6 +71,7 @@ export const ORDER: SymbolInfo = {
     {
       id: 9,
       name: "Id",
+      qualified_name: "Shop.Domain.Order.Id",
       kind: "property",
       visibility: "public",
       signature: "int",
@@ -69,9 +84,10 @@ export const ORDER: SymbolInfo = {
   ],
 };
 
-/** Opens layer, namespace and the type `Order` by clicking. */
+/** Opens layer, the two parts of the namespace and the type `Order` by clicking. */
 export async function openOrder() {
   fireEvent.click(await screen.findByText("Domain"));
-  fireEvent.click(await screen.findByText("Shop.Domain"));
+  fireEvent.click(await screen.findByText("Shop"));
+  fireEvent.click(await screen.findByText("Sales"));
   fireEvent.click(await screen.findByText("Order"));
 }

@@ -1,13 +1,23 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { beforeEach, describe, expect, it } from "vitest";
 import { currentPath } from "../../app/router";
+import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { activeProject, openProject } from "../../shared/project/active";
+import { pointer } from "../../tests/pointer";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import type { ProjectRow } from "../projects/types";
 import { selectType } from "../explorer/explorer";
 import { DEPTH_ALL, LEVEL } from "./consts";
-import { resetGraph, setGraphDepth, setGraphLevel, wantedLayer, wantLayer } from "./graph";
+import {
+  graphFocus,
+  graphLevel,
+  resetGraph,
+  setGraphDepth,
+  setGraphLevel,
+  wantedLayer,
+  wantLayer,
+} from "./graph";
 import { GraphScreen } from "./GraphScreen";
 
 const ROW: ProjectRow = {
@@ -31,9 +41,9 @@ const GRAPH = {
   width: 400,
   height: 300,
   boxes: [
-    { name: "Domain", x: 120, y: 200, rank: 1, ...BOX },
-    { name: "Ui", x: 120, y: 0, rank: 0, ...BOX },
-    { name: "Infra", x: 300, y: 100, rank: 0, ...BOX },
+    { name: "Domain", label: "Domain", context: "", x: 120, y: 200, rank: 1, ...BOX },
+    { name: "Ui", label: "Ui", context: "", x: 120, y: 0, rank: 0, ...BOX },
+    { name: "Infra", label: "Infra", context: "", x: 300, y: 100, rank: 0, ...BOX },
   ],
   bands: [
     { name: "Ui", rank: 0, y: 0, height: 60 },
@@ -59,6 +69,30 @@ function served(graph: unknown) {
 }
 
 describe("GraphScreen", () => {
+  it("shows no map of another project while none is open", async () => {
+    openProject(null as unknown as number);
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    expect(await screen.findByText(/Open a project first/)).toBeInTheDocument();
+  });
+
+  it("offers to set layers when the project has none", async () => {
+    served({ ...GRAPH, boxes: [], links: [], bands: [] });
+    render(() => <GraphScreen />);
+    expect(await screen.findByRole("button", { name: "Set layers" })).toBeInTheDocument();
+  });
+
+  it("keeps the level buttons when there are no layers, so another level can be chosen", async () => {
+    served({ ...GRAPH, boxes: [], links: [], bands: [] });
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: "Set layers" });
+    fireEvent.click(screen.getByRole("button", { name: "Namespaces" }));
+    await waitFor(() => expect(graphLevel()).toBe("namespaces"));
+    expect(screen.getByRole("button", { name: "Namespaces" }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
+  });
+
   it("draws a box per layer with the totals and the breaks of the layering", async () => {
     served(GRAPH);
     render(() => <GraphScreen />);
@@ -115,6 +149,19 @@ describe("GraphScreen", () => {
     });
   });
 
+  it("makes a double-clicked type the focus of the map, a single click only selects it", async () => {
+    const typed = { ...GRAPH, boxes: GRAPH.boxes.map((box, i) => ({ ...box, symbol: 40 + i })) };
+    served(typed);
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: /Domain/ });
+    setGraphLevel(LEVEL.types);
+    const box = await screen.findByRole("button", { name: /Domain/ });
+    fireEvent.click(box);
+    expect(graphFocus()).not.toBe(40);
+    fireEvent.dblClick(box);
+    expect(graphFocus()).toBe(40);
+  });
+
   it("asks for the namespace level when it is chosen", async () => {
     served(GRAPH);
     render(() => <GraphScreen />);
@@ -159,6 +206,16 @@ describe("GraphScreen", () => {
     expect(screen.getByText(/Domain → Infra \(2\)/)).toBeInTheDocument();
   });
 
+  it("widens the side panel with the keys of its separator", async () => {
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Domain" }));
+    const separator = screen.getByRole("separator");
+    const before = Number(separator.getAttribute("aria-valuenow"));
+    fireEvent.keyDown(separator, { key: "ArrowLeft" });
+    expect(Number(separator.getAttribute("aria-valuenow"))).toBeGreaterThan(before);
+  });
+
   it("selects the layer another screen asked for, once the map is there", async () => {
     served(GRAPH);
     wantLayer("Domain");
@@ -177,6 +234,24 @@ describe("GraphScreen", () => {
     expect(activeProject()).toBe(1);
   });
 
+  it("asks the explorer for the layer, the namespace or the type of the selected box", async () => {
+    served(GRAPH);
+    const view = render(() => <GraphScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Ui" }));
+    fireEvent.click(screen.getByRole("button", { name: /Open in Explorer/ }));
+    expect(pendingFocus()).toEqual({ layer: "Ui" });
+    view.unmount();
+    requestFocus(null);
+    resetGraph();
+    setGraphLevel(LEVEL.namespaces);
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Ui" }));
+    fireEvent.click(screen.getByRole("button", { name: /Open in Explorer/ }));
+    expect(pendingFocus()).toEqual({ namespace: "Ui" });
+    requestFocus(null);
+  });
+
   it("says that a project without layers has none, and notes missing edges", async () => {
     served({ snapshot: 5, width: 0, height: 0, boxes: [], links: [] });
     render(() => <GraphScreen />);
@@ -188,6 +263,61 @@ describe("GraphScreen", () => {
     served({ ...GRAPH, links: [] });
     render(() => <GraphScreen />);
     expect(await screen.findByText(/No dependencies between the layers/)).toBeInTheDocument();
+  });
+
+  it("says that one layer alone needs a second one for a dependency map", async () => {
+    served({
+      ...GRAPH,
+      boxes: [GRAPH.boxes[1]],
+      bands: [GRAPH.bands[0]],
+      links: [],
+    });
+    render(() => <GraphScreen />);
+    expect(await screen.findByText(/needs at least two layers/)).toBeInTheDocument();
+    expect(screen.queryByText(/No dependencies between the layers/)).toBeNull();
+  });
+
+  it("pans with the primary button on the empty ground but not on a box", async () => {
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    const box = await screen.findByRole("button", { name: /Ui/ });
+    const stage = box.parentElement as HTMLElement;
+    const area = stage.parentElement as HTMLElement;
+    area.setPointerCapture = () => undefined;
+    const drag = (target: Element) => {
+      const before = stage.style.transform;
+      pointer(target, "pointerdown", { button: 0 });
+      pointer(area, "pointermove", { movementX: 30, movementY: 20 });
+      pointer(area, "pointerup");
+      return stage.style.transform !== before;
+    };
+    expect(drag(box)).toBe(false);
+    expect(drag(area)).toBe(true);
+  });
+
+  it("builds the namespace level like the type focus: short label, breadcrumb, double click focuses", async () => {
+    setGraphLevel(LEVEL.namespaces);
+    const middle = { ...GRAPH.boxes[1]!, name: "Shop.Cart", label: "Cart", context: "Shop" };
+    const other = { ...GRAPH.boxes[0]!, name: "Shop.Pay", label: "Pay", context: "Shop" };
+    served({
+      ...GRAPH,
+      boxes: [middle, other],
+      bands: [],
+      links: [
+        { from: "Shop.Cart", to: "Shop.Pay", count: 3, violates_layering: false, in_cycle: false },
+      ],
+      focus: { symbol: null, name: "Shop.Cart", users_more: 2, used_more: 0 },
+    });
+    render(() => <GraphScreen />);
+    const pay = await screen.findByRole("button", { name: /^Pay/ });
+    expect(within(pay).getByText("Shop")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Shop.Cart" })).toBeInTheDocument();
+    expect(screen.getByText("2 more namespaces are not shown.")).toBeInTheDocument();
+    fireEvent.dblClick(pay);
+    await waitFor(() => {
+      const bodies = fetchMock.mock.calls.map((call) => String(call[1]?.body ?? ""));
+      expect(bodies.some((body) => body.includes('"namespace":"Shop.Pay"'))).toBe(true);
+    });
   });
 
   it("is written in German too", async () => {

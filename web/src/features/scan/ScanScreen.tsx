@@ -26,7 +26,7 @@ import { Languages } from "./Languages";
 import { Pipeline } from "./Pipeline";
 import { Progress } from "./Progress";
 import { Recent } from "./Recent";
-import { focusProject, latestRun } from "./run";
+import { latestRun } from "./run";
 import type { BudgetTargets, Run } from "./types";
 import styles from "./ScanScreen.module.css";
 
@@ -38,10 +38,9 @@ const TITLE: Record<Run["state"] | "idle", MessageKey> = {
   idle: I18N_KEYS.SCAN_STATE_IDLE,
 };
 
-/** The project the screen is about: the one that is scanning, else the one the user opened, else
- * the first. */
+/** The project the screen is about: the one the user opened. */
 function subjectId(): number | null {
-  return focusProject(scanRuns()) ?? activeProject() ?? projects()[0]?.id ?? null;
+  return activeProject();
 }
 
 /** The mode a scan has: the first scan of a project is full, later ones are incremental. */
@@ -60,7 +59,9 @@ export function positionText(row: ProjectRow): string | null {
 }
 
 function duration(run: Run | undefined): number | null {
-  return run?.endedAt == null ? null : (run.endedAt - run.startedAt) / MS_PER_SECOND;
+  return run?.endedAt == null
+    ? null
+    : Math.max(run.endedAt - run.startedAt - run.packLoadMs, 0) / MS_PER_SECOND;
 }
 
 /** Lines per second of a finished full scan, else `null`. */

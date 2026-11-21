@@ -1,5 +1,8 @@
 import { For, onCleanup, onMount, Show } from "solid-js";
+import { onEnter } from "../../shared/keys/keydown";
 import { cx } from "../../shared/ui/cx";
+import { SHIELD } from "../annotations/consts";
+import { CriticalLabel } from "../annotations/Marks";
 import {
   ARROW,
   BOX_COLOR_PROPERTY,
@@ -12,7 +15,7 @@ import {
   URL_OPEN,
 } from "./consts";
 import { edgeKind, edgePath, rankColor, shown, styleOf } from "./geometry";
-import type { GraphData, LayerLink, Size, View } from "./types";
+import type { GraphData, LayerBox, LayerLink, Size, View } from "./types";
 import { useNavigation } from "./useNavigation";
 import { transformOf } from "./viewport";
 import styles from "./GraphCanvas.module.css";
@@ -116,33 +119,65 @@ function Edges(props: {
   );
 }
 
+/** One box: a button for a layer, a namespace or a type. A critical one carries the label "K". */
+function BoxButton(props: {
+  box: LayerBox;
+  selected: boolean;
+  onSelect: (name: string) => void;
+  onOpen: (name: string) => void;
+  critical: boolean;
+}) {
+  const box = () => props.box;
+  return (
+    <button
+      type="button"
+      class={cx(styles.box, props.selected && styles.selected, props.critical && styles.critical)}
+      style={{
+        left: box().x + PX,
+        top: box().y + PX,
+        width: box().width + PX,
+        height: box().height + PX,
+        [BOX_COLOR_PROPERTY]: rankColor(box().rank),
+      }}
+      aria-pressed={props.selected}
+      onClick={() => props.onSelect(box().name)}
+      onDblClick={() => props.onOpen(box().name)}
+      onKeyDown={(event) => onEnter(event, () => props.onOpen(box().name))}
+    >
+      <span class={styles.text} title={box().name}>
+        <span class={styles.name}>{box().label}</span>
+        <Show when={box().context}>
+          <span class={styles.context}>{box().context}</span>
+        </Show>
+      </span>
+      <Show when={box().types}>{(types) => <span class={styles.types}>{types()}</span>}</Show>
+      <Show when={props.critical}>
+        <span class={styles.mark}>
+          <CriticalLabel shield short size={SHIELD.map} />
+        </span>
+      </Show>
+    </button>
+  );
+}
+
 /** The boxes, one button for each layer, namespace or type. */
 function Boxes(props: {
   data: GraphData;
   selected: string | null;
   onSelect: (name: string) => void;
+  onOpen: (name: string) => void;
+  critical: (box: LayerBox) => boolean;
 }) {
   return (
     <For each={props.data.boxes}>
       {(box) => (
-        <button
-          type="button"
-          class={cx(styles.box, props.selected === box.name && styles.selected)}
-          style={{
-            left: box.x + PX,
-            top: box.y + PX,
-            width: box.width + PX,
-            height: box.height + PX,
-            [BOX_COLOR_PROPERTY]: rankColor(box.rank),
-          }}
-          aria-pressed={props.selected === box.name}
-          onClick={() => props.onSelect(box.name)}
-        >
-          <span class={styles.name} title={box.name}>
-            {box.name}
-          </span>
-          <Show when={box.types}>{(types) => <span class={styles.types}>{types()}</span>}</Show>
-        </button>
+        <BoxButton
+          box={box}
+          selected={props.selected === box.name}
+          onSelect={props.onSelect}
+          onOpen={props.onOpen}
+          critical={props.critical(box)}
+        />
       )}
     </For>
   );
@@ -169,9 +204,11 @@ function Stage(props: {
   data: GraphData;
   selected: string | null;
   onSelect: (name: string) => void;
+  onOpen: (name: string) => void;
   view: View;
   violationsOnly: boolean;
   weak: boolean;
+  critical: (box: LayerBox) => boolean;
 }) {
   return (
     <div
@@ -189,7 +226,13 @@ function Stage(props: {
         violationsOnly={props.violationsOnly}
         weak={props.weak}
       />
-      <Boxes data={props.data} selected={props.selected} onSelect={props.onSelect} />
+      <Boxes
+        data={props.data}
+        selected={props.selected}
+        onSelect={props.onSelect}
+        onOpen={props.onOpen}
+        critical={props.critical}
+      />
     </div>
   );
 }
@@ -200,11 +243,14 @@ export function GraphCanvas(props: {
   data: GraphData;
   selected: string | null;
   onSelect: (name: string) => void;
+  onOpen: (name: string) => void;
   view: View;
   onView: (view: View) => void;
   onSize: (size: Size) => void;
   violationsOnly: boolean;
   weak: boolean;
+  /** Whether a box is drawn as a system-critical symbol (stripe and label "K"). */
+  critical: (box: LayerBox) => boolean;
 }) {
   let area: HTMLDivElement | undefined;
   const navigation = useNavigation(

@@ -1,39 +1,79 @@
 #!/usr/bin/env bash
-# Clean-install probe of a release package (docs/release.md): unpack the archive into an empty
-# folder, check the checksum, then run the program only from there.
-# Usage: tools/release/verify.sh <archive> <version>   (the .sha256 file lies next to the archive)
+# Clean-install probe of a release asset (docs/release.md): check the checksum, then run the program
+# as the only file in an empty folder, like a user who downloaded it.
+# Linux needs a Secret Service for the start (SEC-601 without): the workflow runs this script inside one.
+# Usage: tools/release/verify.sh <asset> <version>   (the .sha256 file lies next to the asset)
 set -euo pipefail
 
-archive="$1"
+asset="$1"
 version="$2"
 work="$(mktemp -d)"
 trap 'rm -rf "${work}"' EXIT
 
-(cd "$(dirname "${archive}")" && case "$(uname -s)" in
-  Darwin) shasum -a 256 -c "$(basename "${archive}").sha256" ;;
-  *) sha256sum -c "$(basename "${archive}").sha256" ;;
+(cd "$(dirname "${asset}")" && case "$(uname -s)" in
+  Darwin) shasum -a 256 -c "$(basename "${asset}").sha256" ;;
+  *) sha256sum -c "$(basename "${asset}").sha256" ;;
 esac)
 
-case "${archive}" in
-  *.zip) 7z x -bso0 -o"${work}/unpacked" "${archive}" ;;
-  *) mkdir "${work}/unpacked" && tar -xzf "${archive}" -C "${work}/unpacked" ;;
+# The program alone in a folder: no languages folder, no configuration, no UI folder next to it.
+mkdir "${work}/install"
+case "${asset}" in
+  *.exe) bin="${work}/install/codeskimr.exe" ;;
+  *) bin="${work}/install/codeskimr" ;;
 esac
-
-dir="$(find "${work}/unpacked" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
-bin="${dir}/codeskimr"
-[ -x "${bin}" ] || bin="${dir}/codeskimr.exe"
-
-for file in default.toml LICENSE README.md LIES-MICH.md README-PREVIEW.md docs/manual; do
-  [ -e "${dir}/${file}" ] || { echo "Missing in package: ${file}" >&2; exit 1; }
-done
+cp "${asset}" "${bin}"
+chmod +x "${bin}"
 
 "${bin}" --version | grep -F "${version}"
 
-# A real scan from the unpacked folder only: own data folder, a tiny project. The language packs are
-# inside the program, so the package must not contain a languages folder.
-[ ! -e "${dir}/languages" ] || { echo "The package must not ship languages/" >&2; exit 1; }
+# A real scan with its own data folder and a tiny project. The language packs are inside the program.
 project="${work}/project"
 mkdir "${project}"
 printf 'fn main() {}\n' > "${project}/main.rs"
 (cd "${work}" && "${bin}" --data-dir "${work}/data" scan "${project}" --json) | grep -F '"files":1'
-echo "Clean install probe passed: ${archive}"
+# The start as a user does it, but in the console: --console, because the tray start of Windows and
+# macOS has no output that a probe could read (ADR 0067). So the server starts and the browser is asked to open. A
+# runner without a browser is fine (the server keeps running then); a program that ends is not. The
+# probe waits until the start page answers on its own port, then ends the program again.
+# A port from the private range, so that a busy standard port does not matter; if it is taken anyway, the
+# log printed below names API-301.
+port=$((20000 + RANDOM % 20000))
+"${bin}" --console --data-dir "${work}/start-data" --set "server.port=${port}" > "${work}/start.log" 2>&1 &
+program=$!
+stop_program() {
+  # Ends the program for sure: a plain kill may not end a native .exe under Git Bash on Windows, so there is
+  # a hard kill after a few seconds. Nothing waits for the process without a limit.
+  kill "${program}" 2>/dev/null || return 0
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    kill -0 "${program}" 2>/dev/null || return 0
+    sleep 1
+  done
+  kill -9 "${program}" 2>/dev/null || kill -f "${program}" 2>/dev/null || true
+  sleep 1
+}
+trap 'stop_program; rm -rf "${work}" || true' EXIT
+answered=""
+for _ in $(seq 1 60); do
+  if ! kill -0 "${program}" 2>/dev/null; then
+    echo "The program ended on its own when started without arguments:" >&2
+    cat "${work}/start.log" >&2
+    exit 1
+  fi
+  if page="$(curl -fsS "http://127.0.0.1:${port}/" 2>/dev/null)"; then
+    answered="yes"
+    break
+  fi
+  sleep 1
+done
+if [ -z "${answered}" ]; then
+  echo "The server did not answer within 60 seconds:" >&2
+  cat "${work}/start.log" >&2
+  exit 1
+fi
+printf '%s' "${page}" | grep -qi '<html' || { echo "The start page is not the UI" >&2; exit 1; }
+# The runner may run in either language of the program, so both texts of the hint count.
+grep -F "Keep this window open" "${work}/start.log" >/dev/null || grep -F "Dieses Fenster offen lassen" "${work}/start.log" >/dev/null || { echo "The start message lacks the hint to keep the window open" >&2; cat "${work}/start.log" >&2; exit 1; }
+stop_program
+
+[ "$(ls -A "${work}/install" | wc -l | tr -d ' ')" = "1" ] || { echo "The program must stay alone in its folder" >&2; exit 1; }
+echo "Clean install probe passed: ${asset}"

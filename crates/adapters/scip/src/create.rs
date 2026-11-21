@@ -11,13 +11,14 @@ use codeskimr_domain::{
     FileId, Position, QualifiedName, Span, Symbol, SymbolId, SymbolKind, SymbolName, SymbolOrigin,
 };
 
-use crate::consts::{NO_SEPARATOR, SCIP_KIND_NAMES};
+use crate::consts::{MAX_REFERENCES_PER_IMPORT, NO_LIBRARY_ROOT, NO_SEPARATOR, SCIP_KIND_NAMES};
 use crate::error::ScipError;
 use crate::model::{Occurrence, ScipDocument, ScipIndex, SymbolInfo, SymbolRef};
 use crate::symbol::{last_descriptor, parent_text};
 use crate::table::SymbolTable;
 
-/// What the import may create, from the language pack and the configuration.
+/// What the import may create and how it reads module roots, from the language pack and the
+/// configuration.
 #[derive(Debug, Clone, Copy)]
 pub struct Creation<'a> {
     /// The SCIP kinds (by name, `Struct`) that create a symbol, and the kind they become.
@@ -26,6 +27,11 @@ pub struct Creation<'a> {
     pub separator: &'a str,
     /// Most symbols one index may create; more fails the whole import.
     pub max_symbols: usize,
+    /// The file name of the root that wins when a symbol is the module of several files and the
+    /// folders do not decide (`[indexer] library_root` of the pack, ADR 0061); empty for none.
+    pub library_root: &'a str,
+    /// Most references one import may produce; more fails the whole import.
+    pub max_references: usize,
 }
 
 impl Creation<'static> {
@@ -36,6 +42,8 @@ impl Creation<'static> {
             kinds: &[],
             separator: NO_SEPARATOR,
             max_symbols: 0,
+            library_root: NO_LIBRARY_ROOT,
+            max_references: MAX_REFERENCES_PER_IMPORT,
         }
     }
 }

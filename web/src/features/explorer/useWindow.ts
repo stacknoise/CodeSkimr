@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, onCleanup } from "solid-js";
+import { createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js";
 import { FALLBACK_VIEWPORT_ROWS, OVERSCAN_ROWS, ROW_HEIGHT_PX } from "./consts";
 
 /** A row with its place in the whole list. */
@@ -7,9 +7,28 @@ export interface Placed<T> {
   index: number;
 }
 
+/** Scrolls to `top` once the rows are in the document and the scroll bar has its length. */
+function restoreScroll(target: HTMLElement, top: number, report: (top: number) => void): void {
+  if (top > 0) {
+    queueMicrotask(() => {
+      target.scrollTop = top;
+      report(target.scrollTop);
+    });
+  }
+}
+
+/** Reports the height of `target` whenever it changes, until the owner is cleaned up. */
+function observeHeight(target: HTMLElement, report: (height: number) => void): void {
+  if (typeof ResizeObserver !== "undefined") {
+    const observer = new ResizeObserver(() => report(target.clientHeight));
+    observer.observe(target);
+    onCleanup(() => observer.disconnect());
+  }
+}
+
 /** The window of a long list that is drawn (blueprint 15.5): only the rows in view and a few
  * more are in the document, the scroll bar still has the length of the whole list. */
-export function useWindow<T>(items: () => T[], cursorIndex: () => number) {
+export function useWindow<T>(items: () => T[], cursorIndex: () => number, initialTop = 0) {
   const [top, setTop] = createSignal(0);
   const [height, setHeight] = createSignal(0);
   let element: HTMLElement | undefined;
@@ -21,24 +40,26 @@ export function useWindow<T>(items: () => T[], cursorIndex: () => number) {
       .slice(first, last)
       .map((item, offset) => ({ item, index: first + offset }));
   });
+  // Only a new cursor moves the view. The scroll position and the height are read untracked: if
+  // they were dependencies, every scroll step would run this again and pull the view back to a
+  // cursor row that has left it, so the list could not be scrolled freely.
   createEffect(() => {
-    const at = cursorIndex() * ROW_HEIGHT_PX;
-    if (element && cursorIndex() >= 0) {
-      if (at < top()) {
+    const index = cursorIndex();
+    const at = index * ROW_HEIGHT_PX;
+    if (element && index >= 0) {
+      const [from, size] = untrack(() => [top(), viewport()]);
+      if (at < from) {
         element.scrollTop = at;
-      } else if (at + ROW_HEIGHT_PX > top() + viewport()) {
-        element.scrollTop = at + ROW_HEIGHT_PX - viewport();
+      } else if (at + ROW_HEIGHT_PX > from + size) {
+        element.scrollTop = at + ROW_HEIGHT_PX - size;
       }
     }
   });
   const attach = (target: HTMLElement) => {
     element = target;
     setHeight(target.clientHeight);
-    if (typeof ResizeObserver !== "undefined") {
-      const observer = new ResizeObserver(() => setHeight(target.clientHeight));
-      observer.observe(target);
-      onCleanup(() => observer.disconnect());
-    }
+    restoreScroll(target, initialTop, setTop);
+    observeHeight(target, setHeight);
   };
   return {
     visible,

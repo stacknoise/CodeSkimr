@@ -1,15 +1,18 @@
 //! Who may run indexers for level 2, and when (ADR 0033, decisions 9 and 10).
 //!
 //! An indexer runs the build tools of the project, which means project code. So it runs only if
-//! the local owner enabled level 2 for the project in the **user configuration or the user's own
-//! project record** and confirmed it once. The `level2` table of the project's `.codeskimr.toml`
-//! never counts (see `config`). Confirming and starting need their own permissions; MCP, REST
-//! tokens, watch mode and CI have no way to confirm, and a missing confirmation stops them like
-//! everybody else.
+//! the local owner switched level 2 on in the **user configuration** (`[level2] enabled`, the
+//! master switch, ADR 0076) and confirmed it once for the project. The `level2` table of the
+//! project's `.codeskimr.toml` never counts (see `config`). Confirming and starting need their
+//! own permissions; MCP, REST tokens, watch mode and CI have no way to confirm, and a missing
+//! confirmation stops them like everybody else.
 
+mod disguise;
 mod pass;
+mod pause;
 mod renumber;
 mod report;
+mod window;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -20,9 +23,13 @@ use codeskimr_domain::{FolderPath, Permission, Principal, Project, ProjectId, Pr
 use crate::config::Level2;
 use crate::error::CodedError;
 pub use crate::ports::{ConsentGrant, ConsentRecord, ConsentStore, RunPermit};
+pub use disguise::{hides_text, is_disguised};
 pub use pass::Level2Pass;
 pub use renumber::renumbered;
 pub use report::{LanguageReport, Level2Outcome, Level2Result, Skipped};
+pub use window::{
+    ConfirmationDesk, DeskParts, Launch, Opened, State, Status, open_confirmation, status,
+};
 
 /// Enables level 2 for `project` and records the confirmation. The caller (an interactive screen
 /// or command of the local owner) must have asked the user; nothing else calls this.
@@ -35,30 +42,34 @@ pub fn confirm(
     store: &dyn ConsentStore,
     project: ProjectId,
 ) -> Result<(), CodedError> {
-    write(*principal, store, project, true)
+    require(*principal, Permission::ConfirmIndexer)?;
+    store_record(store, project, true)
 }
 
-/// Withdraws enabling and confirmation of `project`.
+/// Withdraws enabling and confirmation of `project`. Taking a right back needs only
+/// [`Permission::RevokeIndexer`], which the REST clients hold (ADR 0071, decision 4); the owner's
+/// [`Permission::ConfirmIndexer`] works as well.
 ///
 /// # Errors
-/// `SEC-403` if the principal lacks [`Permission::ConfirmIndexer`], otherwise the failure of the
-/// store.
+/// `SEC-403` if the principal holds neither [`Permission::RevokeIndexer`] nor
+/// [`Permission::ConfirmIndexer`], otherwise the failure of the store.
 pub fn revoke(
     principal: &Principal,
     store: &dyn ConsentStore,
     project: ProjectId,
 ) -> Result<(), CodedError> {
-    write(*principal, store, project, false)
+    if !principal.holds(Permission::RevokeIndexer) {
+        require(*principal, Permission::ConfirmIndexer)?;
+    }
+    store_record(store, project, false)
 }
 
-/// The one place that makes a [`ConsentGrant`], after the check of the right.
-fn write(
-    principal: Principal,
+/// The one place that makes a [`ConsentGrant`]; the callers have checked the right.
+fn store_record(
     store: &dyn ConsentStore,
     project: ProjectId,
     allowed: bool,
 ) -> Result<(), CodedError> {
-    require(principal, Permission::ConfirmIndexer)?;
     let record = ConsentRecord {
         enabled: allowed,
         confirmed: allowed,
@@ -77,10 +88,10 @@ fn run_folder<'a>(project: &'a Project, clone: &'a FolderPath) -> &'a Path {
 }
 
 /// Lets a run of indexers for `project` pass and returns the proof the runner needs: the principal
-/// may start them, level 2 is enabled in the user configuration or the project record, and the
-/// project record holds a confirmation for the source the project has now. The indexer runs in
-/// the folder of the project record (a folder source) or in `clone`, the folder the source adapter
-/// made of a Git source.
+/// may start them, `[level2] enabled` is set in the user configuration (the master switch, ADR
+/// 0076), and the project record holds a confirmation for the source the project has now. The
+/// indexer runs in the folder of the project record (a folder source) or in `clone`, the folder
+/// the source adapter made of a Git source.
 ///
 /// `settings` must come from a configuration whose project layer was resolved by
 /// `Config::resolve`, which drops the `level2` table of the project file.

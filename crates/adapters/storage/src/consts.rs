@@ -16,6 +16,9 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0012_layer_directions.sql"),
     include_str!("../migrations/0013_scan_warnings.sql"),
     include_str!("../migrations/0014_symbol_origin.sql"),
+    include_str!("../migrations/0015_annotations.sql"),
+    include_str!("../migrations/0016_symbol_content_hash.sql"),
+    include_str!("../migrations/0017_scan_reports.sql"),
 ];
 
 /// Name of the pragma that holds the schema version.
@@ -41,6 +44,8 @@ pub const PRAGMA_TEMP_STORE: &str = "temp_store";
 pub const TEMP_STORE_MEMORY: i64 = 2;
 /// How long a connection waits for a lock before reporting a conflict.
 pub const BUSY_TIMEOUT_MS: u64 = 5_000;
+/// Name of the pragma that changes when another connection commits.
+pub const PRAGMA_DATA_VERSION: &str = "data_version";
 /// Name of the pragma that reports how many pages the database file has.
 pub const PRAGMA_PAGE_COUNT: &str = "page_count";
 /// Name of the pragma that caps how many pages the database file may have.
@@ -137,3 +142,13 @@ pub const BULK_REFERENCES_SHARE_DIVISOR: usize = 2;
 /// Separates names in a text that is handed to SQL as a list of names (the unit separator, which
 /// no name holds).
 pub const NAME_SEPARATOR: char = '\u{1f}';
+
+/// Seconds in a day, to turn the retention of dismissed alerts into a time.
+pub const SECONDS_PER_DAY: i64 = 86_400;
+/// Separates the labels of the changed parts of a symbol in the column `alert.changes`.
+pub const CHANGE_SEPARATOR: char = ',';
+/// The id that a new annotation has in the check for a second critical mark (no annotation has it).
+pub const NO_ANNOTATION: i64 = 0;
+
+/// How many indexes the alert step needs (`ENSURE_STATE_INDEXES`).
+pub const STATE_INDEX_COUNT: i64 = 3;

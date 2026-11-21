@@ -1,5 +1,5 @@
 import { fireEvent, render } from "@solidjs/testing-library";
-import { createRoot } from "solid-js";
+import { createRoot, createSignal } from "solid-js";
 import { describe, expect, it, vi } from "vitest";
 import { cursorTarget, onTreeKey, useExplorerKeys } from "./keys";
 import type { TreeRow } from "./tree";
@@ -9,6 +9,9 @@ const NO_CURSOR = -1;
 const LONG_LIST = 1000;
 const ROW_HEIGHT = 26;
 const MOST_ROWS = 100;
+const VIEW_HEIGHT = 260;
+const FAR_DOWN = 600;
+const FAR_ROW = 40;
 
 const row = (key: string, extra: Partial<TreeRow> = {}): TreeRow => ({
   key,
@@ -16,12 +19,17 @@ const row = (key: string, extra: Partial<TreeRow> = {}): TreeRow => ({
   depth: 0,
   label: key,
   meta: "",
+  language: null,
   expandable: false,
   open: false,
   type: null,
   member: null,
   symbolKind: null,
   layerIndex: null,
+  target: null,
+  scope: null,
+  names: [],
+  held: [],
   ...extra,
 });
 
@@ -91,6 +99,9 @@ describe("useExplorerKeys", () => {
       graph: vi.fn(),
       editor: vi.fn(),
       member: vi.fn(),
+      critical: vi.fn(),
+      note: vi.fn(),
+      task: vi.fn(),
     };
     const view = render(() => {
       useExplorerKeys(keys);
@@ -122,6 +133,19 @@ describe("useExplorerKeys", () => {
     fireEvent.keyDown(view.getByLabelText("field"), { key: "g" });
     expect(keys.graph).toHaveBeenCalledOnce();
     expect(keys.usages).not.toHaveBeenCalled();
+  });
+
+  it("marks on K, adds a note on N and a task on T, but not with a modifier or while typing", () => {
+    const { keys, view } = shown();
+    for (const key of ["k", "n", "t"]) {
+      fireEvent.keyDown(document.body, { key });
+      fireEvent.keyDown(document.body, { key, ctrlKey: true });
+      fireEvent.keyDown(document.body, { key, altKey: true });
+      fireEvent.keyDown(view.getByLabelText("field"), { key });
+    }
+    expect(keys.critical).toHaveBeenCalledOnce();
+    expect(keys.note).toHaveBeenCalledOnce();
+    expect(keys.task).toHaveBeenCalledOnce();
   });
 
   it("opens the editor on E and Alt+Enter, but not with Ctrl or while the user types", () => {
@@ -165,5 +189,35 @@ describe("useWindow", () => {
       expect(view.total()).toBe(LONG_LIST * ROW_HEIGHT);
       dispose();
     });
+  });
+
+  it("lets the list scroll freely when the cursor row has left the view", () => {
+    const element = { scrollTop: 0, clientHeight: VIEW_HEIGHT };
+    const items = Array.from({ length: LONG_LIST }, (_, index) => index);
+    const { dispose, view } = createRoot((stop) => {
+      const created = useWindow(
+        () => items,
+        () => 0,
+      );
+      created.attach(element as unknown as HTMLElement);
+      return { dispose: stop, view: created };
+    });
+    element.scrollTop = FAR_DOWN;
+    view.onScroll({ currentTarget: element } as unknown as Event);
+    expect(element.scrollTop).toBe(FAR_DOWN);
+    dispose();
+  });
+
+  it("scrolls to a cursor that moves out of view", () => {
+    const element = { scrollTop: 0, clientHeight: VIEW_HEIGHT };
+    const [cursor, setCursor] = createSignal(0);
+    const dispose = createRoot((stop) => {
+      const items = Array.from({ length: LONG_LIST }, (_, index) => index);
+      useWindow(() => items, cursor).attach(element as unknown as HTMLElement);
+      return stop;
+    });
+    setCursor(FAR_ROW);
+    expect(element.scrollTop).toBe((FAR_ROW + 1) * ROW_HEIGHT - VIEW_HEIGHT);
+    dispose();
   });
 });
