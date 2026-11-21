@@ -1,15 +1,25 @@
-import { Show } from "solid-js";
+import { createEffect, on, Show } from "solid-js";
+import { currentPath } from "../../app/router";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { ICON_DOWNLOAD, ICON_SIZE_MEDIUM } from "../../shared/ui/consts";
 import { Icon } from "../../shared/ui/Icon";
+import type { Failure } from "../projects/projects";
 import type { ProjectRow } from "../projects/types";
 import styles from "./ExportButton.module.css";
-import { exportProject, isExporting, lastExportFailure } from "./exportHtml";
+import { clearExportFailure, exportProject, isExporting, lastExportFailure } from "./exportHtml";
+
+/** The text of a failure: the registered message, or the general one without a code. */
+function failureText(failure: Failure): string {
+  const code = failure.code;
+  return code === null ? t(I18N_KEYS.EXPORT_BUTTON_FAILED) : errorText(code);
+}
 
 /** "Export as HTML" of the top bar: writes the newest scan of the open project into one page and
  * downloads it. It needs a scan; without one the button is shut and says why. */
 export function ExportButton(props: { project: ProjectRow }) {
+  // An error belongs to the project and screen it happened on.
+  createEffect(on([() => props.project.id, currentPath], clearExportFailure, { defer: true }));
   const scanned = () => props.project.scan !== null;
   const title = () =>
     scanned() ? t(I18N_KEYS.EXPORT_BUTTON_TITLE) : t(I18N_KEYS.EXPORT_BUTTON_NEEDS_SCAN);
@@ -29,9 +39,7 @@ export function ExportButton(props: { project: ProjectRow }) {
       <Show when={lastExportFailure()}>
         {(failure) => (
           <span class={styles.failure} role="alert">
-            {failure().code === null
-              ? t(I18N_KEYS.EXPORT_BUTTON_FAILED)
-              : errorText(failure().code!)}
+            {failureText(failure())}
           </span>
         )}
       </Show>

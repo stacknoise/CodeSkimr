@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
-import { describe, expect, it, vi } from "vitest";
+import { createSignal } from "solid-js";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ProjectRow } from "../projects/types";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { ExportButton } from "./ExportButton";
@@ -21,6 +22,11 @@ const PROJECT = {
 } as unknown as ProjectRow;
 
 useServerSession();
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
 
 describe("ExportButton", () => {
   it("downloads the page the command returns, named after the project", async () => {
@@ -51,11 +57,29 @@ describe("ExportButton", () => {
     fireEvent.click(screen.getByRole("button", { name: "Export HTML" }));
     expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
+
+  it("forgets the failure when another project is shown", async () => {
+    serve({ "export.html": () => answer({ code: "EXP-201" }, 500) });
+    const [project, setProject] = createSignal(PROJECT);
+    render(() => <ExportButton project={project()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Export HTML" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    setProject({ ...PROJECT, id: 8, name: "api" });
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+  });
 });
 
 describe("exportFileName", () => {
   it("makes the project name safe and never empty", () => {
     expect(exportFileName("my repo/api")).toBe("my-repo-api.html");
     expect(exportFileName("///")).toBe("codeskimr-export.html");
+  });
+
+  it("avoids the device names of Windows and very long names", () => {
+    expect(exportFileName("CON")).toBe("project-CON.html");
+    expect(exportFileName("nul")).toBe("project-nul.html");
+    expect(exportFileName("com1")).toBe("project-com1.html");
+    expect(exportFileName("console")).toBe("console.html");
+    expect(exportFileName("a".repeat(300)).length).toBe(100 + ".html".length);
   });
 });

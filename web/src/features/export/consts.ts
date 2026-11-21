@@ -18,3 +18,14 @@ export const EXPORT_NAME_EDGES = /^[-.]+|[-.]+$/g;
 
 /** The element that carries the download. */
 export const EXPORT_LINK_TAG = "a";
+
+/** Milliseconds the browser gets to start the download before its address is released. */
+export const EXPORT_REVOKE_DELAY_MS = 10_000;
+
+/** Longest name of a file without the extension; file systems allow 255 characters in all. */
+export const EXPORT_NAME_MAX = 100;
+
+/** Names that Windows reserves for devices, with or without an extension. */
+export const EXPORT_RESERVED_NAME = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/i;
+/** What is put in front of a reserved name. */
+export const EXPORT_RESERVED_PREFIX = "project-";
