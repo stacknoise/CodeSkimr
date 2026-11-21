@@ -145,6 +145,16 @@ pub trait SnippetFingerprinter: Send + Sync {
     fn fingerprint(&self, language: &LanguageId, source: &str) -> Result<Fingerprints, CodedError>;
 }
 
+/// What a resolution run found.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Resolution {
+    /// The references that were found.
+    pub references: Vec<Reference>,
+    /// How many places were given up because their name reaches more symbols than the limit and
+    /// nothing else narrows it down (`RES-304`, ADR 0084).
+    pub given_up: u64,
+}
+
 /// Maps pending references to symbols (blueprint section 9).
 pub trait ReferenceResolver: Send + Sync {
     /// Resolves `pending` against the global symbol table `symbols`. Names that match nothing are
@@ -159,7 +169,7 @@ pub trait ReferenceResolver: Send + Sync {
         pending: &[PendingReference],
         test_files: &HashSet<FileId>,
         ids: &IdSequence,
-    ) -> Result<Vec<Reference>, CodedError>;
+    ) -> Result<Resolution, CodedError>;
 }
 
 /// Computes the metrics of blueprint section 6.1 (strategy: interchangeable by configuration).

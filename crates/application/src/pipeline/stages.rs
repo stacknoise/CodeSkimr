@@ -119,6 +119,8 @@ pub struct Resolved {
     pub hashes: Vec<SymbolHash>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
+    /// The places that level 1 gave up for having too many candidates (`RES-304`).
+    pub given_up: u64,
 }
 
 /// Output of the measure stage.
@@ -142,6 +144,8 @@ pub struct Measured {
     pub hashes: Vec<SymbolHash>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
+    /// The places that level 1 gave up for having too many candidates (`RES-304`).
+    pub given_up: u64,
 }
 
 /// Counts a list as `u32`, saturating instead of failing.
@@ -647,7 +651,8 @@ impl Stage for ResolveStage {
         let resolved = self
             .resolver
             .resolve(&table, &names, &test_files, &self.ids)?;
-        let references = carried.reconcile(resolved, self.projects.as_ref())?;
+        let given_up = resolved.given_up;
+        let references = carried.reconcile(resolved.references, self.projects.as_ref())?;
         if carried.discarded_verified > 0 {
             tracing::info!(
                 event = LOG_VERIFIED_DISCARDED,
@@ -665,6 +670,7 @@ impl Stage for ResolveStage {
             fingerprints,
             hashes,
             carried,
+            given_up,
         })
     }
 }
@@ -724,6 +730,7 @@ impl Stage for MeasureStage {
             fingerprints: input.fingerprints,
             hashes: input.hashes,
             carried: input.carried,
+            given_up: input.given_up,
         })
     }
 }
@@ -764,8 +771,14 @@ fn log_warnings(warnings: &[ScanWarning]) {
 }
 
 /// The warnings of a scan over all references of the snapshot, changed and kept ones.
-fn warnings_of(ambiguous: u64) -> Vec<ScanWarning> {
-    let found = [(ErrorCode::AmbiguousReference, ambiguous)];
+///
+/// `given_up` counts only the places resolved in this scan: an incremental scan does not know how
+/// many a kept file gave up before.
+fn warnings_of(ambiguous: u64, given_up: u64) -> Vec<ScanWarning> {
+    let found = [
+        (ErrorCode::AmbiguousReference, ambiguous),
+        (ErrorCode::NameTooCommon, given_up),
+    ];
     found
         .into_iter()
         .filter(|(_, count)| *count > 0)
@@ -811,7 +824,7 @@ impl Stage for PersistStage {
         let root = input.run.root.clone();
         let snapshot = snapshot_of(&input, self.clock.now());
         let ambiguous = input.carried.ambiguous_places(&input.references);
-        let mut warnings = warnings_of(ambiguous);
+        let mut warnings = warnings_of(ambiguous, input.given_up);
         warnings.extend(left_out_warnings(&input.run.paths_report.left_out));
         let data = SnapshotData {
             snapshot,

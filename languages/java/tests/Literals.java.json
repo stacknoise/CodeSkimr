@@ -1,0 +1,364 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 40,
+      "operands": null,
+      "operators": null,
+      "symbol": "Literals.java"
+    },
+    {
+      "decisions": null,
+      "loc": 40,
+      "operands": null,
+      "operators": null,
+      "symbol": "demo"
+    },
+    {
+      "decisions": null,
+      "loc": 38,
+      "operands": null,
+      "operators": null,
+      "symbol": "demo.Literals"
+    },
+    {
+      "decisions": 2,
+      "loc": 7,
+      "operands": [
+        7,
+        13
+      ],
+      "operators": [
+        8,
+        9
+      ],
+      "symbol": "demo.Literals.clean"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        7,
+        7
+      ],
+      "operators": [
+        2,
+        7
+      ],
+      "symbol": "demo.Literals.numbers"
+    },
+    {
+      "decisions": 0,
+      "loc": 7,
+      "operands": [
+        8,
+        10
+      ],
+      "operators": [
+        2,
+        6
+      ],
+      "symbol": "demo.Literals.strings"
+    },
+    {
+      "decisions": 0,
+      "loc": 5,
+      "operands": [
+        6,
+        8
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "demo.Literals.local"
+    },
+    {
+      "decisions": 3,
+      "loc": 4,
+      "operands": [
+        8,
+        8
+      ],
+      "operators": [
+        5,
+        7
+      ],
+      "symbol": "demo.Literals.flags"
+    },
+    {
+      "decisions": 0,
+      "loc": 6,
+      "operands": [
+        14,
+        15
+      ],
+      "operators": [
+        5,
+        9
+      ],
+      "symbol": "demo.Literals.annotated"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "demo.Literals.viaField"
+    }
+  ],
+  "loc": 40,
+  "references": [
+    {
+      "at": "2:17",
+      "from": "demo",
+      "kind": "import",
+      "receiver": null,
+      "target": "List"
+    },
+    {
+      "at": "19:11",
+      "from": "demo.Literals.strings",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "19:26",
+      "from": "demo.Literals.strings",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "20:8",
+      "from": "demo.Literals.strings",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "21:8",
+      "from": "demo.Literals.strings",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "33:5",
+      "from": "demo.Literals.flags",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "SuppressWarnings"
+    },
+    {
+      "at": "34:25",
+      "from": "demo.Literals.flags",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Object"
+    },
+    {
+      "at": "34:39",
+      "from": "demo.Literals.flags",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "List"
+    },
+    {
+      "at": "34:44",
+      "from": "demo.Literals.flags",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "35:55",
+      "from": "demo.Literals.flags",
+      "kind": "call",
+      "receiver": "typed List",
+      "target": "contains"
+    },
+    {
+      "at": "38:5",
+      "from": "demo.Literals.annotated",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Deprecated"
+    },
+    {
+      "at": "39:5",
+      "from": "demo.Literals.annotated",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Timeout"
+    },
+    {
+      "at": "40:27",
+      "from": "demo.Literals.annotated",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "SuppressWarnings"
+    },
+    {
+      "at": "40:56",
+      "from": "demo.Literals.annotated",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "41:8",
+      "from": "demo.Literals.annotated",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Runnable"
+    },
+    {
+      "at": "41:30",
+      "from": "demo.Literals.annotated",
+      "kind": "read",
+      "receiver": null,
+      "target": "System"
+    },
+    {
+      "at": "41:41",
+      "from": "demo.Literals.annotated",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "println"
+    },
+    {
+      "at": "42:13",
+      "from": "demo.Literals.annotated",
+      "kind": "call",
+      "receiver": "typed Runnable",
+      "target": "run"
+    },
+    {
+      "at": "46:15",
+      "from": "demo.Literals.viaField",
+      "kind": "read",
+      "receiver": null,
+      "target": "FIELD"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "Literals.java",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-49:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "demo",
+      "parent": "Literals.java",
+      "signature": null,
+      "span": "0:0-49:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "demo.Literals",
+      "parent": "demo",
+      "signature": null,
+      "span": "4:0-48:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "demo.Literals.FIELD",
+      "parent": "demo.Literals",
+      "signature": "private static final int FIELD = 42;",
+      "span": "5:29-5:39",
+      "static": true,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "demo.Literals.clean",
+      "parent": "demo.Literals",
+      "signature": null,
+      "span": "7:4-13:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "demo.Literals.numbers",
+      "parent": "demo.Literals",
+      "signature": null,
+      "span": "15:4-17:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "demo.Literals.strings",
+      "parent": "demo.Literals",
+      "signature": null,
+      "span": "19:4-25:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "demo.Literals.local",
+      "parent": "demo.Literals",
+      "signature": null,
+      "span": "27:4-31:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "demo.Literals.flags",
+      "parent": "demo.Literals",
+      "signature": null,
+      "span": "33:4-36:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "demo.Literals.annotated",
+      "parent": "demo.Literals",
+      "signature": null,
+      "span": "38:4-43:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "demo.Literals.viaField",
+      "parent": "demo.Literals",
+      "signature": null,
+      "span": "45:4-47:5",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

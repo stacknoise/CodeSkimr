@@ -371,6 +371,14 @@ description = "A SCIP index wants level 2 to create more symbols than level2.max
 since = "0.1.0"
 
 [[codes]]
+id = "RES-304"
+name = "name_too_common"
+severity = "warning"
+retryable = false
+description = "A name reaches more symbols than scan.max_candidates and no scope or type narrows it down; the place was given up (ADR 0084)."
+since = "1.0.0"
+
+[[codes]]
 id = "RES-501"
 name = "scip_index_too_large"
 severity = "error"

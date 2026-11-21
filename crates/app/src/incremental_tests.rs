@@ -1258,3 +1258,41 @@ fn a_kept_test_file_loses_its_test_reference_when_the_target_goes() {
             .any(|line| line.starts_with("test_target.py") && line.contains("-> target.Target.do"))
     );
 }
+
+/// Python files whose `close` has two candidates and a caller of a receiver of unknown type;
+/// the project file lowers `scan.max_candidates` to 2 (ADR 0084, ADR 0040).
+const BOUNDED_BASE: &[(&str, &str)] = &[
+    (".codeskimr.toml", "[scan]\nmax_candidates = 2\n"),
+    ("a.py", "class A:\n    def close(self):\n        pass\n"),
+    ("b.py", "class B:\n    def close(self):\n        pass\n"),
+    ("caller.py", "def run(item):\n    item.close()\n"),
+];
+
+const THIRD_CLOSER: Change = (
+    "c.py",
+    Some("class C:\n    def close(self):\n        pass\n"),
+);
+
+#[test]
+fn a_third_candidate_in_a_new_file_makes_the_unchanged_caller_give_the_place_up() {
+    let (full, incremental) = both_ways(BOUNDED_BASE, &[&[THIRD_CLOSER]]);
+    assert_eq!(incremental, full);
+    assert!(!full.iter().any(|line| line.contains("caller.py")));
+}
+
+#[test]
+fn removing_the_third_candidate_gives_the_place_back_to_the_unchanged_caller() {
+    let with_third: Vec<(&str, &str)> = BOUNDED_BASE
+        .iter()
+        .copied()
+        .chain([("c.py", "class C:\n    def close(self):\n        pass\n")])
+        .collect();
+    let (full, incremental) = both_ways(&with_third, &[&[("c.py", None)]]);
+    assert_eq!(incremental, full);
+    assert_eq!(
+        full.iter()
+            .filter(|line| line.contains("caller.py"))
+            .count(),
+        2
+    );
+}
