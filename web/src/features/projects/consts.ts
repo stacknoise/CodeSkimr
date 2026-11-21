@@ -238,3 +238,16 @@ export const LEVEL2_ERROR = {
 } as const;
 /** Hours and minutes of a time of day. */
 export const CLOCK_OPTIONS: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
+
+/** The columns of the project table by id, with their head texts, and the key the widths are kept under. */
+export const PROJECT_TABLE_KEY = "projects";
+export const PROJECT_COLUMNS = [
+  { id: "project", label: I18N_KEYS.PROJECTS_COLUMN_PROJECT },
+  { id: "source", label: I18N_KEYS.PROJECTS_COLUMN_SOURCE },
+  { id: "languages", label: I18N_KEYS.PROJECTS_COLUMN_LANGUAGES },
+  { id: "types", label: I18N_KEYS.PROJECTS_COLUMN_TYPES },
+  { id: "loc", label: I18N_KEYS.PROJECTS_COLUMN_LOC },
+  { id: "lastScan", label: I18N_KEYS.PROJECTS_COLUMN_LAST_SCAN },
+  { id: "level2", label: I18N_KEYS.PROJECTS_LEVEL2_COLUMN },
+  { id: "status", label: I18N_KEYS.PROJECTS_COLUMN_STATUS },
+] as const;

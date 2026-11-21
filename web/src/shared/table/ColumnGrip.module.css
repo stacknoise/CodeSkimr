@@ -1,0 +1,19 @@
+.grip {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 8px;
+    cursor: col-resize;
+    touch-action: none;
+    border-right: 1px solid var(--line);
+}
+.grip:hover,
+.grip:focus-visible,
+.dragging {
+    border-right-color: var(--accent);
+    outline: none;
+}
+.grip:focus-visible {
+    border-right-width: 2px;
+}

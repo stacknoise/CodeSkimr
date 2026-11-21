@@ -28,3 +28,4 @@ app-action-show-in-graph = Show in graph
 app-action-copy-name = Copy name
 app-resize-width = Change width (drag, or arrow keys)
 app-resize-height = Change height (drag, or arrow keys)
+table-col-resize = Change width of column { $name } (drag, or arrow keys)

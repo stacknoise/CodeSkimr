@@ -28,3 +28,4 @@ app-action-show-in-graph = Im Graph zeigen
 app-action-copy-name = Namen kopieren
 app-resize-width = Breite ändern (ziehen oder Pfeiltasten)
 app-resize-height = Höhe ändern (ziehen oder Pfeiltasten)
+table-col-resize = Breite der Spalte { $name } ändern (ziehen oder Pfeiltasten)
