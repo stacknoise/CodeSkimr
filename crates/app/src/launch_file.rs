@@ -181,8 +181,10 @@ fn check_owner(dir: &Path, path: &Path, own_file: &File) -> std::io::Result<()> 
 /// does not close it: an attacker who controls a folder above and toggles the redirect in step with
 /// the checks can still pass; closing that needs the place of the open handle (issue #372). The
 /// owner of the folder and of the file must be the user, the administrators or the system (see
-/// `windows_owner`). Not checked: the folders above it (open point of issue #372; this is not the
-/// Unix check). The access rules of the folder are set for the user alone
+/// `windows_owner`), and so must the owner of every folder above it up to the drive root, because
+/// the owner of a folder above can replace a part of the path. Not checked there: whether the
+/// access rules of a folder above let others write to it (the Unix check does look at that). The
+/// access rules of the folder are set for the user alone
 /// (see `check_private`). A folder or file that is a reparse point (a junction or a link) is
 /// refused: it could lead to a place that others can read, and the access rules would be set on
 /// that place instead.
@@ -193,6 +195,7 @@ fn check_owner(dir: &Path, path: &Path, own_file: &File) -> std::io::Result<()> 
     }
     still_there(dir)?;
     crate::windows_owner::check_folder(dir)?;
+    crate::windows_owner::check_parents(dir)?;
     crate::windows_owner::check_handle(own_file)?;
     is_open_file(own_file, path)
 }

@@ -223,6 +223,9 @@ jobs:
       # Issue #104: the launch file folder (access rules, junctions) only runs on Windows.
       - name: cargo test (launch file on Windows)
         run: cargo test -p codeskimr --bins launch_file --locked
+      # Issue #372: who owns the launch folder and the folders above it can only be read on Windows.
+      - name: cargo test (folder owners on Windows)
+        run: cargo test -p codeskimr --bins windows_owner --locked
       # The start of the program locks a file (installation token). Locking behaves differently on
       # Windows, so its tests run here too (a failed lock ended the bare start with APP-901).
       - name: cargo test (installation token lock on Windows)

@@ -292,10 +292,21 @@ pub const FILE_FLAG_BACKUP_SEMANTICS: u32 = 0x0200_0000;
 /// Opening flag that opens a link itself and does not follow it (`FILE_FLAG_OPEN_REPARSE_POINT`).
 #[cfg(windows)]
 pub const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
-/// Owners besides the user that are fine for the launch folder, as SID strings: the group of the
-/// administrators and the system account (the Windows counterpart of root on Unix).
+/// Owners besides the user that are fine for the launch folder and the folders above it, as SID
+/// strings: the group of the administrators, the system account and the service that installs
+/// Windows itself, which owns a drive root (the Windows counterparts of root on Unix).
 #[cfg(windows)]
-pub const TRUSTED_OWNER_SIDS: &[&str] = &["S-1-5-32-544", "S-1-5-18"];
+pub const TRUSTED_OWNER_SIDS: &[&str] = &[
+    "S-1-5-32-544",
+    "S-1-5-18",
+    "S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464",
+];
+/// Access right that is enough to read who owns a file or folder (`READ_CONTROL`).
+#[cfg(windows)]
+pub const READ_CONTROL: u32 = 0x0002_0000;
+/// Log event: a folder above the launch folder belongs to an account that is not trusted.
+#[cfg(windows)]
+pub const LOG_LAUNCH_PARENT_REFUSED: &str = "launch_parent_refused";
 /// Environment variable with the Windows folder, below which the tool is looked for.
 #[cfg(windows)]
 pub const ENV_SYSTEM_ROOT: &str = "SYSTEMROOT";
