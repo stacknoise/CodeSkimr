@@ -173,6 +173,14 @@ fn next_free_id_is_above_every_stored_id() {
     assert_eq!(store.next_free_id().unwrap(), 32);
 }
 
+#[test]
+fn the_scanner_reads_the_next_free_id_through_the_snapshot_port() {
+    let store = registered_store();
+    store.persist(first_scan(10)).unwrap();
+    let port: &dyn SnapshotStore = &store;
+    assert_eq!(port.next_free_id().unwrap(), 32);
+}
+
 /// Incremental scan 40 that analyses only `c.cs` and adds the given references.
 #[cfg(test)]
 fn scan_of_c(references: Vec<codeskimr_domain::Reference>) -> SnapshotData {

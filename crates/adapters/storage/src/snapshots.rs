@@ -39,6 +39,10 @@ impl SnapshotStore for SqliteStore {
         self.refresh_lookup(stored.id);
         Ok(stored)
     }
+
+    fn next_free_id(&self) -> Result<u64, CodedError> {
+        Self::next_free_id(self)
+    }
 }
 
 fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageResult<Snapshot> {

@@ -216,6 +216,7 @@ fn rescan_names_the_paths_that_matched_no_file_and_whether_it_ignored_them() {
         paths: PathsReport {
             unmatched: vec!["srcc/a.cs".to_owned()],
             ignored: true,
+            ..PathsReport::default()
         },
         ..FakeScanner::default()
     });

@@ -153,6 +153,7 @@ pub fn scanner_over(
         store: store.clone(),
         clock: Arc::new(SystemClock),
         max_workers: config.scan.max_workers,
+        max_left_out_listed: config.scan.max_left_out_listed,
     };
     Ok(Scanner::new(ports, &ids, events.clone())
         .with_level2(pass)
@@ -232,8 +233,9 @@ pub fn indexer_check(
 /// The id sequence of the database file in this process. Scans of different projects run at the
 /// same time (the UI, MCP `rescan`), and each one reads the highest stored id when it starts,
 /// which is too early for ids another scan has reserved but not stored yet. One sequence per
-/// database, moved up to the store at every start, keeps them apart. (A scan in another process
-/// stays uncoordinated.)
+/// database keeps them apart. The scanner moves it up to the store again when each scan starts,
+/// which covers what another process stored in the meantime; two processes that scan at the very
+/// same moment stay uncoordinated.
 fn shared_ids(database: PathBuf, first_free: u64) -> Arc<IdSequence> {
     static IDS: OnceLock<Mutex<BTreeMap<PathBuf, Arc<IdSequence>>>> = OnceLock::new();
     let mut all = IDS
