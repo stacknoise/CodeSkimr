@@ -172,6 +172,7 @@ codeskimr/
 │  │  ├─ parsing/              codeskimr_parsing       Tree-sitter, language-pack interpreter
 │  │  ├─ storage/              codeskimr_storage       SQLite, read models, search index
 │  │  ├─ source/               codeskimr_source        file system, Git, file watcher
+│  │  ├─ fsguard/              codeskimr_fsguard       opens files without following links or waiting on pipes (ADR 0033)
 │  │  ├─ secrets/              codeskimr_secrets       credential store, vault (later)
 │  │  ├─ indexer/              codeskimr_indexer       starts the indexers of level 2 under limits (ADR 0033)
 │  │  ├─ scip/                 codeskimr_scip          decodes SCIP indexes, maps them to references (ADR 0033)
@@ -200,9 +201,11 @@ codeskimr/
 |---|---|
 | `domain` | `codes`, std, `thiserror` |
 | `application` | `domain`, `codes` |
-| `parsing`, `storage`, `source`, `i18n` | `application`, `domain`, `codes` |
+| `parsing`, `storage`, `i18n` | `application`, `domain`, `codes` |
+| `source` | `application`, `domain`, `codes`, `fsguard` |
+| `fsguard` | no workspace crate; opens files without following links or waiting on pipes (ADR 0033) |
 | `secrets`, `indexer` | `application`, `domain`, `codes` – and **no** other adapter |
-| `scip` | `application`, `domain`, `codes` – and **no** other adapter; it reads source lines through the `SourceText` port |
+| `scip` | `application`, `domain`, `codes`, `fsguard` – and **no** other adapter; it reads source lines through the `SourceText` port |
 | `auth` (after 1.0) | `application`, `domain`, `codes` – and **no** other adapter; password hashing and OIDC libraries stay inside it |
 | `server`, `cli` | `application`, `domain`, `codes`, `i18n` |
 | `mcp` | `application`, `domain`, `codes`, `i18n` – **never** `secrets` |
@@ -634,7 +637,7 @@ impl Coded for SourceError {
 | Surface | Representation |
 |---|---|
 | Logs | `code=SRC-201` as a structured field, always |
-| REST | `{ "code": "SRC-201", "message": "<localised>", "params": {…}, "retryable": false }` |
+| REST | `{ "code": "SRC-201", "description": "<English description of the code>" }` with the matching HTTP status (ADR 0024, decision 9); the UI looks the localised text up by the code |
 | MCP | tool error with `code`, English `description` and `params` |
 | CLI | `error[SRC-201]: <localised message>`; `codeskimr codes SRC-201` explains it |
 | UI | localised message, the code in small monospace, button "Copy details" |
@@ -1094,8 +1097,8 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 |---|---|---|---|
 | O-01 | Frontend framework | decided: SolidJS (ADR 0028) | closed |
 | O-02 | Dark mode values | decided: three themes Hell, Petrol, Dunkel with values in 15.3 (ADR 0021); mock 13 shows them | closed |
-| O-03 | Target platforms for 1.0 | Windows, Linux, macOS (CI builds all three) | before M1 |
-| O-04 | Repository hosting and licence | GitHub; licence to be chosen (proprietary vs. open source) | before M1 |
+| O-03 | Target platforms for 1.0 | decided: Windows, Linux, macOS; CI builds and tests all three | closed |
+| O-04 | Repository hosting and licence | decided: GitHub, public repository, MIT licence (`LICENSE`) | closed |
 | O-05 | Editor integration for "Open in editor" | decided: configurable URL scheme, default VS Code; a command-line launcher needs its own ADR (ADR 0028) | closed |
 | O-06 | Reference machine for budgets | decided: same-runner A/B comparison, ADR 0014 | closed |
 
@@ -1113,7 +1116,7 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 
 ## Appendix A – Initial error code catalogue
 
-This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error-codes.md`, generated from the file, is always the current one). A severity other than error is shown in brackets. Descriptions are the developer texts; user messages live in Fluent.
+This is the catalogue of `errors/error-codes.toml` as of 2026-11-21 (`docs/error-codes.md`, generated from the file, is always the current one). A severity other than error is shown in brackets. Descriptions are the developer texts; user messages live in Fluent.
 
 | Code | Name | Description |
 |---|---|---|
@@ -1136,7 +1139,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | PRJ-302 | `snapshot_in_progress` | A scan for this project is already running. |
 | PRJ-303 | `scan_cancelled` | The scan was cancelled by the user; no snapshot was written. (info) |
 | PRJ-501 | `too_many_scans` | As many scans run at the same time as the server allows; try again when one has ended. |
-| PRJ-502 | `scan_report_not_stored` | The report of the scan (its level and what level 2 did per language) could not be stored; the scan and its snapshot are stored. |
+| PRJ-502 | `scan_report_not_stored` | The report of the scan (its level and what level 2 did per language) could not be stored; the scan and its snapshot are stored. (warning) |
 | SRC-201 | `source_path_not_found` | A source folder, a source file or a language pack folder does not exist or cannot be read. |
 | SRC-202 | `git_branch_not_found` | The requested branch does not exist on the remote. |
 | SRC-401 | `git_auth_required` | The remote requires authentication and no usable credential is available. |
@@ -1198,6 +1201,14 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | I18N-201 | `message_key_missing` | A message key is missing for the active language (falls back to English). |
 | EXP-201 | `export_bundle_missing` | The built export page of the UI is missing or unusable. |
 | EXP-601 | `export_write_failed` | The export file could not be written. |
+| ANN-101 | `annotation_target_not_found` | The symbol an annotation is meant for is not in the newest snapshot of the project. |
+| ANN-102 | `annotation_text_too_long` | The text or the title of an annotation is longer than the configured limit. |
+| ANN-103 | `annotation_invalid` | The fields of an annotation do not fit its kind (for example a due date on a note), or a required text or title is missing or empty. |
+| ANN-104 | `annotation_assignee_too_long` | The assignee of a task is longer than the configured limit. |
+| ANN-105 | `annotation_target_too_long` | The qualified name or a parameter type of the symbol of an annotation is longer than the configured limit, or the symbol has more parameter types than allowed. |
+| ANN-201 | `annotation_not_found` | No annotation with this id exists. |
+| ANN-202 | `alert_not_found` | No alert with this id exists. |
+| ANN-301 | `critical_already_marked` | The symbol already has a critical mark; a symbol has at most one. |
 | UI-201 | `api_unreachable` | The UI cannot reach the local server. |
 | UI-901 | `unexpected_ui_error` | An uncaught exception was converted at a feature boundary (bug). |
 | CHK-101 | `literal_found` | A literal outside the allowed exceptions was found. |

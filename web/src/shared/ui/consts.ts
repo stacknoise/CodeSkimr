@@ -64,3 +64,8 @@ export const BREAK_AFTER = /(?<=[._:])/;
 
 /** The ARIA role of a note that screen readers announce at once. */
 export const ALERT_ROLE = "alert";
+
+/** How long the button of an error note says that the details were copied. */
+export const COPIED_MS = 2000;
+/** What stands between the code and the message in the copied details. */
+export const DETAILS_SEPARATOR = ": ";

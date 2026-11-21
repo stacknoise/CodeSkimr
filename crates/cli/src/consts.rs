@@ -75,6 +75,17 @@ pub const VALUE_HOST: &str = "URL";
 /// Argument id and long flag of the credential of a Git source.
 pub const ARG_CREDENTIAL: &str = "credential";
 
+/// Sub-command that lists the error codes or explains one.
+pub const COMMAND_CODES: &str = "codes";
+/// Argument id of the code that `codes` explains.
+pub const ARG_CODE: &str = "code";
+/// Placeholder shown for the code that `codes` explains.
+pub const VALUE_CODE: &str = "CODE";
+/// Select keys of the Fluent message that explains a code.
+pub const SELECT_YES: &str = "yes";
+/// Select key of a code that cannot succeed on a retry.
+pub const SELECT_NO: &str = "no";
+
 /// Sub-command that checks the code against the code rules.
 pub const COMMAND_CHECK: &str = "check";
 /// Argument id of the paths of `check`.
@@ -232,6 +243,16 @@ pub mod arg {
     pub const STALE: &str = "stale";
     /// `{ $reason }`: why level 2 was skipped.
     pub const REASON: &str = "reason";
+    /// `{ $group }`: the id prefix of the group of an error code.
+    pub const GROUP: &str = "group";
+    /// `{ $description }`: the English developer description of an error code.
+    pub const DESCRIPTION: &str = "description";
+    /// `{ $severity }`: `error`, `warning` or `info`.
+    pub const SEVERITY: &str = "severity";
+    /// `{ $retryable }`: `yes` or `no`.
+    pub const RETRYABLE: &str = "retryable";
+    /// `{ $since }`: the first release that has the code.
+    pub const SINCE: &str = "since";
     /// `{ $code }`: the error code id.
     pub const CODE: &str = "code";
     /// `{ $message }`: the user-facing text of an error.
