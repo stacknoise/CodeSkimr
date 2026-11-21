@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{self, RecvTimeoutError, Sender};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
@@ -38,26 +39,48 @@ impl MemoryLimit {
         self.gauge.used_mb().is_some_and(|used| used > self.max_mb)
     }
 
+    /// The limit in megabytes that counts for the scan.
+    #[must_use]
+    pub fn max_mb(&self) -> u64 {
+        self.max_mb
+    }
+
     /// Starts watching: when the limit is exceeded, the watch raises `cancel`, which every stage
-    /// polls, and remembers why. The watch ends when the returned handle is dropped.
+    /// polls, and remembers why. The watch ends when the returned handle is dropped, without
+    /// waiting for the end of the check interval. A system that cannot say how much memory the
+    /// program holds, or a thread that cannot be started, leaves the scan unwatched; both are
+    /// logged, because the limit does not protect then.
     #[must_use]
     pub fn watch(&self, cancel: CancelToken) -> MemoryWatch {
-        let state = Arc::new(WatchState::default());
+        let tripped = Arc::new(AtomicBool::new(false));
+        if self.gauge.used_mb().is_none() {
+            tracing::warn!(
+                max_mb = self.max_mb,
+                "memory reading unavailable, scan runs without memory limit"
+            );
+        }
+        let (stop, wake) = mpsc::channel::<()>();
         let limit = self.clone();
-        let shared = Arc::clone(&state);
-        let thread = std::thread::spawn(move || {
-            while !shared.stop.load(Ordering::Acquire) {
-                if limit.exceeded() {
-                    shared.tripped.store(true, Ordering::Release);
-                    cancel.cancel();
-                    return;
+        let flag = Arc::clone(&tripped);
+        let spawned = std::thread::Builder::new()
+            .name("scan-memory-watch".to_owned())
+            .spawn(move || {
+                while let Err(RecvTimeoutError::Timeout) = wake.recv_timeout(limit.interval) {
+                    if limit.exceeded() {
+                        tracing::error!(max_mb = limit.max_mb, used_mb = ?limit.gauge.used_mb(), "scan passed the memory limit and is stopped");
+                        flag.store(true, Ordering::Release);
+                        cancel.cancel();
+                        return;
+                    }
                 }
-                std::thread::sleep(limit.interval);
-            }
-        });
+            });
+        let thread = spawned
+            .map_err(|cause| tracing::warn!(%cause, "memory watch not started, scan runs without memory limit"))
+            .ok();
         MemoryWatch {
-            state,
-            thread: Some(thread),
+            tripped,
+            stop: Some(stop),
+            thread,
         }
     }
 }
@@ -70,15 +93,10 @@ impl std::fmt::Debug for MemoryLimit {
     }
 }
 
-#[derive(Default)]
-struct WatchState {
-    stop: AtomicBool,
-    tripped: AtomicBool,
-}
-
 /// A running memory watch of one scan.
 pub struct MemoryWatch {
-    state: Arc<WatchState>,
+    tripped: Arc<AtomicBool>,
+    stop: Option<Sender<()>>,
     thread: Option<JoinHandle<()>>,
 }
 
@@ -86,13 +104,14 @@ impl MemoryWatch {
     /// Whether the watch stopped the scan because the limit was exceeded.
     #[must_use]
     pub fn tripped(&self) -> bool {
-        self.state.tripped.load(Ordering::Acquire)
+        self.tripped.load(Ordering::Acquire)
     }
 }
 
 impl Drop for MemoryWatch {
     fn drop(&mut self) {
-        self.state.stop.store(true, Ordering::Release);
+        // Dropping the sender wakes the thread at once.
+        self.stop.take();
         if let Some(thread) = self.thread.take() {
             // A panic of the watch thread has nothing left to report.
             let _ = thread.join();
