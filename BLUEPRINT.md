@@ -1119,7 +1119,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 |---|---|---|
 | APP-201 | `data_dir_unavailable` | The user data directory cannot be created or opened. |
 | APP-202 | `launch_file_unavailable` | The private file for starting the browser could not be created. |
-| APP-301 | `instance_already_running` | Another CodeSkimr instance holds the workspace; connecting to it failed. |
+| APP-301 | `instance_already_running` | Another CodeSkimr instance holds the workspace; connecting to it failed. Retired (ADR 0078). |
 | APP-901 | `unexpected_internal_error` | An unexpected internal error occurred (bug). |
 | APP-601 | `browser_start_failed` | The system did not start a browser for the launch file. |
 | APP-602 | `language_packs_unavailable` | The language packs built into the program could not be written to the data directory. |
@@ -1157,7 +1157,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | RES-503 | `indexer_output_too_large` | An indexer wrote more than level2.max_output_bytes and was stopped; level 1 references stay. |
 | RES-504 | `indexer_memory_limit` | An indexer used more memory than level2.max_memory_mb and was stopped; level 1 references stay. |
 | RES-601 | `indexer_failed` | An indexer could not be started or ended with an error; level 1 references stay. |
-| IDX-301 | `read_model_stale` | A read model is older than the current snapshot and is being rebuilt. (info) |
+| IDX-301 | `read_model_stale` | A read model is older than the current snapshot and is being rebuilt. (info) Retired (ADR 0078). |
 | STO-301 | `schema_migration_failed` | Applying a database migration failed. |
 | STO-302 | `transaction_conflict` | A concurrent write conflicted; the operation can be retried. |
 | STO-501 | `disk_full` | Not enough disk space to persist the snapshot. |
@@ -1171,8 +1171,8 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | SEC-403 | `indexer_not_permitted` | The caller may not confirm or start indexers; only the local owner may (ADR 0033, decision 10). |
 | SEC-601 | `keystore_unavailable` | The OS keystore service is not available. |
 | SEC-901 | `memory_lock_failed` | Locking secret memory against swapping failed. |
-| NET-501 | `request_timeout` | A request to an external platform timed out. |
-| NET-502 | `rate_limited` | The external platform rate-limited the request. |
+| NET-501 | `request_timeout` | A request to an external platform timed out. Retired (ADR 0078). |
+| NET-502 | `rate_limited` | The external platform rate-limited the request. Retired (ADR 0078). |
 | NET-601 | `oauth_flow_failed` | The OAuth device flow did not complete. |
 | AUTH-401 | `permission_denied` | The caller lacks the permission this action needs. |
 | API-101 | `request_invalid` | The REST request failed validation. |
