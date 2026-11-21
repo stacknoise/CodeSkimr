@@ -129,9 +129,10 @@ Log ("Dateien (ohne Git-Cache) mit einem Token-Muster (ghp_, github_pat_, gho_, 
 Log '== 7. Ohne Login muss der Scan scheitern, nicht fragen'
 # Step 7 runs without the login, so no secret is involved. The Git credential helpers of the system (for example
 # Git Credential Manager) are switched off for the first run, so that only CodeSkimr's own login could open the
-# repository; without it the scan must fail.
-$emptyConfig = Join-Path $Out 'leere-gitconfig'; Set-Content $emptyConfig ''
-$noHelper = @{ GIT_CONFIG_NOSYSTEM = '1'; GIT_CONFIG_GLOBAL = $emptyConfig; GIT_CONFIG_COUNT = '1'; GIT_CONFIG_KEY_0 = 'credential.helper'; GIT_CONFIG_VALUE_0 = ''; GIT_TERMINAL_PROMPT = '0'; GCM_INTERACTIVE = 'never' }
+# repository; without it the scan must fail. The global file holds an empty `helper =`, which resets the list of helpers
+# of the lower levels.
+$emptyConfig = Join-Path $Out 'leere-gitconfig'; Set-Content $emptyConfig "[credential]`n`thelper =`n"
+$noHelper = @{ GIT_CONFIG_NOSYSTEM = '1'; GIT_CONFIG_GLOBAL = $emptyConfig; GIT_TERMINAL_PROMPT = '0'; GCM_INTERACTIVE = 'never' }
 $none = Run-App @('scan', $Url, '--branch', $Branch, '--json') $noHelper
 Log ("Exit ohne Login und ohne Git-Helper des Systems: $($none.Code) -> " + $(if ($none.Code -ne 0) { 'OK (scheitert, keine Rueckfrage)' } else { 'NICHT ERFUELLT (Scan ohne Login gelang)' }))
 Log-Failure $none
