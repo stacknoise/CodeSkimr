@@ -20,6 +20,7 @@ error-PRJ-302 = Für dieses Projekt läuft bereits ein Scan.
 error-PRJ-303 = Der Scan wurde abgebrochen. Es wurde kein Snapshot geschrieben.
 error-PRJ-501 = Es laufen gerade zu viele Scans. Versuche es erneut, wenn einer beendet ist.
 error-PRJ-502 = Der Bericht des Scans konnte nicht gespeichert werden. Der Scan selbst ist gespeichert; die Ansichten zeigen seine Stufe vielleicht erst nach dem nächsten Scan.
+error-PRJ-503 = Der Scan hat mehr Arbeitsspeicher belegt, als `scan.max_memory_mb` erlaubt, und wurde angehalten, bevor dem Rechner der Speicher ausging. Es wurde kein Stand gespeichert. Schließen Sie Ordner aus (`scan.excluded_folders`), senken Sie `scan.max_candidates` oder erhöhen Sie die Grenze in Ihrer Konfigurationsdatei.
 error-SRC-201 = Ein Quellordner, eine Quelldatei oder ein Sprachpaket-Ordner existiert nicht oder ist nicht lesbar.
 error-SRC-202 = Der angegebene Branch existiert im Remote-Repository nicht.
 error-SRC-401 = Das Remote-Repository verlangt eine Anmeldung und es ist keine passende Zugangsberechtigung vorhanden.

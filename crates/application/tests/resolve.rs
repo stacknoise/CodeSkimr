@@ -4,6 +4,7 @@
 mod tests {
     use std::collections::HashSet;
 
+    use codeskimr_application::cancel::CancelToken;
     use codeskimr_application::ids::IdSequence;
     use codeskimr_application::ports::{PendingReference, Receiver, ReferenceResolver, Resolution};
     use codeskimr_application::resolve::ScopedResolver;
@@ -112,7 +113,7 @@ mod tests {
                 &table.symbols,
                 pending,
                 test_files,
-                &IdSequence::starting_at(1000),
+                (&IdSequence::starting_at(1000), &CancelToken::new()),
             )
             .expect("resolves")
     }
@@ -447,7 +448,7 @@ mod tests {
                 &table.symbols,
                 std::slice::from_ref(call),
                 &HashSet::new(),
-                &IdSequence::starting_at(1000),
+                (&IdSequence::starting_at(1000), &CancelToken::new()),
             )
             .expect("resolves")
     }
@@ -504,7 +505,7 @@ mod tests {
                 &table.symbols,
                 &pending,
                 &HashSet::new(),
-                &IdSequence::starting_at(1000),
+                (&IdSequence::starting_at(1000), &CancelToken::new()),
             )
             .expect("resolves");
         let tools = found

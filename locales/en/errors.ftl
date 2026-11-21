@@ -20,6 +20,7 @@ error-PRJ-302 = A scan for this project is already running.
 error-PRJ-303 = The scan was cancelled. No snapshot was written.
 error-PRJ-501 = Too many scans are running at the moment. Try again when one has ended.
 error-PRJ-502 = The report of the scan could not be stored. The scan itself is stored; the screens may not show its level until the next scan.
+error-PRJ-503 = The scan held more memory than `scan.max_memory_mb` allows and was stopped before the machine ran out of memory. No snapshot was written. Exclude folders (`scan.excluded_folders`), lower `scan.max_candidates` or raise the limit in your own config file.
 error-SRC-201 = A source folder, a source file or a language pack folder does not exist or cannot be read.
 error-SRC-202 = The requested branch does not exist in the remote repository.
 error-SRC-401 = The remote repository requires authentication and no usable credential is available.

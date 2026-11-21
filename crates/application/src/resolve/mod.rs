@@ -14,8 +14,10 @@ mod table;
 
 use std::collections::HashSet;
 
+use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{FileId, Reference, ReferenceKind, Span, Symbol, SymbolId};
 
+use crate::cancel::CancelToken;
 use crate::error::CodedError;
 use crate::ids::IdSequence;
 use crate::ports::{PendingReference, ReferenceResolver, Resolution};
@@ -79,14 +81,21 @@ impl ReferenceResolver for ScopedResolver {
         symbols: &[Symbol],
         pending: &[PendingReference],
         test_files: &HashSet<FileId>,
-        ids: &IdSequence,
+        (ids, cancel): (&IdSequence, &CancelToken),
     ) -> Result<Resolution, CodedError> {
         let mut context = Context::new(SymbolTable::new(symbols), self.max_candidates);
         let mut seen: HashSet<Edge> = HashSet::new();
         let mut references = Vec::new();
         let mut given_up = 0;
         for &pass in PASSES {
-            for occurrence in pending.iter().filter(|p| Pass::of(p.kind) == pass) {
+            for (done, occurrence) in pending
+                .iter()
+                .filter(|p| Pass::of(p.kind) == pass)
+                .enumerate()
+            {
+                if done % consts::CANCEL_CHECK_INTERVAL == 0 && cancel.is_cancelled() {
+                    return Err(CodedError::new(ErrorCode::ScanCancelled));
+                }
                 let hits = context.lookup(occurrence);
                 if hits.given_up {
                     given_up += 1;
