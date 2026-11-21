@@ -119,6 +119,8 @@ pub const BYTES_PER_MB: u64 = 1_048_576;
 pub const MEMORY_CHECK_INTERVAL_MS: u64 = 500;
 /// The share of the installed memory that a scan may hold at most, in percent (ADR 0087).
 pub const MEMORY_RAM_SHARE_PERCENT: u64 = 70;
+/// The whole in percent: the divisor of a percentage.
+pub const PERCENT_WHOLE: u64 = 100;
 /// Bytes in a kilobyte, for the size of an export file.
 pub const BYTES_PER_KILOBYTE: usize = 1_024;
 

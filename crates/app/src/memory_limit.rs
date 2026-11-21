@@ -7,7 +7,9 @@ use codeskimr_application::config::Config;
 use codeskimr_application::ports::{MemoryGauge, MemoryLimit};
 use sysinfo::System;
 
-use crate::consts::{BYTES_PER_MB, MEMORY_CHECK_INTERVAL_MS, MEMORY_RAM_SHARE_PERCENT};
+use crate::consts::{
+    BYTES_PER_MB, MEMORY_CHECK_INTERVAL_MS, MEMORY_RAM_SHARE_PERCENT, PERCENT_WHOLE,
+};
 
 /// The resident memory of this program, as the system reports it.
 #[derive(Debug, Clone, Copy, Default)]
@@ -30,7 +32,7 @@ pub fn effective_limit_mb(configured_mb: u32, installed_bytes: u64) -> u64 {
     if installed_bytes == 0 {
         return configured;
     }
-    let share = installed_bytes / BYTES_PER_MB * MEMORY_RAM_SHARE_PERCENT / 100;
+    let share = installed_bytes / BYTES_PER_MB * MEMORY_RAM_SHARE_PERCENT / PERCENT_WHOLE;
     configured.min(share)
 }
 
