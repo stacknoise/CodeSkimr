@@ -1,4 +1,7 @@
 .panel {
+    position: sticky;
+    top: var(--space-12);
+    align-self: flex-start;
     flex: 0 0 320px;
     min-width: 0;
     background: var(--surface);

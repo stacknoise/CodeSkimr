@@ -58,6 +58,7 @@ fn decode_fact(row: FactRow) -> StorageResult<(SymbolFacts, FileId)> {
         path: RelativePath::new(row.path)?,
         language: LanguageId::new(row.language)?,
         test: false,
+        overrides: false,
         usage: UsageTally::default(),
         measures: Measures::default(),
     };
@@ -98,11 +99,13 @@ fn load_facts(
     let mut measures = load_measures(conn, snapshot)?;
     let tallies = lookup.index.tallies();
     let test_files = lookup.index.test_files();
+    let overriding = lookup.index.overriding();
     let mut statement = conn.prepare_cached(sql::STATISTICS_SYMBOLS)?;
     let rows = statement.query_map(params![snapshot], read_fact)?;
     rows.map(|row| {
         let (mut facts, file) = decode_fact(row?)?;
         facts.test = test_files.contains(&file);
+        facts.overrides = overriding.contains(&facts.id);
         facts.usage = tallies.get(&facts.id).copied().unwrap_or_default();
         facts.measures = measures.remove(&facts.id.get()).unwrap_or_default();
         Ok(facts)

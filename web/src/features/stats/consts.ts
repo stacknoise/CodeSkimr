@@ -30,6 +30,10 @@ export const KINDS = [
   { id: "functions", label: I18N_KEYS.STATS_KINDS_FUNCTIONS },
 ] as const;
 export const KINDS_ALL = "all";
+export const KINDS_TYPES = "types";
+
+/** Scrolls a selected row into view without moving the page more than needed. */
+export const SCROLL_NEAREST: ScrollIntoViewOptions = { block: "nearest" };
 
 /** Which count the most used symbols are sorted by. */
 export const ORDERS = [
@@ -98,7 +102,6 @@ export const ROLE = {
 export const PANEL_ID = "stats-panel";
 
 /** Separates the parts of a line of details. */
-export const DOT = " · ";
 /** The arrow of a row that opens the explorer. */
 export const OPEN_ARROW = "↗";
 /** Separator of the parts of a path; a row shows the last two. */

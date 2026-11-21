@@ -14,8 +14,8 @@ mod tests {
 
     const SNAPSHOT: SnapshotId = SnapshotId::new(10);
 
-    /// `Main` calls `Save` for certain and once only probably, `Save` calls itself, and a test
-    /// calls `Save`.
+    /// `Main` calls `Save` for certain and once only probably and overrides it (which makes no
+    /// sense, but is a reference like any other), `Save` calls itself, and a test calls `Save`.
     fn store() -> codeskimr_storage::SqliteStore {
         let symbols = vec![
             symbol(20, 11, SymbolKind::Class, "App.Repo", None),
@@ -26,7 +26,10 @@ mod tests {
         probable.confidence = Confidence::Probable;
         let mut in_test = reference(34, 11, 21, 23);
         in_test.kind = ReferenceKind::Test;
+        let mut overrides = reference(35, 11, 21, 23);
+        overrides.kind = ReferenceKind::Override;
         let references = vec![
+            overrides,
             reference(31, 11, 21, 23),
             probable,
             reference(33, 11, 23, 23),
@@ -47,8 +50,8 @@ mod tests {
         assert_eq!(
             save.usage,
             UsageTally {
-                certain: 1,
-                total: 2
+                certain: 2,
+                total: 3
             }
         );
         let main = facts.iter().find(|fact| fact.id.get() == 21).unwrap();
@@ -68,6 +71,13 @@ mod tests {
         assert_eq!(save.measures.loc, Some(12.0));
         assert_eq!(facts[0].measures.efferent, Some(3.0));
         assert_eq!(facts[0].measures.complexity, None);
+    }
+
+    #[test]
+    fn the_source_of_an_override_reference_is_marked_as_overriding() {
+        let facts = store().symbol_facts(SNAPSHOT).unwrap();
+        let marked: Vec<bool> = facts.iter().map(|fact| fact.overrides).collect();
+        assert_eq!(marked, [false, true, false]);
     }
 
     #[test]

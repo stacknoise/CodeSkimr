@@ -13,12 +13,12 @@ Vier Kennzahlen (Symbole, Verwendungen, Symbole ohne Verwendung, Funktionen übe
 | Reiter | Zeigt | Sortiert nach |
 |---|---|---|
 | Meist verwendet | Typen und Funktionen, die andere verwenden | sicheren Verwendungen (oder allen, der Obergrenze) |
-| Ohne Verwendung | Symbole, für die der Scan keine Verwendung gefunden hat | Datei und Name |
+| Ohne Verwendung | Symbole, für die der Scan keine Verwendung gefunden hat | Einschätzung, dann Datei und Name |
 | Komplexität | Funktionen und Methoden | zyklomatischer Komplexität |
 | Größe | Typen und Funktionen | Codezeilen |
-| Kopplung | Typen | Zahl der anderen, von denen sie abhängen (Ce) |
+| Kopplung | Typen und Funktionen, die den Wert haben (praktisch Typen) | Zahl der anderen, von denen sie abhängen (Ce) |
 
-Filter: Art (alle, Typen, Funktionen) und Sprache. Wählen Sie eine Zeile, zeigt die Spalte rechts ihre Zahlen. `Enter` oder ein Doppelklick öffnet das Symbol im Explorer, `U` zeigt seine Verwendungen, die Pfeiltasten bewegen die Auswahl.
+Filter: Art (alle, Typen, Funktionen; nicht im Reiter Komplexität, der nur Funktionen enthält) und Sprache. „Alle ansehen“ auf einer Karte mit Typen öffnet die Rangliste auf Typen eingeschränkt. Wählen Sie eine Zeile, zeigt die Spalte rechts ihre Zahlen. `Enter` oder ein Doppelklick öffnet das Symbol im Explorer, `U` zeigt seine Verwendungen, die Pfeiltasten bewegen die Auswahl.
 
 „Tests einbeziehen“ oben rechts zählt auch Testcode. Es ist standardmäßig aus, weil Testfunktionen vom Testprogramm aufgerufen werden und von niemandem sonst: Sie würden die Liste der Symbole ohne Verwendung füllen.
 
@@ -26,7 +26,7 @@ Filter: Art (alle, Typen, Funktionen) und Sprache. Wählen Sie eine Zeile, zeigt
 
 Verwendungen sind immer zwei Zahlen, zum Beispiel „28 sicher, bis 73“. Stufe 1 liest den Quelltext. Eine Verwendung ist sicher, wenn der Name zweifelsfrei aufgelöst werden konnte. Die anderen sind wahrscheinlich: Sie können zu einem gleichnamigen Symbol gehören. Die zweite Zahl ist deshalb eine Obergrenze. Mit Stufe 2 (siehe [Sprach-Indexer](indexer.md)) bestätigt der Compiler die Verwendungen, und die beiden Zahlen rücken zusammen.
 
-Gezählt werden nur direkte Verwendungen. Verwendungen aus Testcode und eines Symbols durch sich selbst zählen nicht.
+Gezählt werden nur direkte Verwendungen. Verwendungen aus Testdateien und eines Symbols durch sich selbst zählen nicht. Aufrufe aus einem Testmodul innerhalb einer Produktionsdatei (zum Beispiel `mod tests` in Rust) zählen weiterhin als Verwendungen.
 
 ## „Ohne Verwendung“ heißt nicht toter Code
 
@@ -35,6 +35,8 @@ Der Scan sieht keine Aufrufe über Makros oder Reflection, keine Einstiegspunkte
 - **sehr wahrscheinlich ungenutzt**: nicht öffentlich, in einer Sprache mit genauen Verwendungen. Hier lohnt der erste Blick.
 - **öffentlich**: kann von außerhalb des Projekts verwendet werden.
 - **unsicher**: Die Verwendungen dieser Sprache sind eine Näherung (Python, C#, Kotlin).
+
+Konstruktoren und Member, die ein anderes Member überschreiben oder implementieren, werden gar nicht aufgeführt: Sie werden über ihren Typ oder über das Member aufgerufen, für das sie stehen, und das kann die Zahl der direkten Verwendungen nicht zeigen.
 
 Prüfen Sie, bevor Sie löschen.
 

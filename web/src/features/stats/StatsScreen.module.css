@@ -86,6 +86,10 @@
     min-width: 0;
 }
 
+.failed p {
+    margin: 0;
+}
+
 .failed {
     margin: 0;
     border: 1px solid var(--bad);

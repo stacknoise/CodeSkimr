@@ -134,7 +134,23 @@ fn the_overview_counts_usages_unused_symbols_and_complexity() {
 }
 
 #[test]
-fn a_project_without_a_scan_has_empty_statistics_and_an_unknown_one_is_refused() {
+fn a_project_without_a_scan_has_empty_statistics() {
+    let fixture = Fixture::new();
+    let project = fixture.register_unscanned();
+    let answer = ranking(&fixture, project, &json!({ "ranking": "unused" }));
+    assert_eq!(answer["snapshot"], Value::Null);
+    assert_eq!(answer["rows"], json!([]));
+    assert_eq!(answer["total"], 0);
+    let overview = fixture
+        .call("stats.overview", json!({ "project": project }))
+        .unwrap();
+    assert_eq!(overview["snapshot"], Value::Null);
+    assert_eq!(overview["top"]["most_used"], json!([]));
+    assert_eq!(overview["complexity"]["histogram"], json!([]));
+}
+
+#[test]
+fn an_unknown_project_is_refused() {
     let fixture = Fixture::installed(None);
     let input = json!({ "project": 99, "ranking": "size" });
     assert_eq!(fixture.call("stats.ranking", input), Err("PRJ-201"));

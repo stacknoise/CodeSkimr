@@ -18,6 +18,7 @@ fn fact(id: u64, kind: SymbolKind, name: &str, path: &str) -> Result<SymbolFacts
         path: RelativePath::new(path)?,
         language: LanguageId::new("rust")?,
         test: false,
+        overrides: false,
         usage: UsageTally::default(),
         measures: Measures::default(),
     })
@@ -116,6 +117,21 @@ fn rankings_by_a_measure_leave_out_what_was_not_measured() -> Result<(), ModelEr
     Ok(())
 }
 
+#[test]
+fn constructors_and_overriding_members_are_never_listed_as_unused() -> Result<(), ModelError> {
+    let mut overriding = fact(2, SymbolKind::Method, "Draw", "b.cs")?;
+    overriding.overrides = true;
+    let facts = [
+        fact(1, SymbolKind::Constructor, "Shape", "a.cs")?,
+        overriding,
+        fact(3, SymbolKind::Method, "Orphan", "c.cs")?,
+    ];
+    let wanted = query(Ranking::Unused);
+    assert_eq!(names(&facts, &wanted), ["Orphan"]);
+    assert_eq!(rank(&facts, &wanted, usize::MAX).total, 1);
+    Ok(())
+}
+
 /// Marks the test code among `facts` by the name `tests` and tells which facts are marked.
 fn marked(facts: &mut [SymbolFacts]) -> Vec<bool> {
     mark_tests(facts, &["tests".to_owned()]);
@@ -149,8 +165,9 @@ fn a_module_or_file_named_after_the_tests_is_test_code() -> Result<(), ModelErro
         inner,
         fact(3, SymbolKind::Function, "case", "src/stats_tests.rs")?,
         fact(4, SymbolKind::Function, "contests", "src/contests.rs")?,
+        fact(5, SymbolKind::Function, "run_tests", "src/runner.rs")?,
     ];
-    assert_eq!(marked(&mut facts), [true, true, true, false]);
+    assert_eq!(marked(&mut facts), [true, true, true, false, false]);
     Ok(())
 }
 

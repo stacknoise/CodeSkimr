@@ -170,11 +170,77 @@ describe("StatsScreen: rankings", () => {
     expect(inputs("stats.overview").at(-1)).toMatchObject({ include_tests: true });
   });
 
+  it("does not carry a choice of kinds into the complexity tab, which cannot undo it", async () => {
+    served();
+    await showRanking("Most used");
+    fireEvent.click(screen.getByRole("button", { name: "Types" }));
+    await waitFor(() => expect(inputs("stats.ranking").at(-1)).toMatchObject({ kinds: "types" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Complexity" }));
+    await waitFor(() =>
+      expect(inputs("stats.ranking").at(-1)).toMatchObject({ ranking: "complexity", kinds: "all" }),
+    );
+  });
+
+  it("keeps the rows of the newest filter when an older answer comes late", async () => {
+    const late: ((answer: Response) => void)[] = [];
+    served();
+    await showRanking("Most used");
+    fetchMock.mockImplementation((path: string) =>
+      path.endsWith("stats.ranking")
+        ? new Promise<Response>((done) => late.push(done))
+        : Promise.resolve(answer(path.endsWith("stats.overview") ? OVERVIEW : [PROJECT_ROW])),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Types" }));
+    fireEvent.click(screen.getByRole("button", { name: "Functions" }));
+    await waitFor(() => expect(late).toHaveLength(2));
+    late[1]?.(answer({ ...RANKING, rows: [row(7, "newest")], total: 1 }));
+    expect(await screen.findByRole("row", { name: /newest/ })).toBeInTheDocument();
+    late[0]?.(answer({ ...RANKING, rows: [row(8, "outdated")], total: 1 }));
+    await new Promise((done) => setTimeout(done, 20));
+    expect(screen.queryByRole("row", { name: /outdated/ })).toBeNull();
+    expect(screen.getByRole("row", { name: /newest/ })).toBeInTheDocument();
+  });
+
+  it("starts again with the overview when another project is opened", async () => {
+    served();
+    await showRanking("Most used");
+    openProject(2);
+    await waitFor(() => expect(statsTab()).toBe("overview"));
+    await waitFor(() => expect(inputs("stats.overview").at(-1)).toMatchObject({ project: 2 }));
+  });
+
+  it("leads from a card of types to a ranking of types", async () => {
+    served();
+    render(() => <StatsScreen />);
+    const [first] = await screen.findAllByRole("button", { name: "Show all" });
+    fireEvent.click(first as HTMLElement);
+    await waitFor(() =>
+      expect(inputs("stats.ranking").at(-1)).toMatchObject({
+        ranking: "most_used",
+        kinds: "types",
+      }),
+    );
+  });
+
   it("selects the first row and names its upper bound", async () => {
     served();
     await showRanking("Most used");
     await waitFor(() => expect(selectedRow()).toBe(1));
     expect(screen.getByText(/37 of 40 usages are not confirmed/)).toBeInTheDocument();
+    expect(screen.getByRole("row", { name: /Cart/ })).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("row", { name: /Order/ })).not.toHaveAttribute("aria-current", "true");
+  });
+
+  it("leaves the keys of the browser alone: U with a modifier does nothing", async () => {
+    served();
+    await showRanking("Most used");
+    await waitFor(() => expect(selectedRow()).toBe(1));
+    const before = currentPath();
+    for (const modifier of [{ ctrlKey: true }, { metaKey: true }, { altKey: true }]) {
+      fireEvent.keyDown(document.body, { key: "u", ...modifier });
+    }
+    expect(currentPath()).toBe(before);
+    expect(before).not.toBe("/usages");
   });
 
   it("moves the selection with the arrows and opens the explorer with Enter", async () => {

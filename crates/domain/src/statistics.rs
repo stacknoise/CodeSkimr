@@ -82,6 +82,10 @@ pub struct SymbolFacts {
     /// Whether the symbol is test code, see [`mark_tests`]. The storage sets it for the symbols
     /// of files that the scan knew as test files.
     pub test: bool,
+    /// Whether the symbol overrides a member of a base type or implements one of an interface or
+    /// trait. Such a member is called through the member it stands in for, so a missing direct
+    /// usage says nothing about it.
+    pub overrides: bool,
     /// How often it is used.
     pub usage: UsageTally,
     /// Its measured values.
@@ -93,7 +97,8 @@ labeled_enum!(
     Ranking {
         /// The symbols with the most usages first.
         MostUsed => RANKING_MOST_USED,
-        /// The symbols for which no usage was found.
+        /// The symbols for which no usage was found. Constructors and overriding members are left
+        /// out: they are reached through their type and through the member they override.
         Unused => RANKING_UNUSED,
         /// The callables with the highest cyclomatic complexity first.
         Complexity => RANKING_COMPLEXITY,
@@ -194,14 +199,16 @@ pub struct Ranked<'a> {
 }
 
 /// Marks test code: a symbol of a test file (already marked), a symbol below a folder or in a file
-/// with one of the `names`, and a symbol inside a symbol with one of the `names` (a module `tests`
-/// inside a production file). A name that ends with one of the `names` after an underscore counts
-/// as well: `search_tests`, `stats_tests.rs`.
+/// with one of the `names`, and a symbol inside a module or namespace with one of the `names` (a
+/// module `tests` inside a production file). A name that ends with one of the `names` after an
+/// underscore counts as well: `search_tests`, `stats_tests.rs`. Functions and types are not judged
+/// by their own name, so a production function `run_tests` stays.
 pub fn mark_tests(facts: &mut [SymbolFacts], names: &[String]) {
     let chain: HashMap<SymbolId, (Option<SymbolId>, bool)> = facts
         .iter()
         .map(|fact| {
-            let is_named = is_test_name(fact.name.as_str(), names);
+            let is_named = matches!(fact.kind, SymbolKind::Module | SymbolKind::Namespace)
+                && is_test_name(fact.name.as_str(), names);
             (fact.id, (fact.parent, is_named))
         })
         .collect();
@@ -257,6 +264,13 @@ fn value_of(fact: &SymbolFacts, ranking: Ranking) -> Option<f64> {
     }
 }
 
+/// Whether the symbol is used without a direct reference to it: a constructor runs when its type
+/// is built, an overriding member when the overridden one is called. Only direct usages are
+/// counted, so "no usage found" would be wrong for both.
+fn reached_indirectly(fact: &SymbolFacts) -> bool {
+    fact.overrides || matches!(fact.kind, SymbolKind::Constructor)
+}
+
 fn belongs(fact: &SymbolFacts, query: &RankingQuery) -> bool {
     let wanted = query.kinds.holds(fact.kind)
         && (query.include_tests || !fact.test)
@@ -267,7 +281,7 @@ fn belongs(fact: &SymbolFacts, query: &RankingQuery) -> bool {
     wanted
         && match query.ranking {
             Ranking::MostUsed => fact.usage.total > 0,
-            Ranking::Unused => fact.usage.total == 0,
+            Ranking::Unused => fact.usage.total == 0 && !reached_indirectly(fact),
             Ranking::Complexity => fact.kind.is_callable() && fact.measures.complexity.is_some(),
             Ranking::Size | Ranking::Coupling => value_of(fact, query.ranking).is_some(),
         }
@@ -294,7 +308,9 @@ fn compare(query: &RankingQuery, left: &SymbolFacts, right: &SymbolFacts) -> Ord
                 value_of(left, query.ranking),
                 value_of(right, query.ranking),
             );
-            theirs.partial_cmp(&ours).unwrap_or(Ordering::Equal)
+            theirs
+                .unwrap_or_default()
+                .total_cmp(&ours.unwrap_or_default())
         }
     };
     first.then_with(|| by_place(left, right))

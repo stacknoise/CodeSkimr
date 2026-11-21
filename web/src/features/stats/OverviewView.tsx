@@ -6,10 +6,10 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
 import { KindBadge } from "../explorer/KindBadge";
 import { count } from "../projects/format";
-import { OPEN_ARROW, TAB } from "./consts";
+import { KINDS_ALL, KINDS_TYPES, OPEN_ARROW, TAB } from "./consts";
 import { shortPath } from "./geometry";
 import { AssessmentPill, usageText } from "./RankingTable";
-import type { Overview, RankingName, Row } from "./types";
+import type { Kinds, Overview, RankingName, Row } from "./types";
 import styles from "./OverviewView.module.css";
 
 /** A number of the project with its title and a line below; `tone` is a class for the number. */
@@ -96,8 +96,9 @@ function Card(props: {
   detail: MessageKey;
   rows: Row[];
   tab: RankingName;
+  kinds?: Kinds | undefined;
   value: (row: Row) => JSX.Element;
-  onShowAll: (tab: RankingName) => void;
+  onShowAll: (tab: RankingName, kinds?: Kinds) => void;
   onOpen: (row: Row) => void;
 }) {
   return (
@@ -105,7 +106,11 @@ function Card(props: {
       <div class={styles.cardHead}>
         <h2>{t(props.title)}</h2>
         <span class={styles.cardDetail}>{t(props.detail)}</span>
-        <button type="button" class={styles.more} onClick={() => props.onShowAll(props.tab)}>
+        <button
+          type="button"
+          class={styles.more}
+          onClick={() => props.onShowAll(props.tab, props.kinds ?? KINDS_ALL)}
+        >
           {t(I18N_KEYS.STATS_SHOW_ALL)}
         </button>
       </div>
@@ -130,6 +135,8 @@ const CARDS: readonly {
   title: MessageKey;
   detail: MessageKey;
   tab: RankingName;
+  /** The kinds the card holds, if not all: "Show all" leads to a ranking of the same kinds. */
+  kinds?: Kinds;
   rows: (data: Overview) => Row[];
   value: (row: Row) => JSX.Element;
 }[] = [
@@ -137,6 +144,7 @@ const CARDS: readonly {
     title: I18N_KEYS.STATS_CARD_MOST_USED,
     detail: I18N_KEYS.STATS_CARD_MOST_USED_DETAIL,
     tab: TAB.mostUsed,
+    kinds: KINDS_TYPES,
     rows: (data) => data.top.most_used,
     value: usageText,
   },
@@ -158,6 +166,7 @@ const CARDS: readonly {
     title: I18N_KEYS.STATS_CARD_COUPLING,
     detail: I18N_KEYS.STATS_CARD_COUPLING_DETAIL,
     tab: TAB.coupling,
+    kinds: KINDS_TYPES,
     rows: (data) => data.top.coupling,
     value: (row) => number(row.efferent),
   },
@@ -167,7 +176,7 @@ const CARDS: readonly {
  * row opens its symbol in the explorer. */
 export function OverviewView(props: {
   data: Overview;
-  onShowAll: (tab: RankingName) => void;
+  onShowAll: (tab: RankingName, kinds?: Kinds) => void;
   onOpen: (row: Row) => void;
 }) {
   return (
@@ -180,6 +189,7 @@ export function OverviewView(props: {
               title={card.title}
               detail={card.detail}
               tab={card.tab}
+              kinds={card.kinds}
               rows={card.rows(props.data)}
               value={card.value}
               onShowAll={props.onShowAll}

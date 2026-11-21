@@ -6,6 +6,7 @@ import { isTyping, useKeydown } from "../../shared/keys/keydown";
 import { moveAlongTabs } from "../../shared/keys/tabs";
 import { activeProject } from "../../shared/project/active";
 import { cx } from "../../shared/ui/cx";
+import { NoticeBox } from "../../shared/ui/NoticeBox";
 import { count } from "../projects/format";
 import { projects, refreshProjects } from "../projects/projects";
 import { Histogram, Hotspots } from "./Charts";
@@ -26,6 +27,7 @@ import { RankingTable } from "./RankingTable";
 import { SidePanel } from "./SidePanel";
 import {
   currentRow,
+  enterProject,
   loadStats,
   moveSelection,
   openRow,
@@ -209,7 +211,11 @@ function RankingView(props: { ranking: RankingName; answer: RankingAnswer; proje
 function useRankingKeys(project: () => number | null) {
   useKeydown((event) => {
     const [row, id] = [currentRow(), project()];
-    if (event.defaultPrevented || isTyping(event.target) || statsTab() === TAB.overview) {
+    const modified = event.ctrlKey || event.altKey || event.metaKey;
+    if (event.defaultPrevented || modified || isTyping(event.target)) {
+      return;
+    }
+    if (statsTab() === TAB.overview) {
       return;
     }
     if (event.key === KEY.up || event.key === KEY.down) {
@@ -243,6 +249,7 @@ function useLoading(project: () => number | null) {
     on(wanted, () => {
       const id = project();
       if (id !== null) {
+        enterProject(id);
         void loadStats(id);
       }
     }),
@@ -315,9 +322,7 @@ export function StatsScreen() {
       <Head name={name()} />
       <Tabs />
       <Show when={statsFailed()}>
-        <p class={styles.failed} role="alert">
-          {t(I18N_KEYS.STATS_FAILED)}
-        </p>
+        <NoticeBox class={styles.failed} text={t(I18N_KEYS.STATS_FAILED)} alert={true} />
       </Show>
       <div
         id={PANEL_ID}

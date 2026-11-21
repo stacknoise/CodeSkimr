@@ -143,6 +143,17 @@ impl ReverseIndex {
             .collect()
     }
 
+    /// The symbols that override or implement a member of another type: the sources of the
+    /// references of kind `override`. They are called through the member they stand in for.
+    #[must_use]
+    pub fn overriding(&self) -> HashSet<SymbolId> {
+        self.references
+            .iter()
+            .filter(|reference| reference.kind == ReferenceKind::Override)
+            .map(|reference| reference.from)
+            .collect()
+    }
+
     /// The references a walk finds: the verified ones first, then, within each group, step by
     /// step (first those of the start symbol, then those of the symbols reached by the first
     /// step, and so on) and in the order of file and position. The order is fixed here so that a

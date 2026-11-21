@@ -1,4 +1,4 @@
-import { For, Match, Show, Switch } from "solid-js";
+import { createEffect, For, Match, Show, Switch } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import type { MessageKey } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
@@ -13,6 +13,7 @@ import {
   TAB,
   VISIBILITY_KEYS,
   VISIBILITY_TEXT,
+  SCROLL_NEAREST,
 } from "./consts";
 import { mostUsages } from "./geometry";
 import type { RankingName, Row } from "./types";
@@ -97,6 +98,20 @@ function Values(props: { row: Row; ranking: RankingName; most: number }) {
   );
 }
 
+/** Keeps a row in view while it is selected: the arrow keys move the selection, not the page.
+ * Returns the `ref` of the row. */
+function useInView(selected: () => boolean): (row: HTMLTableRowElement) => void {
+  let line: HTMLTableRowElement | undefined;
+  createEffect(() => {
+    if (selected()) {
+      line?.scrollIntoView?.(SCROLL_NEAREST);
+    }
+  });
+  return (row) => {
+    line = row;
+  };
+}
+
 function TableRow(props: {
   row: Row;
   rank: number;
@@ -106,10 +121,12 @@ function TableRow(props: {
   onSelect: (row: Row) => void;
   onOpen: (row: Row) => void;
 }) {
+  const line = useInView(() => props.selected);
   return (
     <tr
+      ref={line}
       class={cx(props.selected && styles.selected)}
-      aria-selected={props.selected}
+      aria-current={props.selected}
       onClick={() => props.onSelect(props.row)}
       onDblClick={() => props.onOpen(props.row)}
     >

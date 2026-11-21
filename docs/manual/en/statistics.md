@@ -13,12 +13,12 @@ Four numbers (symbols, usages, symbols without a usage, functions above the comp
 | Tab | Shows | Sorted by |
 |---|---|---|
 | Most used | types and functions that others use | certain usages (or all, the upper bound) |
-| No usage found | symbols for which the scan found no usage | file and name |
+| No usage found | symbols for which the scan found no usage | assessment, then file and name |
 | Complexity | functions and methods | cyclomatic complexity |
 | Size | types and functions | lines of code |
-| Coupling | types | how many others they depend on (Ce) |
+| Coupling | types and functions that have the value (in practice types) | how many others they depend on (Ce) |
 
-Filters: kind (all, types, functions) and language. Select a row and the panel at the right shows its numbers. `Enter` or a double click opens the symbol in the explorer, `U` shows its usages, the arrow keys move the selection.
+Filters: kind (all, types, functions; not on the complexity tab, which holds functions only) and language. "Show all" on a card of types opens the ranking cut to types. Select a row and the panel at the right shows its numbers. `Enter` or a double click opens the symbol in the explorer, `U` shows its usages, the arrow keys move the selection.
 
 "Include tests" at the top right counts test code as well. It is off by default, because the test runner calls test functions and nobody else does: they would fill the list of unused symbols.
 
@@ -26,7 +26,7 @@ Filters: kind (all, types, functions) and language. Select a row and the panel a
 
 Usages are always two numbers, for example "28 certain, up to 73". Level 1 reads the source text. A usage is certain if the name could be resolved without doubt. The others are probable: they may belong to another symbol with the same name. The second number is therefore an upper bound. With level 2 (see [Language indexers](indexers.md)) the compiler confirms the usages and the two numbers move together.
 
-Only direct usages are counted. Usages from test code and of a symbol by itself are not.
+Only direct usages are counted. Usages from test files and of a symbol by itself are not. Calls from a test module inside a production file (for example `mod tests` in Rust) still count as usages.
 
 ## "No usage found" does not mean dead code
 
@@ -35,6 +35,8 @@ The scan does not see calls through macros or reflection, entry points that a fr
 - **very likely unused**: not public, in a language with exact usages. Worth a look first.
 - **public**: may be used from outside the project.
 - **uncertain**: the usages of this language are an approximation (Python, C#, Kotlin).
+
+Constructors and members that override or implement another member are not listed at all: they are called through their type or through the member they stand in for, which the count of direct usages cannot show.
 
 Check before you delete.
 
