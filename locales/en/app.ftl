@@ -28,3 +28,7 @@ app-action-show-in-graph = Show in graph
 app-action-copy-name = Copy name
 app-resize-width = Change width (drag, or arrow keys)
 app-resize-height = Change height (drag, or arrow keys)
+app-error-title = Something went wrong
+app-error-copy = Copy details
+app-error-copied = Copied
+app-error-retry = Try again

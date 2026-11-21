@@ -54,3 +54,15 @@ pub const CLASS_NAMES: [(u8, &str, &str); 6] = [
 ];
 /// The name of every class that is not in [`CLASS_NAMES`], in TypeScript and in Rust.
 pub const INTERNAL_CLASS: (&str, &str) = ("internal", "Internal");
+/// Folders with production code that can use an error code, relative to the repository root.
+pub const SCANNED_DIRS: [&str; 2] = ["crates", "web/src"];
+/// Folders that hold no production code: build output, dependencies and tests.
+pub const SKIPPED_DIRS: [&str; 4] = ["target", "node_modules", "tests", "e2e"];
+/// Parts of a file name that mark a test or a mock.
+pub const SKIPPED_FILE_PARTS: [&str; 2] = [".test.", "test-setup"];
+/// Extensions of the source files that are scanned for error codes.
+pub const SOURCE_EXTENSIONS: [&str; 3] = ["rs", "ts", "tsx"];
+/// Text that every generated file carries near its top.
+pub const GENERATED_MARKER: &str = "Do not edit.";
+/// How production Rust names a code: `ErrorCode::` in front of the variant.
+pub const VARIANT_PATH: &str = "ErrorCode::";
