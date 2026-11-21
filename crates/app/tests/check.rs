@@ -18,6 +18,9 @@ mod tests {
     const PYTHON: &str =
         "def pair():\n    return 42 + 7\n\n\ndef single():\n    return \"x\" + str(0)\n";
 
+    /// A Java class with two methods: one with two literals, one with a single one.
+    const JAVA: &str = "package demo;\n\npublic class Limits {\n    public int pair() {\n        return 42 + 7;\n    }\n\n    public String single() {\n        return \"x\" + 0;\n    }\n}\n";
+
     struct Project {
         root: TempDir,
     }
@@ -118,16 +121,9 @@ mod tests {
         assert!(german.contains("kopiert"), "{german}");
     }
 
-    fn python_project() -> Project {
-        let project = Project::new();
-        fs::write(project.root.path().join("project/src/limits.py"), PYTHON).unwrap();
-        project
-    }
-
-    #[test]
-    fn literals_in_a_python_function_are_counted_in_the_json() {
-        let json = report(&python_project().check(&["--json", "src/limits.py"]));
-        let counts: Vec<(&str, u64)> = json["findings"]
+    /// The symbol and the number of literals of every `CHK-101` finding of a JSON report.
+    fn literal_counts(json: &Value) -> Vec<(&str, u64)> {
+        json["findings"]
             .as_array()
             .unwrap()
             .iter()
@@ -138,7 +134,19 @@ mod tests {
                     finding["literals"].as_u64().unwrap(),
                 )
             })
-            .collect();
+            .collect()
+    }
+
+    fn python_project() -> Project {
+        let project = Project::new();
+        fs::write(project.root.path().join("project/src/limits.py"), PYTHON).unwrap();
+        project
+    }
+
+    #[test]
+    fn literals_in_a_python_function_are_counted_in_the_json() {
+        let json = report(&python_project().check(&["--json", "src/limits.py"]));
+        let counts = literal_counts(&json);
         assert_eq!(counts, [("src.limits.pair", 2), ("src.limits.single", 1)]);
         assert!(
             !json["not_checked"]
@@ -146,6 +154,15 @@ mod tests {
                 .unwrap()
                 .contains(&Value::from("CHK-101"))
         );
+    }
+
+    #[test]
+    fn literals_in_a_java_method_are_counted_in_the_json() {
+        let project = Project::new();
+        fs::write(project.root.path().join("project/src/Limits.java"), JAVA).unwrap();
+        let json = report(&project.check(&["--json", "src/Limits.java"]));
+        let counts = literal_counts(&json);
+        assert_eq!(counts, [("demo.Limits.pair", 2), ("demo.Limits.single", 1)]);
     }
 
     #[test]
