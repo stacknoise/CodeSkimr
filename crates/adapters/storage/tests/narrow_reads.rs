@@ -56,13 +56,15 @@ fn read(store: &codeskimr_storage::SqliteStore, which: StoredReferences<'_>) -> 
 }
 
 #[test]
-fn references_are_read_by_target_by_file_or_all() {
+fn references_are_read_by_target_by_start_by_file_or_all() {
     let store = registered_store();
     store.persist(scan()).unwrap();
     let to = [SymbolId::new(42), SymbolId::new(43)];
     assert_eq!(read(&store, StoredReferences::To(&to)), [51, 52, 54]);
     let of = [FileId::new(31), FileId::new(33)];
     assert_eq!(read(&store, StoredReferences::In(&of)), [51, 52, 53, 55]);
+    let from = [SymbolId::new(42), SymbolId::new(43)];
+    assert_eq!(read(&store, StoredReferences::From(&from)), [54, 55]);
     assert_eq!(read(&store, StoredReferences::All), [51, 52, 53, 54, 55]);
     assert_eq!(read(&store, StoredReferences::To(&[])), Vec::<u64>::new());
 }
@@ -95,10 +97,15 @@ fn the_pairs_hold_each_start_and_target_once_without_test_references() {
     let pair = |from, to| (SymbolId::new(from), SymbolId::new(to));
     let of = [FileId::new(31), FileId::new(33)];
     assert_eq!(
-        store.reference_pairs(snapshot, &of).unwrap(),
+        store.reference_pairs(snapshot, &of, &[]).unwrap(),
         [pair(41, 42), pair(43, 41)]
     );
-    assert_eq!(store.reference_pairs(snapshot, &[]).unwrap(), []);
+    let one = [SymbolId::new(41)];
+    assert_eq!(
+        store.reference_pairs(snapshot, &of, &one).unwrap(),
+        [pair(43, 41)]
+    );
+    assert_eq!(store.reference_pairs(snapshot, &[], &[]).unwrap(), []);
 }
 
 #[cfg(test)]

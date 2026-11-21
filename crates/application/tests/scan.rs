@@ -368,6 +368,7 @@ impl ProjectRepository for World {
             .filter(|r| held.contains(&r.to))
             .filter(|r| match which {
                 StoredReferences::To(symbols) => symbols.contains(&r.to),
+                StoredReferences::From(symbols) => symbols.contains(&r.from),
                 StoredReferences::In(files) => files.contains(&r.file),
                 StoredReferences::All => true,
             })
@@ -391,13 +392,15 @@ impl ProjectRepository for World {
         &self,
         _: SnapshotId,
         files: &[FileId],
+        without: &[SymbolId],
     ) -> Result<Vec<SymbolPair>, CodedError> {
         let pairs: BTreeSet<SymbolPair> = self
             .previous
             .index
             .references
             .iter()
-            .filter(|r| files.contains(&r.file) && r.kind != ReferenceKind::Test)
+            .filter(|r| files.contains(&r.file) && !without.contains(&r.from))
+            .filter(|r| r.kind != ReferenceKind::Test)
             .map(|r| (r.from, r.to))
             .collect();
         Ok(pairs.into_iter().collect())
@@ -942,12 +945,17 @@ fn an_incremental_scan_leaves_the_references_of_untouched_files_in_the_store()
     let world = previous_with_an_untouched_file(Some(1))?;
     let (result, _) = run(&world, ScanMode::Incremental);
     assert!(matches!(result, JobResult::Finished(_)));
-    let untouched = format!("{:?}", FileId::new(103));
-    let reads = world.reads();
-    assert_eq!(reads.len(), 2, "{reads:?}");
-    assert!(
-        reads.iter().all(|read| !read.contains(&untouched)),
-        "{reads:?}"
+    let (a, b, c) = (SymbolId::new(200), SymbolId::new(201), SymbolId::new(202));
+    let left = [FileId::new(101), FileId::new(102)];
+    let expected = [
+        format!("{:?}", StoredReferences::To(&[b, c])),
+        format!("{:?}", StoredReferences::From(&[a])),
+        format!("{:?}", StoredReferences::In(&left)),
+    ];
+    assert_eq!(
+        world.reads(),
+        expected,
+        "nothing that starts in the symbol of the untouched file is read"
     );
     let d = SymbolId::new(203);
     assert_eq!(

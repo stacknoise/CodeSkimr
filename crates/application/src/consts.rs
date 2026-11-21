@@ -49,6 +49,11 @@ pub const CHECK_MARKER_MIN_REASON: usize = 8;
 /// Largest file that is read for the marker, in bytes.
 pub const CHECK_MARKER_MAX_FILE_BYTES: u64 = 4_194_304;
 
+/// An incremental scan reads the references of the touched symbols through an index only if at
+/// most one symbol in this many is touched (ADR 0085). Beyond that, one pass over all references
+/// is as fast: on a C# project of 138k LOC both took the same time at one touched symbol in six.
+pub const NARROW_READ_SYMBOL_SHARE: usize = 8;
+
 /// At least one analysis worker, whatever the machine reports.
 pub const MIN_WORKERS: usize = 1;
 /// Index of the first file handed to the analysis workers.

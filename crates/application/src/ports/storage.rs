@@ -103,6 +103,8 @@ pub enum StoredNames<'a> {
 pub enum StoredReferences<'a> {
     /// Those that point at one of these symbols.
     To(&'a [SymbolId]),
+    /// Those that start in one of these symbols.
+    From(&'a [SymbolId]),
     /// Those that stand in one of these files.
     In(&'a [FileId]),
     /// Every reference.
@@ -200,9 +202,9 @@ pub trait ProjectRepository: Send + Sync {
         Ok(Vec::new())
     }
 
-    /// What coupling needs of the references of `snapshot` in `files`: each pair of the symbol a
-    /// reference starts in and its target once, references of kind `test` left out (ADR 0085).
-    /// The default holds none.
+    /// What coupling needs of the references of `snapshot` that stand in `files` and do not start
+    /// in one of the symbols `without`: each pair of the symbol a reference starts in and its
+    /// target once, references of kind `test` left out (ADR 0085). The default holds none.
     ///
     /// # Errors
     /// A coded failure of the `STO` group.
@@ -210,6 +212,7 @@ pub trait ProjectRepository: Send + Sync {
         &self,
         _snapshot: SnapshotId,
         _files: &[FileId],
+        _without: &[SymbolId],
     ) -> Result<Vec<SymbolPair>, CodedError> {
         Ok(Vec::new())
     }

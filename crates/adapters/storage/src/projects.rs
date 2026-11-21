@@ -8,7 +8,7 @@ use codeskimr_application::ports::{
 use codeskimr_domain::{
     BranchName, ContentHash, CredentialId, FileId, FolderPath, GitUrl, LanguageId, Layer,
     LayerName, Loc, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
-    RelativePath, SnapshotId, SourceFile, SymbolPair,
+    RelativePath, SnapshotId, SourceFile, SymbolId, SymbolPair,
 };
 use rusqlite::{Connection, OptionalExtension, Row, params};
 
@@ -418,6 +418,7 @@ impl ProjectRepository for SqliteStore {
     ) -> Result<Vec<Reference>, CodedError> {
         let which = match which {
             StoredReferences::To(symbols) => references::Which::To(symbols),
+            StoredReferences::From(symbols) => references::Which::From(symbols),
             StoredReferences::In(files) => references::Which::In(files),
             StoredReferences::All => references::Which::All,
         };
@@ -434,9 +435,12 @@ impl ProjectRepository for SqliteStore {
         &self,
         snapshot: SnapshotId,
         files: &[FileId],
+        without: &[SymbolId],
     ) -> Result<Vec<SymbolPair>, CodedError> {
-        self.read(|conn| references::reference_pairs(conn, column_int(snapshot.get())?, files))
-            .map_err(CodedError::from)
+        self.read(|conn| {
+            references::reference_pairs(conn, column_int(snapshot.get())?, files, without)
+        })
+        .map_err(CodedError::from)
     }
 
     fn latest_naming_rules(&self, id: ProjectId) -> Result<Option<String>, CodedError> {

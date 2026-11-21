@@ -66,6 +66,8 @@ pub(crate) fn id_set(
 pub(crate) enum Which<'a> {
     /// Those that point at one of these symbols.
     To(&'a [SymbolId]),
+    /// Those that start in one of these symbols.
+    From(&'a [SymbolId]),
     /// Those that stand in one of these files.
     In(&'a [FileId]),
     /// Every reference.
@@ -85,11 +87,10 @@ pub(crate) fn load(
 ) -> StorageResult<Vec<Reference>> {
     let files = id_set(conn, sql::FILE_IDS, snapshot)?;
     let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
+    let symbols_of = |ids: &[SymbolId]| id_list(ids.iter().map(|id| id.get())).map(Some);
     let (statement, list) = match which {
-        Which::To(ids) => (
-            sql::REFERENCES_TO,
-            Some(id_list(ids.iter().map(|id| id.get()))?),
-        ),
+        Which::To(ids) => (sql::REFERENCES_TO, symbols_of(ids)?),
+        Which::From(ids) => (sql::REFERENCES_FROM, symbols_of(ids)?),
         Which::In(ids) => (
             sql::REFERENCES_IN,
             Some(id_list(ids.iter().map(|id| id.get()))?),
@@ -108,6 +109,9 @@ pub(crate) fn load(
             references.push(decode_reference(&row)?);
         }
     }
+    // The statements with a list read through an index; in the order of the ids the result does
+    // not depend on which one.
+    references.sort_unstable_by_key(|found| found.id);
     Ok(references)
 }
 
@@ -127,16 +131,22 @@ pub(crate) fn verified_files(conn: &Connection, snapshot: i64) -> StorageResult<
     Ok(found.into_iter().map(FileId::new).collect())
 }
 
-/// Each pair of start and target of the references of a snapshot in `of` once, in ascending
-/// order, references of kind `test` left out: what coupling needs of them (ADR 0085).
+/// Each pair of start and target of the references of a snapshot once, in ascending order: those
+/// that stand in `of` and do not start in `without`, references of kind `test` left out. It is
+/// what coupling needs of them (ADR 0085).
 pub(crate) fn reference_pairs(
     conn: &Connection,
     snapshot: i64,
     of: &[FileId],
+    without: &[SymbolId],
 ) -> StorageResult<Vec<SymbolPair>> {
     let files = of
         .iter()
         .map(|file| column_int(file.get()))
+        .collect::<StorageResult<HashSet<i64>>>()?;
+    let skipped = without
+        .iter()
+        .map(|symbol| column_int(symbol.get()))
         .collect::<StorageResult<HashSet<i64>>>()?;
     let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
     let mut prepared = conn.prepare_cached(sql::REFERENCE_PAIRS)?;
@@ -144,7 +154,7 @@ pub(crate) fn reference_pairs(
     let mut found = BTreeSet::new();
     while let Some(row) = rows.next()? {
         let (file, from, to): (i64, i64, i64) = (row.get(0)?, row.get(1)?, row.get(2)?);
-        if files.contains(&file) && symbols.contains(&to) {
+        if files.contains(&file) && symbols.contains(&to) && !skipped.contains(&from) {
             found.insert((id_from(from)?, id_from(to)?));
         }
     }

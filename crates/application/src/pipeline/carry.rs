@@ -25,6 +25,7 @@ use codeskimr_domain::{
 };
 
 use super::shape::{Delta, Shape, is_structural};
+use crate::consts::NARROW_READ_SYMBOL_SHARE;
 use crate::error::CodedError;
 use crate::ports::{
     DiscoveredFile, PendingReference, PreviousState, ProjectRepository, StoredNames,
@@ -213,41 +214,46 @@ impl Carried {
         Ok(())
     }
 
-    /// Reads the references that [`Carried::reconcile`] compares: those of the touched files, or
-    /// all if every name is resolved again or the previous snapshot did not count its ambiguous
-    /// places. Of the untouched files it takes the pairs for coupling and the number of ambiguous
-    /// places, which is the count of the snapshot without the files that are read (ADR 0085).
+    /// Reads the references that [`Carried::reconcile`] compares: those that start in a touched
+    /// symbol, or all if every name is resolved again or the previous snapshot did not count its
+    /// ambiguous places. Of the other references it takes the pairs for coupling and the number
+    /// of ambiguous places, which is the count of the snapshot without what is read (ADR 0085).
     fn read_touched(&mut self, store: &dyn ProjectRepository) -> Result<(), CodedError> {
         let Some(snapshot) = self.snapshot else {
             return Ok(());
         };
-        let old = if let (Some(counted), Some(scope)) = (self.counted, &self.scope) {
-            let touched: BTreeSet<FileId> = scope
-                .iter()
-                .chain(&self.dead)
-                .map(|(_, file, _)| *file)
-                .collect();
-            let read: Vec<FileId> = touched.iter().chain(&self.left).copied().collect();
-            let old = store.stored_references(snapshot, StoredReferences::In(&read))?;
-            self.elsewhere = counted.saturating_sub(ambiguous_occurrences(old.iter()));
-            let untouched: Vec<FileId> = self
-                .files
-                .iter()
-                .map(|file| file.id)
-                .filter(|file| !touched.contains(file))
-                .collect();
-            self.pairs = store.reference_pairs(snapshot, &untouched)?;
+        let kept: Vec<FileId> = self.files.iter().map(|file| file.id).collect();
+        let old = if let (Some(counted), Some(touched)) = (self.counted, self.touched()) {
+            let old = store.stored_references(snapshot, StoredReferences::From(&touched))?;
+            let left = store.stored_references(snapshot, StoredReferences::In(&self.left))?;
+            let read = ambiguous_occurrences(old.iter().chain(&left));
+            self.elsewhere = counted.saturating_sub(read);
+            self.pairs = store.reference_pairs(snapshot, &kept, &touched)?;
             old
         } else {
             store.stored_references(snapshot, StoredReferences::All)?
         };
-        let kept: HashSet<FileId> = self.files.iter().map(|file| file.id).collect();
+        let kept: HashSet<FileId> = kept.into_iter().collect();
         let alive: HashSet<SymbolId> = self.symbols.iter().map(|symbol| symbol.id).collect();
         self.references = old
             .into_iter()
             .filter(|r| kept.contains(&r.file) && alive.contains(&r.to))
             .collect();
         Ok(())
+    }
+
+    /// The touched symbols in ascending order: those in which a name is resolved again or a
+    /// reference lost its target. `None` if all names are resolved again, or if so many symbols
+    /// are touched that reading every reference in one pass is as fast.
+    fn touched(&self) -> Option<Vec<SymbolId>> {
+        let scope = self.scope.as_ref()?;
+        let touched: BTreeSet<SymbolId> = scope
+            .iter()
+            .chain(&self.dead)
+            .map(|(from, _, _)| *from)
+            .collect();
+        let few = touched.len().saturating_mul(NARROW_READ_SYMBOL_SHARE) <= self.symbols.len();
+        few.then(|| touched.into_iter().collect())
     }
 
     /// How many places of the whole snapshot match several symbols, given the references

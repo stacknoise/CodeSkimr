@@ -14,7 +14,7 @@ An incremental scan starts from the newest snapshot (blueprint section 7). Until
 | count the ambiguous places (`RES-301`) | 12 ms |
 | coupling over all references | about 15 ms |
 
-Reading is the expensive part and cannot be made cheaper per row: SQLite alone needs 63 ms for the rows, the rest is the column access. The only way is to read fewer rows.
+Reading is the expensive part and cannot be made much cheaper per row: SQLite alone needs 63 ms for the rows, the rest is the column access. The way out is to read fewer rows.
 
 The scan needs the old references for four things:
 
@@ -27,48 +27,51 @@ The product owner released this work on 2026-11-21. Recall goes before speed: th
 
 ## Decision
 
-### Touched and untouched files
+### Touched symbols
 
-An unchanged file is **touched** by an incremental scan if at least one of its names is resolved again or one of its references points at a symbol that is gone. Every other unchanged file is **untouched**: the scan neither adds, drops nor changes a reference in it. This is the rule the scan already follows place by place (`Carried::reconcile` keeps what is out of scope as it is); the decision only draws the line by file, so that whole files can be left in the store.
+A symbol of an unchanged file is **touched** by an incremental scan if a name written in it is resolved again or one of its references points at a symbol that is gone. In every other symbol of an unchanged file the scan neither adds, drops nor changes a reference. This is the rule the scan already follows place by place (`Carried::reconcile` keeps what is out of scope as it is); the decision draws the line by the symbol a reference starts in, because the store has an index on it.
+
+The line cannot be drawn by file: the base lists of all types are resolved again in every scan, so nearly every file holds a name that is resolved again.
 
 The scan reads from the store:
 
-- the references that point at a symbol of a changed or removed file (by the index on the target),
-- the files that hold a reference verified by level 2,
-- all references of the touched files, once the names to resolve again are known (by the index on the file),
+- the references that point at a symbol of a changed or removed file (index on the target),
+- the files that hold a reference verified by level 2 (new partial index),
+- the references that start in a touched symbol, once the names to resolve again are known (index on the start),
 - the references of the previous state of the changed and removed files, for the warning count below.
 
-References of untouched files are never read as full rows.
+All other references are never read as full rows.
 
 ### Coupling
 
-Coupling is still computed over the whole snapshot, never updated in place, because the unit of a symbol depends on the declarations of all files. For the untouched files the store returns only the distinct pairs *(from symbol, to symbol)* of their references that are not of kind `test`. The pairs of the touched and changed files come from memory. `ce` and `ca` count each pair of units once, so pairs give the same values as the references.
+Coupling is still computed over the whole snapshot, never updated in place, because the unit of a symbol depends on the declarations of all files. For the references that are not read, the store returns only the distinct pairs *(from symbol, to symbol)* of those that are not of kind `test`. The pairs of the references in memory come from memory. `ce` and `ca` count each pair of units once, so pairs give the same values as the references.
 
 ### Ambiguous places
 
-A place is a file and a span, so the count is a sum over files. A snapshot stores its count in the new column `snapshots.ambiguous_places`. The next incremental scan computes
+A place is a file and a span, and it lies in exactly one symbol, so the count is a sum over symbols. A snapshot stores its count in the new column `snapshots.ambiguous_places`. The next incremental scan computes
 
-`new count = stored count − count of the old references of the touched, changed and removed files + count of their new references`.
+`new count = stored count − count over the old references it read + count over the references in memory after the scan`.
 
 The column is `NULL` when the count is unknown: for snapshots written before this decision, and after level 2 replaced references of the snapshot (the store sets it to `NULL` there, because verified references change the count). The next scan writes it again.
 
 ### Fallback
 
-The scan reads all references of the unchanged files, as before, when
+The scan reads all references of the unchanged files in one pass, as before, when
 
-- all names are resolved again (a base list changed, issue #408): every unchanged file is touched then, or
-- the stored count of the previous snapshot is `NULL`.
+- all names are resolved again (a base list changed, issue #408), or
+- the stored count of the previous snapshot is `NULL`, or
+- more than one symbol in eight is touched (`NARROW_READ_SYMBOL_SHARE`): reading through the index costs about twice as much per reference as the pass over the table, so beyond that share nothing is gained.
 
 In the fallback nothing comes from the stored count or from pairs; the result is computed exactly as before this decision.
 
 ### Ports
 
-`PreviousState` no longer carries the references. `ProjectRepository` gets the reads listed above; `MetricsCalculator::measure` takes the pairs of the untouched files in addition to the references. `latest_index`, which level 2 uses, is unchanged.
+`PreviousState` no longer carries the references. `ProjectRepository` gets the reads listed above; `MetricsCalculator::measure` takes the pairs in addition to the references. `latest_index`, which level 2 uses, is unchanged.
 
 ## Consequences
 
-- Migration 0018 adds the nullable column `snapshots.ambiguous_places`. No new table, no new index: a full scan writes nothing more than before, so its budget is not touched.
+- Migration 0018 adds the nullable column `snapshots.ambiguous_places` and the partial index `references_verified` (only rows with `verified = 1`). No new table: a full scan at level 1 writes nothing more than before, so its budget is not touched.
 - The first incremental scan after the update and the first one after a level 2 run take the fallback and are as slow as before.
-- Expected gain on Newtonsoft.Json: about 0.2 s per re-scan, more when the saved file is used in few places, less for a file that half the project uses. The budget of 300 ms is still not met for a project of this size; the remaining time is in reading the stored names, in the read models, which are built again in full, and in the totals. Those are not part of this decision.
-- A test compares the stored result of an incremental scan with a full scan of the same files (references, coupling, warning count), for the narrow path and for the fallback.
-- Storing the pairs per file, so that coupling needs no pass over the references at all, stays open. It would cost a full scan an extra table and needs its own decision.
+- Measured on Newtonsoft.Json (median of five re-scans of one file, before and after): a file used in few places 0.61 s to 0.45 s, a utility file 0.65 s to 0.46 s. Files that much of the project uses (`JsonConvert.cs`, `JToken.cs`) touch every sixth symbol and take the fallback: no gain there.
+- The budget of 300 ms is still not met for a project of this size. The main reason is not addressed here: an edited file gets new symbol ids, so every reference into it loses its target and its name is resolved again, even if only a comment changed. Keeping the ids of symbols that did not change would shrink the touched set at its root and needs its own decision. The rest of the time is in the read models, which are built again in full, and in the totals.
+- The tests that compare an incremental scan with a full scan of the same files (issue #49) now compare coupling and the stored warnings as well as the references.

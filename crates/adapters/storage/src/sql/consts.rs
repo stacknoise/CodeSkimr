@@ -506,12 +506,17 @@ pub const SNAPSHOT_AMBIGUOUS: &str = "SELECT ambiguous_places FROM snapshots WHE
 /// snapshot, JSON list of symbol ids.
 pub const REFERENCES_TO: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
     start_column, end_line, end_column, kind, confidence, verified FROM symbol_references \
-    WHERE first_snapshot <= ?1 AND to_symbol IN (SELECT value FROM json_each(?2)) ORDER BY id";
+    WHERE first_snapshot <= ?1 AND to_symbol IN (SELECT value FROM json_each(?2))";
+/// The references that start in some symbols, in the column order of `REFERENCES_OF_SNAPSHOT`:
+/// snapshot, JSON list of symbol ids.
+pub const REFERENCES_FROM: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
+    start_column, end_line, end_column, kind, confidence, verified FROM symbol_references \
+    WHERE first_snapshot <= ?1 AND from_symbol IN (SELECT value FROM json_each(?2))";
 /// The references that stand in some files, in the column order of `REFERENCES_OF_SNAPSHOT`:
 /// snapshot, JSON list of file ids.
 pub const REFERENCES_IN: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
     start_column, end_line, end_column, kind, confidence, verified FROM symbol_references \
-    WHERE first_snapshot <= ?1 AND file_id IN (SELECT value FROM json_each(?2)) ORDER BY id";
+    WHERE first_snapshot <= ?1 AND file_id IN (SELECT value FROM json_each(?2))";
 /// File and target of every verified reference that is not newer than a snapshot: snapshot.
 pub const VERIFIED_REFERENCE_FILES: &str = "SELECT DISTINCT file_id, to_symbol \
     FROM symbol_references WHERE verified = 1 AND first_snapshot <= ?1";
