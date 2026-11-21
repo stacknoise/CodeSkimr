@@ -568,7 +568,7 @@ fn an_incremental_scan_drops_a_file_whose_failure_will_not_pass() -> Result<(), 
         [("b.rs".to_owned(), ErrorCode::FileEncodingUnsupported, false)]
     );
     let stored = world.last_persisted()?;
-    assert!(stored.files.is_empty());
+    assert_eq!(stored.files, Vec::<SourceFile>::new());
     assert!(stored.removed.iter().any(|path| path.as_str() == "b.rs"));
     Ok(())
 }
@@ -587,7 +587,7 @@ fn an_incremental_scan_keeps_what_it_knew_of_a_file_whose_failure_may_pass()
         assert_eq!(job.snapshot().stats.files, 2);
         assert_eq!(job.snapshot().stats.symbols, 2);
         let stored = world.last_persisted()?;
-        assert!(stored.files.is_empty());
+        assert_eq!(stored.files, Vec::<SourceFile>::new());
         assert!(!stored.removed.iter().any(|path| path.as_str() == "b.rs"));
         assert_eq!(stored.warnings, [ScanWarning { code, count: 1 }]);
     }
