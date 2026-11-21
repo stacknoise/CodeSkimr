@@ -68,6 +68,18 @@ fn search_respects_the_limit_and_returns_where_the_symbol_lives() {
     assert_eq!(hits[0].qualified_name.as_str(), "App.Order");
 }
 
+#[test]
+fn equal_names_are_told_apart_by_symbol_id_when_the_limit_cuts_them_off() {
+    let symbols = (21..=25)
+        .rev()
+        .map(|id| symbol(id, 11, SymbolKind::Method, &format!("App.C{id}.get"), None))
+        .collect();
+    let store = scanned(&[], symbols, vec![], vec![]);
+    let hits = store.search(SNAPSHOT, "get", 3).unwrap();
+    let ids: Vec<u64> = hits.iter().map(|hit| hit.symbol.get()).collect();
+    assert_eq!(ids, [21, 22, 23]);
+}
+
 fn from_a_test(reference: Reference) -> Reference {
     Reference {
         kind: ReferenceKind::Test,
