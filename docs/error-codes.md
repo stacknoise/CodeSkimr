@@ -12,7 +12,7 @@ Owner: `codeskimr`
 |---|---|---|---|---|---|
 | APP-201 | `data_dir_unavailable` | error | no | 0.1.0 | The user data directory cannot be created or opened. |
 | APP-202 | `launch_file_unavailable` | error | yes | 0.1.0 | The private file for starting the browser could not be created. |
-| APP-301 | `instance_already_running` | error | no | 0.1.0 | Another CodeSkimr instance holds the workspace; connecting to it failed. |
+| APP-301 | `instance_already_running` | error | no | 0.1.0 | Another CodeSkimr instance holds the workspace; connecting to it failed. (deprecated) |
 | APP-901 | `unexpected_internal_error` | error | no | 0.1.0 | An unexpected internal error occurred (bug). |
 | APP-601 | `browser_start_failed` | error | yes | 0.1.0 | The system did not start a browser for the launch file. |
 | APP-602 | `language_packs_unavailable` | error | yes | 0.1.0 | The language packs built into the program could not be written to the data directory. |
@@ -92,7 +92,7 @@ Owner: `codeskimr_storage`
 
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
-| IDX-301 | `read_model_stale` | info | no | 0.1.0 | A read model is older than the current snapshot and is being rebuilt. |
+| IDX-301 | `read_model_stale` | info | no | 0.1.0 | A read model is older than the current snapshot and is being rebuilt. (deprecated) |
 
 ## STO – Persistence
 
@@ -127,8 +127,8 @@ Owner: `codeskimr_source`
 
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
-| NET-501 | `request_timeout` | error | yes | 0.1.0 | A request to an external platform timed out. |
-| NET-502 | `rate_limited` | error | yes | 0.1.0 | The external platform rate-limited the request. |
+| NET-501 | `request_timeout` | error | yes | 0.1.0 | A request to an external platform timed out. (deprecated) |
+| NET-502 | `rate_limited` | error | yes | 0.1.0 | The external platform rate-limited the request. (deprecated) |
 | NET-601 | `oauth_flow_failed` | error | no | 0.1.0 | The OAuth device flow did not complete. |
 
 ## AUTH – Caller identity and permissions
