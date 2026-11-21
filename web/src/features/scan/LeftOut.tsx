@@ -9,8 +9,10 @@ function reasonText(file: LeftOutFile): string {
   return t(file.kept ? I18N_KEYS.SCAN_LEFT_OUT_KEPT : I18N_KEYS.SCAN_LEFT_OUT_MISSING);
 }
 
-/** The files the newest scan left out: path, code with its message and what is shown instead,
- * and how many more there were than are named (ADR 0085). Nothing if the scan left out none. */
+/** The files the newest scan left out: path, code, what is shown instead and the message of the
+ * code as visible text, and how many more there were than are named (ADR 0085). A snapshot from
+ * before the list existed has only the count, which the card says with its own text. Nothing if
+ * the scan left out none. */
 export function LeftOut(props: { row: ProjectRow | undefined }) {
   const files = () => props.row?.left_out ?? [];
   const more = () => props.row?.left_out_more ?? 0;
@@ -24,16 +26,22 @@ export function LeftOut(props: { row: ProjectRow | undefined }) {
             {(file) => (
               <li class={styles.item}>
                 <span class={styles.path}>{file.path}</span>
-                <span class={styles.code} title={errorText(file.code as ErrorCode)}>
-                  {file.code}
-                </span>
+                <span class={styles.code}>{file.code}</span>
                 <span class={styles.reason}>{reasonText(file)}</span>
+                <span class={styles.message}>{errorText(file.code as ErrorCode)}</span>
               </li>
             )}
           </For>
         </ul>
         <Show when={more() > 0}>
-          <div class={styles.more}>{t(I18N_KEYS.SCAN_LEFT_OUT_MORE, { count: more() })}</div>
+          <div class={styles.more}>
+            {t(
+              files().length > 0 ? I18N_KEYS.SCAN_LEFT_OUT_MORE : I18N_KEYS.SCAN_LEFT_OUT_UNNAMED,
+              {
+                count: more(),
+              },
+            )}
+          </div>
         </Show>
       </div>
     </Show>

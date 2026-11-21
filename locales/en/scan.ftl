@@ -78,3 +78,7 @@ scan-left-out-more = { $count ->
     [one] and one more file
    *[other] and { $count } more files
 }
+scan-left-out-unnamed = { $count ->
+    [one] One file was left out. Its name shows after the next scan.
+   *[other] { $count } files were left out. Their names show after the next scan.
+}

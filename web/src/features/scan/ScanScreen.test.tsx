@@ -150,6 +150,21 @@ describe("ScanScreen", () => {
     expect(screen.getByText("PRS-501")).toBeInTheDocument();
     expect(screen.getByText("shown as the previous scan saw it")).toBeInTheDocument();
     expect(screen.getByText("and 3 more files")).toBeInTheDocument();
+    expect(screen.getAllByText(/skipped/i).length).toBeGreaterThan(0);
+    stop();
+  });
+
+  it("says that the names come with the next scan if only the count is known", async () => {
+    setLanguage("en");
+    serve({
+      "projects.list": () => answer([{ ...ROW, left_out: [], left_out_more: 2 }]),
+      "status.info": () => answer(STATUS),
+    });
+    const stop = await shown();
+    expect(
+      await screen.findByText("2 files were left out. Their names show after the next scan."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("and 2 more files")).not.toBeInTheDocument();
     stop();
   });
 

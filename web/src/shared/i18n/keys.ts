@@ -824,6 +824,7 @@ export const I18N_KEYS = {
   SCAN_LEFT_OUT_MISSING: "scan-left-out-missing",
   SCAN_LEFT_OUT_KEPT: "scan-left-out-kept",
   SCAN_LEFT_OUT_MORE: "scan-left-out-more",
+  SCAN_LEFT_OUT_UNNAMED: "scan-left-out-unnamed",
   NAV_LABEL: "nav-label",
   NAV_PROJECTS: "nav-projects",
   NAV_EXPLORER: "nav-explorer",
