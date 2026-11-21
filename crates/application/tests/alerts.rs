@@ -370,6 +370,7 @@ fn a_changed_signature_of_an_old_baseline_still_tells_and_a_code_change_is_not_s
 /// The overloads of `WORK` with these signatures (their content is `v0`, `v1`, ...), a critical
 /// mark that names `target`, one scan: the content hash the mark was baselined on, `None` if the
 /// target was not found among them.
+#[cfg(test)]
 fn pick_among(signatures: &[&str], target: &[&str]) -> Option<String> {
     let world = fixture();
     let states = signatures
