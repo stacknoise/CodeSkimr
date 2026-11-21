@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 63,
+      "loc": 74,
       "operands": null,
       "operators": null,
       "symbol": "declarations"
@@ -253,9 +253,55 @@
       "operands": null,
       "operators": null,
       "symbol": "declarations.Empty"
+    },
+    {
+      "decisions": null,
+      "loc": 11,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Account"
+    },
+    {
+      "decisions": 0,
+      "loc": 7,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.Account.constructor"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations.Account.constructor.local"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.Account.close"
     }
   ],
-  "loc": 63,
+  "loc": 74,
   "references": [
     {
       "at": "0:9",
@@ -307,7 +353,7 @@
       "name": "declarations",
       "parent": null,
       "signature": null,
-      "span": "0:0-98:0",
+      "span": "0:0-113:0",
       "static": false,
       "visibility": null
     },
@@ -380,6 +426,16 @@
       "span": "18:2-20:3",
       "static": false,
       "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Order.id",
+      "parent": "declarations.Order",
+      "signature": null,
+      "span": "18:14-18:41",
+      "static": false,
+      "visibility": "private"
     },
     {
       "doc": null,
@@ -728,6 +784,76 @@
       "parent": "declarations",
       "signature": null,
       "span": "97:7-97:21",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Parameter properties declare fields of the class.",
+      "kind": "class",
+      "name": "declarations.Account",
+      "parent": "declarations",
+      "signature": null,
+      "span": "100:7-112:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constructor",
+      "name": "declarations.Account.constructor",
+      "parent": "declarations.Account",
+      "signature": null,
+      "span": "101:2-108:3",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Account.owner",
+      "parent": "declarations.Account",
+      "signature": null,
+      "span": "102:4-102:33",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Account.balance",
+      "parent": "declarations.Account",
+      "signature": null,
+      "span": "103:4-103:30",
+      "static": false,
+      "visibility": "protected"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Account.limit",
+      "parent": "declarations.Account",
+      "signature": null,
+      "span": "104:4-104:24",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.Account.constructor.local",
+      "parent": "declarations.Account.constructor",
+      "signature": null,
+      "span": "107:18-107:29",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "A method next to the constructor.",
+      "kind": "method",
+      "name": "declarations.Account.close",
+      "parent": "declarations.Account",
+      "signature": null,
+      "span": "111:2-111:18",
       "static": false,
       "visibility": "public"
     }

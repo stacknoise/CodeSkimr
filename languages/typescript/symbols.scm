@@ -203,6 +203,14 @@
   name: [(property_identifier) (private_property_identifier)] @name
   value: [(arrow_function) (function_expression) (generator_function)] @symbol.method))
 
+; Parameter properties of a constructor declare a field of the class (ADR 0079). The field is
+; written inside the constructor, `@lift` makes it a member of the class.
+(formal_parameters
+ [(required_parameter (accessibility_modifier) @modifier pattern: (identifier) @name) @symbol.field
+  (required_parameter "readonly" @modifier pattern: (identifier) @name) @symbol.field
+  (optional_parameter (accessibility_modifier) @modifier pattern: (identifier) @name) @symbol.field
+  (optional_parameter "readonly" @modifier pattern: (identifier) @name) @symbol.field] @lift)
+
 ; Members of an interface and of a declared class, and the members of an enum.
 (interface_body
  (comment)+ @doc

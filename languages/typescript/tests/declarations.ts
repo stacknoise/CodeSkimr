@@ -96,3 +96,18 @@ export const handlers = {
 
 /**/
 export class Empty {}
+
+/** Parameter properties declare fields of the class. */
+export class Account {
+  constructor(
+    public readonly owner: string,
+    protected balance?: number,
+    readonly limit = 100,
+    plain: string = "",
+  ) {
+    const local = () => plain;
+  }
+
+  /** A method next to the constructor. */
+  close(): void {}
+}

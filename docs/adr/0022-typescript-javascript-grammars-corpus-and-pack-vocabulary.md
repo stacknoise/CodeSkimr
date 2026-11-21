@@ -26,7 +26,7 @@ Written down in `languages/typescript/language.toml`. Decisions worth knowing:
 - Getters and setters are `property` (a pair gives two symbols). A class field with an arrow function is a `method`. Interface members are `property` and `method`; overload signatures are no symbols.
 - Visibility: `export` is public, a top-level declaration without it is private, members are public unless `private` or `protected` says otherwise.
 - Only members of a class are methods: methods of object literals (`module.exports = { h() {} }`, Vue options) are no symbols. A `const` with a JSX value (TSX and JavaScript) is a constant, one with a generator function is a function.
-- Limits, all as data in the pack: `#private` fields get the default (public) because they carry no keyword (changed by ADR 0047: they are private); parameter properties of constructors (`constructor(private x: T)`) are not symbols; `let` and `var` at module level, `export { x }` lists and anonymous default exports are not symbols; names that are strings, numbers or computed are skipped.
+- Limits, all as data in the pack: `#private` fields get the default (public) because they carry no keyword (changed by ADR 0047: they are private); parameter properties of constructors (`constructor(private x: T)`) are not symbols (changed by ADR 0079: they are fields of the class); `let` and `var` at module level, `export { x }` lists and anonymous default exports are not symbols; names that are strings, numbers or computed are skipped.
 - Metrics follow ADR 0015: `?.` does not count, a `case` counts when it has a body, `&&=`, `||=`, `??=` count.
 
 ### 4. Additions to the pack vocabulary
