@@ -25,7 +25,7 @@ use codeskimr_domain::{
 };
 
 use super::shape::{Delta, Shape, is_structural};
-use crate::consts::NARROW_READ_SYMBOL_SHARE;
+use crate::consts::{NARROW_READ_MAX_SYMBOLS, NARROW_READ_SYMBOL_SHARE};
 use crate::error::CodedError;
 use crate::ports::{
     DiscoveredFile, PendingReference, PreviousState, ProjectRepository, StoredNames,
@@ -252,7 +252,8 @@ impl Carried {
             .chain(&self.dead)
             .map(|(from, _, _)| *from)
             .collect();
-        let few = touched.len().saturating_mul(NARROW_READ_SYMBOL_SHARE) <= self.symbols.len();
+        let few = touched.len() <= NARROW_READ_MAX_SYMBOLS
+            || touched.len().saturating_mul(NARROW_READ_SYMBOL_SHARE) <= self.symbols.len();
         few.then(|| touched.into_iter().collect())
     }
 

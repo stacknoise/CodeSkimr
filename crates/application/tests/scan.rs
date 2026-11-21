@@ -989,6 +989,47 @@ fn without_a_stored_count_an_incremental_scan_reads_every_reference() -> Result<
     Ok(())
 }
 
+/// [`previous_snapshot`] with `callers` more functions in `a.rs`, each of which calls `b`.
+fn previous_with_callers_of_b(callers: u64) -> Result<Arc<World>, CodedError> {
+    let mut previous = previous_snapshot()?;
+    for at in 0..callers {
+        let (symbol, call) = (1_000 + at, 10_000 + at);
+        let line = u32::try_from(call).unwrap_or_default();
+        let name = format!("f{at}");
+        previous.index.symbols.push(old_symbol(symbol, 100, &name)?);
+        previous.index.references.push(Reference {
+            from: SymbolId::new(symbol),
+            ..old_call(call, 201)?
+        });
+        previous.names.push(PendingReference {
+            from: SymbolId::new(symbol),
+            ..old_name("b", line)?
+        });
+    }
+    Ok(Arc::new(World {
+        previous,
+        found: Some(vec![("a.rs", false), ("b.rs", true)]),
+        ..World::default()
+    }))
+}
+
+#[test]
+fn a_scan_that_touches_many_symbols_reads_every_reference_in_one_pass() -> Result<(), CodedError> {
+    let all = format!("{:?}", StoredReferences::All);
+    let few = previous_with_callers_of_b(50)?;
+    run(&few, ScanMode::Incremental);
+    assert!(!few.reads().contains(&all), "50 touched symbols are few");
+    let many = previous_with_callers_of_b(2_000)?;
+    let (result, _) = run(&many, ScanMode::Incremental);
+    assert!(matches!(result, JobResult::Finished(_)));
+    assert!(
+        many.reads().contains(&all),
+        "all symbols of a.rs are touched"
+    );
+    assert_eq!(many.last_pairs(), []);
+    Ok(())
+}
+
 #[test]
 fn a_stored_count_and_a_count_over_every_reference_give_the_same_snapshot() -> Result<(), CodedError>
 {

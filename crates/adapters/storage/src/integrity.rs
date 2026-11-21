@@ -8,8 +8,8 @@ use codeskimr_application::ports::SnapshotData;
 use rusqlite::{Connection, params};
 
 use crate::codec::column_int;
+use crate::codec::json_list;
 use crate::error::{StorageError, StorageResult};
-use crate::similarity::json_list;
 use crate::sql;
 
 /// The ids the new data brings itself and the ids it points at; what is not new is looked up in

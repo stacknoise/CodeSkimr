@@ -4,13 +4,12 @@ use codeskimr_application::ports::{PendingReference, Receiver};
 use codeskimr_domain::{FileId, QualifiedName, ReferenceKind, SymbolId};
 use rusqlite::{Connection, params};
 
-use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from};
+use crate::codec::{Cols, SpanColumns, column_int, id_from, id_list, label_from};
 use crate::consts::{
     NAME_SEPARATOR, RECEIVER_BASE, RECEIVER_FREE, RECEIVER_NAMED, RECEIVER_OWN, RECEIVER_TYPED,
     RECEIVER_UNKNOWN,
 };
 use crate::error::{StorageError, StorageResult};
-use crate::similarity::json_list;
 use crate::sql;
 
 /// The label and the name column of a receiver.
@@ -176,15 +175,6 @@ fn text_list(names: &[String]) -> String {
         list.push(NAME_SEPARATOR);
     }
     list
-}
-
-/// The ids as the JSON text that `json_each` reads.
-pub(crate) fn id_list(ids: impl Iterator<Item = u64>) -> StorageResult<String> {
-    let mut columns = Vec::new();
-    for id in ids {
-        columns.push(column_int(id)?);
-    }
-    Ok(json_list(columns.into_iter()))
 }
 
 type Raw = (

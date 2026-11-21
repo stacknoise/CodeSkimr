@@ -7,9 +7,8 @@ use codeskimr_domain::{
 };
 use rusqlite::{Connection, params};
 
-use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from};
+use crate::codec::{Cols, SpanColumns, column_int, id_from, id_list, label_from};
 use crate::error::StorageResult;
-use crate::pending::id_list;
 use crate::sql;
 
 /// The columns of `REFERENCES_OF_SNAPSHOT`, still raw.

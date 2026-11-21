@@ -60,7 +60,7 @@ The scan reads all references of the unchanged files in one pass, as before, whe
 
 - all names are resolved again (a base list changed, issue #408), or
 - the stored count of the previous snapshot is `NULL`, or
-- more than one symbol in eight is touched (`NARROW_READ_SYMBOL_SHARE`): reading through the index costs about twice as much per reference as the pass over the table, so beyond that share nothing is gained.
+- more than 2,000 symbols and more than one symbol in eight are touched (`NARROW_READ_MAX_SYMBOLS`, `NARROW_READ_SYMBOL_SHARE`): reading through the index costs about twice as much per reference as the pass over the table, so beyond that share nothing is gained. Up to 2,000 touched symbols the read through the index is cheap whatever the share.
 
 In the fallback nothing comes from the stored count or from pairs; the result is computed exactly as before this decision.
 

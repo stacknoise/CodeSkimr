@@ -13,11 +13,11 @@ project (rename, delete, new target, second candidate, new overload) and compare
 
 1. **Discover.** The discovery adapter marks changed files. A file the previous snapshot does not know is
    marked as changed here, whatever the adapter says. `ProjectRepository::latest_state` reads the
-   files, the symbols, the references and the names as written of the previous snapshot in one
-   transaction, so a snapshot written in between cannot make them disagree. `Carried::from_previous`
-   splits it into
+   files and the symbols of the previous snapshot in one transaction, so a snapshot written in
+   between cannot make them disagree. The references are read later, and only those the scan needs
+   (see "Which references are read"). `Carried::from_previous` splits the state into
    - the unchanged files and their symbols,
-   - the references from unchanged files to symbols that still exist,
+   - the references from unchanged files whose target is gone,
    - the **names** of the unchanged files, that is every occurrence of a name as the analysis found it
      (`PendingReference`), resolved or not,
    - the **removed** paths (in the previous snapshot, no longer on disk).
@@ -31,7 +31,8 @@ project (rename, delete, new target, second candidate, new overload) and compare
    `Carried::reconcile` then compares the result with the kept references of unchanged files. One that
    is produced again with the same target and confidence stays as it is, a new one is written, a kept
    one that is no longer produced is dropped (`SnapshotData::dropped_references`).
-4. **Measure.** The calculator sees all symbols and all references of the new snapshot, so coupling
+4. **Measure.** The calculator sees all symbols of the new snapshot and all its references, those
+   left in the store as pairs of start and target, so coupling
    (Ce, Ca, instability) is computed on complete data and stored for the new snapshot alone (ADR 0037). The metric counts (`FileFacts::counts`) exist only
    for the analysed files, so loc, cc, cc_max and mi are measured for those; the carried values of the
    other files stay. Metrics the calculator delivers replace the carried ones.
@@ -90,7 +91,7 @@ counts is the change against the base (CI measures it with `tools/bench`, ratio 
 commit, ADR 0014, limit 10 percent). Resolving all names every time would have cost 25 to 35 percent
 more, which is why a change of the declarations is the only case that does it.
 
-The names are not read with the previous state. `latest_state` reads files, symbols and references
+The names are not read with the previous state. `latest_state` reads files and symbols
 (and says whether names are stored); the resolver asks for the names it needs through
 `ProjectRepository::stored_names`: the base lists (inherit and implement, partial index
 `pending_references_bases`), the names at the sites that lost a target together with the names of the
@@ -204,3 +205,24 @@ its rows from the events; no stage is added for it.
 `codeskimr_source::publish_changes` watches a project folder and publishes `FilesChanged` (count of changed
 files, `rescan` if the operating system lost events) after the debounce window. Starting the incremental
 scan on that event is the watch mode of the composition root (`crates/app/src/watch.rs`, `codeskimr scan --watch`, ADR 0029): the changes that piled up while a scan ran become one incremental scan, or a full scan if `rescan` is set.
+
+## Which references are read
+
+ADR 0085. A symbol of an unchanged file is **touched** if a name written in it is resolved again or
+one of its references lost its target. The scan reads
+
+- the references that point at a symbol of a changed or removed file (`StoredReferences::To`),
+- the files with references verified by level 2 (`verified_files`),
+- the references that start in a touched symbol (`StoredReferences::From`), in `Carried::reconcile`,
+- the old references of the changed and removed files (`StoredReferences::In`), only to count.
+
+Of all other references it takes two things without reading them: the pairs of start and target for
+coupling (`reference_pairs`) and the number of ambiguous places. That number is stored with every
+snapshot (`snapshots.ambiguous_places`); the new one is the stored one minus the count over the old
+references that were read plus the count over the references in memory after the scan.
+
+The scan reads every reference in one pass instead (`StoredReferences::All`), and counts and
+measures from them alone, when all names are resolved again, when the stored number is unknown
+(a snapshot from before migration 18, or level 2 replaced references since), or when many symbols are
+touched (more than 2,000 and more than one in eight), because then the pass is as fast as the reads
+through the indexes.
