@@ -74,7 +74,7 @@
       "kind": "function",
       "name": "local_functions.Panel",
       "parent": "local_functions",
-      "signature": null,
+      "signature": "function Panel(props: { count: number })",
       "span": "1:7-5:1",
       "static": false,
       "visibility": "public"
@@ -84,7 +84,7 @@
       "kind": "function",
       "name": "local_functions.Panel.shut",
       "parent": "local_functions.Panel",
-      "signature": null,
+      "signature": "() =>",
       "span": "2:15-2:38",
       "static": false,
       "visibility": "public"

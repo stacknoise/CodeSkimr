@@ -28,7 +28,7 @@ export const boardNoteList = notes;
 export const boardState = state;
 
 function keyOfTarget(target: Target): string {
-  return targetKey(target.kind, target.name);
+  return targetKey(target.kind, target.name, target.parameters);
 }
 
 /** Reads what the board shows: the tasks, the notes and the critical symbols, in three calls

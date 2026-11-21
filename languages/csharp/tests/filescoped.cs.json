@@ -97,7 +97,7 @@
       "kind": "method",
       "name": "Shop.Billing.Invoicer.Reset",
       "parent": "Shop.Billing.Invoicer",
-      "signature": null,
+      "signature": "public void Reset()",
       "span": "14:4-14:27",
       "static": false,
       "visibility": "public"
@@ -107,7 +107,7 @@
       "kind": "method",
       "name": "Shop.Billing.Invoicer.Old",
       "parent": "Shop.Billing.Invoicer",
-      "signature": null,
+      "signature": "[Obsolete(\"Use Reset\")] protected abstract void Old();",
       "span": "16:4-17:34",
       "static": false,
       "visibility": "protected"

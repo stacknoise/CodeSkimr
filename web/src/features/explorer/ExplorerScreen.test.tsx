@@ -350,7 +350,13 @@ describe("a navigation from another screen", () => {
   });
 
   it("opens the rows down to a member of a nested type and selects it", async () => {
-    const line = { visibility: "public", signature: null, complexity: null, usages: 0 };
+    const line = {
+      visibility: "public",
+      signature: null,
+      parameters: [],
+      complexity: null,
+      usages: 0,
+    };
     const nested = {
       ...ORDER,
       id: 20,
