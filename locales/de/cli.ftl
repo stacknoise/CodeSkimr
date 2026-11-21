@@ -154,3 +154,18 @@ cli-alerts-dismissed = { $dismissed ->
     [one] Ein Alarm entfernt, { $open } noch offen.
    *[other] { $dismissed } Alarme entfernt, { $open } noch offen.
 }
+cli-cmd-codes = Die Fehlercodes auflisten oder einen erklären
+cli-arg-code = Der zu erklärende Code, zum Beispiel SRC-201 (ohne Angabe: alle Codes auflisten)
+cli-codes-line = { $code }  { $message }
+cli-codes-explain =
+    { $code }: { $message }
+    { $description }
+    Gruppe { $group }, { $severity ->
+        [warning] Warnung
+        [info] Hinweis
+       *[error] Fehler
+    }, { $retryable ->
+        [yes] ein neuer Versuch kann gelingen
+       *[no] ein neuer Versuch hilft nicht
+    }, seit Version { $since }.
+cli-codes-retired = Dieser Code ist stillgelegt: nichts löst ihn mehr aus, die Nummer bleibt reserviert.

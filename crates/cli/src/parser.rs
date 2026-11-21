@@ -19,14 +19,15 @@ use crate::args::{
     Action, CheckArgs, ExportArgs, GlobalOptions, Invocation, McpArgs, OpenArgs, Parsed, ScanArgs,
     ServeArgs, StartArgs,
 };
+use crate::codes;
 use crate::consent;
 use crate::consts::{
     ARG_BRANCH, ARG_CONFIG, ARG_CONSOLE, ARG_CREDENTIAL, ARG_DATA_DIR, ARG_EXPORT_PROJECT,
     ARG_HTML, ARG_JSON, ARG_LANGUAGES, ARG_NO_BROWSER, ARG_PATHS, ARG_PROJECT, ARG_SET, ARG_SOURCE,
-    ARG_WATCH, BINARY_NAME, COMMAND_ALERTS, COMMAND_ANNOTATIONS, COMMAND_CHECK, COMMAND_CREDENTIAL,
-    COMMAND_EXPORT, COMMAND_LEVEL2, COMMAND_MCP, COMMAND_OPEN, COMMAND_SCAN, COMMAND_SERVE,
-    OVERRIDE_SEPARATOR, VALUE_BRANCH, VALUE_DIR, VALUE_EXPORT_PROJECT, VALUE_FILE, VALUE_ID,
-    VALUE_OVERRIDE, VALUE_PATH, VALUE_SOURCE, VERSION,
+    ARG_WATCH, BINARY_NAME, COMMAND_ALERTS, COMMAND_ANNOTATIONS, COMMAND_CHECK, COMMAND_CODES,
+    COMMAND_CREDENTIAL, COMMAND_EXPORT, COMMAND_LEVEL2, COMMAND_MCP, COMMAND_OPEN, COMMAND_SCAN,
+    COMMAND_SERVE, OVERRIDE_SEPARATOR, VALUE_BRANCH, VALUE_DIR, VALUE_EXPORT_PROJECT, VALUE_FILE,
+    VALUE_ID, VALUE_OVERRIDE, VALUE_PATH, VALUE_SOURCE, VERSION,
 };
 use crate::credential;
 use crate::error::CliError;
@@ -71,6 +72,7 @@ fn definition(messages: &Messages, language: &str) -> Result<Command, CliError> 
         )
         .subcommand(scan_command(messages, language)?)
         .subcommand(check_command(messages, language)?)
+        .subcommand(codes::command(&say)?)
         .subcommand(export_command(messages, language)?)
         .subcommand(credential::command(&say)?)
         .subcommand(consent::command(&say)?)
@@ -199,6 +201,7 @@ fn invocation(matches: &ArgMatches) -> Result<Invocation, CliError> {
         }),
         Some((COMMAND_SERVE, _)) => Action::Serve(ServeArgs),
         Some((COMMAND_CHECK, check)) => Action::Check(check_args(check)),
+        Some((COMMAND_CODES, codes)) => Action::Codes(codes::args(codes)),
         Some((COMMAND_OPEN, open)) => Action::Open(OpenArgs {
             no_browser: open.get_flag(ARG_NO_BROWSER),
         }),

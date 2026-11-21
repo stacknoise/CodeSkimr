@@ -9,12 +9,12 @@ use std::process::ExitCode;
 use codeskimr_application::conventions::CheckReport;
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{
-    Action, CliError, CredentialAction, ExportArgs, Invocation, Level2Action, OpenArgs, Parsed,
-    ScanArgs, ScanSummary, StartArgs, check_json, check_text, credential_deleted,
-    credential_stored, device_prompt, error_line, export_written, from_ui_notice, from_ui_wait,
-    language_from, level2_confirmed, level2_declined, level2_revoked, open_ready, parse,
-    scan_finished, scan_json, scan_started, secret_prompt, serve_started, start_keep_open,
-    start_tray, tray_labels, watch_started, watch_updated,
+    Action, CliError, CodesArgs, CredentialAction, ExportArgs, Invocation, Level2Action, OpenArgs,
+    Parsed, ScanArgs, ScanSummary, StartArgs, check_json, check_text, codes_text,
+    credential_deleted, credential_stored, device_prompt, error_line, export_written,
+    from_ui_notice, from_ui_wait, language_from, level2_confirmed, level2_declined, level2_revoked,
+    open_ready, parse, scan_finished, scan_json, scan_started, secret_prompt, serve_started,
+    start_keep_open, start_tray, tray_labels, watch_started, watch_updated,
 };
 use codeskimr_codes::i18n::{CLI_CREDENTIAL_UNUSABLE_HINT, CLI_CREDENTIALS_HINT};
 use codeskimr_codes::{Coded, ErrorCode};
@@ -149,7 +149,10 @@ fn resolve_locations(
 
 /// Whether the command reads language packs; the credential commands and `open` do not.
 fn needs_packs(action: &Action) -> bool {
-    !matches!(action, Action::Credential(_) | Action::Open(_))
+    !matches!(
+        action,
+        Action::Credential(_) | Action::Open(_) | Action::Codes(_)
+    )
 }
 
 fn run_invocation(
@@ -185,11 +188,19 @@ fn run_invocation(
         Action::Open(args) => run_open(*args, invocation, &locations, env, (messages, language)),
         Action::Serve(_) => run_serve(invocation, &locations, (messages, language)),
         Action::Export(args) => run_export(args, invocation, &locations, messages, language),
+        Action::Codes(args) => print_codes(args, messages, language),
         Action::Check(args) => {
             let report = check::run(args, &invocation.global, &locations, &current_dir)?;
             print_check(args.json, &report, messages, language)
         }
     }
+}
+
+/// `codeskimr codes`: the list of the error codes, or the explanation of one.
+fn print_codes(args: &CodesArgs, messages: &Messages, language: &str) -> Result<Outcome, Failure> {
+    let text = codes_text(messages, language, args)?;
+    write_out(&text);
+    Ok(Outcome::Done)
 }
 
 /// `codeskimr serve`: runs until the server stops and prints the address once it listens.

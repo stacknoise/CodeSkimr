@@ -11,13 +11,15 @@ import { type Segment, segments } from "./segments";
 import { explorerPlace } from "./explorer";
 import { sourceError, sourceInfo, sourceLoading } from "./source";
 import type { SourceInfo } from "./types";
+import { ErrorDetails } from "../../shared/ui/ErrorDetails";
 import styles from "./SourcePane.module.css";
 
-function Note(props: { text: string; alert?: boolean }) {
+function Note(props: { text: string; alert?: boolean; code?: ErrorCode | null }) {
   return (
-    <p class={styles.note} role={props.alert ? "alert" : undefined}>
+    <div class={styles.note} role={props.alert ? "alert" : undefined}>
       {props.text}
-    </p>
+      <Show when={props.code}>{(code) => <ErrorDetails code={code()} message={props.text} />}</Show>
+    </div>
   );
 }
 
@@ -115,6 +117,7 @@ function Content(props: { shown: boolean }) {
                 ? t(I18N_KEYS.EXPLORER_SOURCE_FAILED)
                 : errorText(failure().code as ErrorCode)
             }
+            code={failure().code}
             alert
           />
         )}

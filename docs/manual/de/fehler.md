@@ -15,13 +15,15 @@ Jeder Fehler, den CodeSkimr meldet, hat einen Code der Form `PRÄFIX-CNN`, zum B
 ## Wo Sie einen Code sehen
 
 - **Kommandozeile:** `error[SRC-401]: Text` auf der Standardfehlerausgabe, in Ihrer Sprache. Exit-Code 1 (2 bei ungültigen Argumenten).
-- **Browser:** die Meldung des Bildschirms, mit dem Code.
+- **Browser:** die Meldung des Bildschirms, mit dem Code in kleiner Schrift und einem Knopf „Details kopieren“, der Code und Meldung in die Zwischenablage legt, bereit für eine Fehlermeldung an uns.
 - **REST:** `{ "code": "API-401", "description": "…" }` mit dem passenden HTTP-Status.
 - **MCP:** ein Werkzeugergebnis mit `isError: true` und `code`, `description` (Englisch) und `params`.
 
 Der Code ändert sich nie; der Text kann besser werden. Nennen Sie den Code, wenn Sie ein Problem melden.
 
 ## Der veröffentlichte Katalog
+
+Auf der Kommandozeile listet `codeskimr codes` alle Codes mit ihren Meldungen auf, und `codeskimr codes SRC-401` erklärt einen: Meldung, Entwicklerbeschreibung, Gruppe, Schweregrad, ob ein neuer Versuch helfen kann und seit welcher Version es ihn gibt.
 
 Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilft, der Version, seit der es ihn gibt, und einer Beschreibung wird aus dem Register `errors/error-codes.toml` erzeugt und in [`docs/error-codes.md`](../../error-codes.md) veröffentlicht (Englisch). Bearbeiten Sie sie nicht von Hand.
 

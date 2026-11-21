@@ -40,7 +40,12 @@ import { TreePane } from "./TreePane";
 import { useExplorer } from "./useExplorer";
 import styles from "./ExplorerScreen.module.css";
 
-function Message(props: { title?: string; text: string; alert?: boolean }) {
+function Message(props: {
+  title?: string;
+  text: string;
+  alert?: boolean;
+  code?: ErrorCode | null;
+}) {
   return <NoticeBox class={styles.message} {...props} />;
 }
 
@@ -69,7 +74,7 @@ function Details(props: { onPickMember: ReturnType<typeof useExplorer>["pickMemb
       <Match when={symbolError()}>
         {(failure) => (
           <div class={styles.centered}>
-            <Message text={failureText(failure())} alert />
+            <Message text={failureText(failure())} code={failure().code} alert />
           </div>
         )}
       </Match>
@@ -225,7 +230,7 @@ export function ExplorerScreen() {
       <Match when={outlineError()}>
         {(failure) => (
           <div class={styles.centered}>
-            <Message text={failureText(failure())} alert />
+            <Message text={failureText(failure())} code={failure().code} alert />
           </div>
         )}
       </Match>
