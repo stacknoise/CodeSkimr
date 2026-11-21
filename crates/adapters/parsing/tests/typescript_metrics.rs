@@ -46,6 +46,26 @@ mod tests {
     }
 
     #[test]
+    fn literals_follow_the_exceptions_of_the_rule() {
+        let found = by_name(&facts("typescript", "literals.ts"));
+        let literals = |name: &str| body(&found, name).literals;
+        // 0 and 1 are exceptions
+        assert_eq!(literals("clean"), Some(0));
+        // 42 and 2.5; 0 and 1 are exceptions
+        assert_eq!(literals("numbers"), Some(2));
+        // "x", 'y', the template with a hole and the plain template
+        assert_eq!(literals("strings"), Some(4));
+        // the literal types and the default value stand outside the value positions
+        assert_eq!(literals("types"), Some(0));
+        // a key is no value; true, false, null and undefined are no literals
+        assert_eq!(literals("flags"), Some(0));
+        // "added" counts; the directive does not
+        assert_eq!(literals("register"), Some(1));
+        // 2 and 3 (the 1 is an exception); the static field counts for nobody
+        assert_eq!(literals("method"), Some(2));
+    }
+
+    #[test]
     fn parameters_are_counted_without_the_this_type() {
         let found = by_name(&facts("typescript", "cognitive.ts"));
         let parameters = |name: &str| body(&found, name).parameters;
@@ -99,6 +119,10 @@ mod tests {
         assert_eq!(body(&found, "callbacks").parameters, Some(1));
         assert_eq!(body(&found, "single").parameters, Some(1));
         assert_eq!(body(&found, "field").parameters, Some(2));
+        assert!(
+            body(&found, "nested").literals.is_some(),
+            "the pack reports literals"
+        );
     }
 
     #[test]

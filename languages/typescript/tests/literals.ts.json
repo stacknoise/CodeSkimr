@@ -1,0 +1,242 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 31,
+      "operands": null,
+      "operators": null,
+      "symbol": "literals"
+    },
+    {
+      "decisions": 1,
+      "loc": 7,
+      "operands": [
+        6,
+        9
+      ],
+      "operators": [
+        6,
+        7
+      ],
+      "symbol": "literals.clean"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        2,
+        4
+      ],
+      "symbol": "literals.numbers"
+    },
+    {
+      "decisions": 0,
+      "loc": 4,
+      "operands": [
+        6,
+        7
+      ],
+      "operators": [
+        2,
+        4
+      ],
+      "symbol": "literals.strings"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        4,
+        7
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "literals.types"
+    },
+    {
+      "decisions": 2,
+      "loc": 4,
+      "operands": [
+        8,
+        10
+      ],
+      "operators": [
+        4,
+        6
+      ],
+      "symbol": "literals.flags"
+    },
+    {
+      "decisions": 0,
+      "loc": 4,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "literals.register"
+    },
+    {
+      "decisions": null,
+      "loc": 6,
+      "operands": null,
+      "operators": null,
+      "symbol": "literals.Holder"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "literals.Holder.method"
+    }
+  ],
+  "loc": 31,
+  "references": [
+    {
+      "at": "8:28",
+      "from": "literals.clean",
+      "kind": "read",
+      "receiver": null,
+      "target": "item"
+    },
+    {
+      "at": "8:33",
+      "from": "literals.clean",
+      "kind": "read",
+      "receiver": "named item",
+      "target": "length"
+    },
+    {
+      "at": "26:38",
+      "from": "literals.flags",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "other"
+    },
+    {
+      "at": "30:8",
+      "from": "literals.register",
+      "kind": "call",
+      "receiver": "typed string[]",
+      "target": "push"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "literals",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-41:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.clean",
+      "parent": "literals",
+      "signature": null,
+      "span": "3:7-9:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.numbers",
+      "parent": "literals",
+      "signature": null,
+      "span": "11:7-13:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.strings",
+      "parent": "literals",
+      "signature": null,
+      "span": "15:7-18:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.types",
+      "parent": "literals",
+      "signature": null,
+      "span": "20:7-22:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.flags",
+      "parent": "literals",
+      "signature": null,
+      "span": "24:7-27:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.register",
+      "parent": "literals",
+      "signature": null,
+      "span": "29:0-32:1",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "literals.Holder",
+      "parent": "literals",
+      "signature": null,
+      "span": "34:7-40:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "literals.Holder.LIMIT",
+      "parent": "literals.Holder",
+      "signature": null,
+      "span": "35:2-35:19",
+      "static": true,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "literals.Holder.method",
+      "parent": "literals.Holder",
+      "signature": null,
+      "span": "37:2-39:3",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}
