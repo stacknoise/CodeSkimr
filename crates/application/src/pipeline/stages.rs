@@ -120,6 +120,8 @@ pub struct Resolved {
     pub hashes: Vec<SymbolHash>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
+    /// The places that level 1 gave up for having too many candidates (`RES-304`).
+    pub given_up: u64,
 }
 
 /// Output of the measure stage.
@@ -143,6 +145,8 @@ pub struct Measured {
     pub hashes: Vec<SymbolHash>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
+    /// The places that level 1 gave up for having too many candidates (`RES-304`).
+    pub given_up: u64,
 }
 
 /// Counts a list as `u32`, saturating instead of failing.
@@ -502,7 +506,8 @@ impl Stage for ResolveStage {
         let resolved = self
             .resolver
             .resolve(&table, &names, &test_files, &self.ids)?;
-        let references = carried.reconcile(resolved);
+        let given_up = resolved.given_up;
+        let references = carried.reconcile(resolved.references);
         if carried.discarded_verified > 0 {
             tracing::info!(
                 event = LOG_VERIFIED_DISCARDED,
@@ -520,6 +525,7 @@ impl Stage for ResolveStage {
             fingerprints,
             hashes,
             carried,
+            given_up,
         })
     }
 }
@@ -579,6 +585,7 @@ impl Stage for MeasureStage {
             fingerprints: input.fingerprints,
             hashes: input.hashes,
             carried: input.carried,
+            given_up: input.given_up,
         })
     }
 }
@@ -617,9 +624,15 @@ fn log_warnings(warnings: &[ScanWarning]) {
 }
 
 /// The warnings of a scan over all references of the snapshot, changed and kept ones.
-fn warnings_of(references: &[Reference], carried: &[Reference]) -> Vec<ScanWarning> {
+///
+/// `given_up` counts only the places resolved in this scan: an incremental scan does not know how
+/// many a kept file gave up before.
+fn warnings_of(references: &[Reference], carried: &[Reference], given_up: u64) -> Vec<ScanWarning> {
     let ambiguous = ambiguous_occurrences(references.iter().chain(carried));
-    let found = [(ErrorCode::AmbiguousReference, ambiguous)];
+    let found = [
+        (ErrorCode::AmbiguousReference, ambiguous),
+        (ErrorCode::NameTooCommon, given_up),
+    ];
     found
         .into_iter()
         .filter(|(_, count)| *count > 0)
@@ -639,7 +652,7 @@ impl Stage for PersistStage {
         ctx.progress(0, 1);
         let root = input.run.root.clone();
         let snapshot = snapshot_of(&input, self.clock.now());
-        let warnings = warnings_of(&input.references, &input.carried.references);
+        let warnings = warnings_of(&input.references, &input.carried.references, input.given_up);
         let data = SnapshotData {
             snapshot,
             files: input.files,

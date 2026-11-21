@@ -27,6 +27,12 @@ fn the_languages_below_99_percent_are_marked_in_the_defaults() {
 }
 
 #[test]
+fn level_one_gives_up_a_bare_name_above_one_hundred_candidates() {
+    let config = Config::defaults().expect("shipped defaults are valid");
+    assert_eq!(config.scan.max_candidates, 100);
+}
+
+#[test]
 fn defaults_match_the_blueprint() {
     let config = Config::defaults().expect("shipped defaults are valid");
     assert_eq!(config.metrics.cyclomatic_good_max, 5);

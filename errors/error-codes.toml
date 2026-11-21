@@ -347,6 +347,14 @@ description = "A reference matches several symbols; it was stored as probable."
 since = "0.1.0"
 
 [[codes]]
+id = "RES-304"
+name = "name_too_common"
+severity = "warning"
+retryable = false
+description = "A name reaches more symbols than scan.max_candidates and no scope or type narrows it down; the place was given up (ADR 0084)."
+since = "1.0.0"
+
+[[codes]]
 id = "RES-302"
 name = "scip_mapping_too_low"
 severity = "error"

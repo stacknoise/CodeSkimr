@@ -237,6 +237,9 @@ pub struct Scan {
     /// Most characters of a signature (for a constant: its declaration with the value); a longer
     /// one is cut and ends with `…`.
     pub max_signature_chars: u32,
+    /// Most symbols a place may reach through the bare name; more and level 1 gives the place up
+    /// (`RES-304`, ADR 0084).
+    pub max_candidates: u32,
 }
 
 /// Settings and limits of level 2: running indexers and importing their indexes (ADR 0033).

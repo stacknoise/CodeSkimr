@@ -35,6 +35,7 @@ export type ErrorCode =
   | "RES-101"
   | "RES-201"
   | "RES-301"
+  | "RES-304"
   | "RES-302"
   | "RES-303"
   | "RES-501"
@@ -150,6 +151,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "RES-101": { id: "RES-101", name: "scip_index_invalid", group: "RES", class: "invalid_input", severity: "error", retryable: false, description: "A SCIP index cannot be read, is corrupt or names a path outside the project; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-101" },
   "RES-201": { id: "RES-201", name: "indexer_unavailable", group: "RES", class: "not_found", severity: "error", retryable: false, description: "The indexer of a language or its toolchain is not installed or is older than the version the language pack requires; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-201" },
   "RES-301": { id: "RES-301", name: "ambiguous_reference", group: "RES", class: "conflict", severity: "warning", retryable: false, description: "A reference matches several symbols; it was stored as probable.", since: "0.1.0", deprecated: false, messageKey: "error-RES-301" },
+  "RES-304": { id: "RES-304", name: "name_too_common", group: "RES", class: "conflict", severity: "warning", retryable: false, description: "A name reaches more symbols than scan.max_candidates and no scope or type narrows it down; the place was given up (ADR 0084).", since: "1.0.0", deprecated: false, messageKey: "error-RES-304" },
   "RES-302": { id: "RES-302", name: "scip_mapping_too_low", group: "RES", class: "conflict", severity: "error", retryable: false, description: "Too few occurrences of a SCIP index map onto project symbols; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-302" },
   "RES-303": { id: "RES-303", name: "scip_too_many_created_symbols", group: "RES", class: "conflict", severity: "error", retryable: false, description: "A SCIP index wants level 2 to create more symbols than level2.max_created_symbols allows; the whole import is refused and level 1 stays.", since: "0.1.0", deprecated: false, messageKey: "error-RES-303" },
   "RES-501": { id: "RES-501", name: "scip_index_too_large", group: "RES", class: "limit", severity: "error", retryable: false, description: "A SCIP index is larger than the configured limit and was refused; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-501" },

@@ -25,8 +25,9 @@ use codeskimr_application::ports::{
     FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
     IndexerSpec, IndexerStatus, Level2Replacement, MetricsCalculator, PathsReport,
     PendingReference, PreviousIndex, PreviousState, ProjectRepository, ProjectScanner, Receiver,
-    ReferenceImporter, ReferenceResolver, ReportWrite, ScanReport, ScanReportStore, SnapshotData,
-    SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints, ToolSpec, ToolVersion,
+    ReferenceImporter, ReferenceResolver, ReportWrite, Resolution, ScanReport, ScanReportStore,
+    SnapshotData, SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints, ToolSpec,
+    ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -243,13 +244,13 @@ impl ReferenceResolver for World {
         pending: &[PendingReference],
         _test_files: &HashSet<FileId>,
         ids: &IdSequence,
-    ) -> Result<Vec<Reference>, CodedError> {
+    ) -> Result<Resolution, CodedError> {
         self.gate(StageKind::Resolve)?;
         self.resolved
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .push(pending.len());
-        Ok(pending
+        let references = pending
             .iter()
             .filter_map(|item| {
                 let target = symbols
@@ -266,7 +267,11 @@ impl ReferenceResolver for World {
                     verified: false,
                 })
             })
-            .collect())
+            .collect();
+        Ok(Resolution {
+            references,
+            given_up: 0,
+        })
     }
 }
 

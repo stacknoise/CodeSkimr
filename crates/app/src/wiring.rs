@@ -147,7 +147,9 @@ pub fn scanner_over(
         source: Arc::new(scan_source(locations, secrets)),
         discovery,
         analyzer,
-        resolver: Arc::new(ScopedResolver),
+        resolver: Arc::new(ScopedResolver::new(
+            usize::try_from(config.scan.max_candidates).unwrap_or(usize::MAX),
+        )),
         metrics: Arc::new(StandardMetrics),
         projects: store.clone(),
         store: store.clone(),

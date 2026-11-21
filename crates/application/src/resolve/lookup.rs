@@ -22,6 +22,31 @@ pub struct Hit {
     pub confidence: Confidence,
 }
 
+/// The hits of one occurrence and whether the occurrence was given up for having too many.
+#[derive(Debug, Default)]
+pub struct Lookup {
+    /// The hits; none if the occurrence was given up.
+    pub hits: Vec<Hit>,
+    /// The bare name reached more symbols than the limit and nothing narrowed it down (ADR 0084).
+    pub given_up: bool,
+}
+
+impl Lookup {
+    const fn of(hits: Vec<Hit>) -> Self {
+        Self {
+            hits,
+            given_up: false,
+        }
+    }
+
+    const fn given_up() -> Self {
+        Self {
+            hits: Vec::new(),
+            given_up: true,
+        }
+    }
+}
+
 /// Candidates of one step and whether they come from the last resort.
 struct Found<'a> {
     symbols: Vec<&'a Symbol>,
@@ -40,9 +65,9 @@ impl<'a> Found<'a> {
 
 impl<'a> Context<'a> {
     /// Resolves one occurrence. Names that match nothing give no hit.
-    pub fn lookup(&self, occurrence: &PendingReference) -> Vec<Hit> {
+    pub fn lookup(&self, occurrence: &PendingReference) -> Lookup {
         if occurrence.kind == ReferenceKind::Import {
-            return self.exact(occurrence);
+            return Lookup::of(self.exact(occurrence));
         }
         let receiver = self.receiver_types(occurrence);
         for kinds in candidates(occurrence.kind) {
@@ -62,13 +87,17 @@ impl<'a> Context<'a> {
                 .retain(|symbol| !Self::is_declared_at(occurrence, symbol));
             if before > 0 && found.symbols.is_empty() {
                 // The occurrence is the declaration itself: no use, and no other symbol of the name.
-                return Vec::new();
+                return Lookup::default();
+            }
+            if found.global && found.symbols.len() > self.max_candidates {
+                // The name alone reaches too many symbols to say anything about one of them.
+                return Lookup::given_up();
             }
             if !found.symbols.is_empty() {
-                return self.hits(occurrence, found);
+                return Lookup::of(self.hits(occurrence, found));
             }
         }
-        Vec::new()
+        Lookup::default()
     }
 
     /// Whether the occurrence is the name in the declaration of `symbol`: `name: str` in a class
