@@ -1,4 +1,4 @@
-# 0082 – An incremental scan reads only the references it needs
+# 0085 – An incremental scan reads only the references it needs
 
 Status: accepted
 
