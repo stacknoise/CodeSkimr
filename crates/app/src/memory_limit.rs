@@ -65,6 +65,16 @@ mod tests {
     }
 
     #[test]
+    fn the_share_rounds_down_just_below_the_setting() {
+        assert_eq!(effective_limit_mb(5735, 8 * GB), 5734);
+    }
+
+    #[test]
+    fn a_tiny_setting_counts_as_it_is() {
+        assert_eq!(effective_limit_mb(1, 8 * GB), 1);
+    }
+
+    #[test]
     fn an_unknown_amount_of_memory_leaves_the_configured_value() {
         assert_eq!(effective_limit_mb(4096, 0), 4096);
     }

@@ -7,6 +7,10 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use crate::cancel::CancelToken;
+use crate::consts::{
+    LOG_MEMORY_LIMIT_PASSED, LOG_MEMORY_READING_MISSING, LOG_MEMORY_WATCH_NOT_STARTED,
+    MEMORY_WATCH_THREAD,
+};
 
 /// Reads how much memory the program holds, replaceable in tests.
 pub trait MemoryGauge: Send + Sync {
@@ -63,11 +67,11 @@ impl MemoryLimit {
         let limit = self.clone();
         let flag = Arc::clone(&tripped);
         let spawned = std::thread::Builder::new()
-            .name("scan-memory-watch".to_owned())
+            .name(MEMORY_WATCH_THREAD.to_owned())
             .spawn(move || {
                 while let Err(RecvTimeoutError::Timeout) = wake.recv_timeout(limit.interval) {
                     if limit.exceeded() {
-                        tracing::error!(max_mb = limit.max_mb, used_mb = ?limit.gauge.used_mb(), "scan passed the memory limit and is stopped");
+                        tracing::error!(event = LOG_MEMORY_LIMIT_PASSED, max_mb = limit.max_mb, used_mb = ?limit.gauge.used_mb());
                         flag.store(true, Ordering::Release);
                         cancel.cancel();
                         return;
@@ -75,7 +79,7 @@ impl MemoryLimit {
                 }
             });
         let thread = spawned
-            .map_err(|cause| tracing::warn!(%cause, "memory watch not started, scan runs without memory limit"))
+            .map_err(|cause| tracing::warn!(event = LOG_MEMORY_WATCH_NOT_STARTED, %cause))
             .ok();
         MemoryWatch {
             tripped,
@@ -87,9 +91,9 @@ impl MemoryLimit {
 
 impl std::fmt::Debug for MemoryLimit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MemoryLimit")
-            .field("max_mb", &self.max_mb)
-            .finish_non_exhaustive()
+        f.debug_tuple(std::any::type_name::<Self>())
+            .field(&self.max_mb)
+            .finish()
     }
 }
 
@@ -116,5 +120,49 @@ impl Drop for MemoryWatch {
             // A panic of the watch thread has nothing left to report.
             let _ = thread.join();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+    use std::time::{Duration, Instant};
+
+    use super::{MemoryGauge, MemoryLimit};
+    use crate::cancel::CancelToken;
+
+    struct Fixed(Option<u64>);
+
+    impl MemoryGauge for Fixed {
+        fn used_mb(&self) -> Option<u64> {
+            self.0
+        }
+    }
+
+    #[test]
+    fn dropping_the_watch_does_not_wait_for_the_interval() {
+        let limit = MemoryLimit::new(Arc::new(Fixed(Some(1))), 100, Duration::from_secs(10));
+        let watch = limit.watch(CancelToken::default());
+        let start = Instant::now();
+        drop(watch);
+        assert!(start.elapsed() < Duration::from_secs(1));
+    }
+
+    #[test]
+    fn a_missing_reading_never_trips_the_watch() {
+        let limit = MemoryLimit::new(Arc::new(Fixed(None)), 1, Duration::from_millis(5));
+        let watch = limit.watch(CancelToken::default());
+        std::thread::sleep(Duration::from_millis(30));
+        assert!(!watch.tripped());
+    }
+
+    #[test]
+    fn a_reading_above_the_limit_trips_the_watch() {
+        let cancel = CancelToken::default();
+        let limit = MemoryLimit::new(Arc::new(Fixed(Some(10))), 1, Duration::from_millis(5));
+        let watch = limit.watch(cancel.clone());
+        std::thread::sleep(Duration::from_millis(100));
+        assert!(watch.tripped());
+        assert!(cancel.is_cancelled());
     }
 }
