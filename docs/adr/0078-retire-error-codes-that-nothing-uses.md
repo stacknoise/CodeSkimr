@@ -1,6 +1,6 @@
 # 0078 – Retire error codes that nothing uses
 
-Status: proposed (needs Anton's confirmation; the change belongs to PR #614)
+Status: accepted (within the merge approval of Anton of 2026-11-13; it only retires unused codes and follows up in the docs)
 
 ## Context
 
