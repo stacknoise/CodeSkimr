@@ -35,7 +35,15 @@ function register(items: string[]): void {
 export class Holder {
   static LIMIT = 99;
 
+  @Dec("x")
   method(): number[] {
     return [1, 2, 3];
   }
+}
+
+export function localConst(): number {
+  const MAX = 99;
+  const SUM = 2 * 50;
+  const names = [`first`];
+  return MAX + SUM + names.length;
 }

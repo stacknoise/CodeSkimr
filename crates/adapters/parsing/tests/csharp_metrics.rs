@@ -65,8 +65,8 @@ mod tests {
         assert_eq!(literals("Clean"), Some(0));
         // 42 and 2.5; 0 and 1 are exceptions
         assert_eq!(literals("Numbers"), Some(2));
-        // "x", 'y', the interpolated string and @"raw"
-        assert_eq!(literals("Strings"), Some(4));
+        // "x", 'y', the interpolated string, the 2 in its hole and @"raw"
+        assert_eq!(literals("Strings"), Some(5));
         // the value of a local const is an exception, the 7 is not
         assert_eq!(literals("Local"), Some(1));
         // the attribute argument is an exception; true, false and null are no literals

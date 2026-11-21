@@ -11,10 +11,10 @@ public class Literals
 
     public double Numbers() => 42 + 2.5 + 0 + 1;
 
-    public string Strings(string name)
+    public string Strings(string name, int count)
     {
         var label = "x" + 'y';
-        return $"{name}!" + label + @"raw";
+        return $"{name}!{count + 2}" + label + @"raw";
     }
 
     public int Local()

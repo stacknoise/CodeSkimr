@@ -145,7 +145,11 @@
 ; of types (`"a" | "b"`), property keys, module names and directives, and is the part of the
 ; grammar that TypeScript and JavaScript share. `true`, `false`, `null` and `undefined` are no
 ; literals here. Exceptions: the integers 0 and 1, and a literal that is a direct argument of a
-; decorator. The default value of a TypeScript parameter is not seen (a gap of this pack).
+; decorator, and the initialiser of a `const` declaration when it is a literal itself (`const MAX = 99`; the
+; parts of `2 * 50` still count).
+; Known gaps: the default value of a TypeScript parameter, and a literal behind `as`, `satisfies` or
+; `!` are not seen in TypeScript (the grammar of JavaScript, which shares this file, lacks them;
+; TSX adds the casts), nor is a literal in JSX in TypeScript.
 [
   (arguments [(number) (string) (template_string)] @literal)
   (binary_expression [(number) (string) (template_string)] @literal)
@@ -167,6 +171,11 @@
   (yield_expression [(number) (string) (template_string)] @literal)
   (throw_statement [(number) (string) (template_string)] @literal)
   (switch_case value: [(number) (string) (template_string)] @literal)
-  (member_expression object: [(number) (string) (template_string)] @literal)]
+  (member_expression object: [(number) (string) (template_string)] @literal)
+  (object_assignment_pattern right: [(number) (string) (template_string)] @literal)
+  (computed_property_name [(number) (string) (template_string)] @literal)
+  (for_in_statement right: [(number) (string) (template_string)] @literal)
+  (call_expression arguments: (template_string) @literal)]
 ((number) @literal_exempt (#any-of? @literal_exempt "0" "1"))
 (decorator (call_expression arguments: (arguments (_) @literal_exempt)))
+(lexical_declaration "const" (variable_declarator value: (_) @literal_exempt))
