@@ -22,7 +22,7 @@ fn layer_of<'a>(layers: &'a [Layer], name: &QualifiedName) -> Option<&'a Layer> 
 /// What one finding is made of: the function and the layer it reaches into.
 type Key = (RelativePath, QualifiedName, String);
 
-/// One finding for every function and forbidden layer, with the number of references. Only the
+/// One finding for every symbol and forbidden layer, with the number of references. Only the
 /// stored references of the checked `files` count, so edits that no scan has seen are not
 /// reflected.
 ///
