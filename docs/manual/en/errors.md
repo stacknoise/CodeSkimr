@@ -30,7 +30,7 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | Code | Meaning | What to do |
 |---|---|---|
 | `APP-201` | the data folder cannot be created or opened | check the path and rights (`--data-dir`) |
-| `APP-202` | the private file for starting the browser could not be created; also refused when its folder is a link or a junction (Windows) | check the rights of the data folder; `codeskimr serve` and open the address by hand |
+| `APP-202` | the private file for starting the browser could not be created; also refused when its folder is a link or a junction, or when a folder above it belongs to another account (Windows; this can hit company profiles on network drives and folders on a second drive) | check the rights of the data folder; on Windows the log (`codeskimr.log`, event `launch_parent_refused`) names the refused folder: put the data folder with `--data-dir` in a place whose folders all belong to your own account; `codeskimr serve` and open the address by hand |
 | `APP-601` | the system did not start a browser | open the address printed by `codeskimr serve` by hand |
 | `APP-603` | the program could not start itself in the background or show its tray icon | start it with `--console` to stay in the window and look at the log in the data folder (`codeskimr.log`) |
 | `APP-604` | the console window for the level 2 confirmation could not be started | copy the command the screen shows and run it in a terminal |
