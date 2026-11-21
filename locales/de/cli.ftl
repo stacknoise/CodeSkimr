@@ -46,6 +46,10 @@ cli-check-literals = { $name } enthält { $count ->
     [one] ein Literal
    *[other] { $count } Literale
 }; Werte gehören in Konstanten, Konfiguration oder Textdateien.
+cli-check-layer = { $name } in der Schicht { $from_layer } nutzt die Schicht { $to_layer } ({ $count ->
+    [one] ein Verweis
+   *[other] { $count } Verweise
+}), was nicht erlaubt ist.
 cli-check-too-long = { $name } hat { $lines } Codezeilen, erlaubt sind höchstens { $limit }.
 cli-check-duplicate = { $name } kopiert { $original } ({ $path }:{ $line }), zu { $percent } % ähnlich.
 cli-check-unchecked = { $path } übersprungen: { $code } { $message }

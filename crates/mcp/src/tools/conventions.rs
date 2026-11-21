@@ -48,6 +48,12 @@ struct Violation {
     max_value: Option<u32>,
     /// `CHK-101`: how many literals outside the exceptions the function contains.
     literals: Option<u32>,
+    /// `CHK-103`: the layer of the function.
+    from_layer: Option<String>,
+    /// `CHK-103`: the layer it must not use.
+    to_layer: Option<String>,
+    /// `CHK-103`: how many references of the function point into that layer.
+    uses: Option<u32>,
     /// `CHK-102`: the earlier function this one copies.
     duplicate_of: Option<Place>,
     /// `CHK-102`: how similar the two are, in whole percent.
@@ -66,6 +72,9 @@ fn violation(finding: &Finding) -> Violation {
         value: measure.value,
         max_value: measure.value.and(measure.limit),
         literals: measure.literals,
+        from_layer: measure.layering.map(|(from, _, _)| from.to_owned()),
+        to_layer: measure.layering.map(|(_, to, _)| to.to_owned()),
+        uses: measure.layering.map(|(_, _, uses)| uses),
         duplicate_of: measure.duplicate_of.map(place),
         similarity_percent: measure.similarity_percent,
     }
@@ -147,6 +156,8 @@ impl Tools {
             paths: &paths,
             stored: snapshot.map(|snapshot| StoredProject {
                 index: self.similarity(),
+                references: self.references(),
+                layers: &project.layers,
                 snapshot: snapshot.id,
             }),
         })?;

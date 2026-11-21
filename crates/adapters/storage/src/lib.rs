@@ -30,6 +30,7 @@ mod removal;
 mod replace;
 mod reports;
 mod similarity;
+mod sites;
 mod snapshots;
 mod sql;
 mod states;

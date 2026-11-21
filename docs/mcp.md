@@ -7,7 +7,7 @@ Implements the first part of blueprint section 10.4: the stdio server with the t
 - `codeskimr_mcp::Tools` holds the logic, synchronous, behind the ports `ProjectRepository`, `CodeIndex` and `Clock`. It is tested without any protocol.
 - `codeskimr_mcp::McpServer` implements `rmcp::ServerHandler`: tool list, argument parsing, error mapping. Tool calls run on a blocking thread, so a slow query never stalls the protocol loop.
 - `codeskimr_mcp::serve_stdio(server)` serves one client over stdin/stdout. The composition root builds `Tools` (store, clock, `config.mcp`, default project) and `McpServer::new(tools, &Messages::load()?)`.
-- The ports are handed over as one `Ports` value (projects, index, usages, similarity, snippets, checker, clock, scanner), so a tool that needs another port adds a field instead of a constructor argument. The port `CodeIndex` (`codeskimr_application::ports`) offers `latest_snapshot`, `search`, `symbol` and `layer_edges`. `codeskimr_storage::SqliteStore` implements it. The crate rule stays: `mcp` never depends on `secrets` or on an adapter.
+- The ports are handed over as one `Ports` value (projects, index, usages, similarity, references, snippets, checker, clock, scanner), so a tool that needs another port adds a field instead of a constructor argument. The port `CodeIndex` (`codeskimr_application::ports`) offers `latest_snapshot`, `search`, `symbol` and `layer_edges`. `codeskimr_storage::SqliteStore` implements it. The crate rule stays: `mcp` never depends on `secrets` or on an adapter.
 
 ## Transports
 
@@ -88,7 +88,7 @@ Tool descriptions and the server instructions are written for code agents and li
 
 ## Known limits
 
-- `get_architecture` returns the layers and the measured dependencies. Layers come from the `[[layers]]` list of the configuration (`docs/cli.md`, ADR 0031); without it the list is empty. A layer may list `may_use`, the layers it may depend on (ADR 0054); a recorded dependency from it to any other layer then has `violates_layering`. `conventions` repeats the limits `check_conventions` applies (`max_function_lines`, `duplicate_similarity_percent`, `duplicate_min_lines`, `test_folders`). The layer rule of `check_conventions` (`CHK-103`) is not part of this yet.
+- `get_architecture` returns the layers and the measured dependencies. Layers come from the `[[layers]]` list of the configuration (`docs/cli.md`, ADR 0031); without it the list is empty. A layer may list `may_use`, the layers it may depend on (ADR 0054); a recorded dependency from it to any other layer then has `violates_layering`. `conventions` repeats the limits `check_conventions` applies (`max_function_lines`, `duplicate_similarity_percent`, `duplicate_min_lines`, `test_folders`). The layer rule of `check_conventions` (`CHK-103`, ADR 0082) reads the stored references of the newest snapshot for the checked files and reports one finding per function and forbidden layer (`from_layer`, `to_layer`, `uses`); it needs a snapshot and a layer with `may_use`, otherwise it stays in `not_checked`, and it does not see edits that no scan has seen.
 - Paths from arguments (blueprint S-05): `check_conventions` takes paths, but only to select among the files of the project's own file list; a path is never opened, so `..` or an absolute path selects nothing. `rescan` takes no paths, so there is nothing to canonicalise.
 - A qualified name shared by several symbols (overloads) answers with the lowest symbol id; use the id from `search_symbols` to be exact.
 

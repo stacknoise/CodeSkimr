@@ -194,6 +194,7 @@ fn build_ports(
         projects: store.clone(),
         usages: store.clone(),
         similarity: store.clone(),
+        references: store.clone(),
         snippets,
         checker,
         clock: Arc::new(SystemClock),

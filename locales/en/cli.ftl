@@ -46,6 +46,10 @@ cli-check-literals = { $name } contains { $count ->
     [one] one literal
    *[other] { $count } literals
 }; values belong in constants, configuration or message files.
+cli-check-layer = { $name } in layer { $from_layer } uses layer { $to_layer } ({ $count ->
+    [one] one reference
+   *[other] { $count } references
+}), which it may not.
 cli-check-too-long = { $name } has { $lines } code lines, at most { $limit } are allowed.
 cli-check-duplicate = { $name } copies { $original } ({ $path }:{ $line }), { $percent } % similar.
 cli-check-unchecked = Skipped { $path }: { $code } { $message }
