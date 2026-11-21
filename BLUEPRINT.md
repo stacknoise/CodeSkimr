@@ -746,7 +746,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
   - level 2 (`level2.*`: switch, time, memory and output limits, index size, share of mappable uses). Only the user config and CLI flags may set them; the project file cannot
   - excluded folders (`bin`, `obj`, `.git`, `node_modules`, `target`, `dist` …)
   - annotations (`annotations.*`, ADR 0068): `dismissed_retention_days` (30), `max_text_chars` (4000), `max_title_chars` (500), `max_assignee_chars` (100), `max_name_chars` (500), `max_parameter_chars` (200), `max_parameters` (32), `default_page_size` (100), `max_page_size` (500)
-- **Overrides,** applied in this order: user config file → project config (`.codeskimr.toml` in the repository) → CLI flags. The project config may only lower `scan.max_source_mb`, `scan.parse_timeout_ms` and `scan.max_candidates`, not raise them above the value of the defaults and the user file, so that a scanned repository cannot lift the protection of the scanning machine (ADR 0040).
+- **Overrides,** applied in this order: user config file → project config (`.codeskimr.toml` in the repository) → CLI flags. The project config may only lower `scan.max_source_mb`, `scan.parse_timeout_ms`, `scan.max_candidates` and `scan.max_memory_mb`, not raise them above the value of the defaults and the user file, so that a scanned repository cannot lift the protection of the scanning machine (ADR 0040).
 - **Typed config:** the config is deserialised into typed structs and validated at start-up. Invalid values produce `CFG-1xx` errors. There is no `config.get("string")` anywhere in the code.
 - **`consts.rs` / `consts.ts`:** technical constants that are not tunable. One file per crate or feature, never a global constants file.
 
@@ -1138,6 +1138,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | PRJ-303 | `scan_cancelled` | The scan was cancelled by the user; no snapshot was written. (info) |
 | PRJ-501 | `too_many_scans` | As many scans run at the same time as the server allows; try again when one has ended. |
 | PRJ-502 | `scan_report_not_stored` | The report of the scan (its level and what level 2 did per language) could not be stored; the scan and its snapshot are stored. |
+| PRJ-503 | `scan_memory_limit` | The scan held more memory than `scan.max_memory_mb` allows (at most 70 % of the installed memory) and was stopped; no snapshot was written (ADR 0087). (error) |
 | SRC-201 | `source_path_not_found` | A source folder, a source file or a language pack folder does not exist or cannot be read. |
 | SRC-202 | `git_branch_not_found` | The requested branch does not exist on the remote. |
 | SRC-401 | `git_auth_required` | The remote requires authentication and no usable credential is available. |

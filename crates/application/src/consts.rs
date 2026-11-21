@@ -111,6 +111,14 @@ pub const LOG_REPORT_NOT_STORED: &str = "scan_report_not_stored";
 pub const LOG_IDS_NOT_CAUGHT_UP: &str = "ids_not_caught_up";
 /// Log event: a snapshot stores fewer ambiguous places than its references show (ADR 0086).
 pub const LOG_AMBIGUOUS_COUNT_TOO_LOW: &str = "ambiguous_count_too_low";
+/// Log event: the system gave no memory reading, so the memory limit of a scan does not protect (ADR 0087).
+pub const LOG_MEMORY_READING_MISSING: &str = "memory_reading_missing";
+/// Log event: the memory watch thread could not be started, the scan runs unwatched (ADR 0087).
+pub const LOG_MEMORY_WATCH_NOT_STARTED: &str = "memory_watch_not_started";
+/// Log event: a scan passed the memory limit and is stopped (`PRJ-503`).
+pub const LOG_MEMORY_LIMIT_PASSED: &str = "memory_limit_passed";
+/// Name of the thread that watches the memory of a scan.
+pub const MEMORY_WATCH_THREAD: &str = "scan-memory-watch";
 
 /// Wire word of `TokenClass::Comment`.
 pub const TOKEN_COMMENT: &str = "comment";

@@ -648,9 +648,9 @@ impl Stage for ResolveStage {
         ctx.progress(0, total);
         let table = level_one_symbols(&carried.symbols, &symbols);
         let test_files = self.test_files(files.iter().chain(&carried.files));
-        let resolved = self
-            .resolver
-            .resolve(&table, &names, &test_files, &self.ids)?;
+        let resolved =
+            self.resolver
+                .resolve(&table, &names, &test_files, (&self.ids, ctx.cancel_token()))?;
         let given_up = resolved.given_up;
         let references = carried.reconcile(resolved.references, self.projects.as_ref())?;
         if carried.discarded_verified > 0 {
