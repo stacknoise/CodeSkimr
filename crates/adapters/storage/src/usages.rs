@@ -46,7 +46,7 @@ impl SqliteStore {
         {
             return Ok(Arc::clone(index));
         }
-        let loaded = Arc::new(self.read(|conn| SnapshotLookup::load(conn, raw))?);
+        let loaded = Arc::new(self.read_apart(|conn| SnapshotLookup::load(conn, raw))?);
         *cached = Some((snapshot, Arc::clone(&loaded), version));
         Ok(loaded)
     }
@@ -96,14 +96,20 @@ impl SqliteStore {
         };
         let (kept, raw) = (*kept, column_int(snapshot.get()));
         let loaded = raw.and_then(|raw| {
-            self.read(|conn| {
+            let version = self.read(|conn| {
                 let version = data_version(conn)?;
                 let other = project_of(conn, column_int(kept.get())?)?;
                 if other.is_some() && other != project_of(conn, raw)? {
                     return Ok(None);
                 }
-                SnapshotLookup::load(conn, raw).map(|loaded| Some((loaded, version)))
-            })
+                Ok(Some(version))
+            })?;
+            version
+                .map(|version| {
+                    self.read_apart(|conn| SnapshotLookup::load(conn, raw))
+                        .map(|loaded| (loaded, version))
+                })
+                .transpose()
         });
         match loaded {
             Ok(Some((loaded, version))) => *cached = Some((snapshot, Arc::new(loaded), version)),

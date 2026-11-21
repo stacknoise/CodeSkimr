@@ -2,19 +2,19 @@
 
 use std::fs;
 use std::num::NonZeroU32;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 
 use codeskimr_application::error::CodedError;
 use codeskimr_domain::SnapshotId;
-use rusqlite::{Connection, ErrorCode, Transaction, TransactionBehavior};
+use rusqlite::{Connection, ErrorCode, OpenFlags, Transaction, TransactionBehavior};
 
 use crate::consts::{
-    BUSY_TIMEOUT_MS, CACHE_SIZE_KIB, FIRST_ID, ID_STEP, JOURNAL_MODE_WAL, PRAGMA_CACHE_SIZE,
-    PRAGMA_FOREIGN_KEYS, PRAGMA_JOURNAL_MODE, PRAGMA_MAX_PAGE_COUNT, PRAGMA_ON, PRAGMA_PAGE_COUNT,
-    PRAGMA_SYNCHRONOUS, PRAGMA_TEMP_STORE, SYNCHRONOUS_NORMAL, TEMP_STORE_MEMORY,
-    WAL_SWITCH_ATTEMPTS, WAL_SWITCH_PAUSE_MS,
+    BUSY_TIMEOUT_MS, CACHE_SIZE_KIB, FIRST_ID, ID_STEP, JOURNAL_MODE_WAL,
+    LOG_READ_CONNECTION_UNAVAILABLE, PRAGMA_CACHE_SIZE, PRAGMA_FOREIGN_KEYS, PRAGMA_JOURNAL_MODE,
+    PRAGMA_MAX_PAGE_COUNT, PRAGMA_ON, PRAGMA_PAGE_COUNT, PRAGMA_SYNCHRONOUS, PRAGMA_TEMP_STORE,
+    SYNCHRONOUS_NORMAL, TEMP_STORE_MEMORY, WAL_SWITCH_ATTEMPTS, WAL_SWITCH_PAUSE_MS,
 };
 use crate::error::StorageResult;
 use crate::sql;
@@ -54,6 +54,9 @@ fn limit_growth(conn: &Connection, pages: NonZeroU32) -> rusqlite::Result<()> {
 #[derive(Debug)]
 pub struct SqliteStore {
     conn: Mutex<Connection>,
+    /// The database file, so that a long read can use a connection of its own and leave `conn`
+    /// to the queries of the screens; `None` for an in-memory database.
+    file: Option<PathBuf>,
     retention: NonZeroU32,
     /// The reverse index and the places of the snapshot that was asked about last. They are kept
     /// only while no other connection has committed since (`data_version`): the level 2 import of
@@ -95,7 +98,7 @@ impl SqliteStore {
     pub fn open_in_memory(retention: NonZeroU32) -> Result<Self, CodedError> {
         Connection::open_in_memory()
             .map_err(Into::into)
-            .and_then(|conn| Self::prepared(conn, retention, StoreOptions::default()))
+            .and_then(|conn| Self::prepared(conn, None, retention, StoreOptions::default()))
             .map_err(CodedError::from)
     }
 
@@ -107,11 +110,17 @@ impl SqliteStore {
         if let Some(folder) = path.parent() {
             fs::create_dir_all(folder)?;
         }
-        Self::prepared(Connection::open(path)?, retention, options)
+        Self::prepared(
+            Connection::open(path)?,
+            Some(path.to_path_buf()),
+            retention,
+            options,
+        )
     }
 
     fn prepared(
         mut conn: Connection,
+        file: Option<PathBuf>,
         retention: NonZeroU32,
         options: StoreOptions,
     ) -> StorageResult<Self> {
@@ -127,6 +136,7 @@ impl SqliteStore {
         }
         Ok(Self {
             conn: Mutex::new(conn),
+            file,
             retention,
             reverse: Mutex::new(None),
         })
@@ -147,6 +157,37 @@ impl SqliteStore {
         work: impl FnOnce(&Connection) -> StorageResult<T>,
     ) -> StorageResult<T> {
         work(&self.connection())
+    }
+
+    /// Runs a long read on a read-only connection of its own, so that the other queries and the
+    /// writers are not held up by it (the write-ahead log lets readers run side by side). The
+    /// whole read is one read transaction, so it sees one consistent state even if a writer
+    /// commits meanwhile. While it runs, the log cannot be checkpointed past its start, so the
+    /// log file may grow until it ends. Without a file (in-memory database) it runs on the shared
+    /// connection; so it does if the extra connection cannot be opened, which is logged.
+    pub(crate) fn read_apart<T>(
+        &self,
+        work: impl FnOnce(&Connection) -> StorageResult<T>,
+    ) -> StorageResult<T> {
+        let Some(file) = self.file.as_deref() else {
+            return self.read(work);
+        };
+        let opened = Connection::open_with_flags(
+            file,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        );
+        match opened {
+            Ok(conn) => {
+                let tx = conn.unchecked_transaction()?;
+                let value = work(&tx)?;
+                tx.commit()?;
+                Ok(value)
+            }
+            Err(cause) => {
+                tracing::warn!(event = LOG_READ_CONNECTION_UNAVAILABLE, %cause);
+                self.read(work)
+            }
+        }
     }
 
     /// Runs `work` in one write transaction: committed if it succeeds, rolled back otherwise.
@@ -193,5 +234,61 @@ fn enable_wal(conn: &Connection) -> rusqlite::Result<()> {
             }
             other => return other,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::num::NonZeroU32;
+
+    use super::SqliteStore;
+
+    fn file_store(name: &str) -> (SqliteStore, std::path::PathBuf) {
+        let folder =
+            std::env::temp_dir().join(format!("codeskimr-apart-{}-{name}", std::process::id()));
+        let path = folder.join("workspace.db");
+        let store = SqliteStore::open(&path, NonZeroU32::new(3).unwrap()).unwrap();
+        (store, folder)
+    }
+
+    #[test]
+    fn a_read_apart_does_not_hold_up_a_write_on_the_shared_connection() {
+        let (store, folder) = file_store("write");
+        let written = store
+            .read_apart(|_| store.write(|tx| Ok(tx.execute("CREATE TABLE probe (x)", [])?)))
+            .unwrap();
+        assert_eq!(written, 0);
+        std::fs::remove_dir_all(folder).unwrap();
+    }
+
+    #[test]
+    fn a_read_apart_sees_one_state_although_a_writer_commits_meanwhile() {
+        let (store, folder) = file_store("state");
+        store
+            .write(|tx| {
+                Ok(tx.execute_batch("CREATE TABLE probe (x); INSERT INTO probe VALUES (1);")?)
+            })
+            .unwrap();
+        let (before, after) = store
+            .read_apart(|conn| {
+                let count = |c: &rusqlite::Connection| -> i64 {
+                    c.query_row("SELECT COUNT(*) FROM probe", [], |row| row.get(0))
+                        .unwrap()
+                };
+                let before = count(conn);
+                store.write(|tx| Ok(tx.execute("INSERT INTO probe VALUES (2)", [])?))?;
+                Ok((before, count(conn)))
+            })
+            .unwrap();
+        assert_eq!((before, after), (1, 1));
+        assert_eq!(
+            store
+                .read(
+                    |c| Ok(c.query_row("SELECT COUNT(*) FROM probe", [], |r| r.get::<_, i64>(0))?)
+                )
+                .unwrap(),
+            2
+        );
+        std::fs::remove_dir_all(folder).unwrap();
     }
 }

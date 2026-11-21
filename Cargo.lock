@@ -702,6 +702,7 @@ dependencies = [
  "codeskimr_domain",
  "criterion",
  "rusqlite",
+ "tracing",
 ]
 
 [[package]]
