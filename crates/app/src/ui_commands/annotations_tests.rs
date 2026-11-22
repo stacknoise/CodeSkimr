@@ -127,8 +127,16 @@ fn the_types_and_members_of_the_read_models_carry_the_key_of_their_annotations()
     let outline = fixture
         .call("explorer.outline", json!({ "project": project }))
         .unwrap();
-    let node = &outline["layers"][0]["namespaces"][0]["types"][0];
-    assert_eq!(node["qualified_name"], CLASS);
+    let space = &outline["layers"][0]["namespaces"][0];
+    let node = &space["types"][0];
+    // The outline leaves the key out when the namespace and the name give it (#651).
+    assert!(node.get("qualified_name").is_none());
+    let key = format!(
+        "{}.{}",
+        space["name"].as_str().unwrap(),
+        node["name"].as_str().unwrap()
+    );
+    assert_eq!(key, CLASS);
     let shown = fixture
         .call(
             "explorer.symbol",
