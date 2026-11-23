@@ -13,10 +13,11 @@ use codeskimr_domain::SnapshotId;
 use rusqlite::{Connection, ErrorCode, OpenFlags, Transaction, TransactionBehavior};
 
 use crate::consts::{
-    BUSY_TIMEOUT_MS, CACHE_SIZE_KIB, FIRST_ID, ID_STEP, JOURNAL_MODE_WAL, KEPT_BUILDS,
-    LOG_READ_CONNECTION_UNAVAILABLE, PRAGMA_CACHE_SIZE, PRAGMA_FOREIGN_KEYS, PRAGMA_JOURNAL_MODE,
-    PRAGMA_MAX_PAGE_COUNT, PRAGMA_ON, PRAGMA_PAGE_COUNT, PRAGMA_SYNCHRONOUS, PRAGMA_TEMP_STORE,
-    SYNCHRONOUS_NORMAL, TEMP_STORE_MEMORY, WAL_SWITCH_ATTEMPTS, WAL_SWITCH_PAUSE_MS,
+    BUSY_TIMEOUT_MS, CACHE_SIZE_KIB, FIRST_ID, ID_STEP, IDLE_READERS, JOURNAL_MODE_WAL,
+    KEPT_BUILDS, LOG_READ_CONNECTION_UNAVAILABLE, PRAGMA_CACHE_SIZE, PRAGMA_FOREIGN_KEYS,
+    PRAGMA_JOURNAL_MODE, PRAGMA_MAX_PAGE_COUNT, PRAGMA_ON, PRAGMA_PAGE_COUNT, PRAGMA_SYNCHRONOUS,
+    PRAGMA_TEMP_STORE, SYNCHRONOUS_NORMAL, TEMP_STORE_MEMORY, WAL_SWITCH_ATTEMPTS,
+    WAL_SWITCH_PAUSE_MS,
 };
 use crate::error::StorageResult;
 use crate::sql;
@@ -76,6 +77,20 @@ pub struct SqliteStore {
     /// Counts the writes of this store that may have changed references, so that a build that
     /// was running during one does not keep what it read before it.
     pub(crate) writes: AtomicU64,
+    /// Read-only connections that are not in use, kept so that a read apart does not open the
+    /// file every time; at most `IDLE_READERS`.
+    readers: Mutex<Vec<Connection>>,
+}
+
+/// Runs `work` as one read transaction on `conn`.
+fn in_read_transaction<T>(
+    conn: &Connection,
+    work: impl FnOnce(&Connection) -> StorageResult<T>,
+) -> StorageResult<T> {
+    let tx = conn.unchecked_transaction()?;
+    let value = work(&tx)?;
+    tx.commit()?;
+    Ok(value)
 }
 
 /// The lock of one build.
@@ -222,6 +237,7 @@ impl SqliteStore {
             builds: Mutex::new(HashMap::new()),
             walks: Mutex::new(Vec::new()),
             writes: AtomicU64::new(0),
+            readers: Mutex::new(Vec::new()),
         })
     }
 
@@ -286,21 +302,39 @@ impl SqliteStore {
         let Some(file) = self.file.as_deref() else {
             return self.read(work);
         };
-        let opened = Connection::open_with_flags(
-            file,
-            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        let idle = self
+            .readers
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .pop();
+        let opened = idle.map_or_else(
+            || {
+                Connection::open_with_flags(
+                    file,
+                    OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+                )
+            },
+            Ok,
         );
         match opened {
             Ok(conn) => {
-                let tx = conn.unchecked_transaction()?;
-                let value = work(&tx)?;
-                tx.commit()?;
+                let value = in_read_transaction(&conn, work)?;
+                self.keep_reader(conn);
                 Ok(value)
             }
             Err(cause) => {
                 tracing::warn!(event = LOG_READ_CONNECTION_UNAVAILABLE, %cause);
                 self.read(work)
             }
+        }
+    }
+
+    /// Keeps a read-only connection for the next read apart, unless enough are kept already. A
+    /// connection whose read failed is not kept.
+    fn keep_reader(&self, conn: Connection) {
+        let mut idle = self.readers.lock().unwrap_or_else(PoisonError::into_inner);
+        if idle.len() < IDLE_READERS {
+            idle.push(conn);
         }
     }
 
@@ -356,6 +390,7 @@ mod tests {
     use std::num::NonZeroU32;
 
     use super::SqliteStore;
+    use crate::sql;
 
     fn file_store(name: &str) -> (SqliteStore, std::path::PathBuf) {
         let folder =
@@ -403,6 +438,93 @@ mod tests {
                 .unwrap(),
             2
         );
+        std::fs::remove_dir_all(folder).unwrap();
+    }
+
+    /// The statements that read the references of one snapshot.
+    const OF_ONE_SNAPSHOT: [&str; 6] = [
+        sql::REFERENCE_TALLY_ROWS,
+        sql::REFERENCE_ENDS_CERTAIN,
+        sql::REFERENCE_TARGETS,
+        sql::REFERENCES_OF_SNAPSHOT,
+        sql::VERIFIED_REFERENCE_FILES,
+        sql::REFERENCE_PAIRS,
+    ];
+
+    fn plan(store: &SqliteStore, statement: &str) -> String {
+        store
+            .read(|conn| {
+                let mut explained = conn.prepare(&format!("EXPLAIN QUERY PLAN {statement}"))?;
+                let filled = vec![rusqlite::types::Null; explained.parameter_count()];
+                let steps = explained
+                    .query_map(rusqlite::params_from_iter(filled), |row| {
+                        row.get::<_, String>(3)
+                    })?
+                    .collect::<Result<Vec<_>, _>>()?;
+                Ok(steps.join("\n"))
+            })
+            .unwrap()
+    }
+
+    /// The references of every project share one table. A statement that walks the whole table
+    /// makes a small project wait for the references of the largest one in the database.
+    #[test]
+    fn the_references_of_a_snapshot_are_read_through_its_files_not_the_whole_table() {
+        let store = SqliteStore::open_in_memory(NonZeroU32::new(3).unwrap()).unwrap();
+        for statement in OF_ONE_SNAPSHOT {
+            let narrowed = format!("{statement}{}", sql::IN_FILES_OF_SNAPSHOT);
+            let plan = plan(&store, &narrowed);
+            assert!(
+                !plan.contains("SCAN symbol_references"),
+                "{statement}\n{plan}"
+            );
+        }
+    }
+
+    fn probe_count(conn: &rusqlite::Connection) -> crate::error::StorageResult<i64> {
+        Ok(conn.query_row("SELECT COUNT(*) FROM probe", [], |row| row.get(0))?)
+    }
+
+    #[test]
+    fn a_kept_reader_sees_what_was_written_after_its_last_read() {
+        let (store, folder) = file_store("reuse");
+        store
+            .write(|tx| Ok(tx.execute_batch("CREATE TABLE probe (x);")?))
+            .unwrap();
+        assert_eq!(store.read_apart(probe_count).unwrap(), 0);
+        assert_eq!(store.readers.lock().unwrap().len(), 1);
+        store
+            .write(|tx| Ok(tx.execute("INSERT INTO probe VALUES (1)", [])?))
+            .unwrap();
+        assert_eq!(store.read_apart(probe_count).unwrap(), 1);
+        assert_eq!(store.readers.lock().unwrap().len(), 1);
+        std::fs::remove_dir_all(folder).unwrap();
+    }
+
+    #[test]
+    fn a_reader_whose_read_failed_is_not_kept() {
+        let (store, folder) = file_store("failed");
+        assert!(store.read_apart(probe_count).is_err());
+        assert_eq!(store.readers.lock().unwrap().len(), 0);
+        std::fs::remove_dir_all(folder).unwrap();
+    }
+
+    fn nested(store: &SqliteStore, depth: usize) {
+        if depth > 0 {
+            store
+                .read_apart(|_| {
+                    nested(store, depth - 1);
+                    Ok(())
+                })
+                .unwrap();
+        }
+    }
+
+    #[test]
+    fn only_a_few_readers_stay_open() {
+        let (store, folder) = file_store("cap");
+        nested(&store, super::IDLE_READERS + 2);
+        assert_eq!(store.readers.lock().unwrap().len(), super::IDLE_READERS);
         std::fs::remove_dir_all(folder).unwrap();
     }
 }

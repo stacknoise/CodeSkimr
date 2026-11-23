@@ -9,6 +9,7 @@ use codeskimr_domain::{
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, SpanColumns, column_int, id_from, id_list, label_from};
+use crate::consts::WHOLE_TABLE_SHARE;
 use crate::error::StorageResult;
 use crate::sql;
 
@@ -97,7 +98,11 @@ pub(crate) fn load(
         ),
         Which::All => (sql::REFERENCES_OF_SNAPSHOT, None),
     };
-    let mut prepared = conn.prepare_cached(statement)?;
+    let statement = match which {
+        Which::All => of_snapshot(conn, snapshot, statement)?,
+        _ => statement.to_owned(),
+    };
+    let mut prepared = conn.prepare_cached(&statement)?;
     let mut rows = match &list {
         Some(list) => prepared.query(params![snapshot, list])?,
         None => prepared.query(params![snapshot])?,
@@ -154,7 +159,8 @@ pub(crate) struct ReferenceFacts {
 pub(crate) fn reference_facts(conn: &Connection, snapshot: i64) -> StorageResult<ReferenceFacts> {
     let files = id_set(conn, sql::FILE_IDS, snapshot)?;
     let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
-    let mut prepared = conn.prepare_cached(sql::REFERENCE_TALLY_ROWS)?;
+    let mut prepared =
+        conn.prepare_cached(&of_snapshot(conn, snapshot, sql::REFERENCE_TALLY_ROWS)?)?;
     let mut rows = prepared.query(params![snapshot])?;
     let mut facts = ReferenceFacts::default();
     while let Some(row) = rows.next()? {
@@ -187,6 +193,25 @@ pub(crate) fn reference_facts(conn: &Connection, snapshot: i64) -> StorageResult
     Ok(facts)
 }
 
+/// The statement that reads the references of a snapshot: narrowed to the files of the snapshot,
+/// so that a small project does not read the references of every project in the database. A
+/// snapshot that holds most of the files reads the table in one pass instead, which is faster than
+/// a lookup per file.
+pub(crate) fn of_snapshot(
+    conn: &Connection,
+    snapshot: i64,
+    statement: &str,
+) -> StorageResult<String> {
+    let (own, all): (i64, i64) = conn
+        .prepare_cached(sql::FILE_SHARE)?
+        .query_row(params![snapshot], |row| Ok((row.get(0)?, row.get(1)?)))?;
+    Ok(if own.saturating_mul(WHOLE_TABLE_SHARE) > all {
+        statement.to_owned()
+    } else {
+        format!("{statement}{}", sql::IN_FILES_OF_SNAPSHOT)
+    })
+}
+
 /// The ends (start, target) of the references of a snapshot that are not of kind `test` and not
 /// probable, whose file and target the snapshot holds, one per reference. They are what the
 /// dependencies between namespaces count (issue #464).
@@ -196,7 +221,8 @@ pub(crate) fn certain_ends(
 ) -> StorageResult<Vec<(SymbolId, SymbolId)>> {
     let files = id_set(conn, sql::FILE_IDS, snapshot)?;
     let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
-    let mut prepared = conn.prepare_cached(sql::REFERENCE_ENDS_CERTAIN)?;
+    let mut prepared =
+        conn.prepare_cached(&of_snapshot(conn, snapshot, sql::REFERENCE_ENDS_CERTAIN)?)?;
     let mut rows = prepared.query(params![
         snapshot,
         ReferenceKind::Test.label(),
@@ -217,7 +243,8 @@ pub(crate) fn certain_ends(
 pub(crate) fn verified_files(conn: &Connection, snapshot: i64) -> StorageResult<Vec<FileId>> {
     let files = id_set(conn, sql::FILE_IDS, snapshot)?;
     let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
-    let mut prepared = conn.prepare_cached(sql::VERIFIED_REFERENCE_FILES)?;
+    let mut prepared =
+        conn.prepare_cached(&of_snapshot(conn, snapshot, sql::VERIFIED_REFERENCE_FILES)?)?;
     let mut rows = prepared.query(params![snapshot])?;
     let mut found = BTreeSet::new();
     while let Some(row) = rows.next()? {
@@ -247,7 +274,7 @@ pub(crate) fn reference_pairs(
         .map(|symbol| column_int(symbol.get()))
         .collect::<StorageResult<HashSet<i64>>>()?;
     let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
-    let mut prepared = conn.prepare_cached(sql::REFERENCE_PAIRS)?;
+    let mut prepared = conn.prepare_cached(&of_snapshot(conn, snapshot, sql::REFERENCE_PAIRS)?)?;
     let mut rows = prepared.query(params![snapshot, ReferenceKind::Test.label()])?;
     let mut found = BTreeSet::new();
     while let Some(row) = rows.next()? {
