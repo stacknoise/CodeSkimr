@@ -57,8 +57,9 @@ pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files,
     symbols, refs FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";
 
 /// Every reference of a snapshot with the columns the usage counts need: snapshot, then file,
-/// start, target, kind, confidence and whether level 2 verified it. One pass over the table; the
-/// caller keeps the rows whose file and target the snapshot holds (ADR 0089).
+/// start, target, kind, confidence and whether level 2 verified it. Read through the files of the
+/// snapshot, never over the table that all projects share; the caller keeps the rows whose
+/// target the snapshot holds (ADR 0089).
 pub const REFERENCE_TALLY_ROWS: &str = "SELECT file_id, from_symbol, to_symbol, kind, confidence, \
     verified FROM symbol_references WHERE first_snapshot <= ?1 \
     AND file_id IN (SELECT id FROM files WHERE snapshot_id = ?1)";
@@ -92,8 +93,8 @@ pub const REFERENCE_ENDS_TOUCHING: &str = "SELECT r.from_symbol, r.to_symbol \
     WHERE r.first_snapshot <= ?1 AND r.from_symbol IN (SELECT value FROM json_each(?2)) \
     AND r.to_symbol NOT IN (SELECT value FROM json_each(?2))";
 /// File, start and target of every reference that is not newer than a snapshot, not of the given
-/// kind and not of the given confidence: snapshot, test kind, probable label. One pass over the
-/// table; the caller keeps the rows whose file and target the snapshot holds.
+/// kind and not of the given confidence: snapshot, test kind, probable label. Read through
+/// the files of the snapshot; the caller keeps the rows whose target the snapshot holds.
 pub const REFERENCE_ENDS_CERTAIN: &str = "SELECT file_id, from_symbol, to_symbol \
     FROM symbol_references WHERE first_snapshot <= ?1 AND kind <> ?2 AND confidence <> ?3 \
     AND file_id IN (SELECT id FROM files WHERE snapshot_id = ?1)";
@@ -297,8 +298,8 @@ pub const SYMBOL_IDS: &str = "SELECT s.id FROM symbol_rows s \
     JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1";
 /// File and target of every reference that is not newer than a snapshot and not of the given
 /// kind: snapshot, excluded kind (`test`). The view `snapshot_references` keeps those whose file
-/// and target the snapshot holds; counting them here in one pass over the table is much cheaper
-/// than its four lookups per reference.
+/// and target the snapshot holds; reading them here through the files of the snapshot is much
+/// cheaper than its four lookups per reference.
 pub const REFERENCE_TARGETS: &str = "SELECT file_id, to_symbol FROM symbol_references WHERE first_snapshot <= ?1 AND kind <> ?2 \
     AND file_id IN (SELECT id FROM files WHERE snapshot_id = ?1)";
 /// Adds the usage count of a symbol: snapshot, symbol, usages.

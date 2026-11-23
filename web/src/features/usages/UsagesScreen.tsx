@@ -65,7 +65,7 @@ function useReading(): void {
     direction();
     walkDepth();
     testsShown();
-    if (symbol !== null && focusProject() !== project) {
+    if (symbol !== null && focusProject() !== null && focusProject() !== project) {
       // The symbol was chosen in another project while this screen was closed.
       clearUsages();
     } else if (project !== null && symbol !== null) {
