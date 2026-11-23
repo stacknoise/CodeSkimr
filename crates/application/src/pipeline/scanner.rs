@@ -143,8 +143,8 @@ impl Scanner {
         }
     }
 
-    /// Limits the memory a scan may hold (`scan.max_memory_mb`, ADR 0087): a scan that passes the
-    /// limit is stopped with `PRJ-503`.
+    /// Limits the memory a scan may add (`scan.max_memory_mb`, ADR 0087) and the memory of the
+    /// whole program: a scan that passes either is stopped with `PRJ-503`.
     #[must_use]
     pub fn with_memory(mut self, limit: MemoryLimit) -> Self {
         self.memory = Some(limit);

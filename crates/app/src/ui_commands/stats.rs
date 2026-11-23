@@ -294,13 +294,15 @@ pub struct StatsPorts {
     pub(super) test_names: Vec<String>,
     /// `ui.approximate_languages`: languages whose usages are an approximation.
     pub(super) approximate: Vec<String>,
-    /// Held while the facts of a project are in memory: the screen asks for the overview and a
-    /// ranking at once, and the facts of a large project are several gigabytes each.
+    /// Held by a command from the load of the facts until its answer is built: the screen asks
+    /// for the overview and a ranking at once, and the facts of a large project are several
+    /// gigabytes each.
     pub(super) loading: Mutex<()>,
 }
 
-/// The facts of the newest snapshot of a project, with the hold that keeps another answer from
-/// loading its own copy until they are dropped; the hold is the first part so it drops last.
+/// The facts of the newest snapshot of a project, with the hold that keeps another command from
+/// loading its own copy. The caller binds the three parts to separate variables with the hold
+/// first: variables drop in reverse order, so the hold is released after the facts are gone.
 type Loaded<'a> = (MutexGuard<'a, ()>, Snapshot, Vec<SymbolFacts>);
 
 fn count(value: usize) -> u32 {

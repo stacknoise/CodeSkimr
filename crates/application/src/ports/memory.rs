@@ -80,10 +80,11 @@ impl MemoryLimit {
     #[must_use]
     pub fn watch(&self, cancel: CancelToken) -> MemoryWatch {
         let tripped = Arc::new(AtomicBool::new(false));
-        if self.gauge.used_mb().is_none() {
+        let first = self.gauge.used_mb();
+        if first.is_none() {
             tracing::warn!(event = LOG_MEMORY_READING_MISSING, max_mb = self.max_mb);
         }
-        let baseline = self.gauge.used_mb().unwrap_or_default();
+        let baseline = first.unwrap_or_default();
         let (stop, wake) = mpsc::channel::<()>();
         let limit = self.clone();
         let flag = Arc::clone(&tripped);
@@ -92,7 +93,14 @@ impl MemoryLimit {
             .spawn(move || {
                 while let Err(RecvTimeoutError::Timeout) = wake.recv_timeout(limit.interval) {
                     if limit.exceeded(baseline) {
-                        tracing::error!(event = LOG_MEMORY_LIMIT_PASSED, max_mb = limit.max_mb, used_mb = ?limit.gauge.used_mb());
+                        tracing::error!(
+                            event = LOG_MEMORY_LIMIT_PASSED,
+                            max_mb = limit.max_mb,
+                            baseline_mb = baseline,
+                            allowed_mb = limit.allowed_mb(baseline),
+                            ceiling_mb = ?limit.ceiling_mb,
+                            used_mb = ?limit.gauge.used_mb()
+                        );
                         flag.store(true, Ordering::Release);
                         cancel.cancel();
                         return;
@@ -169,6 +177,43 @@ mod tests {
         assert!(!watch.tripped());
         assert!(limit.exceeded(300));
         assert!(!limit.exceeded(450));
+    }
+
+    /// Reports the first value once and the second from then on.
+    struct Rising(std::sync::atomic::AtomicU32);
+
+    impl MemoryGauge for Rising {
+        fn used_mb(&self) -> Option<u64> {
+            let calls = self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            Some(if calls == 0 { 300 } else { 500 })
+        }
+    }
+
+    #[test]
+    fn growth_alone_trips_the_watch_without_a_ceiling() {
+        let cancel = CancelToken::default();
+        let limit = MemoryLimit::new(
+            Arc::new(Rising(std::sync::atomic::AtomicU32::new(0))),
+            100,
+            Duration::from_millis(5),
+        );
+        let watch = limit.watch(cancel.clone());
+        std::thread::sleep(Duration::from_millis(100));
+        assert!(watch.tripped());
+        assert!(cancel.is_cancelled());
+    }
+
+    #[test]
+    fn growth_within_the_limit_does_not_trip_the_watch_below_the_ceiling() {
+        let limit = MemoryLimit::new(
+            Arc::new(Rising(std::sync::atomic::AtomicU32::new(0))),
+            1000,
+            Duration::from_millis(5),
+        )
+        .with_ceiling(2000);
+        let watch = limit.watch(CancelToken::default());
+        std::thread::sleep(Duration::from_millis(100));
+        assert!(!watch.tripped());
     }
 
     #[test]

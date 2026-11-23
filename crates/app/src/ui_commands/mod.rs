@@ -604,7 +604,7 @@ fn register_stats(
         thresholds: config.metrics.clone(),
         test_names: config.conventions.test_folders.clone(),
         approximate: config.ui.approximate_languages.clone(),
-        loading: std::sync::Mutex::new(()),
+        loading: Mutex::new(()),
     });
     add(
         registry,
@@ -642,9 +642,10 @@ fn explorer_ports(
     Arc::new(ExplorerPorts {
         projects: store.clone(),
         index: store.clone(),
-        outline: Arc::new(outline_warm::WarmingOutline {
-            store: Arc::clone(store),
-        }),
+        outline: Arc::new(outline_warm::WarmingOutline::new(
+            store.clone(),
+            Arc::clone(store),
+        )),
         text: Arc::new(FolderText),
         highlighter: Arc::new(TreeSitterHighlighter::new(&locations.languages_dir)),
         thresholds,
