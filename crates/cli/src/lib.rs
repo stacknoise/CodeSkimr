@@ -6,6 +6,7 @@
 
 mod args;
 mod check;
+mod codes;
 mod consent;
 mod consts;
 mod credential;
@@ -19,11 +20,12 @@ mod warning;
 
 pub use args::{
     Action, AddAnnotation, AlertsAction, AnnotationFields, AnnotationsAction, ById, CheckArgs,
-    Clears, CredentialAction, DismissAlerts, ExportArgs, GlobalOptions, Invocation, Level2Action,
-    ListAlerts, ListAnnotations, McpArgs, OpenArgs, PageArgs, Parsed, ProviderChoice, ScanArgs,
-    ServeArgs, StartArgs, SymbolArg, UpdateAnnotation,
+    Clears, CodesArgs, CredentialAction, DismissAlerts, ExportArgs, GlobalOptions, Invocation,
+    Level2Action, ListAlerts, ListAnnotations, McpArgs, OpenArgs, PageArgs, Parsed, ProviderChoice,
+    ScanArgs, ServeArgs, StartArgs, SymbolArg, UpdateAnnotation,
 };
 pub use check::{check_json, check_text};
+pub use codes::codes_text;
 pub use consent::{
     confirm_prompt, confirm_target, confirm_warning, from_ui_notice, from_ui_wait,
     level2_confirmed, level2_declined, level2_revoked,

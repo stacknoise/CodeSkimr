@@ -170,3 +170,18 @@ cli-alerts-dismissed = { $dismissed ->
     [one] One alert dismissed, { $open } still open.
    *[other] { $dismissed } alerts dismissed, { $open } still open.
 }
+cli-cmd-codes = List the error codes, or explain one
+cli-arg-code = The code to explain, for example SRC-201 (default: list all codes)
+cli-codes-line = { $code }  { $message }
+cli-codes-explain =
+    { $code }: { $message }
+    { $description }
+    Group { $group }, { $severity ->
+        [warning] warning
+        [info] information
+       *[error] error
+    }, { $retryable ->
+        [yes] a retry can succeed
+       *[no] a retry does not help
+    }, since version { $since }.
+cli-codes-retired = This code is retired: nothing raises it any more, and its number stays reserved.

@@ -1,0 +1,12 @@
+.details {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-8);
+    margin-top: var(--space-8);
+}
+
+.code {
+    color: var(--muted);
+    font: 11px var(--font-mono);
+}

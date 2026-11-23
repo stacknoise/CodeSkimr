@@ -15,13 +15,15 @@ Every failure CodeSkimr reports has a code of the form `PREFIX-CNN`, for example
 ## Where you see a code
 
 - **Command line:** `error[SRC-401]: text` on standard error, in your language. Exit code 1 (2 for invalid arguments).
-- **Browser:** the message of the screen, with the code.
+- **Browser:** the message of the screen, with the code in small type and a button "Copy details" that puts the code and the message on the clipboard, ready to paste into a report.
 - **REST:** `{ "code": "API-401", "description": "…" }` with the matching HTTP status.
 - **MCP:** a tool result with `isError: true` and `code`, `description` (English) and `params`.
 
 The code never changes; the text can improve. Quote the code when you report a problem.
 
 ## The published catalogue
+
+On the command line, `codeskimr codes` lists all codes with their messages, and `codeskimr codes SRC-401` explains one: message, developer description, group, severity, whether a retry can help and since which version it exists.
 
 The complete list of codes with name, severity, whether retrying helps, the version since which it exists and a description is generated from the registry `errors/error-codes.toml` and published in [`docs/error-codes.md`](../../error-codes.md). Do not edit it by hand.
 

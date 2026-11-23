@@ -72,6 +72,13 @@ pub struct McpArgs {
 /// Arguments of `codeskimr serve`: none yet; the port comes from the setting `server.port`.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct ServeArgs;
+/// Arguments of `codeskimr codes`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CodesArgs {
+    /// The id of the code to explain, such as `SRC-201`; all codes are listed if it is `None`.
+    pub code: Option<String>,
+}
+
 /// Arguments of `codeskimr check`.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct CheckArgs {
@@ -345,6 +352,8 @@ pub enum Action {
     Serve(ServeArgs),
     /// `codeskimr check`.
     Check(CheckArgs),
+    /// `codeskimr codes`.
+    Codes(CodesArgs),
     /// `codeskimr open`.
     Open(OpenArgs),
     /// `codeskimr export`.

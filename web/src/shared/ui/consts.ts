@@ -68,5 +68,11 @@ export const BREAK_AFTER = /(?<=[._:])/;
 /** The ARIA role of a note that screen readers announce at once. */
 export const ALERT_ROLE = "alert";
 
+/** How long the button that copies details says that it did. */
+export const COPIED_MS = 2000;
+/** Height of the box that shows the details when they cannot be copied. */
+export const DETAILS_ROWS = 4;
+/** What stands between the code and the message in the details of an error note. */
+export const DETAILS_SEPARATOR = ": ";
 /** How long an answer may take before the screen says that it is still loading, in milliseconds. */
 export const SLOW_LOAD_DELAY_MS = 1000;
