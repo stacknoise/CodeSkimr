@@ -442,11 +442,14 @@ pub const LANGUAGE_SYMBOLS: &str = "SELECT f.language, COUNT(*) FROM symbol_rows
 /// Number of types of a snapshot: snapshot.
 pub const TYPE_COUNT: &str = "SELECT COUNT(*) FROM type_summary WHERE snapshot_id = ?1";
 
-/// Namespaces, modules and types of one kind with their member count: snapshot, kind.
+/// Namespaces, modules and types of one kind with their member count: snapshot, kind. The `+`
+/// keeps the index on the kind out of it: that index holds the symbols of every project, so a
+/// small project next to a large one would read all of the large one's symbols of that kind.
+/// Without it the rows are read through the files of the snapshot.
 pub const OUTLINE_OF_KIND: &str = "SELECT s.kind, s.id, s.name, s.qualified_name, s.parent_id, \
     (SELECT COUNT(*) FROM symbols m WHERE m.snapshot_id = s.snapshot_id AND m.parent_id = s.id), \
     (SELECT f.language FROM files f WHERE f.snapshot_id = s.snapshot_id AND f.id = s.file_id) \
-    FROM symbols s WHERE s.snapshot_id = ?1 AND s.kind = ?2";
+    FROM symbols s WHERE s.snapshot_id = ?1 AND +s.kind = ?2";
 /// The language of a file: snapshot, file id.
 pub const FILE_LANGUAGE: &str = "SELECT language FROM files WHERE snapshot_id = ?1 AND id = ?2";
 /// Member table of a symbol: snapshot, symbol, complexity metric.
@@ -598,7 +601,7 @@ pub const REFERENCE_DELETE: &str = "DELETE FROM symbol_references WHERE id = ?1"
 
 /// Whether the newest snapshot of the project holds a symbol: project, kind, qualified name.
 pub const ANNOTATION_TARGET_EXISTS: &str = "SELECT COUNT(*) FROM symbols WHERE snapshot_id = \
-    (SELECT MAX(id) FROM snapshots WHERE project_id = ?1) AND kind = ?2 AND qualified_name = ?3";
+    (SELECT MAX(id) FROM snapshots WHERE project_id = ?1) AND +kind = ?2 AND qualified_name = ?3";
 /// The number of annotations of a kind on a symbol other than the given one: project, target kind,
 /// name, parameters, annotation kind, annotation id (0 for a new one).
 pub const ANNOTATION_KIND_COUNT: &str = "SELECT COUNT(*) FROM annotation WHERE project_id = ?1 \
@@ -712,7 +715,7 @@ pub const STATE_SYMBOLS: &str = "SELECT s.kind, s.qualified_name, s.signature, s
 /// snapshot, kind of the namespace, its qualified name.
 pub const STATE_CHILD_HASHES: &str = "WITH RECURSIVE tree(id) AS ( \
     SELECT s.id FROM symbol_rows s JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1 \
-        WHERE s.kind = ?2 AND s.qualified_name = ?3 \
+        WHERE +s.kind = ?2 AND s.qualified_name = ?3 \
     UNION ALL \
     SELECT c.id FROM symbol_rows c JOIN tree t ON c.parent_id = t.id WHERE c.content_hash IS NULL) \
     SELECT c.content_hash FROM symbol_rows c JOIN tree t ON c.parent_id = t.id \

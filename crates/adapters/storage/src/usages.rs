@@ -31,10 +31,11 @@ impl SqliteStore {
         self.read_latest(data_version)
     }
 
-    /// The `data_version` if the shared connection is free; `None` while a write of this store
-    /// runs. What was built from the references is not looked up then: the write drops it anyway.
+    /// The `data_version`, or `None` while a write of this store runs. What was built from the
+    /// references is not looked up then: the write drops it anyway. A caller that keeps what it
+    /// builds takes the `write_count` before it asks here.
     pub(crate) fn version_if_free(&self) -> StorageResult<Option<i64>> {
-        self.if_free(data_version)
+        self.unless_writing(data_version)
     }
 
     fn usage_page(
@@ -75,13 +76,13 @@ impl SqliteStore {
     fn walked(&self, snapshot: SnapshotId, query: &UsageQuery) -> StorageResult<Arc<ReverseIndex>> {
         let raw = column_int(snapshot.get())?;
         let read = || self.read_apart(|conn| answers::walked_references(conn, raw, query));
+        let written = self.write_count();
         let Some(version) = self.version_if_free()? else {
             return read().map(Arc::new);
         };
         if let Some(found) = self.kept_walk(snapshot, version, query) {
             return Ok(found);
         }
-        let written = self.write_count();
         let index = Arc::new(read()?);
         let mut kept = self.walks.lock().unwrap_or_else(PoisonError::into_inner);
         if self.unwritten_since(written) {
@@ -179,6 +180,9 @@ impl SqliteStore {
         build: impl FnOnce(&Connection, i64) -> StorageResult<T>,
     ) -> StorageResult<T> {
         let raw = column_int(snapshot.get())?;
+        // The count first: a write that drops the kept ones after this line makes the build below
+        // not keep what it read, also if it waited at the gate meanwhile.
+        let written = self.write_count();
         let Some(version) = self.version_if_free()? else {
             // A write of this store is running and drops what is kept: build without the kept
             // ones instead of waiting for it.
@@ -192,7 +196,6 @@ impl SqliteStore {
         if let Some(found) = kept.get(snapshot, version) {
             return Ok(found);
         }
-        let written = self.write_count();
         let value = self.read_apart(|conn| build(conn, raw))?;
         kept.put((snapshot, version), &value, || {
             self.unwritten_since(written)
@@ -288,6 +291,8 @@ mod tests {
 
     const SNAPSHOT: u64 = 7;
     const RETENTION: u32 = 3;
+    /// Long enough for the build to arrive at the gate.
+    const AT_THE_GATE: std::time::Duration = std::time::Duration::from_millis(200);
 
     /// Asks for the graph twice; `write_meanwhile` says whether a write comes in during the build.
     /// Returns how often the graph was built.
@@ -320,5 +325,27 @@ mod tests {
     #[test]
     fn what_was_built_during_a_write_is_not_kept() {
         assert_eq!(builds_of_two_asks(true), 2);
+    }
+
+    /// A build that waits at the gate while a write drops the kept ones reads next to that write
+    /// and may see the state before it: it must not keep that.
+    #[test]
+    fn what_waited_at_the_gate_during_a_write_is_not_kept() {
+        let store = SqliteStore::open_in_memory(NonZeroU32::new(RETENTION).unwrap()).unwrap();
+        let snapshot = SnapshotId::new(SNAPSHOT);
+        let gate = store.build_gate(i64::try_from(SNAPSHOT).unwrap(), Build::Graph);
+        std::thread::scope(|scope| {
+            let held = gate.lock().unwrap();
+            let build = scope.spawn(|| {
+                let graphs = (&store.graphs, Build::Graph);
+                store.built(graphs, snapshot, |_, _| Ok(NamespaceGraph::default()))
+            });
+            std::thread::sleep(AT_THE_GATE);
+            store.forget_builds();
+            drop(held);
+            build.join().unwrap().unwrap();
+        });
+        let version = store.data_version().unwrap();
+        assert!(store.graphs.get(snapshot, version).is_none());
     }
 }

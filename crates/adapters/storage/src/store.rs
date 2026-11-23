@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError, TryLockError};
 use std::time::Duration;
 
@@ -81,9 +81,28 @@ pub struct SqliteStore {
     /// Counts the writes of this store that may have changed references, so that a build that
     /// was running during one does not keep what it read before it.
     pub(crate) writes: AtomicU64,
+    /// Whether a write holds the shared connection right now.
+    writing: AtomicBool,
     /// Read-only connections that are not in use, kept so that a read apart does not open the
     /// file every time; at most `IDLE_READERS`.
     readers: Mutex<Vec<Connection>>,
+}
+
+/// Marks the time in which a write holds the shared connection; the mark is taken off when the
+/// write ends, however it ends.
+struct Writing<'store>(&'store AtomicBool);
+
+impl<'store> Writing<'store> {
+    fn begin(mark: &'store AtomicBool) -> Self {
+        mark.store(true, Ordering::SeqCst);
+        Self(mark)
+    }
+}
+
+impl Drop for Writing<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
+    }
 }
 
 /// Runs `work` as one read transaction on `conn`.
@@ -242,6 +261,7 @@ impl SqliteStore {
             builds: Mutex::new(HashMap::new()),
             walks: Mutex::new(Vec::new()),
             writes: AtomicU64::new(0),
+            writing: AtomicBool::new(false),
             readers: Mutex::new(Vec::new()),
         })
     }
@@ -266,9 +286,10 @@ impl SqliteStore {
 
     /// Drops what was built from the references: a write of this store (a scan, or the import of
     /// level 2) may change the references of a snapshot. The write calls this before it commits,
-    /// while it still holds the shared connection: until it lets go nothing is looked up or kept
-    /// (see `version_if_free`), so no caller gets the state before the write after it. The count
-    /// goes up first, so a build that is still running does not keep what it read before.
+    /// while it still holds the shared connection, so no caller is handed the state before the
+    /// write once it is through. The count goes up first: a build takes the count before it asks
+    /// for the version (see `version_if_free`), so one that began before this call does not keep
+    /// what it read, and one that begins after it finds the connection taken and keeps nothing.
     pub(crate) fn forget_builds(&self) {
         self.writes.fetch_add(1, Ordering::SeqCst);
         self.graphs.clear();
@@ -313,16 +334,18 @@ impl SqliteStore {
         work(&self.connection())
     }
 
-    /// What `work` reads on the shared connection if no one holds it right now, else `None`: for
-    /// what only that connection knows and what is not worth waiting for a write.
-    pub(crate) fn if_free<T>(
+    /// What `work` reads on the shared connection, or `None` while a write holds it: for what
+    /// only that connection knows and what is not worth waiting for a write. A short read that
+    /// holds the connection is waited for.
+    pub(crate) fn unless_writing<T>(
         &self,
         work: impl FnOnce(&Connection) -> StorageResult<T>,
     ) -> StorageResult<Option<T>> {
         match self.conn.try_lock() {
             Ok(conn) => work(&conn).map(Some),
             Err(TryLockError::Poisoned(conn)) => work(&conn.into_inner()).map(Some),
-            Err(TryLockError::WouldBlock) => Ok(None),
+            Err(TryLockError::WouldBlock) if self.writing.load(Ordering::SeqCst) => Ok(None),
+            Err(TryLockError::WouldBlock) => work(&self.connection()).map(Some),
         }
     }
 
@@ -386,6 +409,7 @@ impl SqliteStore {
         work: impl FnOnce(&Transaction<'_>) -> StorageResult<T>,
     ) -> StorageResult<T> {
         let mut conn = self.connection();
+        let _writing = Writing::begin(&self.writing);
         let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let value = work(&tx)?;
         tx.commit()?;
@@ -520,6 +544,22 @@ mod tests {
                 !plan.contains("SCAN symbol_references"),
                 "{statement}\n{plan}"
             );
+        }
+    }
+
+    /// The symbols of every project share one table and its index on the kind. A statement that
+    /// goes through that index makes a small project read the symbols of the largest one.
+    #[test]
+    fn the_symbols_of_a_snapshot_are_not_read_through_the_index_on_the_kind() {
+        let store = SqliteStore::open_in_memory(NonZeroU32::new(3).unwrap()).unwrap();
+        let of_one_kind = [
+            sql::OUTLINE_OF_KIND,
+            sql::ANNOTATION_TARGET_EXISTS,
+            sql::STATE_CHILD_HASHES,
+        ];
+        for statement in of_one_kind {
+            let plan = plan(&store, statement);
+            assert!(!plan.contains("symbols_by_kind"), "{statement}\n{plan}");
         }
     }
 
