@@ -28,6 +28,7 @@
 
 .actions {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--space-8);
 }
 
@@ -39,15 +40,4 @@
     color: var(--ink);
     font: 500 12px var(--font-sans);
     cursor: pointer;
-}
-
-.details {
-    width: 100%;
-    resize: vertical;
-    padding: var(--space-8);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-badge);
-    background: var(--bg);
-    color: var(--ink);
-    font: 12px var(--font-mono);
 }

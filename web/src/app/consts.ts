@@ -114,13 +114,9 @@ export const FLUSH_PATHS: readonly string[] = [
   USAGES_ROUTE.path,
 ];
 
-/** How long the button of an error panel says that the details were copied. */
-export const ERROR_COPIED_MS = 2000;
 /** The line in the console and in the copied details that names the code. */
 export const ERROR_CODE_FIELD = "code";
-/** Separates the lines of the copied details. */
-export const DETAILS_SEPARATOR = "\n";
+/** Separates the lines of the copied details of the error panel. */
+export const DETAILS_LINE_BREAK = "\n";
 /** The code of an exception nobody expected: it is a bug (blueprint 11.6, E-03). */
 export const UNEXPECTED_CODE: ErrorCode = "UI-901";
-/** Height of the box that shows the details when they cannot be copied. */
-export const DETAILS_ROWS = 4;

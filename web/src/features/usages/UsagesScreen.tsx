@@ -41,7 +41,12 @@ import {
 import { NoticeBox } from "../../shared/ui/NoticeBox";
 import styles from "./UsagesScreen.module.css";
 
-function Message(props: { title?: string; text: string; alert?: boolean }) {
+function Message(props: {
+  title?: string;
+  text: string;
+  alert?: boolean;
+  code?: ErrorCode | null;
+}) {
   return (
     <div class={styles.centered}>
       <NoticeBox class={styles.message} {...props} />
@@ -178,7 +183,7 @@ export function UsagesScreen() {
         />
       </Match>
       <Match when={usagesFailure()}>
-        {(failure) => <Message text={failureText(failure())} alert />}
+        {(failure) => <Message text={failureText(failure())} code={failure().code} alert />}
       </Match>
       <Match when={usagesAnswer()}>{(answer) => <Body answer={answer()} />}</Match>
       <Match when={usagesLoading()}>

@@ -29,6 +29,7 @@ import {
 } from "./layers";
 import { NamespacePicker } from "./NamespacePicker";
 import type { LayersData } from "./types";
+import { ErrorDetails } from "../../shared/ui/ErrorDetails";
 import styles from "./LayersScreen.module.css";
 
 /** The choice, the name of a new layer, and what they do together. */
@@ -172,11 +173,14 @@ function ProjectView(props: { project: number }) {
     <>
       <Show when={layersFailure()}>
         {(failure) => (
-          <p class={styles.alert} role="alert">
+          <div class={styles.alert} role="alert">
             {failure().code === null
               ? t(I18N_KEYS.LAYERS_LOAD_FAILED)
               : errorText(failure().code as ErrorCode)}
-          </p>
+            <Show when={failure().code}>
+              {(code) => <ErrorDetails code={code()} message={errorText(code())} />}
+            </Show>
+          </div>
         )}
       </Show>
       <Show when={layersData()}>
