@@ -302,21 +302,30 @@ mod tests {
         (outcome, announced, browser.join().unwrap())
     }
 
-    #[test]
-    fn the_whole_way_from_the_file_to_the_token_and_back_to_nothing() {
-        let dir = tempfile::tempdir().unwrap();
+    /// Runs a server for the test and the client side against it on its own thread; returns what
+    /// the client returned once the server has stopped.
+    fn with_server<T: Send + 'static>(
+        dir: PathBuf,
+        client: impl FnOnce(&KeystoreCredentials<Memory>, &str, PathBuf) -> T + Send + 'static,
+    ) -> T {
         let store = Arc::new(KeystoreCredentials::new(Memory::default()));
         let (stop, stopped) = oneshot::channel::<()>();
         let (found, url) = std::sync::mpsc::channel::<String>();
-        let launch_dir = dir.path().to_path_buf();
         let for_client = Arc::clone(&store);
-        let client = thread::spawn(move || {
-            let result = client_side(&for_client, &url.recv().unwrap(), launch_dir);
+        let handle = thread::spawn(move || {
+            let result = client(&for_client, &url.recv().unwrap(), dir);
             stop.send(()).unwrap();
             result
         });
         serve_for_test(&*store, bare_parts(test_ui()), &found, stopped).unwrap();
-        let (outcome, announced, (first, second, file)) = client.join().unwrap();
+        handle.join().unwrap()
+    }
+
+    #[test]
+    fn the_whole_way_from_the_file_to_the_token_and_back_to_nothing() {
+        let dir = tempfile::tempdir().unwrap();
+        let (outcome, announced, (first, second, file)) =
+            with_server(dir.path().to_path_buf(), client_side);
         outcome.unwrap();
         assert!(first.starts_with("HTTP/1.1 200"), "{first}");
         assert!(first.contains("csk_"), "{first}");
@@ -360,18 +369,7 @@ mod tests {
     #[test]
     fn the_printed_address_works_once_and_leaves_no_file() {
         let dir = tempfile::tempdir().unwrap();
-        let store = Arc::new(KeystoreCredentials::new(Memory::default()));
-        let (stop, stopped) = oneshot::channel::<()>();
-        let (found, url) = std::sync::mpsc::channel::<String>();
-        let launch_dir = dir.path().to_path_buf();
-        let for_client = Arc::clone(&store);
-        let client = thread::spawn(move || {
-            let result = url_client(&for_client, &url.recv().unwrap(), launch_dir);
-            stop.send(()).unwrap();
-            result
-        });
-        serve_for_test(&*store, bare_parts(test_ui()), &found, stopped).unwrap();
-        let (printed, first, second) = client.join().unwrap();
+        let (printed, first, second) = with_server(dir.path().to_path_buf(), url_client);
         assert!(printed.starts_with("http://127.0.0.1:"), "{printed}");
         assert!(printed.contains("/#code="), "{printed}");
         assert!(first.starts_with("HTTP/1.1 200"), "{first}");
