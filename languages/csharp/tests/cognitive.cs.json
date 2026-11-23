@@ -296,7 +296,7 @@
       "kind": "method",
       "name": "Cognitive.Straight",
       "parent": "Cognitive",
-      "signature": null,
+      "signature": "int Straight(int a)",
       "span": "7:4-7:41",
       "static": false,
       "visibility": "private"
@@ -306,7 +306,7 @@
       "kind": "method",
       "name": "Cognitive.Nested",
       "parent": "Cognitive",
-      "signature": null,
+      "signature": "int Nested(int a, int b)",
       "span": "9:4-19:5",
       "static": false,
       "visibility": "private"
@@ -316,7 +316,7 @@
       "kind": "method",
       "name": "Cognitive.Chain",
       "parent": "Cognitive",
-      "signature": null,
+      "signature": "int Chain(int a)",
       "span": "21:4-26:5",
       "static": false,
       "visibility": "private"
@@ -326,7 +326,7 @@
       "kind": "method",
       "name": "Cognitive.Runs",
       "parent": "Cognitive",
-      "signature": null,
+      "signature": "bool Runs(bool a, bool b, bool c, bool d)",
       "span": "28:4-31:5",
       "static": false,
       "visibility": "private"
@@ -336,7 +336,7 @@
       "kind": "method",
       "name": "Cognitive.Handler",
       "parent": "Cognitive",
-      "signature": null,
+      "signature": "int Handler(string x)",
       "span": "33:4-41:5",
       "static": false,
       "visibility": "private"
@@ -346,7 +346,7 @@
       "kind": "method",
       "name": "Cognitive.Cases",
       "parent": "Cognitive",
-      "signature": null,
+      "signature": "int Cases(int a)",
       "span": "43:4-51:5",
       "static": false,
       "visibility": "private"
@@ -356,7 +356,7 @@
       "kind": "method",
       "name": "Cognitive.Arms",
       "parent": "Cognitive",
-      "signature": null,
+      "signature": "int Arms(int a)",
       "span": "53:4-56:5",
       "static": false,
       "visibility": "private"
@@ -366,7 +366,7 @@
       "kind": "method",
       "name": "Cognitive.Lambdas",
       "parent": "Cognitive",
-      "signature": null,
+      "signature": "int Lambdas(int[] items)",
       "span": "58:4-61:5",
       "static": false,
       "visibility": "private"
@@ -376,7 +376,7 @@
       "kind": "method",
       "name": "Cognitive.Local",
       "parent": "Cognitive",
-      "signature": null,
+      "signature": "int Local(int a)",
       "span": "63:4-71:5",
       "static": false,
       "visibility": "private"
@@ -386,7 +386,7 @@
       "kind": "function",
       "name": "Cognitive.Local.Inner",
       "parent": "Cognitive.Local",
-      "signature": null,
+      "signature": "int Inner(int b)",
       "span": "65:8-69:9",
       "static": false,
       "visibility": "private"
@@ -396,7 +396,7 @@
       "kind": "method",
       "name": "Cognitive.Loops",
       "parent": "Cognitive",
-      "signature": null,
+      "signature": "int Loops(int a)",
       "span": "73:4-85:5",
       "static": false,
       "visibility": "private"
@@ -406,7 +406,7 @@
       "kind": "constructor",
       "name": "Cognitive.Cognitive",
       "parent": "Cognitive",
-      "signature": null,
+      "signature": "Cognitive(int a, string b)",
       "span": "87:4-87:34",
       "static": false,
       "visibility": "private"
@@ -416,7 +416,7 @@
       "kind": "method",
       "name": "Cognitive.Defaults",
       "parent": "Cognitive",
-      "signature": null,
+      "signature": "int Defaults(int a, string b = \"\")",
       "span": "89:4-92:5",
       "static": false,
       "visibility": "private"
@@ -426,7 +426,7 @@
       "kind": "method",
       "name": "Cognitive.Variadic",
       "parent": "Cognitive",
-      "signature": null,
+      "signature": "int Variadic(int a, params int[] rest)",
       "span": "94:4-97:5",
       "static": false,
       "visibility": "private"

@@ -81,7 +81,7 @@
       "kind": "function",
       "name": "jsx_cognitive.Form",
       "parent": "jsx_cognitive",
-      "signature": null,
+      "signature": "function Form(props)",
       "span": "0:7-2:1",
       "static": false,
       "visibility": "public"
@@ -91,7 +91,7 @@
       "kind": "function",
       "name": "jsx_cognitive.Plain",
       "parent": "jsx_cognitive",
-      "signature": null,
+      "signature": "function Plain(props)",
       "span": "4:7-6:1",
       "static": false,
       "visibility": "public"

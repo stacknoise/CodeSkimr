@@ -43,6 +43,8 @@ pub struct Config {
     pub ui: Ui,
     /// The picture of the dependency map.
     pub graph: Graph,
+    /// The HTML export (ADR 0090).
+    pub export: Export,
     /// Limits of annotations and alerts (ADR 0068).
     pub annotations: Annotations,
     /// Where `find_constants` looks for configuration and translation keys.
@@ -237,6 +239,14 @@ pub struct Scan {
     /// Most characters of a signature (for a constant: its declaration with the value); a longer
     /// one is cut and ends with `…`.
     pub max_signature_chars: u32,
+    /// Most symbols a place may reach through the bare name; more and level 1 gives the place up
+    /// (`RES-304`, ADR 0084).
+    pub max_candidates: u32,
+    /// Most memory a scan may add to what the program held when it started, in megabytes; more
+    /// and the scan is stopped (`PRJ-503`, ADR 0087).
+    pub max_memory_mb: u32,
+    /// Most files a scan names when it left them out; the others are only counted.
+    pub max_left_out_listed: u32,
 }
 
 /// Settings and limits of level 2: running indexers and importing their indexes (ADR 0033).
@@ -366,6 +376,16 @@ impl Similarity {
 
 fn widen(value: u32) -> usize {
     usize::try_from(value).unwrap_or(usize::MAX)
+}
+
+/// The HTML export of a project (blueprint 15, ADR 0090).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Export {
+    /// Most references a project may have to be exported. The page holds every reference once
+    /// more per direction, so a larger project gives a file of hundreds of megabytes that no
+    /// browser opens; the export is refused with `EXP-502` instead.
+    pub max_references: u32,
 }
 
 /// The picture of the dependency map (blueprint 15, screen 3), in layout units.

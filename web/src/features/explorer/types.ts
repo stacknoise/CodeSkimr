@@ -69,6 +69,8 @@ export interface MemberRow {
   kind: string;
   visibility: string | null;
   signature: string | null;
+  /** The parameters as written when the type has an overload of the member, else empty. */
+  parameters: string[];
   complexity: number | null;
   complexity_rating: string | null;
   usages: number;

@@ -16,6 +16,19 @@ pub trait Keystore: Send + Sync {
     /// `SEC-201` if there is no entry, `SEC-402` or `SEC-601` if the keystore cannot be used.
     fn read(&self, name: &str) -> Result<Zeroizing<Vec<u8>>, AuthError>;
 
+    /// Whether an entry exists under `name`. The bytes are read and wiped at once, nothing is
+    /// decoded or returned.
+    ///
+    /// # Errors
+    /// `SEC-402` or `SEC-601` if the keystore cannot be used.
+    fn exists(&self, name: &str) -> Result<bool, AuthError> {
+        match self.read(name) {
+            Ok(_) => Ok(true),
+            Err(AuthError::NotFound) => Ok(false),
+            Err(other) => Err(other),
+        }
+    }
+
     /// Stores `bytes` under `name`, replacing an existing entry.
     ///
     /// # Errors
@@ -46,6 +59,21 @@ impl Keystore for OsKeystore {
             .get_secret()
             .map(Zeroizing::new)
             .map_err(|error| map_error(&error))
+    }
+
+    /// Asks for the attributes of the entry, which the platform stores answer without handing out
+    /// the secret. A store that cannot tell falls back to reading and wiping the bytes.
+    fn exists(&self, name: &str) -> Result<bool, AuthError> {
+        match Self::entry(name)?.get_attributes() {
+            Ok(_) => Ok(true),
+            Err(Error::NoEntry) => Ok(false),
+            Err(Error::NotSupportedByStore(_)) => match self.read(name) {
+                Ok(_) => Ok(true),
+                Err(AuthError::NotFound) => Ok(false),
+                Err(other) => Err(other),
+            },
+            Err(error) => Err(map_error(&error)),
+        }
     }
 
     fn write(&self, name: &str, bytes: &[u8]) -> Result<(), AuthError> {

@@ -3,11 +3,12 @@
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     PendingReference, PreviousIndex, PreviousState, ProjectRepository, StoredNames,
+    StoredReferences,
 };
 use codeskimr_domain::{
     BranchName, ContentHash, CredentialId, FileId, FolderPath, GitUrl, LanguageId, Layer,
-    LayerName, Loc, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, RelativePath,
-    SnapshotId, SourceFile,
+    LayerName, Loc, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
+    RelativePath, SnapshotId, SourceFile, SymbolId, SymbolPair,
 };
 use rusqlite::{Connection, OptionalExtension, Row, params};
 
@@ -17,7 +18,8 @@ use crate::consts::{
 };
 use crate::error::{StorageError, StorageResult};
 use crate::pending;
-use crate::previous::{latest_snapshot_id, load_latest_index};
+use crate::previous::{latest_snapshot_id, load_latest_index, load_symbols};
+use crate::references;
 use crate::sql;
 use crate::store::SqliteStore;
 
@@ -336,11 +338,14 @@ fn load_latest_state(conn: &Connection, project: ProjectId) -> StorageResult<Pre
     let Some(snapshot) = latest_snapshot_id(conn, project)? else {
         return Ok(PreviousState::default());
     };
+    let ambiguous: Option<i64> =
+        conn.query_row(sql::SNAPSHOT_AMBIGUOUS, params![snapshot], |row| row.get(0))?;
     Ok(PreviousState {
         files: load_latest_files(conn, project)?,
-        index: load_latest_index(conn, project)?,
+        symbols: load_symbols(conn, snapshot)?,
         snapshot: Some(SnapshotId::new(id_from(snapshot)?)),
         names_stored: pending::is_stored(conn, snapshot)?,
+        ambiguous_places: ambiguous.map(id_from).transpose()?,
     })
 }
 
@@ -404,6 +409,38 @@ impl ProjectRepository for SqliteStore {
         };
         self.read(|conn| pending::load(conn, column_int(snapshot.get())?, &which))
             .map_err(CodedError::from)
+    }
+
+    fn stored_references(
+        &self,
+        snapshot: SnapshotId,
+        which: StoredReferences<'_>,
+    ) -> Result<Vec<Reference>, CodedError> {
+        let which = match which {
+            StoredReferences::To(symbols) => references::Which::To(symbols),
+            StoredReferences::From(symbols) => references::Which::From(symbols),
+            StoredReferences::In(files) => references::Which::In(files),
+            StoredReferences::All => references::Which::All,
+        };
+        self.read(|conn| references::load(conn, column_int(snapshot.get())?, &which))
+            .map_err(CodedError::from)
+    }
+
+    fn verified_files(&self, snapshot: SnapshotId) -> Result<Vec<FileId>, CodedError> {
+        self.read(|conn| references::verified_files(conn, column_int(snapshot.get())?))
+            .map_err(CodedError::from)
+    }
+
+    fn reference_pairs(
+        &self,
+        snapshot: SnapshotId,
+        files: &[FileId],
+        without: &[SymbolId],
+    ) -> Result<Vec<SymbolPair>, CodedError> {
+        self.read(|conn| {
+            references::reference_pairs(conn, column_int(snapshot.get())?, files, without)
+        })
+        .map_err(CodedError::from)
     }
 
     fn latest_naming_rules(&self, id: ProjectId) -> Result<Option<String>, CodedError> {

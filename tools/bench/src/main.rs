@@ -27,7 +27,12 @@ fn run() -> Result<bool, BenchError> {
     if let [_, _, ..] = args.criterion_dirs[..] {
         println!("{}", text::BEST_OF_RUNS);
     }
-    let rows = compare(&new, &base, &limits.budgets_ms, limits.tolerance_percent);
+    let rows = compare(
+        &new,
+        &base,
+        (&limits.budgets_ms, &limits.accepted),
+        limits.tolerance_percent,
+    );
     println!("{}", report::render(&rows));
     let cpu = args
         .criterion_dirs

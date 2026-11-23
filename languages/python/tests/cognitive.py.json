@@ -179,7 +179,7 @@
       "kind": "function",
       "name": "cognitive.straight",
       "parent": "cognitive",
-      "signature": null,
+      "signature": "def straight(a):",
       "span": "4:0-5:16",
       "static": false,
       "visibility": "public"
@@ -189,7 +189,7 @@
       "kind": "function",
       "name": "cognitive.nested",
       "parent": "cognitive",
-      "signature": null,
+      "signature": "def nested(a, b):",
       "span": "8:0-13:12",
       "static": false,
       "visibility": "public"
@@ -199,7 +199,7 @@
       "kind": "function",
       "name": "cognitive.chain",
       "parent": "cognitive",
-      "signature": null,
+      "signature": "def chain(a):",
       "span": "16:0-22:16",
       "static": false,
       "visibility": "public"
@@ -209,7 +209,7 @@
       "kind": "function",
       "name": "cognitive.runs",
       "parent": "cognitive",
-      "signature": null,
+      "signature": "def runs(a, b, c, d):",
       "span": "25:0-26:29",
       "static": false,
       "visibility": "public"
@@ -219,7 +219,7 @@
       "kind": "function",
       "name": "cognitive.handler",
       "parent": "cognitive",
-      "signature": null,
+      "signature": "def handler(x):",
       "span": "29:0-35:12",
       "static": false,
       "visibility": "public"
@@ -229,7 +229,7 @@
       "kind": "function",
       "name": "cognitive.lambdas",
       "parent": "cognitive",
-      "signature": null,
+      "signature": "def lambdas(a):",
       "span": "38:0-40:15",
       "static": false,
       "visibility": "public"
@@ -249,7 +249,7 @@
       "kind": "method",
       "name": "cognitive.Shop.method",
       "parent": "cognitive.Shop",
-      "signature": null,
+      "signature": "def method(self, a, b: int, c=3, *rest, **named):",
       "span": "44:4-49:24",
       "static": false,
       "visibility": "public"
@@ -259,7 +259,7 @@
       "kind": "function",
       "name": "cognitive.looped",
       "parent": "cognitive",
-      "signature": null,
+      "signature": "def looped(a):",
       "span": "52:0-55:12",
       "static": false,
       "visibility": "public"
@@ -279,7 +279,7 @@
       "kind": "method",
       "name": "cognitive.Maker.make",
       "parent": "cognitive.Maker",
-      "signature": null,
+      "signature": "def make(cls, a):",
       "span": "60:4-61:16",
       "static": false,
       "visibility": "public"

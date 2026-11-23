@@ -22,8 +22,8 @@ use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     AnnotationStore, Clock, CodeIndex, ProjectCatalog, ProjectKeys, ProjectRepository,
-    ProjectScanner, ProjectToolCheck, ScanReportStore, SimilarityIndex, SnippetFingerprinter,
-    SymbolDetail, SymbolKey, UsageIndex,
+    ProjectScanner, ProjectToolCheck, ReferenceSites, ScanReportStore, SimilarityIndex,
+    SnippetFingerprinter, SymbolDetail, SymbolKey, UsageIndex,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Project, ProjectId, QualifiedName, Snapshot, SymbolId};
@@ -75,6 +75,8 @@ pub struct Ports {
     pub usages: Arc<dyn UsageIndex>,
     /// The stored fingerprints, for `find_similar_code`.
     pub similarity: Arc<dyn SimilarityIndex>,
+    /// The stored references, for the layer rule of `check_conventions`.
+    pub references: Arc<dyn ReferenceSites>,
     /// Fingerprints of a snippet, with the same normalisation as a scan.
     pub snippets: Arc<dyn SnippetFingerprinter>,
     /// The convention check, which reads the files of a project afresh.
@@ -105,6 +107,7 @@ pub struct Tools {
     index: Arc<dyn CodeIndex>,
     usages: Arc<dyn UsageIndex>,
     similarity: Arc<dyn SimilarityIndex>,
+    references: Arc<dyn ReferenceSites>,
     snippets: Arc<dyn SnippetFingerprinter>,
     checker: Arc<ConventionChecker>,
     clock: Arc<dyn Clock>,
@@ -141,6 +144,7 @@ impl Tools {
             index: ports.index,
             usages: ports.usages,
             similarity: ports.similarity,
+            references: ports.references,
             snippets: ports.snippets,
             checker: ports.checker,
             clock: ports.clock,
@@ -262,6 +266,10 @@ impl Tools {
 
     pub(crate) fn similarity(&self) -> &dyn SimilarityIndex {
         self.similarity.as_ref()
+    }
+
+    pub(crate) fn references(&self) -> &dyn ReferenceSites {
+        self.references.as_ref()
     }
 
     pub(crate) fn project_keys(&self) -> &dyn ProjectKeys {

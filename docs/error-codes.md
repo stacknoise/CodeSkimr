@@ -44,6 +44,7 @@ Owner: `codeskimr_application`
 | PRJ-303 | `scan_cancelled` | info | yes | 0.1.0 | The scan was cancelled by the user; no snapshot was written. |
 | PRJ-501 | `too_many_scans` | error | yes | 0.1.0 | As many scans run at the same time as the server allows; try again when one has ended. |
 | PRJ-502 | `scan_report_not_stored` | warning | no | 0.9.0 | The report of the scan (its level and what level 2 did per language) could not be stored; the scan and its snapshot are stored. |
+| PRJ-503 | `scan_memory_limit` | error | no | 1.0.0 | The scan added more memory than scan.max_memory_mb allows, or the program passed 70 % of the installed memory, and the scan was stopped before the machine ran out of memory; no snapshot was written (ADR 0087). |
 
 ## SRC – Sources: file system, Git, watcher
 
@@ -65,6 +66,7 @@ Owner: `codeskimr_parsing`
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
 | PRS-101 | `file_encoding_unsupported` | error | no | 0.1.0 | A source file is not valid UTF-8/UTF-16 and was skipped. |
+| PRS-102 | `file_unreadable` | error | yes | 1.0.0 | A source file could not be read during the scan (gone or locked) and was skipped. |
 | PRS-201 | `language_pack_missing` | error | no | 0.1.0 | No language pack is installed for this file type. |
 | PRS-301 | `language_pack_invalid` | error | no | 0.1.0 | A language pack's TOML or query files are invalid. |
 | PRS-501 | `parse_timeout` | error | no | 0.1.0 | Parsing a single file exceeded the configured time limit. |
@@ -80,6 +82,7 @@ Owner: `codeskimr_parsing, codeskimr_application, codeskimr_scip, codeskimr_inde
 | RES-301 | `ambiguous_reference` | warning | no | 0.1.0 | A reference matches several symbols; it was stored as probable. |
 | RES-302 | `scip_mapping_too_low` | error | no | 0.1.0 | Too few occurrences of a SCIP index map onto project symbols; level 1 references stay. |
 | RES-303 | `scip_too_many_created_symbols` | error | no | 0.1.0 | A SCIP index wants level 2 to create more symbols than level2.max_created_symbols allows; the whole import is refused and level 1 stays. |
+| RES-304 | `name_too_common` | warning | no | 1.0.0 | A name reaches more symbols than scan.max_candidates and no scope or type narrows it down; the place was given up (ADR 0084). |
 | RES-501 | `scip_index_too_large` | error | no | 0.1.0 | A SCIP index is larger than the configured limit and was refused; level 1 references stay. |
 | RES-502 | `indexer_timeout` | error | no | 0.1.0 | An indexer ran longer than level2.timeout_seconds and was stopped with all its child processes; level 1 references stay. |
 | RES-503 | `indexer_output_too_large` | error | no | 0.1.0 | An indexer wrote more than level2.max_output_bytes and was stopped; level 1 references stay. |
@@ -195,6 +198,8 @@ Owner: `codeskimr_application`
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
 | EXP-201 | `export_bundle_missing` | error | no | 0.1.0 | The built export page of the UI is missing or unusable. |
+| EXP-501 | `export_running` | error | yes | 1.0.0 | An export of the same project is already running; try again when it has ended (ADR 0090). |
+| EXP-502 | `export_too_large` | error | no | 1.0.0 | The project has more references than export.max_references allows, so the export page would be too large for a browser (ADR 0090). |
 | EXP-601 | `export_write_failed` | error | no | 0.1.0 | The export file could not be written. |
 
 ## ANN – Annotations and alerts (ADR 0068)

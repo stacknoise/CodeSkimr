@@ -87,7 +87,7 @@
       "kind": "function",
       "name": "local_functions.outer",
       "parent": "local_functions",
-      "signature": null,
+      "signature": "function outer(count: number, callback: () => void)",
       "span": "1:7-9:1",
       "static": false,
       "visibility": "public"
@@ -97,7 +97,7 @@
       "kind": "function",
       "name": "local_functions.outer.double",
       "parent": "local_functions.outer",
-      "signature": null,
+      "signature": "(n: number) =>",
       "span": "2:17-2:37",
       "static": false,
       "visibility": "public"
@@ -107,7 +107,7 @@
       "kind": "function",
       "name": "local_functions.outer.twice",
       "parent": "local_functions.outer",
-      "signature": null,
+      "signature": "function twice(n: number)",
       "span": "4:2-6:3",
       "static": false,
       "visibility": "public"

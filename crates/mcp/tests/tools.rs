@@ -191,7 +191,7 @@ fn get_architecture_lists_layers_and_dependencies() {
         .get_architecture(&owner(), &ArchitectureArgs { project: Some(1) })
         .unwrap();
     assert_eq!(answer["project"], "Shop");
-    assert_eq!(count(&answer, "layers"), 2);
+    assert_eq!(count(&answer, "layers"), 3);
     assert_eq!(answer["layers"][0]["namespaces"][0], "App.Domain");
     assert_eq!(answer["dependencies"][0]["from"], "Application");
     assert_eq!(answer["dependencies"][0]["count"], 7);

@@ -3,9 +3,9 @@
 use codeskimr_application::conventions::{CheckReport, Detail, Finding, Location};
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
-    CLI_CHECK_DUPLICATE, CLI_CHECK_FINDING, CLI_CHECK_LITERALS, CLI_CHECK_NOT_CHECKED,
-    CLI_CHECK_SUMMARY, CLI_CHECK_TOO_COMPLEX, CLI_CHECK_TOO_LONG, CLI_CHECK_TOO_MANY_PARAMETERS,
-    CLI_CHECK_UNCHECKED, CLI_CHECK_UNMATCHED,
+    CLI_CHECK_DUPLICATE, CLI_CHECK_FINDING, CLI_CHECK_LAYER, CLI_CHECK_LITERALS,
+    CLI_CHECK_NOT_CHECKED, CLI_CHECK_SUMMARY, CLI_CHECK_TOO_COMPLEX, CLI_CHECK_TOO_LONG,
+    CLI_CHECK_TOO_MANY_PARAMETERS, CLI_CHECK_UNCHECKED, CLI_CHECK_UNMATCHED,
 };
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde::Serialize;
@@ -71,6 +71,18 @@ fn finding_line(
     messages.format(language, CLI_CHECK_FINDING, Some(&args))
 }
 
+fn layer_line(
+    messages: &Messages,
+    language: &str,
+    (from_layer, to_layer, count): (&str, &str, u32),
+    mut args: FluentArgs<'_>,
+) -> Result<String, I18nError> {
+    args.set(arg::FROM_LAYER, from_layer.to_owned());
+    args.set(arg::TO_LAYER, to_layer.to_owned());
+    args.set(arg::COUNT, FluentValue::from(count));
+    messages.format(language, CLI_CHECK_LAYER, Some(&args))
+}
+
 fn detail_line(
     messages: &Messages,
     language: &str,
@@ -98,6 +110,11 @@ fn detail_line(
             args.set(arg::COUNT, FluentValue::from(*count));
             messages.format(language, CLI_CHECK_LITERALS, Some(&args))
         }
+        Detail::Layering {
+            from_layer,
+            to_layer,
+            count,
+        } => layer_line(messages, language, (from_layer, to_layer, *count), args),
         Detail::Duplicate {
             of,
             similarity_percent,
@@ -131,6 +148,12 @@ struct JsonFinding {
     limit: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     literals: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    from_layer: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    to_layer: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    uses: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     duplicate_of: Option<JsonPlace>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -169,6 +192,9 @@ fn json_finding(finding: &Finding) -> JsonFinding {
         value: measure.value,
         limit: measure.limit,
         literals: measure.literals,
+        from_layer: measure.layering.map(|(from, _, _)| from.to_owned()),
+        to_layer: measure.layering.map(|(_, to, _)| to.to_owned()),
+        uses: measure.layering.map(|(_, _, uses)| uses),
         duplicate_of: measure.duplicate_of.map(place),
         similarity_percent: measure.similarity_percent,
     }

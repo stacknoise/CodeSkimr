@@ -76,3 +76,7 @@ command-level2-status-title = Show level 2 state
 command-level2-status-description = Shows whether level 2 is switched on for a project, whether it is confirmed and whether the server can open the confirmation window or the screen has to show the command. Returns no path and no text of the project.
 command-level2-revoke-title = Switch level 2 off
 command-level2-revoke-description = Takes the confirmation of level 2 back for a project, as `codeskimr level2 revoke` does. Stored results stay until the next scan; a running indexer ends within its limits.
+command-stats-overview-title = Show statistics
+command-stats-overview-description = Summarises the newest scan of a project: usages, symbols without usages, complexity and the first rows of every ranking.
+command-stats-ranking-title = Show a ranking
+command-stats-ranking-description = Ranks the symbols of the newest scan: the most used, those without a usage found, the most complex, the largest and the most coupled.

@@ -198,6 +198,8 @@ pub const EXPORT_DATA_PLACEHOLDER: &str = "__CODESKIMR_EXPORT_DATA__";
 pub const EXPORT_ESCAPED_CHAR: char = '<';
 /// What takes its place; JSON reads it back as the character.
 pub const EXPORT_ESCAPE: &str = "\\u003c";
+/// Steps of the walk that counts the direct usages of a symbol: one.
+pub const DIRECT_DEPTH: u32 = 1;
 /// Steps of the usages walk in the export: only the direct usages. Deeper walks grow with the
 /// number of paths, not of symbols (440,000 of 450,000 hits of a 1,286 symbol project were deeper
 /// than one step, 150 MB), so they stay with the app. The page offers no deeper select.
@@ -214,8 +216,6 @@ pub const EXPORT_FROM: &str = "from";
 pub const EXPORT_TO: &str = "to";
 /// Key of the id in a place.
 pub const EXPORT_ID: &str = "id";
-/// Steps of the walk that counts the direct usages.
-pub const EXPORT_DIRECT_DEPTH: u32 = 1;
 
 /// The gap between two rows is divided by this to get the space a layer band adds above and
 /// below its boxes.
@@ -340,3 +340,26 @@ pub const LEVEL2_STARTED: &str = "started";
 pub const LEVEL2_NOT_STARTED: &str = "not_started";
 /// `Level2Answer::state` when the caller asked for level 1 only.
 pub const LEVEL2_NOT_REQUESTED: &str = "not_requested";
+
+/// Id of the command that summarises a project for the statistics screen (ADR 0081).
+pub const STATS_OVERVIEW: &str = "stats.overview";
+/// Title key of `stats.overview`.
+pub const STATS_OVERVIEW_TITLE: &str = i18n::COMMAND_STATS_OVERVIEW_TITLE;
+/// Description key of `stats.overview`.
+pub const STATS_OVERVIEW_DESCRIPTION: &str = i18n::COMMAND_STATS_OVERVIEW_DESCRIPTION;
+/// Id of the command that ranks the symbols of a project (ADR 0081).
+pub const STATS_RANKING: &str = "stats.ranking";
+/// Title key of `stats.ranking`.
+pub const STATS_RANKING_TITLE: &str = i18n::COMMAND_STATS_RANKING_TITLE;
+/// Description key of `stats.ranking`.
+pub const STATS_RANKING_DESCRIPTION: &str = i18n::COMMAND_STATS_RANKING_DESCRIPTION;
+/// Rows of a ranking if the caller names no limit.
+pub const STATS_LIMIT: u32 = 100;
+/// Most rows of a ranking, whatever the caller asks for.
+pub const STATS_LIMIT_MAX: u32 = 500;
+/// Rows of each card of the overview.
+pub const STATS_TOP: u32 = 5;
+
+/// The separator between the namespace and the name in the qualified name of a type that the tree
+/// leaves out of its answer (the reader puts it together again).
+pub(super) const QUALIFIED_SEPARATOR: &str = ".";

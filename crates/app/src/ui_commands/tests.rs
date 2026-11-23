@@ -41,7 +41,7 @@ pub(crate) struct Fixture {
 }
 
 impl Fixture {
-    fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self::installed(None)
     }
 
@@ -106,7 +106,7 @@ impl Fixture {
     }
 
     /// Registers the folder without scanning it, so the project has no snapshot.
-    fn register_unscanned(&self) -> u64 {
+    pub(super) fn register_unscanned(&self) -> u64 {
         let store = SqliteStore::open(&self.locations.database(), NonZeroU32::MIN).unwrap();
         let source = ProjectSource::Folder(FolderPath::new(self.folder()).unwrap());
         let project = Project {
@@ -152,7 +152,7 @@ impl Fixture {
 }
 
 /// Every command of the registry, in the order the API lists them.
-const COMMAND_IDS: [&str; 38] = [
+const COMMAND_IDS: [&str; 40] = [
     "alerts.dismiss",
     "alerts.dismiss_all",
     "alerts.list",
@@ -187,6 +187,8 @@ const COMMAND_IDS: [&str; 38] = [
     "projects.rescan",
     "projects.tools",
     "search.query",
+    "stats.overview",
+    "stats.ranking",
     "status.info",
     "tools.indexers",
     "usages.code",
@@ -478,7 +480,7 @@ fn the_outline_names_the_limits_behind_the_colours() {
 
 /// Runs a command as `who`, as the API does after it has resolved the caller; the registered
 /// error id of a refusal comes back as the error.
-fn run_as(
+pub(super) fn run_as(
     fixture: &Fixture,
     who: codeskimr_domain::Principal,
     id: &str,
@@ -512,6 +514,8 @@ fn a_token_without_the_read_right_is_refused() {
         "explorer.symbol",
         "graph.layers",
         "search.query",
+        "stats.overview",
+        "stats.ranking",
         "status.info",
         "usages.code",
         "usages.query",
@@ -535,6 +539,18 @@ fn a_caller_who_may_read_but_not_read_source_gets_no_code() {
     assert!(run("usages.query").is_ok());
     assert_eq!(run("usages.code").unwrap_err(), "AUTH-401");
     assert_eq!(run("explorer.source").unwrap_err(), "AUTH-401");
+}
+
+#[test]
+fn the_export_and_the_credential_names_need_read_source_like_the_source_text() {
+    let fixture = Fixture::new();
+    for (id, input) in [
+        ("export.html", json!({ "project": 1 })),
+        ("credentials.list", Value::Null),
+    ] {
+        let refused = run_as(&fixture, principal::reader(), id, input);
+        assert_eq!(refused.unwrap_err(), "AUTH-401", "{id}");
+    }
 }
 
 #[test]

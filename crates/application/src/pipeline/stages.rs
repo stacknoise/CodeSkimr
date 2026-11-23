@@ -8,27 +8,26 @@ use std::thread;
 use std::time::Instant;
 
 use codeskimr_domain::{
-    CommitHash, FileId, FolderPath, LanguageId, Metric, Project, Reference, ScanMode, Snapshot,
-    SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts, SymbolOrigin, Timestamp,
+    CommitHash, FileId, FolderPath, LanguageId, Metric, Project, Reference, RelativePath, ScanMode,
+    Snapshot, SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts, SymbolOrigin, Timestamp,
 };
 
-use codeskimr_codes::ErrorCode;
+use codeskimr_codes::{Coded, ErrorCode};
 
 use super::carry::Carried;
 use super::flow::{Interruption, Stage, StageContext};
 use crate::consts::{
-    DONE_STEP, FILE_ID_BLOCK, FIRST_INDEX, INDEX_STEP, LOG_SCAN_WARNING, LOG_VERIFIED_DISCARDED,
-    MIN_WORKERS, NONE_DONE,
+    DONE_STEP, FILE_ID_BLOCK, FIRST_INDEX, INDEX_STEP, LEFT_OUT_STEP, LOG_FILE_SKIPPED,
+    LOG_SCAN_WARNING, LOG_VERIFIED_DISCARDED, MIN_WORKERS, NONE_DONE,
 };
 use crate::error::CodedError;
 use crate::ids::IdSequence;
 use crate::ports::{
-    AnalyzeRequest, Clock, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts,
-    MetricsCalculator, PathsReport, PendingReference, ProjectRepository, ReferenceResolver,
-    ScanWarning, SnapshotData, SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints,
-    SymbolHash,
+    AnalyzeRequest, Clock, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, LeftOut,
+    MetricsCalculator, PathsReport, PendingReference, PreviousState, ProjectRepository,
+    ReferenceResolver, ScanWarning, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
+    SymbolFingerprints, SymbolHash,
 };
-use crate::resolve::ambiguous_occurrences;
 use crate::selection::Selection;
 use crate::stage::StageKind;
 
@@ -120,6 +119,8 @@ pub struct Resolved {
     pub hashes: Vec<SymbolHash>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
+    /// The places that level 1 gave up for having too many candidates (`RES-304`).
+    pub given_up: u64,
 }
 
 /// Output of the measure stage.
@@ -143,6 +144,8 @@ pub struct Measured {
     pub hashes: Vec<SymbolHash>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
+    /// The places that level 1 gave up for having too many candidates (`RES-304`).
+    pub given_up: u64,
 }
 
 /// Counts a list as `u32`, saturating instead of failing.
@@ -235,7 +238,7 @@ impl Stage for DiscoverStage {
         }
         let carried = if let (ScanMode::Incremental, Some(snapshot)) = (run.mode, state.snapshot) {
             let bases = self.projects.stored_names(snapshot, StoredNames::Bases)?;
-            Carried::from_previous(&mut files, state, bases)
+            Carried::from_previous(&mut files, state, bases, self.projects.as_ref())?
         } else {
             Carried::default()
         };
@@ -264,6 +267,8 @@ fn report_paths(
     PathsReport {
         unmatched: paths.unmatched_in(known),
         ignored: !paths.is_empty() && mode == ScanMode::Full,
+        left_out: Vec::new(),
+        left_out_more: u64::MIN,
     }
 }
 
@@ -295,6 +300,9 @@ pub struct AnalyzeStage {
     pub ids: Arc<IdSequence>,
     /// Most threads that analyse at the same time; 0 means one per core.
     pub max_workers: u32,
+    /// Source of the previous snapshot, read again when a file that could not be analysed keeps
+    /// its former state.
+    pub projects: Arc<dyn ProjectRepository>,
 }
 
 impl Stage for AnalyzeStage {
@@ -308,15 +316,39 @@ impl Stage for AnalyzeStage {
     fn run(&self, input: Discovered, ctx: &StageContext<'_>) -> Result<Analyzed, Interruption> {
         let Discovered {
             run,
-            files,
+            mut files,
             carried,
         } = input;
-        let due: Vec<&DiscoveredFile> = files
-            .iter()
-            .filter(|file| file.changed || run.mode == ScanMode::Full)
-            .collect();
-        let mut out = Analyzed {
-            run: run.clone(),
+        let full = run.mode == ScanMode::Full;
+        let outcomes = {
+            let due: Vec<&DiscoveredFile> =
+                files.iter().filter(|file| file.changed || full).collect();
+            self.analyze_all(&run, &due, ctx)?
+        };
+        let mut out = Analyzed::empty(run, carried);
+        let mut times: BTreeMap<LanguageId, u64> = BTreeMap::new();
+        for outcome in outcomes {
+            match outcome {
+                Outcome::Done(facts, micros) => {
+                    *times.entry(facts.file.language.clone()).or_default() += micros;
+                    out.take(*facts);
+                }
+                Outcome::Skipped(left_out) => out.run.paths_report.left_out.push(left_out),
+            }
+        }
+        if full {
+            out.run.parse_micros = times.into_iter().collect();
+        }
+        self.settle_left_out(&mut out, &mut files)?;
+        Ok(out)
+    }
+}
+
+impl Analyzed {
+    /// The result of a stage that has analysed nothing yet.
+    fn empty(run: ScanRun, carried: Carried) -> Self {
+        Self {
+            run,
             files: Vec::new(),
             symbols: Vec::new(),
             pending: Vec::new(),
@@ -324,22 +356,38 @@ impl Stage for AnalyzeStage {
             fingerprints: Vec::new(),
             hashes: Vec::new(),
             carried,
-        };
-        let mut times: BTreeMap<LanguageId, u64> = BTreeMap::new();
-        for (facts, micros) in self.analyze_all(&run, &due, ctx)? {
-            *times.entry(facts.file.language.clone()).or_default() += micros;
-            out.files.push(facts.file);
-            out.symbols.extend(facts.symbols);
-            out.pending.extend(facts.pending);
-            out.counts.extend(facts.counts);
-            out.fingerprints.extend(facts.fingerprints);
-            out.hashes.extend(facts.hashes);
         }
-        if run.mode == ScanMode::Full {
-            out.run.parse_micros = times.into_iter().collect();
-        }
-        Ok(out)
     }
+
+    /// Adds the facts of one analysed file.
+    fn take(&mut self, facts: FileFacts) {
+        self.files.push(facts.file);
+        self.symbols.extend(facts.symbols);
+        self.pending.extend(facts.pending);
+        self.counts.extend(facts.counts);
+        self.fingerprints.extend(facts.fingerprints);
+        self.hashes.extend(facts.hashes);
+    }
+}
+
+/// Whether a failure with `code` concerns the one file only. Such a file is left out and the scan
+/// goes on; any other failure (a broken language pack, a bug) stops the scan.
+fn leaves_file_out(code: ErrorCode) -> bool {
+    LeftOut::CODES.contains(&code)
+}
+
+/// The outcome for a file that is left out, with a log line that names it.
+fn skipped(file: &DiscoveredFile, code: ErrorCode) -> Outcome {
+    tracing::warn!(
+        event = LOG_FILE_SKIPPED,
+        code = code.id(),
+        path = file.path.as_str()
+    );
+    Outcome::Skipped(LeftOut {
+        path: file.path.clone(),
+        code,
+        kept: false,
+    })
 }
 
 /// The failure for a worker that panicked.
@@ -359,10 +407,15 @@ struct Shared {
 }
 
 /// The result of one file, with the index of the file in the list of due files.
-type Slot = (usize, Result<Timed, Interruption>);
+type Slot = (usize, Result<Outcome, Interruption>);
 
-/// The facts of one file with the microseconds its analysis took.
-type Timed = (FileFacts, u64);
+/// What became of one file in the analyze stage.
+enum Outcome {
+    /// The facts of the file with the microseconds its analysis took.
+    Done(Box<FileFacts>, u64),
+    /// The file could not be analysed and is left out.
+    Skipped(LeftOut),
+}
 
 impl Shared {
     /// First id of the block of the file at `index`.
@@ -377,6 +430,98 @@ fn count_u64<T>(items: &[T]) -> u64 {
 }
 
 impl AnalyzeStage {
+    /// Decides what the snapshot shows of the files that were left out, and fails the scan if it
+    /// would show no file at all: a project in which nothing can be analysed (every file in an
+    /// encoding that is not read, say) must not look like a scan that worked.
+    fn settle_left_out(
+        &self,
+        out: &mut Analyzed,
+        files: &mut [DiscoveredFile],
+    ) -> Result<(), CodedError> {
+        let Some(first) = out.run.paths_report.left_out.first().map(|left| left.code) else {
+            return Ok(());
+        };
+        self.keep_previous(out, files)?;
+        let kept: HashSet<RelativePath> = out
+            .carried
+            .files
+            .iter()
+            .map(|file| file.path.clone())
+            .collect();
+        for left in &mut out.run.paths_report.left_out {
+            left.kept = kept.contains(&left.path);
+            if !left.kept {
+                // An incremental scan must not carry the stale row of the file over.
+                out.carried.removed.push(left.path.clone());
+            }
+        }
+        if out.files.is_empty() && kept.is_empty() {
+            return Err(CodedError::new(first));
+        }
+        Ok(())
+    }
+
+    /// Gives the files whose failure may pass (a busy machine, a locked file) their former state
+    /// back, so that their symbols, references, notes and critical marks do not vanish for one
+    /// scan. The previous snapshot is split again with them as unchanged. Their stored content
+    /// hash stays the old one, so the next scan tries them again.
+    ///
+    /// A full scan goes on as an incremental one in which every other file changed, which gives
+    /// what a full scan gives for those and the former state for these (see [`Carried`]). It
+    /// cannot when the previous snapshot holds other naming rules or no names: then the files
+    /// are left out.
+    fn keep_previous(
+        &self,
+        out: &mut Analyzed,
+        files: &mut [DiscoveredFile],
+    ) -> Result<(), CodedError> {
+        let may_pass: HashSet<&RelativePath> = out
+            .run
+            .paths_report
+            .left_out
+            .iter()
+            .filter(|left| LeftOut::MAY_PASS.contains(&left.code))
+            .map(|left| &left.path)
+            .collect();
+        if may_pass.is_empty() {
+            return Ok(());
+        }
+        let state = self.projects.latest_state(out.run.project.id)?;
+        let Some(snapshot) = state.snapshot else {
+            return Ok(());
+        };
+        if out.run.mode == ScanMode::Full && !self.can_follow(&out.run, &state)? {
+            return Ok(());
+        }
+        let full = out.run.mode == ScanMode::Full;
+        for file in files.iter_mut() {
+            if may_pass.contains(&file.path) {
+                file.changed = false;
+            } else if full {
+                file.changed = true;
+            }
+        }
+        let bases = self.projects.stored_names(snapshot, StoredNames::Bases)?;
+        out.carried = Carried::from_previous(files, state, bases, self.projects.as_ref())?;
+        if full {
+            // The times of a scan that missed a file are not those of a full scan.
+            out.run.parse_micros.clear();
+            out.run.mode = ScanMode::Incremental;
+        }
+        Ok(())
+    }
+
+    /// Whether a full scan can build on the previous snapshot: it holds the names as written, and
+    /// they were made under the naming rules of this run (the same test the discover stage makes
+    /// for an incremental scan).
+    fn can_follow(&self, run: &ScanRun, state: &PreviousState) -> Result<bool, CodedError> {
+        if !state.names_stored {
+            return Ok(false);
+        }
+        let kept = self.projects.latest_naming_rules(run.project.id)?;
+        Ok(kept.unwrap_or_default() == run.naming_rules)
+    }
+
     /// Analyses the files on all cores. The result keeps the order of `due`; the first failure
     /// stops the other workers.
     fn analyze_all(
@@ -384,7 +529,7 @@ impl AnalyzeStage {
         run: &ScanRun,
         due: &[&DiscoveredFile],
         ctx: &StageContext<'_>,
-    ) -> Result<Vec<Timed>, Interruption> {
+    ) -> Result<Vec<Outcome>, Interruption> {
         let shared = Shared {
             next: AtomicUsize::new(FIRST_INDEX),
             done: Mutex::new(NONE_DONE),
@@ -441,7 +586,7 @@ impl AnalyzeStage {
         file: &DiscoveredFile,
         first_id: u64,
         ctx: &StageContext<'_>,
-    ) -> Result<Timed, Interruption> {
+    ) -> Result<Outcome, Interruption> {
         if ctx.is_cancelled() {
             return Err(Interruption::Cancelled);
         }
@@ -453,12 +598,16 @@ impl AnalyzeStage {
             ids: &ids,
         };
         let started = Instant::now();
-        let facts = self.analyzer.analyze(&request)?;
+        let facts = match self.analyzer.analyze(&request) {
+            Ok(facts) => facts,
+            Err(cause) if leaves_file_out(cause.code()) => return Ok(skipped(file, cause.code())),
+            Err(cause) => return Err(cause.into()),
+        };
         let micros = u64::try_from(started.elapsed().as_micros()).unwrap_or(u64::MAX);
         if ids.peek() - first_id > FILE_ID_BLOCK {
             return Err(internal_failure());
         }
-        Ok((facts, micros))
+        Ok(Outcome::Done(Box::new(facts), micros))
     }
 }
 
@@ -499,10 +648,11 @@ impl Stage for ResolveStage {
         ctx.progress(0, total);
         let table = level_one_symbols(&carried.symbols, &symbols);
         let test_files = self.test_files(files.iter().chain(&carried.files));
-        let resolved = self
-            .resolver
-            .resolve(&table, &names, &test_files, &self.ids)?;
-        let references = carried.reconcile(resolved);
+        let resolved =
+            self.resolver
+                .resolve(&table, &names, &test_files, (&self.ids, ctx.cancel_token()))?;
+        let given_up = resolved.given_up;
+        let references = carried.reconcile(resolved.references, self.projects.as_ref())?;
         if carried.discarded_verified > 0 {
             tracing::info!(
                 event = LOG_VERIFIED_DISCARDED,
@@ -520,6 +670,7 @@ impl Stage for ResolveStage {
             fingerprints,
             hashes,
             carried,
+            given_up,
         })
     }
 }
@@ -565,9 +716,9 @@ impl Stage for MeasureStage {
             .collect();
         let total = count(&symbols);
         ctx.progress(0, total);
-        let metrics = self
-            .calculator
-            .measure(&symbols, &references, &input.counts)?;
+        let metrics =
+            self.calculator
+                .measure(&symbols, &references, &input.carried.pairs, &input.counts)?;
         ctx.progress(total, total);
         Ok(Measured {
             run: input.run,
@@ -579,6 +730,7 @@ impl Stage for MeasureStage {
             fingerprints: input.fingerprints,
             hashes: input.hashes,
             carried: input.carried,
+            given_up: input.given_up,
         })
     }
 }
@@ -590,6 +742,8 @@ pub struct PersistStage {
     pub store: Arc<dyn SnapshotStore>,
     /// Source of the creation time.
     pub clock: Arc<dyn Clock>,
+    /// Most files the result names when they were left out; the others are counted.
+    pub max_left_out_listed: u32,
 }
 
 /// Output of the persist stage.
@@ -617,14 +771,44 @@ fn log_warnings(warnings: &[ScanWarning]) {
 }
 
 /// The warnings of a scan over all references of the snapshot, changed and kept ones.
-fn warnings_of(references: &[Reference], carried: &[Reference]) -> Vec<ScanWarning> {
-    let ambiguous = ambiguous_occurrences(references.iter().chain(carried));
-    let found = [(ErrorCode::AmbiguousReference, ambiguous)];
+///
+/// `given_up` counts only the places resolved in this scan: an incremental scan does not know how
+/// many a kept file gave up before.
+fn warnings_of(ambiguous: u64, given_up: u64) -> Vec<ScanWarning> {
+    let found = [
+        (ErrorCode::AmbiguousReference, ambiguous),
+        (ErrorCode::NameTooCommon, given_up),
+    ];
     found
         .into_iter()
         .filter(|(_, count)| *count > 0)
         .map(|(code, count)| ScanWarning { code, count })
         .collect()
+}
+
+/// The report with at most `most` files that were left out by name; the others are counted.
+fn listed(mut paths: PathsReport, most: u32) -> PathsReport {
+    let most = usize::try_from(most).unwrap_or(usize::MAX);
+    let more = paths.left_out.len().saturating_sub(most);
+    paths.left_out.truncate(most);
+    paths.left_out_more = u64::try_from(more).unwrap_or(u64::MAX);
+    paths
+}
+
+/// One warning per code of the files that were left out, with the number of files, in the order
+/// the codes first came up.
+fn left_out_warnings(left_out: &[LeftOut]) -> Vec<ScanWarning> {
+    let mut warnings: Vec<ScanWarning> = Vec::new();
+    for left in left_out {
+        match warnings.iter_mut().find(|known| known.code == left.code) {
+            Some(known) => known.count += LEFT_OUT_STEP,
+            None => warnings.push(ScanWarning {
+                code: left.code,
+                count: LEFT_OUT_STEP,
+            }),
+        }
+    }
+    warnings
 }
 
 impl Stage for PersistStage {
@@ -639,7 +823,10 @@ impl Stage for PersistStage {
         ctx.progress(0, 1);
         let root = input.run.root.clone();
         let snapshot = snapshot_of(&input, self.clock.now());
-        let warnings = warnings_of(&input.references, &input.carried.references);
+        let ambiguous = input.carried.ambiguous_places(&input.references);
+        let mut warnings = warnings_of(ambiguous, input.given_up);
+        warnings.extend(left_out_warnings(&input.run.paths_report.left_out));
+        let paths = listed(input.run.paths_report, self.max_left_out_listed);
         let data = SnapshotData {
             snapshot,
             files: input.files,
@@ -654,6 +841,8 @@ impl Stage for PersistStage {
             naming_rules: input.run.naming_rules,
             parse_micros: input.run.parse_micros,
             warnings: warnings.clone(),
+            ambiguous_places: Some(ambiguous),
+            left_out: paths.left_out.clone(),
         };
         let stored = self.store.persist(data)?;
         log_warnings(&warnings);
@@ -662,7 +851,7 @@ impl Stage for PersistStage {
             snapshot: stored,
             root,
             warnings,
-            paths: input.run.paths_report,
+            paths,
         })
     }
 }

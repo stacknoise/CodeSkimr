@@ -40,18 +40,11 @@ impl AnnotationQuery {
         }
     }
 
-    /// The target to hand to the store: only one that names parameter types, because the store
-    /// matches those exactly. A target without them means every overload of the name, which
-    /// `matches` selects.
-    fn exact_target(&self) -> Option<AnnotationTarget> {
-        self.target
-            .clone()
-            .filter(|target| !target.parameters.is_empty())
-    }
-
     fn matches(&self, annotation: &Annotation) -> bool {
         self.target.as_ref().is_none_or(|target| {
-            annotation.target.kind == target.kind && annotation.target.name == target.name
+            annotation.target.kind == target.kind
+                && annotation.target.name == target.name
+                && ties_to(&annotation.target, target)
         }) && self
             .status
             .is_none_or(|status| annotation.content.status == Some(status))
@@ -72,7 +65,7 @@ pub fn annotations(
 ) -> Result<Page<Annotation>, CodedError> {
     let all = store.list_annotations(&AnnotationFilter {
         project: query.project,
-        target: query.exact_target(),
+        target: None,
         kind: query.kind,
     })?;
     Ok(Page::of(
@@ -92,6 +85,15 @@ pub struct AlertQuery {
     pub state: Option<AlertState>,
     /// Only alerts of these kinds; empty means every kind.
     pub kinds: Vec<AlertKind>,
+}
+
+/// Whether an annotation on `found` is about the symbol `wanted`: a target without parameters
+/// stands for every overload of the name, on either side (an annotation made before overloads were
+/// told apart belongs to all of them).
+fn ties_to(found: &AnnotationTarget, wanted: &AnnotationTarget) -> bool {
+    found.parameters.is_empty()
+        || wanted.parameters.is_empty()
+        || found.parameters == wanted.parameters
 }
 
 impl AlertQuery {

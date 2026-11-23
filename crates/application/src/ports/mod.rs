@@ -17,13 +17,16 @@ mod highlight;
 mod indexer;
 mod keys;
 mod level2;
+mod memory;
 mod outline;
 mod query;
+mod references;
 mod report;
 mod rescan;
 mod similarity;
 mod source;
 mod states;
+mod statistics;
 mod storage;
 mod tools;
 mod usages;
@@ -31,7 +34,7 @@ mod version;
 
 pub use analysis::{
     AnalyzeRequest, FileAnalyzer, FileFacts, MetricsCalculator, PendingReference, Receiver,
-    ReferenceResolver, SnippetFingerprinter, SymbolFingerprints, SymbolHash,
+    ReferenceResolver, Resolution, SnippetFingerprinter, SymbolFingerprints, SymbolHash,
 };
 pub use annotations::{
     AlertDismissal, AlertFilter, AlertPurge, AlertRaise, AnnotationCreation, AnnotationFilter,
@@ -50,23 +53,26 @@ pub use indexer::{
 };
 pub use keys::{KeyEntry, KeyKind, KeySearch, ProjectKeys};
 pub use level2::{ImportRequest, Imported, ReferenceImporter};
+pub use memory::{MemoryGauge, MemoryLimit, MemoryWatch};
 pub use outline::{CodeOutline, MemberRow, OutlineNode};
 pub use query::{
     CodeIndex, CodeSpan, FileHit, MemberRef, SearchHit, SymbolDetail, SymbolKey, TypeFocus,
     TypeNeighbour,
 };
+pub use references::{ReferenceSite, ReferenceSites};
 pub use report::{
     LanguageLine, LanguageOutcome, LastScan, Level2Report, ReportWrite, ScanReport, ScanReportStore,
 };
-pub use rescan::{PathsReport, ProjectScanner, Rescanned};
+pub use rescan::{LeftOut, PathsReport, ProjectScanner, Rescanned};
 pub use similarity::{SimilarHit, SimilarQuery, SimilarityIndex};
 pub use source::{
     DiscoveredFile, Excerpt, FetchedSource, FileDiscovery, SourceProvider, SourceText,
 };
 pub use states::{SameName, SymbolState, SymbolStates};
+pub use statistics::CodeStatistics;
 pub use storage::{
     Level2Replacement, PreviousIndex, PreviousState, ProjectRemoval, ProjectRepository,
-    ScanWarning, SnapshotData, SnapshotStore, StoredNames,
+    ScanWarning, SnapshotData, SnapshotStore, StoredNames, StoredReferences,
 };
 pub use tools::{
     ProjectToolCheck, RequirementReader, RequirementValue, ToolCatalog, ToolPlan, ToolReportStore,

@@ -182,7 +182,7 @@
       "kind": "method",
       "name": "sample\\Shop\\Order\\__construct",
       "parent": "sample\\Shop\\Order",
-      "signature": null,
+      "signature": "public function __construct(int $id)",
       "span": "8:4-10:5",
       "static": false,
       "visibility": null
@@ -192,7 +192,7 @@
       "kind": "method",
       "name": "sample\\Shop\\Order\\total",
       "parent": "sample\\Shop\\Order",
-      "signature": null,
+      "signature": "public function total(): int",
       "span": "13:4-18:5",
       "static": false,
       "visibility": null
@@ -212,7 +212,7 @@
       "kind": "method",
       "name": "sample\\Shop\\Priced\\price",
       "parent": "sample\\Shop\\Priced",
-      "signature": null,
+      "signature": "public function price(): int;",
       "span": "21:19-21:48",
       "static": false,
       "visibility": null
@@ -232,7 +232,7 @@
       "kind": "method",
       "name": "sample\\Shop\\Loggable\\log",
       "parent": "sample\\Shop\\Loggable",
-      "signature": null,
+      "signature": "public function log()",
       "span": "22:17-22:41",
       "static": false,
       "visibility": null
@@ -252,7 +252,7 @@
       "kind": "function",
       "name": "sample\\Shop\\helper",
       "parent": "sample\\Shop",
-      "signature": null,
+      "signature": "function helper(int $x): int",
       "span": "25:0-29:1",
       "static": false,
       "visibility": null
@@ -282,7 +282,7 @@
       "kind": "method",
       "name": "sample\\Other\\Second\\run",
       "parent": "sample\\Other\\Second",
-      "signature": null,
+      "signature": "public function run()",
       "span": "34:4-34:28",
       "static": false,
       "visibility": null

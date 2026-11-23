@@ -293,7 +293,7 @@
       "kind": "method",
       "name": "sample::shop::Order::Order",
       "parent": "sample::shop::Order",
-      "signature": null,
+      "signature": "Order(int id) : id_(id)",
       "span": "5:4-5:30",
       "static": false,
       "visibility": null
@@ -303,7 +303,7 @@
       "kind": "method",
       "name": "sample::shop::Order::total",
       "parent": "sample::shop::Order",
-      "signature": null,
+      "signature": "int total() const",
       "span": "6:4-6:51",
       "static": false,
       "visibility": null
@@ -313,7 +313,7 @@
       "kind": "method",
       "name": "sample::shop::Order::~Order",
       "parent": "sample::shop::Order",
-      "signature": null,
+      "signature": "~Order()",
       "span": "8:4-8:15",
       "static": false,
       "visibility": null
@@ -323,7 +323,7 @@
       "kind": "method",
       "name": "sample::shop::Order::self",
       "parent": "sample::shop::Order",
-      "signature": null,
+      "signature": "Order* self()",
       "span": "9:4-9:34",
       "static": false,
       "visibility": null
@@ -333,7 +333,7 @@
       "kind": "method",
       "name": "sample::shop::Order::operator==",
       "parent": "sample::shop::Order",
-      "signature": null,
+      "signature": "bool operator==(const Order& o) const",
       "span": "10:4-10:66",
       "static": false,
       "visibility": null
@@ -343,7 +343,7 @@
       "kind": "method",
       "name": "sample::shop::Order::tm",
       "parent": "sample::shop::Order",
-      "signature": null,
+      "signature": "void tm(T v)",
       "span": "11:26-11:41",
       "static": false,
       "visibility": null
@@ -373,7 +373,7 @@
       "kind": "method",
       "name": "sample::shop::Order::add",
       "parent": "sample::shop::Order",
-      "signature": null,
+      "signature": "void Order::add(int x)",
       "span": "20:0-22:1",
       "static": false,
       "visibility": null
@@ -383,7 +383,7 @@
       "kind": "method",
       "name": "sample::shop::Order::make",
       "parent": "sample::shop::Order",
-      "signature": null,
+      "signature": "Order* Order::make()",
       "span": "24:0-24:40",
       "static": false,
       "visibility": null
@@ -403,7 +403,7 @@
       "kind": "method",
       "name": "sample::shop::Box::get",
       "parent": "sample::shop::Box",
-      "signature": null,
+      "signature": "T Box<T>::get()",
       "span": "28:22-28:53",
       "static": false,
       "visibility": null
@@ -423,7 +423,7 @@
       "kind": "method",
       "name": "sample::shop::Other::add",
       "parent": "sample::shop::Other",
-      "signature": null,
+      "signature": "void Other::add(int x)",
       "span": "32:0-32:25",
       "static": false,
       "visibility": null
@@ -433,7 +433,7 @@
       "kind": "function",
       "name": "sample::shop::price",
       "parent": "sample::shop",
-      "signature": null,
+      "signature": "int price(const Order& o)",
       "span": "34:0-36:1",
       "static": false,
       "visibility": null
@@ -443,7 +443,7 @@
       "kind": "function",
       "name": "sample::shop::twice",
       "parent": "sample::shop",
-      "signature": null,
+      "signature": "T twice(T v)",
       "span": "39:0-39:30",
       "static": false,
       "visibility": null
@@ -483,7 +483,7 @@
       "kind": "method",
       "name": "sample::Twin::go",
       "parent": "sample",
-      "signature": null,
+      "signature": "void Twin::go()",
       "span": "53:0-53:18",
       "static": false,
       "visibility": null

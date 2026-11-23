@@ -27,6 +27,18 @@ fn the_languages_below_99_percent_are_marked_in_the_defaults() {
 }
 
 #[test]
+fn level_one_gives_up_a_bare_name_above_one_hundred_candidates() {
+    let config = Config::defaults().expect("shipped defaults are valid");
+    assert_eq!(config.scan.max_candidates, 100);
+}
+
+#[test]
+fn a_scan_names_twenty_files_it_left_out_by_default() {
+    let config = Config::defaults().expect("shipped defaults are valid");
+    assert_eq!(config.scan.max_left_out_listed, 20);
+}
+
+#[test]
 fn defaults_match_the_blueprint() {
     let config = Config::defaults().expect("shipped defaults are valid");
     assert_eq!(config.metrics.cyclomatic_good_max, 5);
@@ -505,6 +517,15 @@ fn the_size_of_a_graph_box_must_be_positive() {
 }
 
 #[test]
+fn the_export_limit_must_be_positive() {
+    assert_rejected(&[(
+        "[export]\nmax_references = 0\n",
+        "export.max_references",
+        Violation::MustBePositive,
+    )]);
+}
+
+#[test]
 fn every_error_maps_to_a_registered_code() {
     let error = Config::resolve(&[user("[watcher]\ndebounce_ms = 0\n")]).expect_err("range");
     assert_eq!(error.code().id(), "CFG-101");
@@ -576,6 +597,35 @@ fn the_project_file_may_lower_the_scan_limits_but_not_raise_them() {
 }
 
 #[test]
+fn the_project_file_may_lower_the_memory_limit_but_not_raise_it() {
+    let defaults = Config::defaults().expect("defaults").scan;
+    assert_eq!(defaults.max_memory_mb, 16384);
+    let lowered = project("[scan]\nmax_memory_mb = 2048\n");
+    let scan = Config::resolve(&[lowered]).expect("valid").scan;
+    assert_eq!(scan.max_memory_mb, 2048);
+    let raised = project("[scan]\nmax_memory_mb = 4000000000\n");
+    let scan = Config::resolve(&[raised]).expect("valid").scan;
+    assert_eq!(scan.max_memory_mb, defaults.max_memory_mb);
+    let user_file = user("[scan]\nmax_memory_mb = 32768\n");
+    let scan = Config::resolve(&[user_file]).expect("valid").scan;
+    assert_eq!(scan.max_memory_mb, 32768);
+}
+
+#[test]
+fn the_project_file_may_lower_the_candidate_limit_but_not_raise_it() {
+    let defaults = Config::defaults().expect("defaults").scan;
+    let lowered = project("[scan]\nmax_candidates = 10\n");
+    let scan = Config::resolve(&[lowered]).expect("valid").scan;
+    assert_eq!(scan.max_candidates, 10);
+    let raised = project("[scan]\nmax_candidates = 4000000000\n");
+    let scan = Config::resolve(&[raised]).expect("valid").scan;
+    assert_eq!(scan.max_candidates, defaults.max_candidates);
+    let user_file = user("[scan]\nmax_candidates = 500\n");
+    let scan = Config::resolve(&[user_file]).expect("valid").scan;
+    assert_eq!(scan.max_candidates, 500);
+}
+
+#[test]
 fn the_user_file_and_flags_can_raise_the_scan_limits_and_the_project_stays_below_them() {
     let user_file = user("[scan]\nmax_source_mb = 4096\n");
     let raised_by_project = project("[scan]\nmax_source_mb = 8192\n");
@@ -589,6 +639,19 @@ fn the_user_file_and_flags_can_raise_the_scan_limits_and_the_project_stays_below
     let flag = ConfigLayer::from_overrides([("scan.max_source_mb", "8192")]).expect("flag");
     let scan = Config::resolve(&[user_file, flag]).expect("valid").scan;
     assert_eq!(scan.max_source_mb, 8192, "a flag may raise it");
+}
+
+#[test]
+fn the_project_file_cannot_lift_the_export_limit() {
+    let raised = project("[export]\nmax_references = 999999999\n");
+    let config =
+        Config::resolve(&[user("[export]\nmax_references = 1000\n"), raised]).expect("valid");
+    assert_eq!(config.export.max_references, 1000);
+    let config = Config::resolve(&[project("[export]\nmax_references = 5\n")]).expect("valid");
+    assert_eq!(
+        config.export.max_references, 600_000,
+        "the table is not read at all"
+    );
 }
 
 #[test]

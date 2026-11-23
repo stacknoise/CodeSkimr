@@ -1,11 +1,13 @@
 //! The `ProjectCatalog` port: the project list with what the newest snapshot says.
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{LanguageShare, ProjectCatalog, ProjectOverview, ScanWarning};
+use codeskimr_application::ports::{
+    LanguageShare, LeftOut, ProjectCatalog, ProjectOverview, ScanWarning,
+};
 use codeskimr_codes::ErrorCode;
 use std::collections::HashMap;
 
-use codeskimr_domain::{LanguageId, ProjectId, SnapshotId};
+use codeskimr_domain::{LanguageId, ProjectId, RelativePath, SnapshotId};
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, column_int, id_from, small_from};
@@ -95,20 +97,43 @@ fn warnings(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<ScanWa
         .collect())
 }
 
+/// The files the scan that wrote `snapshot` left out by name. A path or a code that this version
+/// does not know any more is left out.
+fn left_out(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<LeftOut>> {
+    let rows = rows_of_snapshot(conn, sql::LEFT_OUT, snapshot, |cols| {
+        Ok((
+            cols.take::<String>()?,
+            cols.take::<String>()?,
+            cols.take::<bool>()?,
+        ))
+    })?;
+    Ok(rows
+        .into_iter()
+        .filter_map(|(path, id, kept)| {
+            let code = ErrorCode::ALL
+                .iter()
+                .copied()
+                .find(|code| code.id() == id)?;
+            let path = RelativePath::new(path).ok()?;
+            Some(LeftOut { path, code, kept })
+        })
+        .collect())
+}
+
 fn overview(conn: &Connection, id: ProjectId) -> StorageResult<ProjectOverview> {
     let project = load_project(conn, id)?;
     let latest = latest_snapshot(conn, id)?;
-    let (types, languages, warnings) = match &latest {
+    let (types, languages, (warnings, left_out)) = match &latest {
         Some(snapshot) => {
             let raw = column_int(snapshot.id.get())?;
             let types: i64 = conn.query_row(sql::TYPE_COUNT, params![raw], |row| row.get(0))?;
             (
                 small_from(types)?,
                 languages(conn, snapshot.id)?,
-                warnings(conn, snapshot.id)?,
+                (warnings(conn, snapshot.id)?, left_out(conn, snapshot.id)?),
             )
         }
-        None => (u32::default(), Vec::new(), Vec::new()),
+        None => (u32::default(), Vec::new(), (Vec::new(), Vec::new())),
     };
     Ok(ProjectOverview {
         project,
@@ -116,6 +141,7 @@ fn overview(conn: &Connection, id: ProjectId) -> StorageResult<ProjectOverview> 
         types,
         languages,
         warnings,
+        left_out,
     })
 }
 

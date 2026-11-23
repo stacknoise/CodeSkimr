@@ -40,6 +40,9 @@ mod projects_tests;
 mod rating;
 mod search;
 mod source;
+mod stats;
+#[cfg(test)]
+mod stats_tests;
 mod status;
 mod symbol;
 mod temp_file;
@@ -102,6 +105,7 @@ use projects_pick::{FolderDialogInfo, PickFolder};
 use projects_remove::RemoveProject;
 use search::{SearchPorts, SearchQuery};
 use source::ExplorerSource;
+use stats::{StatsOverview, StatsPorts, StatsRanking};
 use status::{BudgetTargets, StatusInfo};
 use symbol::ExplorerSymbol;
 use usages::{UsagesPorts, UsagesQuery};
@@ -215,7 +219,7 @@ pub fn command_api_probing(
     run: (Option<Arc<dyn IndexRunner>>, RunningScans),
 ) -> Result<CommandApi, CodedError> {
     let config = crate::config_files::load(locations, global, None)?;
-    let catalog = crate::wiring::open_serving_store(locations, &config)?;
+    let catalog = crate::wiring::open_store(locations, &config)?;
     let window = Window {
         port: Arc::new(NoWindow),
         launch: codeskimr_application::level2::Launch::Copy,
@@ -286,6 +290,7 @@ fn register_views(
     register_search(registry, catalog)?;
     register_usages(registry, catalog, config.mcp.max_depth)?;
     register_graph(registry, catalog, config.graph.clone())?;
+    register_stats(registry, catalog, config)?;
     add(registry, status_info(config))?;
     register_explorer(registry, catalog, config.metrics.clone(), locations)?;
     register_preferences(registry, locations)?;
@@ -404,6 +409,8 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<LayersGet>()?;
     api.expose::<LayersSet>()?;
     api.expose::<StatusInfo>()?;
+    api.expose::<StatsOverview>()?;
+    api.expose::<StatsRanking>()?;
     api.expose::<GetPreferences>()?;
     api.expose::<SetPreferences>()?;
     api.expose::<HtmlExport>()?;
@@ -584,6 +591,28 @@ fn register_explorer(
     add(registry, ExplorerSymbol { ports })
 }
 
+fn register_stats(
+    registry: &mut Registry,
+    store: &Arc<SqliteStore>,
+    config: &Config,
+) -> Result<(), CodedError> {
+    let ports = Arc::new(StatsPorts {
+        projects: store.clone(),
+        index: store.clone(),
+        statistics: store.clone(),
+        thresholds: config.metrics.clone(),
+        test_names: config.conventions.test_folders.clone(),
+        approximate: config.ui.approximate_languages.clone(),
+    });
+    add(
+        registry,
+        StatsOverview {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(registry, StatsRanking { ports })
+}
+
 fn usages_ports(store: &Arc<SqliteStore>, max_depth: u32) -> Arc<UsagesPorts> {
     Arc::new(UsagesPorts {
         projects: store.clone(),
@@ -640,6 +669,7 @@ pub(crate) fn export_command(
             graph: GraphLayers {
                 ports: graph_ports(store, config.graph.clone()),
             },
+            max_references: config.export.max_references,
         },
         locations.existing_dir(&config.ui.dir),
         crate::embedded_ui::FILES,

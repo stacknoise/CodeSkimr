@@ -36,7 +36,8 @@ pub use locale::language_from;
 pub use parser::parse;
 pub use render::{
     ScanSummary, TrayLabels, credential_deleted, credential_stored, device_prompt, error_line,
-    export_written, open_ready, scan_finished, scan_json, scan_started, scan_tools, secret_prompt,
-    serve_started, start_keep_open, start_tray, tray_labels, watch_started, watch_updated,
+    export_written, open_ready, open_url_warning, scan_finished, scan_json, scan_started,
+    scan_tools, secret_prompt, serve_started, start_keep_open, start_tray, tray_labels,
+    watch_started, watch_updated,
 };
-pub use warning::WarningLine;
+pub use warning::{LeftOutLine, LeftOutView, WarningLine};

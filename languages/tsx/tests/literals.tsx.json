@@ -1,0 +1,79 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 6,
+      "operands": null,
+      "operators": null,
+      "symbol": "literals"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "literals.view"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        3
+      ],
+      "symbol": "literals.cast"
+    }
+  ],
+  "loc": 6,
+  "references": [
+    {
+      "at": "3:28",
+      "from": "literals.view",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Element"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "literals",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-10:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.view",
+      "parent": "literals",
+      "signature": "function view(): JSX.Element",
+      "span": "3:7-5:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.cast",
+      "parent": "literals",
+      "signature": "function cast(value: unknown): number",
+      "span": "7:7-9:1",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

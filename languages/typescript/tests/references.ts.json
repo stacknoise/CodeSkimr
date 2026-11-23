@@ -154,7 +154,7 @@
     },
     {
       "at": "6:37",
-      "from": "references.Cart.constructor",
+      "from": "references.Cart.repo",
       "kind": "type_use",
       "receiver": null,
       "target": "Repo"
@@ -423,17 +423,27 @@
       "kind": "constructor",
       "name": "references.Cart.constructor",
       "parent": "references.Cart",
-      "signature": null,
+      "signature": "constructor(private readonly repo: Repo)",
       "span": "6:2-8:3",
       "static": false,
       "visibility": "public"
     },
     {
       "doc": null,
+      "kind": "field",
+      "name": "references.Cart.repo",
+      "parent": "references.Cart",
+      "signature": null,
+      "span": "6:14-6:41",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
       "kind": "method",
       "name": "references.Cart.run",
       "parent": "references.Cart",
-      "signature": null,
+      "signature": "override run(): void",
       "span": "10:2-10:25",
       "static": false,
       "visibility": "public"
@@ -443,7 +453,7 @@
       "kind": "method",
       "name": "references.Cart.find",
       "parent": "references.Cart",
-      "signature": null,
+      "signature": "find(key: string, fallback?: Item): Item",
       "span": "12:2-22:3",
       "static": false,
       "visibility": "public"
@@ -463,7 +473,7 @@
       "kind": "function",
       "name": "references.helper",
       "parent": "references",
-      "signature": null,
+      "signature": "function helper(a: Named, b: Cart[]): Promise<Cart>",
       "span": "27:0-37:1",
       "static": false,
       "visibility": "private"
@@ -473,7 +483,7 @@
       "kind": "function",
       "name": "references.mapper",
       "parent": "references",
-      "signature": null,
+      "signature": "(value: number) =>",
       "span": "39:15-39:47",
       "static": false,
       "visibility": "private"

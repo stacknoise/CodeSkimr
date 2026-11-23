@@ -71,3 +71,11 @@
     padding: var(--space-16);
     color: var(--muted);
 }
+
+.indexer {
+    padding: var(--space-10) var(--space-16);
+    background: var(--accent-bg);
+    border-radius: var(--radius-panel);
+    color: var(--accent);
+    font-weight: 500;
+}

@@ -127,6 +127,10 @@ export const LOCATION_SEPARATOR = ":";
 
 /** Columns of the member table: name, annotations, signature, access, CC, uses, lines. */
 export const COLUMN_COUNT = 7;
+/** The columns of the member table by id (the ids of the sortable ones are the sort columns), the id of
+ * the notes column and the key the widths are kept under. */
+export const NOTES_COLUMN = "notes";
+export const MEMBER_TABLE_KEY = "members";
 
 /** Id of the complexity metric, which names the limits of its column. */
 export const CC_METRIC = "cc";
@@ -314,6 +318,16 @@ export const SORT_COLUMN = {
   lines: "lines",
 } as const;
 export type SortColumn = (typeof SORT_COLUMN)[keyof typeof SORT_COLUMN];
+export const MEMBER_COLUMNS = Object.values(SORT_COLUMN);
+export const MEMBER_COLUMNS_WITH_NOTES = [
+  SORT_COLUMN.name,
+  NOTES_COLUMN,
+  SORT_COLUMN.signature,
+  SORT_COLUMN.access,
+  SORT_COLUMN.complexity,
+  SORT_COLUMN.usages,
+  SORT_COLUMN.lines,
+];
 
 /** The directions of a sort, as `aria-sort` names them. */
 export const SORT_DIRECTION = { ascending: "ascending", descending: "descending" } as const;
@@ -340,3 +354,10 @@ export const NAME_COLLATION: Intl.CollatorOptions = { sensitivity: "base", numer
 
 /** The sign that turns the order of a comparison for the direction of a sort. */
 export const SORT_SIGN = { ascending: 1, descending: -1 } as const;
+
+/** The separator between a namespace and a name in the qualified name of a type
+ * (crates/app/src/ui_commands/consts.rs). */
+export const QUALIFIED_SEPARATOR = ".";
+
+/** The language of a type of an answer that names none. */
+export const NO_LANGUAGE = "";

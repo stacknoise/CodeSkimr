@@ -6,9 +6,11 @@ use std::time::Duration;
 use codeskimr_domain::{
     ContentHash, FileId, Fingerprints, FolderPath, LanguageId, Metric, QualifiedName, Reference,
     ReferenceKind, RelativePath, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId,
+    SymbolPair,
 };
 
 use super::DiscoveredFile;
+use crate::cancel::CancelToken;
 use crate::error::CodedError;
 use crate::ids::IdSequence;
 
@@ -144,29 +146,42 @@ pub trait SnippetFingerprinter: Send + Sync {
     fn fingerprint(&self, language: &LanguageId, source: &str) -> Result<Fingerprints, CodedError>;
 }
 
+/// What a resolution run found.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Resolution {
+    /// The references that were found.
+    pub references: Vec<Reference>,
+    /// How many places were given up because their name reaches more symbols than the limit and
+    /// nothing else narrows it down (`RES-304`, ADR 0084).
+    pub given_up: u64,
+}
+
 /// Maps pending references to symbols (blueprint section 9).
 pub trait ReferenceResolver: Send + Sync {
     /// Resolves `pending` against the global symbol table `symbols`. Names that match nothing are
     /// dropped; ambiguous ones become `Confidence::Probable`. A call, read, write or type use in
     /// one of the `test_files` is reported with the kind `test`.
     ///
+    /// A run that sees `cancel` raised stops with `PRJ-303`.
+    ///
     /// # Errors
-    /// A coded failure of the `RES` group.
+    /// A coded failure of the `RES` group, or `PRJ-303` if the scan was cancelled.
     fn resolve(
         &self,
         symbols: &[Symbol],
         pending: &[PendingReference],
         test_files: &HashSet<FileId>,
-        ids: &IdSequence,
-    ) -> Result<Vec<Reference>, CodedError>;
+        run: (&IdSequence, &CancelToken),
+    ) -> Result<Resolution, CodedError>;
 }
 
 /// Computes the metrics of blueprint section 6.1 (strategy: interchangeable by configuration).
 pub trait MetricsCalculator: Send + Sync {
-    /// Measures what the scan analysed. `symbols` and `references` are those of the whole
-    /// snapshot, also of unchanged files in an incremental scan, so coupling is computed on
-    /// complete data. `counts` come from the files that were analysed; the metrics of the other
-    /// files stay as they are.
+    /// Measures what the scan analysed. `symbols` are those of the whole snapshot, also of
+    /// unchanged files in an incremental scan, and `references` with `pairs` cover all its
+    /// references, so coupling is computed on complete data: `pairs` stand for the references of
+    /// the files that an incremental scan left in the store (ADR 0086). `counts` come from the
+    /// files that were analysed; the metrics of the other files stay as they are.
     ///
     /// # Errors
     /// A coded failure if a value cannot be computed.
@@ -174,6 +189,7 @@ pub trait MetricsCalculator: Send + Sync {
         &self,
         symbols: &[Symbol],
         references: &[Reference],
+        pairs: &[SymbolPair],
         counts: &[SymbolCounts],
     ) -> Result<Vec<Metric>, CodedError>;
 }

@@ -28,12 +28,22 @@ use crate::local_http::{Call, call};
 use crate::locations::{Locations, Lookup};
 use crate::{browser, config_files};
 
-/// What `open` tells the user once the launch file exists.
-pub struct Ready<'a> {
-    /// Where the file is.
-    pub path: &'a Path,
-    /// How long the code in it is valid, in seconds.
-    pub seconds: u64,
+/// What `open` tells the user once the code can be used.
+pub enum Ready<'a> {
+    /// The launch file exists (the default way).
+    File {
+        /// Where the file is.
+        path: &'a Path,
+        /// How long the code in it is valid, in seconds.
+        seconds: u64,
+    },
+    /// The address with the code is handed out as text (`--print-url`, ADR 0088).
+    Url {
+        /// The address, with the code in its fragment.
+        url: &'a str,
+        /// How long the code is valid, in seconds.
+        seconds: u64,
+    },
 }
 
 /// Runs the command. `ready` is called once, when the file exists; the call returns when the code
@@ -57,6 +67,7 @@ pub fn run(
         lifetime: Duration::from_secs(u64::from(config.ui.launch_code_seconds)),
         dir: launch_dir(locations, env),
         browser: !args.no_browser,
+        print_url: args.print_url,
     };
     launch(&OsCredentialStore::new(OsKeystore), &plan, ready)
 }
@@ -67,6 +78,8 @@ pub(crate) struct Plan {
     pub(crate) lifetime: Duration,
     pub(crate) dir: PathBuf,
     pub(crate) browser: bool,
+    /// Hand out the address as text instead of a launch file (ADR 0088).
+    pub(crate) print_url: bool,
 }
 
 pub(crate) fn launch(
@@ -87,9 +100,17 @@ pub(crate) fn launch(
         ]
         .concat(),
     );
-    let file = LaunchFile::create(&plan.dir, &url, plan.lifetime)?;
     drop(code);
-    ready(&Ready {
+    if plan.print_url {
+        // No file and no wait: the code lives on in the server for its lifetime and works once.
+        ready(&Ready::Url {
+            url: url.as_str(),
+            seconds: plan.lifetime.as_secs(),
+        });
+        return Ok(());
+    }
+    let file = LaunchFile::create(&plan.dir, &url, plan.lifetime)?;
+    ready(&Ready::File {
         path: file.path(),
         seconds: plan.lifetime.as_secs(),
     });
@@ -270,29 +291,41 @@ mod tests {
             lifetime: Duration::from_secs(30),
             dir,
             browser: false,
+            print_url: false,
         };
         let mut announced = None;
         let outcome = launch(store, &plan, |ready| {
-            announced = Some((ready.path.to_owned(), ready.seconds));
+            if let Ready::File { path, seconds } = ready {
+                announced = Some(((*path).to_owned(), *seconds));
+            }
         });
         (outcome, announced, browser.join().unwrap())
+    }
+
+    /// Runs a server for the test and the client side against it on its own thread; returns what
+    /// the client returned once the server has stopped.
+    fn with_server<T: Send + 'static>(
+        dir: PathBuf,
+        client: impl FnOnce(&KeystoreCredentials<Memory>, &str, PathBuf) -> T + Send + 'static,
+    ) -> T {
+        let store = Arc::new(KeystoreCredentials::new(Memory::default()));
+        let (stop, stopped) = oneshot::channel::<()>();
+        let (found, url) = std::sync::mpsc::channel::<String>();
+        let for_client = Arc::clone(&store);
+        let handle = thread::spawn(move || {
+            let result = client(&for_client, &url.recv().unwrap(), dir);
+            stop.send(()).unwrap();
+            result
+        });
+        serve_for_test(&*store, bare_parts(test_ui()), &found, stopped).unwrap();
+        handle.join().unwrap()
     }
 
     #[test]
     fn the_whole_way_from_the_file_to_the_token_and_back_to_nothing() {
         let dir = tempfile::tempdir().unwrap();
-        let store = Arc::new(KeystoreCredentials::new(Memory::default()));
-        let (stop, stopped) = oneshot::channel::<()>();
-        let (found, url) = std::sync::mpsc::channel::<String>();
-        let launch_dir = dir.path().to_path_buf();
-        let for_client = Arc::clone(&store);
-        let client = thread::spawn(move || {
-            let result = client_side(&for_client, &url.recv().unwrap(), launch_dir);
-            stop.send(()).unwrap();
-            result
-        });
-        serve_for_test(&*store, bare_parts(test_ui()), &found, stopped).unwrap();
-        let (outcome, announced, (first, second, file)) = client.join().unwrap();
+        let (outcome, announced, (first, second, file)) =
+            with_server(dir.path().to_path_buf(), client_side);
         outcome.unwrap();
         assert!(first.starts_with("HTTP/1.1 200"), "{first}");
         assert!(first.contains("csk_"), "{first}");
@@ -300,6 +333,52 @@ mod tests {
         assert!(second.contains("API-403"), "{second}");
         assert_eq!(announced, Some((file.clone(), 30)));
         assert!(!file.exists(), "the file goes once the code was taken");
+    }
+
+    /// Plays the program that reads the printed address: takes the code out of its fragment and
+    /// exchanges it twice. Returns the printed address and the two answers.
+    fn url_client(
+        store: &KeystoreCredentials<Memory>,
+        url: &str,
+        dir: PathBuf,
+    ) -> (String, String, String) {
+        let address = url.trim_start_matches(URL_SCHEME).to_owned();
+        let port = address.rsplit(':').next().unwrap().parse().unwrap();
+        let plan = Plan {
+            port,
+            lifetime: Duration::from_secs(30),
+            dir,
+            browser: false,
+            print_url: true,
+        };
+        let mut printed = String::new();
+        launch(store, &plan, |ready| {
+            let Ready::Url { url, seconds } = ready else {
+                panic!("the opt-in prints the address");
+            };
+            assert_eq!(*seconds, 30);
+            printed = (*url).to_owned();
+        })
+        .unwrap();
+        let body = format!(r#"{{"code":"{}"}}"#, code_in(&printed));
+        let first = post(&address, EXCHANGE, &body);
+        let second = post(&address, EXCHANGE, &body);
+        (printed, first, second)
+    }
+
+    #[test]
+    fn the_printed_address_works_once_and_leaves_no_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let (printed, first, second) = with_server(dir.path().to_path_buf(), url_client);
+        assert!(printed.starts_with("http://127.0.0.1:"), "{printed}");
+        assert!(printed.contains("/#code="), "{printed}");
+        assert!(first.starts_with("HTTP/1.1 200"), "{first}");
+        assert!(second.starts_with("HTTP/1.1 401"), "once only: {second}");
+        assert_eq!(
+            fs::read_dir(dir.path()).unwrap().count(),
+            0,
+            "no launch file"
+        );
     }
 
     #[test]
@@ -336,6 +415,7 @@ mod tests {
             lifetime: Duration::from_secs(1),
             dir: PathBuf::new(),
             browser: false,
+            print_url: false,
         };
         let error = launch(&store, &plan, |_| {}).unwrap_err();
         assert_eq!(

@@ -19,7 +19,7 @@ cli-cmd-mcp = Serve the MCP protocol over standard input and output
 cli-cmd-serve = Start the local server without opening a browser
 cli-serve-listening = Listening on { $url }. Stop with Ctrl+C.
 cli-start-keep-open = Keep this window open as long as you use CodeSkimr.
-cli-start-tray = CodeSkimr runs in the system tray now. Open the menu of its icon to show the browser or the log, or to quit. Log: { $log }
+cli-start-tray = CodeSkimr runs in the system tray now. The browser opens in a moment; the first start can take longer. Open the menu of the tray icon to show the browser or the log, or to quit. Log: { $log }
 cli-arg-console = Stay in this console window instead of running in the system tray
 cli-tray-open = Open CodeSkimr
 cli-tray-log = Show log
@@ -46,6 +46,10 @@ cli-check-literals = { $name } contains { $count ->
     [one] one literal
    *[other] { $count } literals
 }; values belong in constants, configuration or message files.
+cli-check-layer = { $name } in layer { $from_layer } uses layer { $to_layer } ({ $count ->
+    [one] one reference
+   *[other] { $count } references
+}), which it may not.
 cli-check-too-long = { $name } has { $lines } code lines, at most { $limit } are allowed.
 cli-check-duplicate = { $name } copies { $original } ({ $path }:{ $line }), { $percent } % similar.
 cli-check-unchecked = Skipped { $path }: { $code } { $message }
@@ -60,6 +64,8 @@ cli-check-not-checked = Not checked yet: { $codes }.
 cli-check-unmatched = No file matches { $path }. Check the path.
 cli-cmd-open = Open CodeSkimr in the browser (the local server must be running)
 cli-arg-no-browser = Do not start a browser; only create the launch file and print its path
+cli-arg-print-url = With --no-browser: print the address with a one-time code (no launch file); the code is then in your terminal or log
+cli-open-url-warning = Anyone who reads this address within { $seconds } s can sign in once. Keep it out of logs and shared screens.
 cli-open-ready = Launch file: { $path } (valid for { $seconds } s, works once)
 cli-cmd-export = Export a scanned project as one self-contained HTML file (without source code)
 cli-arg-export-project = Id of the project, or the folder or Git URL it was scanned from
@@ -107,6 +113,16 @@ cli-level2-declined = Nothing changed: level 2 stays off for project { $project 
 cli-level2-revoked = Level 2 is forbidden again for project { $project }.
 cli-scan-warning-ambiguous-reference = Warning RES-301: { $count } places match several symbols and are stored as probable.
 cli-scan-warning-other = Warning { $code }: { $count } times.
+cli-scan-warning-files-left-out = { $count ->
+    [one] Warning { $code }: one file could not be analysed and was left out.
+   *[other] Warning { $code }: { $count } files could not be analysed and were left out.
+}
+cli-scan-left-out-file = {"  "}{ $path } ({ $code }): missing in the result
+cli-scan-left-out-file-kept = {"  "}{ $path } ({ $code }): shown as the previous scan saw it
+cli-scan-left-out-more = { $count ->
+    [one] {"  "}and one more file
+   *[other] {"  "}and { $count } more files
+}
 cli-cmd-annotations = Notes, tasks and critical marks on symbols
 cli-cmd-annotations-list = List the annotations of a project
 cli-cmd-annotations-add = Add a critical mark, a note or a task to a symbol

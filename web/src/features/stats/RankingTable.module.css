@@ -1,0 +1,98 @@
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+}
+
+.table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    padding: var(--space-8) var(--space-12);
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 7px var(--space-12);
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: middle;
+}
+
+.table tbody tr {
+    cursor: pointer;
+}
+
+.table tbody tr:hover {
+    background: var(--bg);
+}
+
+.table tbody tr.selected {
+    background: var(--accent-bg);
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.rank {
+    width: 36px;
+    text-align: right;
+    font: 12px var(--font-mono);
+    color: var(--muted);
+}
+
+.name {
+    max-width: 340px;
+    font: 500 13px var(--font-mono);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.path {
+    max-width: 380px;
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.number {
+    font: 600 13px var(--font-mono);
+    white-space: nowrap;
+}
+
+.poor {
+    color: var(--bad);
+}
+
+.usage {
+    white-space: nowrap;
+}
+
+.usage svg {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: var(--space-10);
+}
+
+.usage span {
+    font: 12px var(--font-mono);
+}
+
+.go {
+    width: 40px;
+    text-align: right;
+}
+
+.go button {
+    all: unset;
+    cursor: pointer;
+    color: var(--accent);
+    padding: 0 var(--space-6);
+    border-radius: var(--radius-badge);
+}
+
+.go button:focus-visible {
+    outline: 2px solid var(--accent);
+}

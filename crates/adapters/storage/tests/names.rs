@@ -89,14 +89,14 @@ fn every_kind_of_receiver_survives_storing_and_loading() {
 }
 
 #[test]
-fn the_state_holds_the_files_the_index_and_the_names_of_one_snapshot() {
+fn the_state_holds_the_files_and_the_symbols_of_one_snapshot() {
     let store = registered_store();
     store
         .persist(first_scan(vec![name(11, 22, 1, "App.A", None)]))
         .unwrap();
     let state = store.latest_state(PROJECT).unwrap();
     assert_eq!(state.files, store.latest_files(PROJECT).unwrap());
-    assert_eq!(state.index, store.latest_index(PROJECT).unwrap());
+    assert_eq!(state.symbols, store.latest_index(PROJECT).unwrap().symbols);
 }
 
 #[test]

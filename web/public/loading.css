@@ -1,0 +1,39 @@
+/* The loading page of index.html: shown until the app has taken the place of it. */
+.boot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    min-height: 100vh;
+    font-family: system-ui, sans-serif;
+    color: CanvasText;
+    background: Canvas;
+    color-scheme: light dark;
+}
+.boot-spinner {
+    width: 36px;
+    height: 36px;
+    border: 4px solid color-mix(in srgb, CanvasText 20%, transparent);
+    border-top-color: CanvasText;
+    border-radius: 50%;
+    animation: boot-spin 0.9s linear infinite;
+}
+.boot-text {
+    display: none;
+    margin: 0;
+}
+html:lang(en) .boot-text[lang="en"],
+html:lang(de) .boot-text[lang="de"] {
+    display: block;
+}
+@keyframes boot-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .boot-spinner {
+        animation-duration: 3s;
+    }
+}

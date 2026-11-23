@@ -13,7 +13,7 @@
 
 .row {
     display: grid;
-    grid-template-columns: 24px minmax(0, 1fr) 200px 80px;
+    grid-template-columns: 24px minmax(0, 1fr) 200px 48px 80px;
     align-items: center;
     gap: var(--space-12);
     padding: var(--space-10) var(--space-16);
@@ -83,6 +83,34 @@
     background: var(--bad);
 }
 
+.unmeasured {
+    width: 35%;
+    animation: unmeasured 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes unmeasured {
+    from {
+        margin-left: 0;
+    }
+
+    to {
+        margin-left: 65%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .unmeasured {
+        animation: none;
+        margin-left: 32%;
+    }
+}
+
+.share {
+    text-align: right;
+    font: 12px var(--font-mono);
+    color: var(--ink-2);
+}
+
 .time {
     text-align: right;
     font: 12px var(--font-mono);
@@ -91,7 +119,7 @@
 
 @media (max-width: 720px) {
     .row {
-        grid-template-columns: 24px minmax(0, 1fr) 80px;
+        grid-template-columns: 24px minmax(0, 1fr) 48px 80px;
     }
 
     .track {

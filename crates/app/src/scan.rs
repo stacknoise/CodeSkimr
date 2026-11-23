@@ -13,10 +13,12 @@ use codeskimr_application::level2::{LanguageReport, Level2Outcome, Skipped};
 use codeskimr_application::pipeline::Level2Run;
 use codeskimr_application::pipeline::{Job, JobResult, Queued, Scanner};
 use codeskimr_application::ports::{
-    FileAnalyzer, LanguageOutcome, ProjectRepository, ProjectToolCheck, ScanWarning,
+    FileAnalyzer, LanguageOutcome, PathsReport, ProjectRepository, ProjectToolCheck, ScanWarning,
 };
 use codeskimr_application::tools::ToolsView;
-use codeskimr_cli::{GlobalOptions, Level2Line, Level2Reason, ScanArgs, ScanSummary, WarningLine};
+use codeskimr_cli::{
+    GlobalOptions, LeftOutView, Level2Line, Level2Reason, ScanArgs, ScanSummary, WarningLine,
+};
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
     FolderPath, Permission, Principal, Project, ProjectId, ProjectSource, ScanMode, ScanOrigin,
@@ -297,6 +299,7 @@ impl Session {
                     pack_load_seconds: loading.as_secs_f64(),
                     level2: job.level2().iter().map(level2_line).collect(),
                     warnings: job.warnings().iter().map(warning_line).collect(),
+                    left_out: left_out_view(job.paths_report()),
                     tools: self.check_tools(mode),
                 };
                 Ok(Ran {
@@ -361,6 +364,11 @@ pub struct BrowserScan {
 /// between runs that load different packs. Not below zero.
 fn without_loading(elapsed: Duration, loading: Duration) -> f64 {
     elapsed.saturating_sub(loading).as_secs_f64()
+}
+
+/// The files the scan left out, as the summary shows them.
+fn left_out_view(paths: &PathsReport) -> LeftOutView {
+    LeftOutView::of(&paths.left_out, paths.left_out_more)
 }
 
 /// The line of the summary for one warning of the scan.

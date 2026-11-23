@@ -184,10 +184,11 @@ mod tests {
     }
 
     #[test]
-    fn missing_file_is_reported_with_a_code() {
+    fn a_source_file_that_cannot_be_read_has_a_code_of_its_own() {
+        // Not the code of a missing folder of language packs: a scan leaves the one file out.
         assert_eq!(
             analyze("src/nothing.rs").err(),
-            Some(ErrorCode::SourcePathNotFound)
+            Some(ErrorCode::FileUnreadable)
         );
     }
 

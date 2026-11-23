@@ -3,14 +3,20 @@
 
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
 
+use codeskimr_application::error::CodedError;
+use codeskimr_application::events::EventBus;
+use codeskimr_application::pipeline::{Job, JobResult};
 use codeskimr_application::ports::{AlertFilter, SymbolStates};
+use codeskimr_application::ports::{AnalyzeRequest, FileAnalyzer, FileFacts};
 use codeskimr_application::ports::{AnnotationCreation, AnnotationStore, ProjectRepository};
 use codeskimr_cli::{GlobalOptions, ScanArgs};
+use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
     AlertChange, AlertKind, AlertState, AlertTrigger, AnnotationContent, AnnotationKind,
-    AnnotationLimits, AnnotationTarget, Author, NewAnnotation, ProjectId, QualifiedName, ScanMode,
-    SymbolKind, Timestamp,
+    AnnotationLimits, AnnotationTarget, Author, LanguageId, NewAnnotation, ProjectId,
+    QualifiedName, RelativePath, ScanMode, SymbolKind, Timestamp,
 };
 use codeskimr_storage::SqliteStore;
 
@@ -18,8 +24,9 @@ use crate::config_files;
 use crate::locations::Locations;
 use crate::mcp_http_tests::locations;
 use crate::memory_keystore::secrets;
+use crate::principal;
 use crate::scan::{self, Session};
-use crate::wiring::open_store;
+use crate::wiring::{build_analysis, open_store, scanner_over};
 
 const PROJECT: ProjectId = ProjectId::new(1);
 
@@ -59,7 +66,6 @@ fn hashes_of(locations: &Locations) -> Vec<(String, String)> {
     let store = store_of(locations);
     let state = store.latest_state(PROJECT).unwrap();
     let names: Vec<QualifiedName> = state
-        .index
         .symbols
         .iter()
         .map(|symbol| symbol.qualified_name.clone())
@@ -212,4 +218,78 @@ fn a_deleted_critical_file_raises_a_removed_alert_and_a_full_scan_agrees() {
     assert_eq!(alerts.len(), 1);
     assert_eq!(alerts[0].sighting.kind, AlertKind::Removed);
     assert_eq!(alerts[0].sighting.trigger, AlertTrigger::Scan);
+}
+
+/// The real analyzer, except that `path` runs into the time limit.
+struct TimesOut {
+    inner: Arc<dyn FileAnalyzer>,
+    path: &'static str,
+}
+
+impl FileAnalyzer for TimesOut {
+    fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError> {
+        if request.file.path.as_str() == self.path {
+            return Err(CodedError::new(ErrorCode::ParseTimeout));
+        }
+        self.inner.analyze(request)
+    }
+
+    fn naming_rules(&self) -> String {
+        self.inner.naming_rules()
+    }
+
+    fn is_test_file(&self, language: &LanguageId, path: &RelativePath) -> bool {
+        self.inner.is_test_file(language, path)
+    }
+}
+
+/// A full scan with the real adapters in which `path` runs into the time limit.
+fn full_scan_timing_out(
+    data: &Locations,
+    store: &Arc<SqliteStore>,
+    path: &'static str,
+) -> JobResult {
+    let config = config_files::load(data, &GlobalOptions::default(), None).unwrap();
+    let mut analysis = build_analysis(&config, data).unwrap();
+    analysis.analyzer = Arc::new(TimesOut {
+        inner: analysis.analyzer,
+        path,
+    });
+    let scanner = scanner_over(
+        &analysis,
+        (store, &config, data),
+        (EventBus::new(), &secrets()),
+    )
+    .unwrap();
+    let job = Job::new(PROJECT, ScanMode::Full).without_level2();
+    scanner.run(&principal::resolve(), job)
+}
+
+#[test]
+fn a_full_scan_that_times_out_on_the_file_of_a_critical_symbol_raises_no_alert() {
+    let root = tempfile::tempdir().unwrap();
+    let (folder, _session, store) = watched(&root, SymbolKind::Method, "Demo.Target.Do");
+    let data = locations(&root.path().join("data"));
+    write(&folder, "Other.cs", &OTHER.replace("return 1", "return 2"));
+
+    let result = full_scan_timing_out(&data, &store, "Target.cs");
+
+    let JobResult::Finished(job) = result else {
+        panic!("the scan did not finish");
+    };
+    let left_out = &job.paths_report().left_out;
+    assert_eq!(left_out.len(), 1);
+    assert!(left_out[0].kept, "the former state of the file stays");
+    assert_eq!(open_alerts(&store).len(), 0);
+    let state = store.latest_state(PROJECT).unwrap();
+    let mut paths: Vec<&str> = state.files.iter().map(|file| file.path.as_str()).collect();
+    paths.sort_unstable();
+    assert_eq!(paths, ["Other.cs", "Target.cs"]);
+    let names: Vec<&str> = state
+        .symbols
+        .iter()
+        .map(|symbol| symbol.qualified_name.as_str())
+        .collect();
+    assert!(names.contains(&"Demo.Target.Do"), "{names:?}");
+    assert!(names.contains(&"Demo.Other.Keep"), "{names:?}");
 }

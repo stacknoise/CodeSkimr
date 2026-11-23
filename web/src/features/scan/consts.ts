@@ -124,3 +124,23 @@ export const FULL_SCAN_LOC = 100_000;
  * are shown. */
 export const BRANCH_COMMIT_JOIN = " @ ";
 export const SHORT_COMMIT_LENGTH = 7;
+
+/** The state of a screen that has no run to show. */
+export const IDLE = "idle";
+
+/** The most a scan that still runs says of itself: the stages after the files are not counted. */
+export const LAST_RUNNING_PERCENT = 99;
+
+/** Start of the id of the note under a stage that cannot say how far it has come. */
+export const NOTE_ID_PREFIX = "scan-stage-note-";
+
+/** The columns of the language table by id, with their head texts, and the key the widths are kept under. */
+export const LANGUAGE_TABLE_KEY = "languages";
+export const LANGUAGE_COLUMNS = [
+  { id: "language", label: I18N_KEYS.SCAN_COLUMN_LANGUAGE, number: false },
+  { id: "tier", label: I18N_KEYS.SCAN_COLUMN_TIER, number: false },
+  { id: "files", label: I18N_KEYS.SCAN_COLUMN_FILES, number: true },
+  { id: "lines", label: I18N_KEYS.SCAN_COLUMN_LINES, number: true },
+  { id: "symbols", label: I18N_KEYS.SCAN_COLUMN_SYMBOLS, number: true },
+  { id: "parseTime", label: I18N_KEYS.SCAN_COLUMN_PARSE_TIME, number: true },
+] as const;

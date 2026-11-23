@@ -243,6 +243,14 @@ description = "The report of the scan (its level and what level 2 did per langua
 since = "0.9.0"
 
 [[codes]]
+id = "PRJ-503"
+name = "scan_memory_limit"
+severity = "error"
+retryable = false
+description = "The scan added more memory than scan.max_memory_mb allows, or the program passed 70 % of the installed memory, and the scan was stopped before the machine ran out of memory; no snapshot was written (ADR 0087)."
+since = "1.0.0"
+
+[[codes]]
 id = "SRC-201"
 name = "source_path_not_found"
 severity = "error"
@@ -297,6 +305,14 @@ severity = "error"
 retryable = false
 description = "A source file is not valid UTF-8/UTF-16 and was skipped."
 since = "0.1.0"
+
+[[codes]]
+id = "PRS-102"
+name = "file_unreadable"
+severity = "error"
+retryable = true
+description = "A source file could not be read during the scan (gone or locked) and was skipped."
+since = "1.0.0"
 
 [[codes]]
 id = "PRS-201"
@@ -361,6 +377,14 @@ severity = "error"
 retryable = false
 description = "A SCIP index wants level 2 to create more symbols than level2.max_created_symbols allows; the whole import is refused and level 1 stays."
 since = "0.1.0"
+
+[[codes]]
+id = "RES-304"
+name = "name_too_common"
+severity = "warning"
+retryable = false
+description = "A name reaches more symbols than scan.max_candidates and no scope or type narrows it down; the place was given up (ADR 0084)."
+since = "1.0.0"
 
 [[codes]]
 id = "RES-501"
@@ -724,6 +748,22 @@ severity = "error"
 retryable = false
 description = "The built export page of the UI is missing or unusable."
 since = "0.1.0"
+
+[[codes]]
+id = "EXP-501"
+name = "export_running"
+severity = "error"
+retryable = true
+description = "An export of the same project is already running; try again when it has ended (ADR 0090)."
+since = "1.0.0"
+
+[[codes]]
+id = "EXP-502"
+name = "export_too_large"
+severity = "error"
+retryable = false
+description = "The project has more references than export.max_references allows, so the export page would be too large for a browser (ADR 0090)."
+since = "1.0.0"
 
 [[codes]]
 id = "EXP-601"

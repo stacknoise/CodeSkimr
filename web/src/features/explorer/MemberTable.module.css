@@ -93,6 +93,9 @@ th {
 
 td {
     padding: var(--space-6);
+}
+
+tbody tr {
     border-top: 1px solid var(--line-soft);
 }
 

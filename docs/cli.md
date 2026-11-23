@@ -49,10 +49,10 @@ Allows or forbids level 2 (the indexers of ADR 0033, which run the build tools o
 ## `codeskimr open`
 
 ```
-codeskimr open [--no-browser]
+codeskimr open [--no-browser [--print-url]]
 ```
 
-Opens the UI of the running local server in the browser. It asks the server for a one-time launch code, writes it to a private launch file (mode 0600), prints `Launch file: …` and starts the system browser with it, then waits until the code is used or has expired and deletes the file. `--no-browser` does not start a browser. Without a running server it stops with `API-601`. Details: `docs/server.md`.
+Opens the UI of the running local server in the browser. It asks the server for a one-time launch code, writes it to a private launch file (mode 0600), prints `Launch file: …` and starts the system browser with it, then waits until the code is used or has expired and deletes the file. `--no-browser` does not start a browser. `--no-browser --print-url` (opt-in, ADR 0088) writes no launch file but prints one line, `http://127.0.0.1:<port>/#code=…`, for tools that cannot open `file://` pages (browser tests of an agent); it returns at once, and the code works once within `ui.launch_code_seconds`. The code is then in your terminal or log: use it only where nobody else reads the output. `--print-url` alone is refused with `CLI-101`. Without a running server it stops with `API-601`. Details: `docs/server.md`.
 
 ## `codeskimr serve`
 
@@ -83,7 +83,7 @@ Without an argument it prints every active error code (retired ones, ADR 0078, a
 codeskimr export <project> --html <file>
 ```
 
-Writes the explorer, the dependency map, the usages and the search of a scanned project into one self-contained HTML file, without source text (`docs/export.md`). `<project>` is a project id or the folder or Git URL it was scanned from. The export page is the built UI: it is part of the program, and a UI folder (`ui.dir`) that exists is read instead. If the program was built without the UI and there is no folder with the built export page (`npm run build` in `web/`), the command stops with `EXP-201`; an unwritable file is `EXP-601`.
+Writes the explorer, the dependency map, the usages and the search of a scanned project into one self-contained HTML file, without source text (`docs/export.md`). `<project>` is a project id or the folder or Git URL it was scanned from. The export page is the built UI: it is part of the program, and a UI folder (`ui.dir`) that exists is read instead. If the program was built without the UI and there is no folder with the built export page (`npm run build` in `web/`), the command stops with `EXP-201`; a project with more references than `export.max_references` (default 600000) is refused with `EXP-502`, a second export of the same project at the same time with `EXP-501`; an unwritable file is `EXP-601`.
 
 ## `codeskimr annotations` and `codeskimr alerts`
 

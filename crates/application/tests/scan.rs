@@ -1,6 +1,6 @@
 //! Tests of the scan pipeline, the scanner, the job typestate and the event bus with fake ports.
 
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
@@ -23,10 +23,11 @@ use codeskimr_application::pipeline::{
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
     FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
-    IndexerSpec, IndexerStatus, Level2Replacement, MetricsCalculator, PathsReport,
-    PendingReference, PreviousIndex, PreviousState, ProjectRepository, ProjectScanner, Receiver,
-    ReferenceImporter, ReferenceResolver, ReportWrite, ScanReport, ScanReportStore, SnapshotData,
-    SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints, ToolSpec, ToolVersion,
+    IndexerSpec, IndexerStatus, Level2Replacement, MemoryGauge, MemoryLimit, MetricsCalculator,
+    PathsReport, PendingReference, PreviousIndex, PreviousState, ProjectRepository, ProjectScanner,
+    Receiver, ReferenceImporter, ReferenceResolver, ReportWrite, Resolution, ScanReport,
+    ScanReportStore, ScanWarning, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
+    StoredReferences, SymbolFingerprints, ToolSpec, ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -36,7 +37,7 @@ use codeskimr_domain::{
     Permission, PermissionSet, Position, Principal, Project, ProjectId, ProjectName, ProjectSource,
     QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanLevel, ScanMode,
     ScanOrigin, Snapshot, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId, SymbolKind,
-    SymbolName, SymbolOrigin, Timestamp,
+    SymbolName, SymbolOrigin, SymbolPair, Timestamp,
 };
 use common::InMemoryConsent;
 use fakes::{MemoryAnnotations, MemoryStates, step, symbol};
@@ -49,6 +50,8 @@ struct Previous {
     /// The names as written in the files, as the store keeps them.
     names: Vec<PendingReference>,
     names_stored: bool,
+    /// The number of ambiguous places the snapshot stores; without it a scan reads every reference.
+    ambiguous: Option<u64>,
 }
 
 /// One fake that plays every port. `fail_at` makes that stage fail, `cancel_at` raises the token
@@ -68,12 +71,23 @@ struct World {
     rules: (&'static str, Option<&'static str>),
     persisted: Mutex<Vec<SnapshotData>>,
     measured: Mutex<Vec<(usize, usize)>>,
+    /// The pairs each measurement got for the references that stayed in the store.
+    pairs: Mutex<Vec<Vec<SymbolPair>>>,
+    /// Which references each read asked for.
+    reads: Mutex<Vec<String>>,
     /// How many names each resolution got.
     resolved: Mutex<Vec<usize>>,
     counted: Mutex<Vec<usize>>,
     /// Milliseconds the fake analyzer says it spent loading packs; each question adds a step.
     pack_load_ms: AtomicU64,
     pack_load_step_ms: u64,
+    /// Files whose analysis fails, each with the code it fails with.
+    broken: Vec<(&'static str, ErrorCode)>,
+    /// The first id the store says is free; another process may have written rows.
+    first_free_id: u64,
+    /// How many steps of ten milliseconds the resolution waits for the token to be raised, as a
+    /// long one would, before it stops; zero for no waiting.
+    resolve_wait_steps: u32,
 }
 
 impl World {
@@ -198,6 +212,13 @@ impl FileAnalyzer for World {
     fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError> {
         self.gate(StageKind::Analyze)?;
         assert!(!self.panic_in_analyze, "the analyzer panics");
+        if let Some((_, code)) = self
+            .broken
+            .iter()
+            .find(|(path, _)| *path == request.file.path.as_str())
+        {
+            return Err(CodedError::new(*code));
+        }
         let file = SourceFile {
             id: request.ids.file(),
             snapshot: request.snapshot,
@@ -242,14 +263,22 @@ impl ReferenceResolver for World {
         symbols: &[Symbol],
         pending: &[PendingReference],
         _test_files: &HashSet<FileId>,
-        ids: &IdSequence,
-    ) -> Result<Vec<Reference>, CodedError> {
+        (ids, cancel): (&IdSequence, &CancelToken),
+    ) -> Result<Resolution, CodedError> {
         self.gate(StageKind::Resolve)?;
+        if self.resolve_wait_steps > 0 {
+            for _ in 0..self.resolve_wait_steps {
+                if cancel.is_cancelled() {
+                    return Err(CodedError::new(ErrorCode::ScanCancelled));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+        }
         self.resolved
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .push(pending.len());
-        Ok(pending
+        let references = pending
             .iter()
             .filter_map(|item| {
                 let target = symbols
@@ -266,7 +295,11 @@ impl ReferenceResolver for World {
                     verified: false,
                 })
             })
-            .collect())
+            .collect();
+        Ok(Resolution {
+            references,
+            given_up: 0,
+        })
     }
 }
 
@@ -275,9 +308,14 @@ impl MetricsCalculator for World {
         &self,
         symbols: &[Symbol],
         references: &[Reference],
+        pairs: &[SymbolPair],
         counts: &[SymbolCounts],
     ) -> Result<Vec<Metric>, CodedError> {
         self.gate(StageKind::Measure)?;
+        self.pairs
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .push(pairs.to_vec());
         self.counted
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
@@ -323,10 +361,64 @@ impl ProjectRepository for World {
     fn latest_state(&self, _: ProjectId) -> Result<PreviousState, CodedError> {
         Ok(PreviousState {
             files: self.previous.files.clone(),
-            index: self.previous.index.clone(),
+            symbols: self.previous.index.symbols.clone(),
             snapshot: Some(SnapshotId::new(9)),
             names_stored: self.previous.names_stored,
+            ambiguous_places: self.previous.ambiguous,
         })
+    }
+
+    fn stored_references(
+        &self,
+        _: SnapshotId,
+        which: StoredReferences<'_>,
+    ) -> Result<Vec<Reference>, CodedError> {
+        self.reads
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .push(format!("{which:?}"));
+        let held: HashSet<SymbolId> = self.previous.index.symbols.iter().map(|s| s.id).collect();
+        let references = self.previous.index.references.iter();
+        Ok(references
+            .filter(|r| held.contains(&r.to))
+            .filter(|r| match which {
+                StoredReferences::To(symbols) => symbols.contains(&r.to),
+                StoredReferences::From(symbols) => symbols.contains(&r.from),
+                StoredReferences::In(files) => files.contains(&r.file),
+                StoredReferences::All => true,
+            })
+            .copied()
+            .collect())
+    }
+
+    fn verified_files(&self, _: SnapshotId) -> Result<Vec<FileId>, CodedError> {
+        let files: BTreeSet<FileId> = self
+            .previous
+            .index
+            .references
+            .iter()
+            .filter(|r| r.verified)
+            .map(|r| r.file)
+            .collect();
+        Ok(files.into_iter().collect())
+    }
+
+    fn reference_pairs(
+        &self,
+        _: SnapshotId,
+        files: &[FileId],
+        without: &[SymbolId],
+    ) -> Result<Vec<SymbolPair>, CodedError> {
+        let pairs: BTreeSet<SymbolPair> = self
+            .previous
+            .index
+            .references
+            .iter()
+            .filter(|r| files.contains(&r.file) && !without.contains(&r.from))
+            .filter(|r| r.kind != ReferenceKind::Test)
+            .map(|r| (r.from, r.to))
+            .collect();
+        Ok(pairs.into_iter().collect())
     }
 
     fn stored_names(
@@ -385,6 +477,10 @@ impl SnapshotStore for World {
     fn replace_level2(&self, _: Level2Replacement) -> Result<Snapshot, CodedError> {
         Err(CodedError::new(ErrorCode::UnexpectedInternalError))
     }
+
+    fn next_free_id(&self) -> Result<u64, CodedError> {
+        Ok(self.first_free_id)
+    }
 }
 
 impl Clock for World {
@@ -393,7 +489,44 @@ impl Clock for World {
     }
 }
 
+/// A gauge that reports a fixed value.
+struct FixedGauge(u64);
+
+impl MemoryGauge for FixedGauge {
+    fn used_mb(&self) -> Option<u64> {
+        Some(self.0)
+    }
+}
+
+/// A gauge that reports `before` once, at the start of the watch, and `now` from then on.
+struct GrowingGauge {
+    reads: std::sync::atomic::AtomicU32,
+    before: u64,
+    now: u64,
+}
+
+impl GrowingGauge {
+    fn new(before: u64, now: u64) -> Self {
+        Self {
+            reads: std::sync::atomic::AtomicU32::new(0),
+            before,
+            now,
+        }
+    }
+}
+
+impl MemoryGauge for GrowingGauge {
+    fn used_mb(&self) -> Option<u64> {
+        let reads = self.reads.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        Some(if reads == 0 { self.before } else { self.now })
+    }
+}
+
 fn scanner(world: &Arc<World>, bus: &EventBus) -> Scanner {
+    scanner_with(world, bus, None)
+}
+
+fn scanner_with(world: &Arc<World>, bus: &EventBus, memory: Option<MemoryLimit>) -> Scanner {
     let ports = ScannerPorts {
         source: world.clone(),
         discovery: world.clone(),
@@ -404,8 +537,13 @@ fn scanner(world: &Arc<World>, bus: &EventBus) -> Scanner {
         store: world.clone(),
         clock: world.clone(),
         max_workers: 0,
+        max_left_out_listed: 2,
     };
-    Scanner::new(ports, &Arc::new(IdSequence::starting_at(1)), bus.clone())
+    let scanner = Scanner::new(ports, &Arc::new(IdSequence::starting_at(1)), bus.clone());
+    match memory {
+        Some(limit) => scanner.with_memory(limit),
+        None => scanner,
+    }
 }
 
 fn run(world: &Arc<World>, mode: ScanMode) -> (JobResult, Vec<Event>) {
@@ -441,6 +579,258 @@ fn full_scan_runs_all_stages_and_persists_once() {
     assert_eq!(world.persisted_count(), 1);
     assert_eq!(stages_seen(&events), StageKind::ALL);
     assert!(matches!(events.last(), Some(Event::SnapshotCreated(_))));
+}
+
+/// The paths, codes and `kept` marks of the files a finished scan left out; none for a scan that
+/// did not finish.
+fn left_out(result: &JobResult) -> Vec<(String, ErrorCode, bool)> {
+    let JobResult::Finished(job) = result else {
+        return Vec::new();
+    };
+    job.paths_report()
+        .left_out
+        .iter()
+        .map(|left| (left.path.as_str().to_owned(), left.code, left.kept))
+        .collect()
+}
+
+#[test]
+fn a_file_that_cannot_be_analysed_is_left_out_and_the_scan_finishes() -> Result<(), CodedError> {
+    for code in [
+        ErrorCode::FileEncodingUnsupported,
+        ErrorCode::ParseTimeout,
+        ErrorCode::FileUnreadable,
+    ] {
+        let world = Arc::new(World {
+            broken: vec![("b.rs", code)],
+            ..World::default()
+        });
+        let (result, _) = run(&world, ScanMode::Full);
+        assert_eq!(left_out(&result), [("b.rs".to_owned(), code, false)]);
+        let JobResult::Finished(job) = result else {
+            panic!("scan did not finish for {}", code.id());
+        };
+        assert_eq!(job.snapshot().stats.files, 1);
+        assert_eq!(job.warnings(), [ScanWarning { code, count: 1 }]);
+        let stored = world.last_persisted()?;
+        assert_eq!(stored.files.len(), 1);
+        assert_eq!(stored.warnings, [ScanWarning { code, count: 1 }]);
+        let named: Vec<_> = stored
+            .left_out
+            .iter()
+            .map(|left| (left.path.as_str().to_owned(), left.code, left.kept))
+            .collect();
+        assert_eq!(named, [("b.rs".to_owned(), code, false)]);
+    }
+    Ok(())
+}
+
+#[test]
+fn the_store_gets_only_as_many_left_out_files_as_the_limit_allows() -> Result<(), CodedError> {
+    let code = ErrorCode::FileEncodingUnsupported;
+    let world = Arc::new(World {
+        found: Some(vec![
+            ("a.rs", true),
+            ("b.rs", true),
+            ("c.rs", true),
+            ("d.rs", true),
+            ("e.rs", true),
+        ]),
+        broken: vec![
+            ("b.rs", code),
+            ("c.rs", code),
+            ("d.rs", code),
+            ("e.rs", code),
+        ],
+        ..World::default()
+    });
+    let (_, _) = run(&world, ScanMode::Full);
+    let stored = world.last_persisted()?;
+    assert_eq!(stored.left_out.len(), 2);
+    assert_eq!(stored.warnings, [ScanWarning { code, count: 4 }]);
+    Ok(())
+}
+
+#[test]
+fn files_left_out_for_the_same_reason_are_one_warning_with_their_number() {
+    let code = ErrorCode::FileEncodingUnsupported;
+    let world = Arc::new(World {
+        found: Some(vec![("a.rs", true), ("b.rs", true), ("c.rs", true)]),
+        broken: vec![("a.rs", code), ("b.rs", code)],
+        ..World::default()
+    });
+    let (result, _) = run(&world, ScanMode::Full);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    assert_eq!(job.snapshot().stats.files, 1);
+    assert_eq!(job.warnings(), [ScanWarning { code, count: 2 }]);
+}
+
+#[test]
+fn a_scan_in_which_no_file_can_be_analysed_fails_with_the_reason() {
+    let code = ErrorCode::FileEncodingUnsupported;
+    let world = Arc::new(World {
+        broken: vec![("a.rs", code), ("b.rs", code)],
+        ..World::default()
+    });
+    let (result, _) = run(&world, ScanMode::Full);
+    let JobResult::Failed(job) = result else {
+        panic!("a scan without any file must fail");
+    };
+    assert_eq!(job.code(), code);
+    assert_eq!(world.persisted_count(), 0);
+}
+
+#[test]
+fn a_failure_that_is_not_about_one_file_still_stops_the_scan() {
+    for code in [
+        ErrorCode::LanguagePackInvalid,
+        ErrorCode::LanguagePackMissing,
+        ErrorCode::SourcePathNotFound,
+    ] {
+        let world = Arc::new(World {
+            broken: vec![("b.rs", code)],
+            ..World::default()
+        });
+        let (result, _) = run(&world, ScanMode::Full);
+        let JobResult::Failed(job) = result else {
+            panic!("scan did not fail for {}", code.id());
+        };
+        assert_eq!(job.code(), code);
+        assert_eq!(world.persisted_count(), 0);
+    }
+}
+
+/// `a.rs` unchanged, `b.rs` changed and failing with `code` in an incremental scan.
+fn b_changed_and_broken(code: ErrorCode) -> Result<Arc<World>, CodedError> {
+    Ok(Arc::new(World {
+        previous: previous_snapshot()?,
+        found: Some(vec![("a.rs", false), ("b.rs", true)]),
+        broken: vec![("b.rs", code)],
+        ..World::default()
+    }))
+}
+
+#[test]
+fn an_incremental_scan_drops_a_file_whose_failure_will_not_pass() -> Result<(), CodedError> {
+    let world = b_changed_and_broken(ErrorCode::FileEncodingUnsupported)?;
+    let (result, _) = run(&world, ScanMode::Incremental);
+    assert_eq!(
+        left_out(&result),
+        [("b.rs".to_owned(), ErrorCode::FileEncodingUnsupported, false)]
+    );
+    let stored = world.last_persisted()?;
+    assert_eq!(stored.files, Vec::<SourceFile>::new());
+    assert!(stored.removed.iter().any(|path| path.as_str() == "b.rs"));
+    Ok(())
+}
+
+#[test]
+fn an_incremental_scan_keeps_what_it_knew_of_a_file_whose_failure_may_pass()
+-> Result<(), CodedError> {
+    for code in [ErrorCode::ParseTimeout, ErrorCode::FileUnreadable] {
+        let world = b_changed_and_broken(code)?;
+        let (result, _) = run(&world, ScanMode::Incremental);
+        assert_eq!(left_out(&result), [("b.rs".to_owned(), code, true)]);
+        let JobResult::Finished(job) = result else {
+            panic!("scan did not finish");
+        };
+        // Both files of the previous snapshot are still there, with their symbols.
+        assert_eq!(job.snapshot().stats.files, 2);
+        assert_eq!(job.snapshot().stats.symbols, 2);
+        let stored = world.last_persisted()?;
+        assert_eq!(stored.files, Vec::<SourceFile>::new());
+        assert!(!stored.removed.iter().any(|path| path.as_str() == "b.rs"));
+        assert_eq!(stored.warnings, [ScanWarning { code, count: 1 }]);
+    }
+    Ok(())
+}
+
+/// `b.rs` failing with `code` in a full scan after a snapshot made under the rules `kept`.
+fn b_broken_in_a_full_scan(
+    code: ErrorCode,
+    kept: Option<&'static str>,
+) -> Result<Arc<World>, CodedError> {
+    Ok(Arc::new(World {
+        previous: previous_snapshot()?,
+        found: Some(vec![("a.rs", false), ("b.rs", false)]),
+        broken: vec![("b.rs", code)],
+        rules: ("csharp=namespace", kept),
+        ..World::default()
+    }))
+}
+
+#[test]
+fn a_full_scan_keeps_what_it_knew_of_a_file_whose_failure_may_pass() -> Result<(), CodedError> {
+    for code in [ErrorCode::ParseTimeout, ErrorCode::FileUnreadable] {
+        let world = b_broken_in_a_full_scan(code, Some("csharp=namespace"))?;
+        let (result, _) = run(&world, ScanMode::Full);
+        assert_eq!(left_out(&result), [("b.rs".to_owned(), code, true)]);
+        let JobResult::Finished(job) = result else {
+            panic!("scan did not finish");
+        };
+        assert_eq!(job.snapshot().stats.files, 2);
+        assert_eq!(job.snapshot().stats.symbols, 2);
+        // The store copies the former rows of `b.rs` only into an incremental snapshot.
+        assert_eq!(job.snapshot().mode, ScanMode::Incremental);
+        let stored = world.last_persisted()?;
+        let paths: Vec<_> = stored.files.iter().map(|f| f.path.as_str()).collect();
+        assert_eq!(paths, ["a.rs"], "every other file is analysed again");
+        assert!(!stored.removed.iter().any(|path| path.as_str() == "b.rs"));
+        assert_eq!(stored.parse_micros, Vec::new());
+    }
+    Ok(())
+}
+
+#[test]
+fn a_full_scan_cannot_keep_a_file_of_a_snapshot_with_other_naming_rules() -> Result<(), CodedError>
+{
+    for kept in [None, Some("csharp=file")] {
+        let world = b_broken_in_a_full_scan(ErrorCode::ParseTimeout, kept)?;
+        let (result, _) = run(&world, ScanMode::Full);
+        assert_eq!(
+            left_out(&result),
+            [("b.rs".to_owned(), ErrorCode::ParseTimeout, false)]
+        );
+        let JobResult::Finished(job) = result else {
+            panic!("scan did not finish");
+        };
+        assert_eq!(job.snapshot().mode, ScanMode::Full);
+        assert_eq!(job.snapshot().stats.files, 1);
+    }
+    Ok(())
+}
+
+#[test]
+fn a_full_scan_drops_a_file_whose_failure_will_not_pass() -> Result<(), CodedError> {
+    let code = ErrorCode::FileEncodingUnsupported;
+    let world = b_broken_in_a_full_scan(code, Some("csharp=namespace"))?;
+    let (result, _) = run(&world, ScanMode::Full);
+    assert_eq!(left_out(&result), [("b.rs".to_owned(), code, false)]);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    assert_eq!(job.snapshot().mode, ScanMode::Full);
+    assert_eq!(job.snapshot().stats.files, 1);
+    Ok(())
+}
+
+#[test]
+fn a_scan_starts_above_the_ids_another_process_stored() -> Result<(), CodedError> {
+    let world = Arc::new(World {
+        first_free_id: 5_000,
+        ..World::default()
+    });
+    let (result, _) = run(&world, ScanMode::Full);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    assert!(job.snapshot().id.get() >= 5_000);
+    let stored = world.last_persisted()?;
+    assert!(stored.files.iter().all(|file| file.id.get() >= 5_000));
+    assert!(stored.symbols.iter().all(|symbol| symbol.id.get() >= 5_000));
+    Ok(())
 }
 
 #[test]
@@ -562,6 +952,9 @@ fn old_name(target: &str, id: u32) -> Result<PendingReference, CodedError> {
 fn previous_snapshot() -> Result<Previous, CodedError> {
     Ok(Previous {
         names_stored: true,
+        // No place of this snapshot matches several symbols, so scans over it read only the
+        // references they need (ADR 0086).
+        ambiguous: Some(0),
         names: vec![
             old_name("b", 300)?,
             old_name("c", 301)?,
@@ -585,6 +978,120 @@ fn previous_snapshot() -> Result<Previous, CodedError> {
             ],
         },
     })
+}
+
+/// [`previous_snapshot`] with a fourth file `d.rs` (file 103) that no change reaches: its symbol
+/// `d` refers to `a` and, in one place that matches two symbols, to `a` or itself.
+fn previous_with_an_untouched_file(counted: Option<u64>) -> Result<Arc<World>, CodedError> {
+    let mut previous = previous_snapshot()?;
+    previous.ambiguous = counted;
+    previous.files.push(old_file(103, "d.rs")?);
+    previous.index.symbols.push(old_symbol(203, 103, "d")?);
+    let in_d = |id: u64, line: u32, to: u64, confidence| -> Result<Reference, CodedError> {
+        Ok(Reference {
+            id: ReferenceId::new(id),
+            from: SymbolId::new(203),
+            to: SymbolId::new(to),
+            file: FileId::new(103),
+            span: span_at(line)?,
+            kind: ReferenceKind::Call,
+            confidence,
+            verified: false,
+        })
+    };
+    previous.index.references.extend([
+        in_d(310, 5, 200, Confidence::Certain)?,
+        in_d(311, 6, 200, Confidence::Probable)?,
+        in_d(312, 6, 203, Confidence::Probable)?,
+    ]);
+    Ok(Arc::new(World {
+        previous,
+        found: Some(vec![("a.rs", false), ("b.rs", true), ("d.rs", false)]),
+        ..World::default()
+    }))
+}
+
+impl World {
+    /// Which references the scan asked the store for, one text per read.
+    fn reads(&self) -> Vec<String> {
+        self.reads
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
+    }
+
+    /// The pairs the last measurement got for the references that stayed in the store.
+    fn last_pairs(&self) -> Vec<SymbolPair> {
+        let pairs = self.pairs.lock().unwrap_or_else(PoisonError::into_inner);
+        pairs.last().cloned().unwrap_or_default()
+    }
+}
+
+#[test]
+fn an_incremental_scan_leaves_the_references_of_untouched_files_in_the_store()
+-> Result<(), CodedError> {
+    let world = previous_with_an_untouched_file(Some(1))?;
+    let (result, _) = run(&world, ScanMode::Incremental);
+    assert!(matches!(result, JobResult::Finished(_)));
+    let (a, b, c) = (SymbolId::new(200), SymbolId::new(201), SymbolId::new(202));
+    let left = [FileId::new(101), FileId::new(102)];
+    let expected = [
+        format!("{:?}", StoredReferences::To(&[b, c])),
+        format!("{:?}", StoredReferences::From(&[a])),
+        format!("{:?}", StoredReferences::In(&left)),
+    ];
+    assert_eq!(
+        world.reads(),
+        expected,
+        "nothing that starts in the symbol of the untouched file is read"
+    );
+    let d = SymbolId::new(203);
+    assert_eq!(
+        world.last_pairs(),
+        [(d, SymbolId::new(200)), (d, d)],
+        "coupling gets the references of the untouched file as pairs"
+    );
+    let persisted = world.last_persisted()?;
+    assert_eq!(
+        persisted.ambiguous_places,
+        Some(1),
+        "the place in the untouched file is counted without its references"
+    );
+    let ambiguous = ScanWarning {
+        code: ErrorCode::AmbiguousReference,
+        count: 1,
+    };
+    assert_eq!(persisted.warnings, [ambiguous]);
+    Ok(())
+}
+
+#[test]
+fn without_a_stored_count_an_incremental_scan_reads_every_reference() -> Result<(), CodedError> {
+    let world = previous_with_an_untouched_file(None)?;
+    let (result, _) = run(&world, ScanMode::Incremental);
+    assert!(matches!(result, JobResult::Finished(_)));
+    let all = format!("{:?}", StoredReferences::All);
+    assert!(world.reads().contains(&all), "{:?}", world.reads());
+    assert_eq!(world.last_pairs(), []);
+    assert_eq!(world.last_persisted()?.ambiguous_places, Some(1));
+    Ok(())
+}
+
+#[test]
+fn a_stored_count_and_a_count_over_every_reference_give_the_same_snapshot() -> Result<(), CodedError>
+{
+    let narrow = previous_with_an_untouched_file(Some(1))?;
+    let wide = previous_with_an_untouched_file(None)?;
+    for world in [&narrow, &wide] {
+        let (result, _) = run(world, ScanMode::Incremental);
+        assert!(matches!(result, JobResult::Finished(_)));
+    }
+    let (narrow, wide) = (narrow.last_persisted()?, wide.last_persisted()?);
+    assert_eq!(narrow.references, wide.references);
+    assert_eq!(narrow.dropped_references, wide.dropped_references);
+    assert_eq!(narrow.warnings, wide.warnings);
+    assert_eq!(narrow.ambiguous_places, wide.ambiguous_places);
+    Ok(())
 }
 
 #[test]
@@ -1919,4 +2426,44 @@ fn a_level_two_run_tells_the_language_and_the_end_and_nothing_else() -> Result<(
         Some(Event::Level2Finished(done)) if done.project == ProjectId::new(7)
     ));
     Ok(())
+}
+
+fn memory_run(used_mb: u64, max_mb: u64) -> (JobResult, Arc<World>) {
+    let bus = EventBus::new();
+    let world = Arc::new(World {
+        resolve_wait_steps: 500,
+        ..World::default()
+    });
+    let limit = MemoryLimit::new(
+        Arc::new(GrowingGauge::new(
+            used_mb.saturating_sub(max_mb + 1),
+            used_mb,
+        )),
+        max_mb,
+        std::time::Duration::from_millis(1),
+    );
+    let job = Job::new(ProjectId::new(7), ScanMode::Full);
+    let result = scanner_with(&world, &bus, Some(limit)).run(&Principal::local_owner(), job);
+    (result, world)
+}
+
+#[test]
+fn a_scan_that_holds_more_memory_than_allowed_fails_with_its_own_code_and_writes_nothing() {
+    let (result, world) = memory_run(900, 800);
+    assert!(matches!(result, JobResult::Failed(job) if job.code() == ErrorCode::ScanMemoryLimit));
+    assert_eq!(world.persisted_count(), 0);
+}
+
+#[test]
+fn a_scan_within_the_memory_limit_is_not_stopped() {
+    let bus = EventBus::new();
+    let world = Arc::new(World::default());
+    let limit = MemoryLimit::new(
+        Arc::new(FixedGauge(100)),
+        800,
+        std::time::Duration::from_millis(1),
+    );
+    let job = Job::new(ProjectId::new(7), ScanMode::Full);
+    let result = scanner_with(&world, &bus, Some(limit)).run(&Principal::local_owner(), job);
+    assert!(matches!(result, JobResult::Finished(_)));
 }

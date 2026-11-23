@@ -154,3 +154,62 @@ fn the_hits_name_their_places_by_id_and_the_walk_is_direct_only() {
         }
     }
 }
+
+const CALLER: &str = "namespace Demo;\n\npublic class Use\n{\n    public int Run(Calculator c) { return c.Add(1, 2); }\n}\n";
+
+#[test]
+fn the_count_without_tests_is_the_one_of_the_full_usages_answer() {
+    let fixture = Fixture::installed(Some(PAGE));
+    std::fs::write(fixture.root.path().join("app/Use.cs"), CALLER).unwrap();
+    let project = fixture.scanned();
+    let data = fixture.data(project);
+    let usages = data["usages"].as_object().unwrap();
+    assert!(!usages.is_empty());
+    for (id, entry) in usages {
+        let symbol: u64 = id.parse().unwrap();
+        let full = fixture
+            .call(
+                "usages.query",
+                json!({ "project": project, "symbol": symbol, "way": "both", "depth": 1, "include_tests": false }),
+            )
+            .unwrap();
+        assert_eq!(
+            entry["summary_without_tests"], full["summary"],
+            "symbol {id}"
+        );
+    }
+}
+
+#[test]
+fn a_project_with_more_references_than_the_limit_is_refused() {
+    let fixture = Fixture::installed_with(Some(PAGE), Some("[export]\nmax_references = 1\n"));
+    std::fs::write(fixture.root.path().join("app/Use.cs"), CALLER).unwrap();
+    let project = fixture.scanned();
+    assert_eq!(
+        fixture.call("export.html", json!({ "project": project })),
+        Err("EXP-502")
+    );
+}
+
+#[test]
+fn a_second_export_of_the_same_project_is_refused_until_the_first_ends() {
+    let fixture = Fixture::installed(Some(PAGE));
+    let store = std::sync::Arc::new(
+        SqliteStore::open(&fixture.locations.database(), NonZeroU32::MIN).unwrap(),
+    );
+    let config = crate::config_files::load(
+        &fixture.locations,
+        &codeskimr_cli::GlobalOptions::default(),
+        None,
+    )
+    .unwrap();
+    let export = super::export_command(&store, &config, &fixture.locations);
+    let first = export.begin(1).unwrap();
+    assert_eq!(
+        export.begin(1).err().unwrap().code(),
+        ErrorCode::ExportRunning
+    );
+    assert!(export.begin(2).is_ok(), "another project is not held up");
+    drop(first);
+    assert!(export.begin(1).is_ok());
+}

@@ -28,8 +28,12 @@ app-action-show-in-graph = Show in graph
 app-action-copy-name = Copy name
 app-resize-width = Change width (drag, or arrow keys)
 app-resize-height = Change height (drag, or arrow keys)
+table-col-resize = Change width of column { $name } (drag, or arrow keys)
+table-col-reset-tip = Home or double click: all columns of this table back to their first widths
 app-error-title = Something went wrong
 app-error-copy = Copy details
 app-error-copied = Copied
 app-error-retry = Try again
 app-error-details = Details to copy
+
+loading-slow = Still loading. A large project needs a moment, because CodeSkimr builds an overview first.

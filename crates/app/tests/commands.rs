@@ -264,6 +264,132 @@ fn help_is_shown_in_the_chosen_language() {
     assert!(String::from_utf8_lossy(&output.stdout).contains("Ordner oder eine Git-URL"));
 }
 
+/// A C# class whose text is Windows-1252: the `ü` is the single byte `0xFC`, which is not UTF-8.
+#[cfg(test)]
+fn windows_1252_class(name: &str) -> Vec<u8> {
+    let mut bytes =
+        format!("namespace Demo.Core;\n\npublic class {name}\n{{\n    // M").into_bytes();
+    bytes.push(0xFC);
+    bytes.extend_from_slice(b"ller\n}\n");
+    bytes
+}
+
+#[test]
+fn a_file_in_another_encoding_is_left_out_and_named_and_the_scan_finishes() {
+    let workspace = Workspace::new();
+    fs::write(
+        workspace.project().join("src/Legacy.cs"),
+        windows_1252_class("Legacy"),
+    )
+    .unwrap();
+    let summary = json_of(&workspace.scan(&[]));
+    assert_eq!(summary["files"], 1, "{summary}");
+    assert_eq!(summary["warnings"][0]["code"], "PRS-101", "{summary}");
+    assert_eq!(summary["warnings"][0]["count"], 1, "{summary}");
+    let left_out = &summary["left_out"];
+    assert_eq!(left_out["files"][0]["path"], "src/Legacy.cs", "{summary}");
+    assert_eq!(left_out["files"][0]["code"], "PRS-101", "{summary}");
+    assert_eq!(left_out["files"][0]["kept"], false, "{summary}");
+    assert_eq!(left_out["more"], 0, "{summary}");
+    let text = workspace
+        .command()
+        .arg("scan")
+        .arg(workspace.project())
+        .output()
+        .unwrap();
+    let text = String::from_utf8_lossy(&text.stdout).into_owned();
+    assert!(text.contains("src/Legacy.cs (PRS-101)"), "{text}");
+}
+
+#[test]
+fn a_project_in_which_no_file_can_be_analysed_fails_instead_of_an_empty_result() {
+    let workspace = Workspace::new();
+    fs::write(
+        workspace.project().join("src/Calculator.cs"),
+        windows_1252_class("Calculator"),
+    )
+    .unwrap();
+    let output = workspace.scan(&[]);
+    assert!(!output.status.success());
+    assert!(stderr(&output).contains("PRS-101"), "{}", stderr(&output));
+}
+
+/// The structured answer of the MCP tool `rescan`.
+#[cfg(test)]
+fn rescan(session: &mut McpSession, id: u64) -> Value {
+    let answer = session.call(
+        id,
+        "tools/call",
+        &json!({"name": "rescan", "arguments": {}}),
+    );
+    let result = &answer["result"];
+    assert_ne!(result["isError"], true, "{result}");
+    result["structuredContent"].clone()
+}
+
+#[test]
+fn an_incremental_scan_leaves_no_rest_of_a_file_that_turned_unreadable_text() {
+    let workspace = Workspace::new();
+    fs::write(
+        workspace.project().join("src/Other.cs"),
+        "namespace Demo.Core;\n\npublic class Other\n{\n}\n",
+    )
+    .unwrap();
+    json_of(&workspace.scan(&[]));
+    let mut session = initialized(&workspace);
+    fs::write(
+        workspace.project().join("src/Calculator.cs"),
+        windows_1252_class("Calculator"),
+    )
+    .unwrap();
+    // The real parser and the real database: the store checks the integrity of what it writes.
+    let answer = rescan(&mut session, 2);
+    assert_eq!(answer["mode"], "incremental", "{answer}");
+    assert_eq!(answer["files"], 1, "{answer}");
+    assert_eq!(
+        answer["left_out"][0]["path"], "src/Calculator.cs",
+        "{answer}"
+    );
+    assert_eq!(answer["left_out"][0]["kept"], false, "{answer}");
+    let found = session.call(
+        3,
+        "tools/call",
+        &json!({"name": "search_symbols", "arguments": {"query": "Calculator"}}),
+    );
+    let hits = found["result"]["structuredContent"]["hits"].clone();
+    assert_eq!(hits, json!([]), "the old class must be gone: {found}");
+}
+
+#[test]
+fn mcp_rescan_works_after_another_process_scanned_into_the_same_database() {
+    let workspace = Workspace::new();
+    json_of(&workspace.scan(&[]));
+    let mut session = initialized(&workspace);
+    // Another process (a terminal) scans a second project and takes the ids that follow.
+    let other = workspace.root.path().join("other/src");
+    fs::create_dir_all(&other).unwrap();
+    fs::write(other.join("Calculator.cs"), SOURCE).unwrap();
+    let second = workspace
+        .command()
+        .args(["scan", "--json"])
+        .arg(workspace.root.path().join("other"))
+        .output()
+        .unwrap();
+    let second = json_of(&second);
+    fs::write(
+        workspace.project().join("src/Added.cs"),
+        "namespace Demo.Core;\n\npublic class Added\n{\n}\n",
+    )
+    .unwrap();
+    // The first call used to fail with `STO-601`: the server handed out ids the other scan stored.
+    let answer = rescan(&mut session, 2);
+    assert_eq!(answer["files"], 2, "{answer}");
+    assert!(
+        answer["snapshot"]["id"].as_u64() > second["snapshot"].as_u64(),
+        "{answer}"
+    );
+}
+
 /// Starts `command` and forwards every line of its output that is JSON, as it arrives.
 #[cfg(test)]
 fn spawn_json_lines(
@@ -588,6 +714,36 @@ fn export_by_project_id_and_the_failures_with_their_codes() {
     } else {
         assert!(stderr(&no_folder).contains("EXP-201"));
     }
+}
+
+#[test]
+fn export_of_a_project_above_the_reference_limit_is_refused() {
+    let workspace = Workspace::new();
+    let caller = "namespace Demo.Core;\n\npublic class Caller\n{\n    public int Twice(Calculator c) { return c.Add(1, 1) + c.Add(2, 2); }\n}\n";
+    fs::write(workspace.project().join("src/Caller.cs"), caller).unwrap();
+    json_of(&workspace.scan(&[]));
+    let file = workspace.root.path().join("out.html");
+    let run = |limit: &str| {
+        workspace
+            .command()
+            .args(["--set", &export_ui(&workspace), "--set", limit, "export"])
+            .arg(workspace.project())
+            .arg("--html")
+            .arg(&file)
+            .output()
+            .unwrap()
+    };
+    let refused = run("export.max_references=0");
+    assert!(stderr(&refused).contains("must be positive") || stderr(&refused).contains("CFG-"));
+    let refused = run("export.max_references=1");
+    assert!(
+        stderr(&refused).contains("EXP-502"),
+        "[{}] {:?}",
+        stderr(&refused),
+        refused.status
+    );
+    assert!(!file.exists());
+    assert!(run("export.max_references=100000").status.success());
 }
 
 #[test]
