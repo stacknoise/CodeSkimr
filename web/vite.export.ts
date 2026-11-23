@@ -17,16 +17,14 @@ const SCRIPT_END = /<\/(script)/gi;
 const COMMENT_START = /<!--/g;
 
 /** The modules of the app that the export swaps for its own: the call of the server and the
- * router. The screens import them as usual and do not know the difference. The paths use forward
- * slashes, because the ids of Vite do, on Windows too (a path from `resolve` has backslashes
- * there, and the swap silently did not happen: the page then called the server). */
+ * router. The screens import them as usual and do not know the difference. The keys use forward
+ * slashes and a small drive letter, because the ids of Vite do, on Windows too (a path from
+ * `resolve` has backslashes there, and the swap silently did not happen: the page then called the
+ * server). The values are the own modules as paths for `resolve` of the build. */
 export function swaps(src: string): Map<string, string> {
   return new Map([
-    [
-      normalizePath(resolve(src, "shared/api/commands.ts")),
-      normalizePath(resolve(src, "export/commands.ts")),
-    ],
-    [normalizePath(resolve(src, "app/router.ts")), normalizePath(resolve(src, "export/router.ts"))],
+    [normalizePath(resolve(src, "shared/api/commands.ts")), resolve(src, "export/commands.ts")],
+    [normalizePath(resolve(src, "app/router.ts")), resolve(src, "export/router.ts")],
   ]);
 }
 
@@ -35,7 +33,11 @@ export function swapFor(table: Map<string, string>, id: string): string | null {
   return table.get(normalizePath(id)) ?? null;
 }
 
-function swapModules(src: string): Plugin {
+/** Swaps the modules of `swaps`. The id that it returns is the one the build itself gives the
+ * module of the swap when another file imports it (`./commands` in `export/main.tsx`): one module
+ * under two ids is two copies, and the data that `installData` stores would not reach the
+ * screens (the explorer then said that it could not load the structure). */
+export function swapModules(src: string): Plugin {
   const table = swaps(src);
   const done = new Set<string>();
   return {
@@ -46,11 +48,13 @@ function swapModules(src: string): Plugin {
         return null;
       }
       const found = await this.resolve(source, importer, { ...options, skipSelf: true });
-      const swapped = found ? swapFor(table, found.id) : null;
-      if (swapped !== null) {
-        done.add(swapped);
+      const target = found ? swapFor(table, found.id) : null;
+      if (target === null) {
+        return null;
       }
-      return swapped;
+      done.add(target);
+      const own = await this.resolve(target, importer, { ...options, skipSelf: true });
+      return own?.id ?? target;
     },
     buildEnd(error) {
       if (!error && done.size !== table.size) {
