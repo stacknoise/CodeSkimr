@@ -126,7 +126,7 @@ pub fn http_service_probing(
     (events, secrets): (EventBus, &Arc<Secrets>),
     run: (Option<Arc<dyn IndexRunner>>, RunningScans),
 ) -> Result<HttpService, CodedError> {
-    let store = crate::wiring::open_serving_store(locations, config)?;
+    let store = crate::wiring::open_store(locations, config)?;
     http_service_over(store, config, locations, (events, secrets), run)
 }
 

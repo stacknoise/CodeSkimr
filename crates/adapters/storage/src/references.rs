@@ -1,9 +1,10 @@
 //! The references of a snapshot as stored.
 
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use codeskimr_domain::{
-    Confidence, FileId, Reference, ReferenceId, ReferenceKind, SymbolId, SymbolPair,
+    Confidence, Direction, FileId, Reference, ReferenceId, ReferenceKind, SymbolId, SymbolPair,
+    UsageTally,
 };
 use rusqlite::{Connection, params};
 
@@ -112,6 +113,104 @@ pub(crate) fn load(
     // not depend on which one.
     references.sort_unstable_by_key(|found| found.id);
     Ok(references)
+}
+
+/// The references of a snapshot that start in or point at the symbols `ids`, as the view
+/// `snapshot_references` holds them: one statement through the index on the end of a reference,
+/// whatever the size of the project (ADR 0089).
+pub(crate) fn load_around(
+    conn: &Connection,
+    snapshot: i64,
+    direction: Direction,
+    ids: &[SymbolId],
+) -> StorageResult<Vec<Reference>> {
+    let statement = match direction {
+        Direction::Incoming => sql::REFERENCES_INTO,
+        Direction::Outgoing => sql::REFERENCES_OUT_OF,
+    };
+    let list = id_list(ids.iter().map(|id| id.get()))?;
+    let mut prepared = conn.prepare_cached(statement)?;
+    let mut rows = prepared.query(params![snapshot, list])?;
+    let mut references = Vec::new();
+    while let Some(row) = rows.next()? {
+        references.push(decode_reference(&read_reference(&Cols::new(row))?)?);
+    }
+    Ok(references)
+}
+
+/// How the references of a snapshot are used, counted in one pass over the table without keeping
+/// them (ADR 0089): the usage count of every symbol, the files that hold a reference of kind
+/// `test` and the symbols that override a member.
+#[derive(Debug, Default)]
+pub(crate) struct ReferenceFacts {
+    pub(crate) tallies: HashMap<SymbolId, UsageTally>,
+    pub(crate) test_files: HashSet<FileId>,
+    pub(crate) overriding: HashSet<SymbolId>,
+}
+
+/// Counts the references of a snapshot: those whose file and target it holds. References of kind
+/// `test` and of a symbol to itself are no usages; a reference is certain if its resolution is,
+/// or if level 2 verified it.
+pub(crate) fn reference_facts(conn: &Connection, snapshot: i64) -> StorageResult<ReferenceFacts> {
+    let files = id_set(conn, sql::FILE_IDS, snapshot)?;
+    let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
+    let mut prepared = conn.prepare_cached(sql::REFERENCE_TALLY_ROWS)?;
+    let mut rows = prepared.query(params![snapshot])?;
+    let mut facts = ReferenceFacts::default();
+    while let Some(row) = rows.next()? {
+        let cols = Cols::new(row);
+        let (file, from, to): (i64, i64, i64) = (cols.take()?, cols.take()?, cols.take()?);
+        if !files.contains(&file) || !symbols.contains(&to) {
+            continue;
+        }
+        let kind = label_from::<ReferenceKind>(&cols.take::<String>()?)?;
+        let probable = cols.take::<String>()? == Confidence::Probable.label();
+        let verified: bool = cols.take()?;
+        let (from, to) = (SymbolId::new(id_from(from)?), SymbolId::new(id_from(to)?));
+        match kind {
+            ReferenceKind::Test => {
+                facts.test_files.insert(FileId::new(id_from(file)?));
+            }
+            _ if from == to => {}
+            _ => {
+                facts
+                    .tallies
+                    .entry(to)
+                    .or_default()
+                    .count(verified || !probable);
+            }
+        }
+        if kind == ReferenceKind::Override {
+            facts.overriding.insert(from);
+        }
+    }
+    Ok(facts)
+}
+
+/// The ends (start, target) of the references of a snapshot that are not of kind `test` and not
+/// probable, whose file and target the snapshot holds, one per reference. They are what the
+/// dependencies between namespaces count (issue #464).
+pub(crate) fn certain_ends(
+    conn: &Connection,
+    snapshot: i64,
+) -> StorageResult<Vec<(SymbolId, SymbolId)>> {
+    let files = id_set(conn, sql::FILE_IDS, snapshot)?;
+    let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
+    let mut prepared = conn.prepare_cached(sql::REFERENCE_ENDS_CERTAIN)?;
+    let mut rows = prepared.query(params![
+        snapshot,
+        ReferenceKind::Test.label(),
+        Confidence::Probable.label()
+    ])?;
+    let mut ends = Vec::new();
+    while let Some(row) = rows.next()? {
+        let cols = Cols::new(row);
+        let (file, from, to): (i64, i64, i64) = (cols.take()?, cols.take()?, cols.take()?);
+        if files.contains(&file) && symbols.contains(&to) {
+            ends.push((SymbolId::new(id_from(from)?), SymbolId::new(id_from(to)?)));
+        }
+    }
+    Ok(ends)
 }
 
 /// The files of a snapshot that hold a reference verified by level 2, in ascending order.

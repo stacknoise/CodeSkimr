@@ -28,7 +28,7 @@ impl SnapshotStore for SqliteStore {
         let stored = self
             .write(|tx| write_snapshot(tx, &data, self.retention().get()))
             .map_err(CodedError::from)?;
-        self.refresh_lookup(stored.id);
+        self.forget_builds();
         Ok(stored)
     }
 
@@ -36,7 +36,7 @@ impl SnapshotStore for SqliteStore {
         let stored = self
             .write(|tx| crate::replace::replace_level2(tx, &replacement))
             .map_err(CodedError::from)?;
-        self.refresh_lookup(stored.id);
+        self.forget_builds();
         Ok(stored)
     }
 

@@ -7,6 +7,7 @@
 
 mod alerts;
 mod annotations;
+mod answers;
 mod baselines;
 mod catalog;
 mod codec;
@@ -17,7 +18,6 @@ mod detail;
 mod error;
 mod headers;
 mod integrity;
-mod lookup;
 mod migrate;
 mod outline;
 mod pending;

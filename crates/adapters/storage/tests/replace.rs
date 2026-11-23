@@ -473,3 +473,27 @@ fn a_replacement_drops_the_shared_facts_and_the_new_ones_count_the_new_usages() 
     assert!(!std::sync::Arc::ptr_eq(&before, &after));
     assert_eq!((usage_of(&after, 83), usage_of(&after, 84)), (0, 1));
 }
+
+#[test]
+fn a_replacement_drops_the_kept_walks_and_the_new_usages_are_read() {
+    use codeskimr_application::ports::UsageIndex;
+    use codeskimr_domain::{Direction, SymbolId, UsageQuery};
+    let store = registered();
+    let asked = |symbol: u64| UsageQuery {
+        symbol: SymbolId::new(symbol),
+        direction: Direction::Incoming,
+        depth: 1,
+        include_tests: true,
+    };
+    let total = |symbol: u64| {
+        store
+            .usages(SnapshotId::new(SNAPSHOT), &asked(symbol), 10)
+            .unwrap()
+            .total
+    };
+    assert_eq!((total(83), total(84)), (1, 0));
+    store
+        .replace_level2(replacement(&[71], vec![verified(900, 71, 82, 84)]))
+        .unwrap();
+    assert_eq!((total(83), total(84)), (0, 1));
+}

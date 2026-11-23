@@ -51,6 +51,10 @@ pub const MISSING: &str = "-";
 /// Key of the regression tolerance inside the budgets table.
 pub const TOLERANCE_KEY: &str = "regression_tolerance_percent";
 
+/// Table of `tools/bench/budgets.toml` with the slowdowns accepted on purpose (benchmark id and the
+/// ADR that explains it).
+pub const ACCEPTED_KEY: &str = "accepted";
+
 /// Command-line flags.
 pub mod flags {
     /// Directory with the criterion results.
@@ -83,6 +87,8 @@ pub mod text {
     pub const OK: &str = "ok";
     /// Marker for a benchmark slower than the tolerance.
     pub const REGRESSION: &str = "REGRESSION";
+    /// Marker for a slowdown that `tools/bench/budgets.toml` accepts on purpose.
+    pub const ACCEPTED: &str = "ACCEPTED SLOWDOWN";
     /// Marker for a benchmark above its absolute budget.
     pub const OVER_BUDGET: &str = "OVER BUDGET";
     /// Marker for a benchmark that exists on the base but no longer in the change.
