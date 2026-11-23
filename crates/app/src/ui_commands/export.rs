@@ -69,7 +69,7 @@ pub struct HtmlExport {
 
 /// Holds the place of a running export of one project and gives it back when it ends, however it
 /// ends.
-struct Running {
+pub(super) struct Running {
     set: Arc<Mutex<BTreeSet<u64>>>,
     project: u64,
 }
@@ -191,7 +191,7 @@ impl HtmlExport {
     }
 
     /// Takes the place of the export of `project`; `EXP-501` if another export of it runs.
-    fn begin(&self, project: u64) -> Result<Running, CodedError> {
+    pub(super) fn begin(&self, project: u64) -> Result<Running, CodedError> {
         let taken = !self
             .running
             .lock()

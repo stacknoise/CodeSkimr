@@ -642,6 +642,19 @@ fn the_user_file_and_flags_can_raise_the_scan_limits_and_the_project_stays_below
 }
 
 #[test]
+fn the_project_file_cannot_lift_the_export_limit() {
+    let raised = project("[export]\nmax_references = 999999999\n");
+    let config =
+        Config::resolve(&[user("[export]\nmax_references = 1000\n"), raised]).expect("valid");
+    assert_eq!(config.export.max_references, 1000);
+    let config = Config::resolve(&[project("[export]\nmax_references = 5\n")]).expect("valid");
+    assert_eq!(
+        config.export.max_references, 600_000,
+        "the table is not read at all"
+    );
+}
+
+#[test]
 fn the_signature_limit_must_be_positive() {
     assert_rejected(&[(
         "[scan]\nmax_signature_chars = 0\n",

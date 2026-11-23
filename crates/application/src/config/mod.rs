@@ -71,9 +71,9 @@ impl Config {
 }
 
 /// What of a layer counts. The project file may not touch the tables of
-/// `consts::UNTRUSTED_PROJECT_TABLES` (`level2`, `editor`, `ui`): a scanned repository must not
-/// switch on running its own build scripts, allow other URL schemes or point the server at a
-/// folder, so these tables are dropped before anything is checked or merged. The scan limits of
+/// `consts::UNTRUSTED_PROJECT_TABLES` (`level2`, `editor`, `ui`, `export`): a scanned repository must not
+/// switch on running its own build scripts, allow other URL schemes, point the server at a
+/// folder or lift the size limit of the export, so these tables are dropped before anything is checked or merged. The scan limits of
 /// the project file only count as far as they lower what `merged` (defaults and user file)
 /// already holds (#54).
 fn trusted_table(layer: &ConfigLayer, merged: &Table) -> Table {

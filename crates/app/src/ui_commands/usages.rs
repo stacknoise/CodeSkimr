@@ -21,7 +21,7 @@ use codeskimr_domain::{
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
-    EXPORT_DEPTH, LEVEL2_ACTIVE, LEVEL2_UNAVAILABLE, LINE_OFFSET, USAGES_DESCRIPTION, USAGES_LIMIT,
+    DIRECT_DEPTH, LEVEL2_ACTIVE, LEVEL2_UNAVAILABLE, LINE_OFFSET, USAGES_DESCRIPTION, USAGES_LIMIT,
     USAGES_QUERY, USAGES_TITLE,
 };
 
@@ -282,6 +282,17 @@ pub struct UsagesQuery {
 }
 
 impl UsagesPorts {
+    /// The project and the id of its newest snapshot; `ProjectNotScanned` if there is none.
+    fn current(&self, id: ProjectId) -> Result<(Project, SnapshotId), CodedError> {
+        let project = self.projects.project(id)?;
+        let snapshot = self
+            .index
+            .latest_snapshot(id)?
+            .ok_or_else(|| CodedError::new(ErrorCode::ProjectNotScanned))?
+            .id;
+        Ok((project, snapshot))
+    }
+
     /// The depth a request walks: the maximum if none is asked for, never more than the maximum.
     fn clamp_depth(&self, requested: u32) -> u32 {
         if requested == 0 {
@@ -312,7 +323,7 @@ impl UsagesPorts {
         let outgoing = wants(Way::Outgoing)
             .then(|| self.walk(project, snapshot, &query(Direction::Outgoing, depth)))
             .transpose()?;
-        let direct = self.walk(project, snapshot, &query(Direction::Incoming, 1))?;
+        let direct = self.walk(project, snapshot, &query(Direction::Incoming, DIRECT_DEPTH))?;
         Ok((incoming, outgoing, direct))
     }
 }
@@ -333,16 +344,11 @@ impl UsagesQuery {
         access::require(&principal, Permission::Read)?;
         let ports = &self.ports;
         let id = ProjectId::new(input.project);
-        let project = ports.projects.project(id)?;
-        let snapshot = ports
-            .index
-            .latest_snapshot(id)?
-            .ok_or_else(|| CodedError::new(ErrorCode::ProjectNotScanned))?
-            .id;
+        let (project, snapshot) = ports.current(id)?;
         let query = UsageQuery {
             symbol: SymbolId::new(input.symbol),
             direction: Direction::Incoming,
-            depth: EXPORT_DEPTH,
+            depth: DIRECT_DEPTH,
             include_tests: input.include_tests,
         };
         let direct = ports.walk(&project, snapshot, &query)?;
@@ -368,12 +374,7 @@ impl Command for UsagesQuery {
         let ports = &self.ports;
         let input = request.input;
         let id = ProjectId::new(input.project);
-        let project = ports.projects.project(id)?;
-        let snapshot = ports
-            .index
-            .latest_snapshot(id)?
-            .ok_or_else(|| CodedError::new(ErrorCode::ProjectNotScanned))?
-            .id;
+        let (project, snapshot) = ports.current(id)?;
         let key = SymbolKey::Id(SymbolId::new(input.symbol));
         let detail = ports
             .index

@@ -203,8 +203,9 @@ pub const SCHEME_EXTRA_CHARS: [char; 3] = ['+', '-', '.'];
 
 /// Tables of the project file that are never read: a scanned repository must not switch on
 /// running its own build scripts (`level2`, ADR 0033, decision 9), allow other URL schemes for
-/// "open in editor" (`editor`) or point the server at a folder (`ui`) (ADR 0030, decisions 7, 12).
-pub const UNTRUSTED_PROJECT_TABLES: [&str; 3] = ["level2", "editor", "ui"];
+/// "open in editor" (`editor`), point the server at a folder (`ui`) (ADR 0030, decisions 7, 12) or
+/// lift the size limit of the HTML export (`export`, ADR 0090).
+pub const UNTRUSTED_PROJECT_TABLES: [&str; 4] = ["level2", "editor", "ui", "export"];
 
 /// URL schemes that run script or open local files in a browser. They are refused in
 /// `editor.allowed_schemes` in every layer (ADR 0030).

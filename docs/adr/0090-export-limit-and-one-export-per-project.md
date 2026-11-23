@@ -24,4 +24,4 @@ Option 3.
 
 - A project above the limit cannot be exported as one HTML page until the limit is raised; a future export in parts or on request per screen is possible but not part of this decision.
 - Two new error codes are registered.
-- The setting is not one of the project-lowerable keys: it protects the user's own machine from the user's own request, not from a scanned repository.
+- The table `export` is one of the tables the project file `.codeskimr.toml` never sets (`UNTRUSTED_PROJECT_TABLES`, like `ui`): a scanned repository must not lift the limit that protects the user's machine. Only the user file and flags set it.
