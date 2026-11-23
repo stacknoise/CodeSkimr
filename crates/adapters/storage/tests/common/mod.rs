@@ -5,7 +5,7 @@ use std::num::NonZeroU32;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use codeskimr_application::ports::SnapshotData;
+use codeskimr_application::ports::{SnapshotData, SnapshotStore};
 use codeskimr_codes::Coded;
 use codeskimr_domain::{
     Confidence, ContentHash, FileId, FolderPath, LanguageId, Layer, LayerName, Loc, Metric,
@@ -204,4 +204,29 @@ impl Drop for TempDb {
             let _ = std::fs::remove_dir_all(root);
         }
     }
+}
+
+/// The symbols and references one snapshot adds.
+pub type Part = (Vec<Symbol>, Vec<Reference>);
+
+/// A store with two projects and three snapshots: a full scan of project 1 (files 11 and 12), an
+/// incremental one that carries them and adds file 13, and a full scan of project 2 (file 300).
+pub fn three_snapshots(first: Part, second: Part, other: Part) -> SqliteStore {
+    let store = store(5);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    store.save_project(&project(2, "/work/other", &[])).unwrap();
+    let mut scan = data(header(10, ScanMode::Full));
+    scan.files = vec![file(10, 11, "a.cs", "h1"), file(10, 12, "b.cs", "h2")];
+    (scan.symbols, scan.references) = first;
+    store.persist(scan).unwrap();
+    let mut scan = data(header(20, ScanMode::Incremental));
+    scan.files = vec![file(20, 13, "c.cs", "h3")];
+    (scan.symbols, scan.references) = second;
+    store.persist(scan).unwrap();
+    let mut scan = data(header(30, ScanMode::Full));
+    scan.snapshot.project = ProjectId::new(2);
+    scan.files = vec![file(30, 300, "other.cs", "h4")];
+    (scan.symbols, scan.references) = other;
+    store.persist(scan).unwrap();
+    store
 }
