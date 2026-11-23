@@ -863,8 +863,8 @@ pub const COMPLEXITY_GROUPS: &str = "SELECT complexity, SUM(n) FROM statistics_c
 /// name, parent, path, and the columns of `symbol_statistics` the facts need (kind, language,
 /// visibility, test, overrides, certain, total, complexity, loc, maintainability, efferent,
 /// afferent).
-pub const STATISTICS_FACTS: &str = "SELECT st.symbol_id, s.name, s.qualified_name, s.parent_id, \
-    f.path, st.kind, st.language, st.visibility, st.test, st.overrides, st.certain, st.total, \
+pub const STATISTICS_FACTS: &str = "SELECT st.symbol_id, s.name, s.qualified_name, st.kind, s.parent_id, \
+    st.visibility, s.file_id, f.path, st.language, st.test, st.overrides, st.certain, st.total, \
     st.complexity, st.loc, st.maintainability, st.efferent, st.afferent \
     FROM symbol_statistics st \
     JOIN symbol_rows s ON s.id = st.symbol_id JOIN files f ON f.id = s.file_id \

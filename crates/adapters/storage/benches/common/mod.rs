@@ -1,6 +1,7 @@
 //! What the benchmarks of the store share: a stored snapshot with the size of a 100k-line project.
 
 use std::num::NonZeroU32;
+use std::process::ExitCode;
 
 use codeskimr_application::ports::{PendingReference, SnapshotData, SnapshotStore, SymbolHash};
 use codeskimr_domain::{
@@ -119,4 +120,15 @@ pub fn store(
     scan.metrics = metrics;
     store.persist(scan).ok()?;
     Some(store)
+}
+
+/// Runs the queries of a benchmark with the command line of criterion and reports a failure of
+/// the set-up as the exit code.
+pub fn run(queries: impl FnOnce(&mut criterion::Criterion) -> Option<()>) -> ExitCode {
+    let mut criterion = criterion::Criterion::default().configure_from_args();
+    if queries(&mut criterion).is_none() {
+        return ExitCode::FAILURE;
+    }
+    criterion.final_summary();
+    ExitCode::SUCCESS
 }

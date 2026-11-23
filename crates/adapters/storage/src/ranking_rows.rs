@@ -3,8 +3,7 @@
 
 use codeskimr_application::ports::RankingRequest;
 use codeskimr_domain::{
-    Assessment, KindGroup, LanguageId, Measures, QualifiedName, RelativePath, SnapshotId,
-    SymbolFacts, SymbolId, SymbolName, UsageTally, Visibility,
+    Assessment, KindGroup, Measures, SnapshotId, SymbolFacts, SymbolId, UsageTally, Visibility,
 };
 use rusqlite::{Connection, Statement, ToSql};
 
@@ -17,6 +16,7 @@ use crate::consts::{
 };
 use crate::error::StorageResult;
 use crate::sql;
+use crate::statistics::{FactRow, decode_fact, read_fact};
 
 /// What a statement over `symbol_statistics` is asked: the values of its parameters.
 pub(crate) struct Filter {
@@ -154,16 +154,9 @@ impl Filter {
 /// How many symbols without usages there are for a visibility, a language and test code.
 pub(crate) type UnusedGroup = (Option<Visibility>, String, bool, u32);
 
-/// The columns of `STATISTICS_FACTS`, still raw.
-struct FactRow {
-    id: i64,
-    name: String,
-    qualified: String,
-    parent: Option<i64>,
-    path: String,
-    kind: String,
-    language: String,
-    visibility: Option<String>,
+/// The columns of `STATISTICS_FACTS`, still raw: the symbol, then what was counted.
+struct CountedRow {
+    symbol: FactRow,
     test: bool,
     overrides: bool,
     certain: u32,
@@ -172,16 +165,9 @@ struct FactRow {
 }
 
 // codeskimr: allow CHK-102 maps a row of the facts query into its columns
-fn read_fact(cols: &Cols<'_>) -> rusqlite::Result<FactRow> {
-    Ok(FactRow {
-        id: cols.take()?,
-        name: cols.take()?,
-        qualified: cols.take()?,
-        parent: cols.take()?,
-        path: cols.take()?,
-        kind: cols.take()?,
-        language: cols.take()?,
-        visibility: cols.take()?,
+fn read_counted(cols: &Cols<'_>) -> rusqlite::Result<CountedRow> {
+    Ok(CountedRow {
+        symbol: read_fact(cols)?,
         test: cols.take()?,
         overrides: cols.take()?,
         certain: cols.take()?,
@@ -196,31 +182,23 @@ fn read_fact(cols: &Cols<'_>) -> rusqlite::Result<FactRow> {
     })
 }
 
-fn decode(row: FactRow) -> StorageResult<SymbolFacts> {
+fn decode(row: CountedRow) -> StorageResult<SymbolFacts> {
     let [complexity, loc, maintainability, efferent, afferent] = row.measures;
-    Ok(SymbolFacts {
-        id: SymbolId::new(id_from(row.id)?),
-        name: SymbolName::new(row.name)?,
-        qualified_name: QualifiedName::new(row.qualified)?,
-        kind: label_from(&row.kind)?,
-        parent: row.parent.map(id_from).transpose()?.map(SymbolId::new),
-        visibility: visibility_of(row.visibility.as_deref())?,
-        path: RelativePath::new(row.path)?,
-        language: LanguageId::new(row.language)?,
-        test: row.test,
-        overrides: row.overrides,
-        usage: UsageTally {
-            certain: row.certain,
-            total: row.total,
-        },
-        measures: Measures {
-            complexity,
-            loc,
-            maintainability,
-            efferent,
-            afferent,
-        },
-    })
+    let (mut facts, _) = decode_fact(row.symbol)?;
+    facts.test = row.test;
+    facts.overrides = row.overrides;
+    facts.usage = UsageTally {
+        certain: row.certain,
+        total: row.total,
+    };
+    facts.measures = Measures {
+        complexity,
+        loc,
+        maintainability,
+        efferent,
+        afferent,
+    };
+    Ok(facts)
 }
 
 /// The facts of the symbols `ids` of a snapshot, in the order of `ids`.
@@ -242,7 +220,7 @@ pub(crate) fn facts_of(
     let mut rows = prepared.raw_query();
     let mut found = std::collections::HashMap::new();
     while let Some(row) = rows.next()? {
-        let fact = decode(read_fact(&Cols::new(row))?)?;
+        let fact = decode(read_counted(&Cols::new(row))?)?;
         found.insert(fact.id, fact);
     }
     Ok(ids

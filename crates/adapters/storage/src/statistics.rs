@@ -16,21 +16,20 @@ use crate::references::reference_facts;
 use crate::sql;
 
 /// The columns of `STATISTICS_SYMBOLS`, still raw.
-struct FactRow {
-    id: i64,
-    name: String,
-    qualified: String,
-    kind: String,
-    parent: Option<i64>,
-    visibility: Option<String>,
-    file: i64,
-    path: String,
-    language: String,
+pub(crate) struct FactRow {
+    pub(crate) id: i64,
+    pub(crate) name: String,
+    pub(crate) qualified: String,
+    pub(crate) kind: String,
+    pub(crate) parent: Option<i64>,
+    pub(crate) visibility: Option<String>,
+    pub(crate) file: i64,
+    pub(crate) path: String,
+    pub(crate) language: String,
 }
 
 // codeskimr: allow CHK-102 maps a row of the statistics query into its columns
-fn read_fact(row: &rusqlite::Row<'_>) -> rusqlite::Result<FactRow> {
-    let cols = Cols::new(row);
+pub(crate) fn read_fact(cols: &Cols<'_>) -> rusqlite::Result<FactRow> {
     Ok(FactRow {
         id: cols.take()?,
         name: cols.take()?,
@@ -45,7 +44,7 @@ fn read_fact(row: &rusqlite::Row<'_>) -> rusqlite::Result<FactRow> {
 }
 
 /// A symbol without usage counts and measured values, and the file that declares it.
-fn decode_fact(row: FactRow) -> StorageResult<(SymbolFacts, FileId)> {
+pub(crate) fn decode_fact(row: FactRow) -> StorageResult<(SymbolFacts, FileId)> {
     let facts = SymbolFacts {
         id: SymbolId::new(id_from(row.id)?),
         name: SymbolName::new(row.name)?,
@@ -93,7 +92,7 @@ pub(crate) fn load_facts(conn: &Connection, snapshot: i64) -> StorageResult<Vec<
     let mut measures = load_measures(conn, snapshot)?;
     let counted = reference_facts(conn, snapshot)?;
     let mut statement = conn.prepare_cached(sql::STATISTICS_SYMBOLS)?;
-    let rows = statement.query_map(params![snapshot], read_fact)?;
+    let rows = statement.query_map(params![snapshot], |row| read_fact(&Cols::new(row)))?;
     rows.map(|row| {
         let (mut facts, file) = decode_fact(row?)?;
         facts.test = counted.test_files.contains(&file);

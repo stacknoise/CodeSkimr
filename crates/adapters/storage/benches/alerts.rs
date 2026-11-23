@@ -190,12 +190,8 @@ fn measure(c: &mut Criterion, name: &str, vanished: u64) -> Option<()> {
 }
 
 fn main() -> ExitCode {
-    let mut criterion = Criterion::default().configure_from_args();
-    if measure(&mut criterion, "step_100_critical", 0).is_none()
-        || measure(&mut criterion, "step_50_vanished", VANISHED).is_none()
-    {
-        return ExitCode::FAILURE;
-    }
-    criterion.final_summary();
-    ExitCode::SUCCESS
+    common::run(|criterion| {
+        measure(criterion, "step_100_critical", 0)?;
+        measure(criterion, "step_50_vanished", VANISHED)
+    })
 }

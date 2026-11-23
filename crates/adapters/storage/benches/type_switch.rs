@@ -66,10 +66,5 @@ fn switches(c: &mut Criterion) -> Option<()> {
 }
 
 fn main() -> ExitCode {
-    let mut criterion = Criterion::default().configure_from_args();
-    if switches(&mut criterion).is_none() {
-        return ExitCode::FAILURE;
-    }
-    criterion.final_summary();
-    ExitCode::SUCCESS
+    common::run(switches)
 }
