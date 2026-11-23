@@ -1200,6 +1200,8 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | CLI-103 | `secret_input_invalid` | No secret could be read from the terminal or standard input, or it was empty. |
 | I18N-201 | `message_key_missing` | A message key is missing for the active language (falls back to English). |
 | EXP-201 | `export_bundle_missing` | The built export page of the UI is missing or unusable. |
+| EXP-501 | `export_running` | An export of the same project is already running; try again when it has ended (ADR 0090). |
+| EXP-502 | `export_too_large` | The project has more references than export.max_references allows, so the export page would be too large for a browser (ADR 0090). |
 | EXP-601 | `export_write_failed` | The export file could not be written. |
 | UI-201 | `api_unreachable` | The UI cannot reach the local server. |
 | UI-901 | `unexpected_ui_error` | An uncaught exception was converted at a feature boundary (bug). |

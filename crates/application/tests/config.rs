@@ -517,6 +517,15 @@ fn the_size_of_a_graph_box_must_be_positive() {
 }
 
 #[test]
+fn the_export_limit_must_be_positive() {
+    assert_rejected(&[(
+        "[export]\nmax_references = 0\n",
+        "export.max_references",
+        Violation::MustBePositive,
+    )]);
+}
+
+#[test]
 fn every_error_maps_to_a_registered_code() {
     let error = Config::resolve(&[user("[watcher]\ndebounce_ms = 0\n")]).expect_err("range");
     assert_eq!(error.code().id(), "CFG-101");
@@ -630,6 +639,19 @@ fn the_user_file_and_flags_can_raise_the_scan_limits_and_the_project_stays_below
     let flag = ConfigLayer::from_overrides([("scan.max_source_mb", "8192")]).expect("flag");
     let scan = Config::resolve(&[user_file, flag]).expect("valid").scan;
     assert_eq!(scan.max_source_mb, 8192, "a flag may raise it");
+}
+
+#[test]
+fn the_project_file_cannot_lift_the_export_limit() {
+    let raised = project("[export]\nmax_references = 999999999\n");
+    let config =
+        Config::resolve(&[user("[export]\nmax_references = 1000\n"), raised]).expect("valid");
+    assert_eq!(config.export.max_references, 1000);
+    let config = Config::resolve(&[project("[export]\nmax_references = 5\n")]).expect("valid");
+    assert_eq!(
+        config.export.max_references, 600_000,
+        "the table is not read at all"
+    );
 }
 
 #[test]

@@ -43,6 +43,8 @@ pub struct Config {
     pub ui: Ui,
     /// The picture of the dependency map.
     pub graph: Graph,
+    /// The HTML export (ADR 0090).
+    pub export: Export,
     /// Limits of annotations and alerts (ADR 0068).
     pub annotations: Annotations,
     /// Where `find_constants` looks for configuration and translation keys.
@@ -374,6 +376,16 @@ impl Similarity {
 
 fn widen(value: u32) -> usize {
     usize::try_from(value).unwrap_or(usize::MAX)
+}
+
+/// The HTML export of a project (blueprint 15, ADR 0090).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Export {
+    /// Most references a project may have to be exported. The page holds every reference once
+    /// more per direction, so a larger project gives a file of hundreds of megabytes that no
+    /// browser opens; the export is refused with `EXP-502` instead.
+    pub max_references: u32,
 }
 
 /// The picture of the dependency map (blueprint 15, screen 3), in layout units.

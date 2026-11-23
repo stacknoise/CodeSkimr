@@ -67,6 +67,8 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | `MCP-202` | Symbol nicht gefunden | die ID aus `search_symbols` nehmen |
 | `MCP-203` | das Projekt hat keinen Snapshot | scannen |
 | `MCP-501` | kein Fehler: das Ergebnis wurde auf das Limit gekürzt | weniger verlangen oder `limit` erhöhen |
+| `EXP-501` | für dieses Projekt läuft schon ein HTML-Export | warten, bis er beendet ist |
+| `EXP-502` | das Projekt hat mehr Verweisungen als `export.max_references` (Vorgabe 600000) | Grenze in der eigenen Konfigurationsdatei erhöhen (etwa 250 Byte je Verweisung) oder ein kleineres Projekt exportieren |
 | `EXP-201`, `EXP-601` | die Export-Seite fehlt, oder die Exportdatei kann nicht geschrieben werden | siehe [HTML-Export](export.md#fehler) |
 | `STO-501` | Datenträger voll | Platz schaffen |
 | `CLI-101` | ungültige Kommandozeilenargumente | siehe `codeskimr --help` |

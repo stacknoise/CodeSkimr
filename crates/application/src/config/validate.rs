@@ -50,7 +50,8 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     check_ui(&config.ui)?;
     positive(keys::GRAPH_NODE_WIDTH, config.graph.node_width)?;
     positive(keys::GRAPH_NODE_HEIGHT, config.graph.node_height)?;
-    positive(keys::GRAPH_ROW_BOXES, config.graph.row_boxes)
+    positive(keys::GRAPH_ROW_BOXES, config.graph.row_boxes)?;
+    positive(keys::EXPORT_MAX_REFERENCES, config.export.max_references)
 }
 
 fn check_conventions(conventions: &Conventions) -> Result<(), ConfigError> {

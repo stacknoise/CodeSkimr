@@ -219,3 +219,10 @@ sweeps = 12
 placement_passes = 6
 # Most boxes in one line of a row. A longer row (many namespaces in one layer) wraps into several lines.
 row_boxes = 8
+
+# The HTML export of a project (blueprint 15, ADR 0090).
+[export]
+# The export is refused with EXP-502 for a project with more references than this: the page holds
+# about 250 bytes per reference, so 600000 give a file of about 150 MB, which a browser still opens.
+# Raise it on your own responsibility.
+max_references = 600000

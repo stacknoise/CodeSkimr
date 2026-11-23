@@ -17,6 +17,8 @@ codeskimr export <project> --html <file>
 | `PRJ-201` | the project is not registered |
 | `MCP-203` | the project has not been scanned |
 | `EXP-201` | the built export page is missing, see below |
+| `EXP-501` | an export of the project is already running |
+| `EXP-502` | the project has more references than `export.max_references` (default 600000) |
 | `EXP-601` | the file cannot be written |
 
 ## Structure
@@ -44,4 +46,5 @@ Every usage keeps its `verified` and `confidence` fields. The usages screen of t
 - Only types and the members of types are listed, like in the explorer; free functions outside a type are not.
 - The quick search is a plain match on names (start, part, letters in order), not the ranking of the server.
 - The size grows about linearly with the number of references: only the direct usages of every symbol are embedded, so the depth select of the usages screen is not offered. Walks through other symbols grow far faster than the project and stay with the app.
+- A project with more references than `export.max_references` (default 600000, about 150 MB of page) is refused with `EXP-502`; only one export per project runs at a time (`EXP-501`).
 - The commands read the newest snapshot one after another; a scan that finishes during an export can mix two snapshots. Export while no scan runs.

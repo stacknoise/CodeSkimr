@@ -198,6 +198,8 @@ pub const EXPORT_DATA_PLACEHOLDER: &str = "__CODESKIMR_EXPORT_DATA__";
 pub const EXPORT_ESCAPED_CHAR: char = '<';
 /// What takes its place; JSON reads it back as the character.
 pub const EXPORT_ESCAPE: &str = "\\u003c";
+/// Steps of the walk that counts the direct usages of a symbol: one.
+pub const DIRECT_DEPTH: u32 = 1;
 /// Steps of the usages walk in the export: only the direct usages. Deeper walks grow with the
 /// number of paths, not of symbols (440,000 of 450,000 hits of a 1,286 symbol project were deeper
 /// than one step, 150 MB), so they stay with the app. The page offers no deeper select.
@@ -214,8 +216,6 @@ pub const EXPORT_FROM: &str = "from";
 pub const EXPORT_TO: &str = "to";
 /// Key of the id in a place.
 pub const EXPORT_ID: &str = "id";
-/// Steps of the walk that counts the direct usages.
-pub const EXPORT_DIRECT_DEPTH: u32 = 1;
 
 /// The gap between two rows is divided by this to get the space a layer band adds above and
 /// below its boxes.

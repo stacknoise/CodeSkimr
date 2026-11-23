@@ -717,6 +717,36 @@ fn export_by_project_id_and_the_failures_with_their_codes() {
 }
 
 #[test]
+fn export_of_a_project_above_the_reference_limit_is_refused() {
+    let workspace = Workspace::new();
+    let caller = "namespace Demo.Core;\n\npublic class Caller\n{\n    public int Twice(Calculator c) { return c.Add(1, 1) + c.Add(2, 2); }\n}\n";
+    fs::write(workspace.project().join("src/Caller.cs"), caller).unwrap();
+    json_of(&workspace.scan(&[]));
+    let file = workspace.root.path().join("out.html");
+    let run = |limit: &str| {
+        workspace
+            .command()
+            .args(["--set", &export_ui(&workspace), "--set", limit, "export"])
+            .arg(workspace.project())
+            .arg("--html")
+            .arg(&file)
+            .output()
+            .unwrap()
+    };
+    let refused = run("export.max_references=0");
+    assert!(stderr(&refused).contains("must be positive") || stderr(&refused).contains("CFG-"));
+    let refused = run("export.max_references=1");
+    assert!(
+        stderr(&refused).contains("EXP-502"),
+        "[{}] {:?}",
+        stderr(&refused),
+        refused.status
+    );
+    assert!(!file.exists());
+    assert!(run("export.max_references=100000").status.success());
+}
+
+#[test]
 fn a_credential_for_a_folder_is_refused() {
     let workspace = Workspace::new();
     let output = workspace.scan(&["--credential", "work"]);
