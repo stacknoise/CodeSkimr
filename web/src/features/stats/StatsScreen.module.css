@@ -164,3 +164,16 @@
     font: 11.5px var(--font-mono);
     color: var(--muted);
 }
+
+.loading {
+    margin: 0;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    border-radius: var(--radius-card);
+    padding: var(--space-10) var(--space-12);
+}
+
+.loading p {
+    margin: 0;
+}
