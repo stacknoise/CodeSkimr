@@ -179,12 +179,17 @@ mod tests {
         finished(&rig);
     }
 
+    /// Asks for the outline of snapshot 1 and lets the build that starts end.
+    fn built_once(rig: &Rig) {
+        rig.warming.outline(SnapshotId::new(1)).unwrap();
+        rig.entered.recv_timeout(WAIT).unwrap();
+        finished(rig);
+    }
+
     #[test]
     fn a_snapshot_that_was_built_is_not_built_again() {
         let rig = rig(true);
-        rig.warming.outline(SnapshotId::new(1)).unwrap();
-        rig.entered.recv_timeout(WAIT).unwrap();
-        finished(&rig);
+        built_once(&rig);
         rig.warming.outline(SnapshotId::new(1)).unwrap();
         assert_eq!(rig.gate.builds.load(Ordering::SeqCst), 1);
     }
@@ -192,9 +197,7 @@ mod tests {
     #[test]
     fn a_failed_build_is_tried_again_by_the_next_outline() {
         let rig = rig(false);
-        rig.warming.outline(SnapshotId::new(1)).unwrap();
-        rig.entered.recv_timeout(WAIT).unwrap();
-        finished(&rig);
+        built_once(&rig);
         rig.warming.outline(SnapshotId::new(1)).unwrap();
         rig.entered.recv_timeout(WAIT).unwrap();
         assert_eq!(rig.gate.builds.load(Ordering::SeqCst), 2);

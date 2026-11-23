@@ -157,7 +157,7 @@ mod tests {
     use std::sync::Arc;
     use std::time::{Duration, Instant};
 
-    use super::{MemoryGauge, MemoryLimit};
+    use super::{MemoryGauge, MemoryLimit, MemoryWatch};
     use crate::cancel::CancelToken;
 
     struct Fixed(Option<u64>);
@@ -179,6 +179,13 @@ mod tests {
         assert!(!limit.exceeded(450));
     }
 
+    /// Starts the watch and gives it time to read the gauge several times.
+    fn watched(limit: &MemoryLimit, cancel: CancelToken) -> MemoryWatch {
+        let watch = limit.watch(cancel);
+        std::thread::sleep(Duration::from_millis(100));
+        watch
+    }
+
     /// Reports the first value once and the second from then on.
     struct Rising(std::sync::atomic::AtomicU32);
 
@@ -197,8 +204,7 @@ mod tests {
             100,
             Duration::from_millis(5),
         );
-        let watch = limit.watch(cancel.clone());
-        std::thread::sleep(Duration::from_millis(100));
+        let watch = watched(&limit, cancel.clone());
         assert!(watch.tripped());
         assert!(cancel.is_cancelled());
     }
@@ -211,9 +217,7 @@ mod tests {
             Duration::from_millis(5),
         )
         .with_ceiling(2000);
-        let watch = limit.watch(CancelToken::default());
-        std::thread::sleep(Duration::from_millis(100));
-        assert!(!watch.tripped());
+        assert!(!watched(&limit, CancelToken::default()).tripped());
     }
 
     #[test]
@@ -245,8 +249,7 @@ mod tests {
         let cancel = CancelToken::default();
         let limit = MemoryLimit::new(Arc::new(Fixed(Some(10))), 1, Duration::from_millis(5))
             .with_ceiling(1);
-        let watch = limit.watch(cancel.clone());
-        std::thread::sleep(Duration::from_millis(100));
+        let watch = watched(&limit, cancel.clone());
         assert!(watch.tripped());
         assert!(cancel.is_cancelled());
     }
