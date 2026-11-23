@@ -18,6 +18,17 @@ describe("runCommand timings", () => {
     expect(lastQueryMs()).toBe(4);
   });
 
+  it("measures the layer map only on the level of the layers", async () => {
+    serve({ "graph.layers": () => answer({}) });
+    const clock = vi.spyOn(performance, "now");
+    clock.mockReturnValue(100);
+    await runCommand("graph.layers", { project: 1, level: "namespaces" });
+    await runCommand("graph.layers", { project: 1, level: "types", focus: 3 });
+    expect(measuredTimes()).toEqual({});
+    await runCommand("graph.layers", { project: 1 });
+    expect(measuredTimes()).toEqual({ graph_layout: 0 });
+  });
+
   it("measures nothing for other commands and for failed calls", async () => {
     serve({ "projects.list": () => answer([]) });
     await runCommand("projects.list");

@@ -182,3 +182,23 @@ fn removed_files_leave_no_fingerprints_behind() {
     assert_eq!(hits, Vec::new());
     assert_eq!(PROJECT.get(), 1);
 }
+
+/// So many fingerprints that the index by hash is built after the load instead of kept while the
+/// rows arrive; the answers must be the same.
+#[test]
+fn a_bulk_load_finds_the_same_similar_functions() {
+    let store = store(3);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    let mut scan = first_scan();
+    for id in 1000..1000 + 50_000_u64 {
+        let name = format!("App.Bulk.F{id}");
+        scan.symbols
+            .push(symbol(id, 11, SymbolKind::Method, &name, None));
+        scan.fingerprints
+            .push(of(id, &[id << 8, id << 9, id << 10, id << 11, id << 12]));
+    }
+    store.persist(scan).unwrap();
+    let hits = ask(&store, FIRST, &[1, 2, 3, 4], 50);
+    let symbols: Vec<u64> = hits.iter().map(|hit| hit.symbol.get()).collect();
+    assert_eq!(symbols, vec![21, 22]);
+}

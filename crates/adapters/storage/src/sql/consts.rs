@@ -230,6 +230,15 @@ pub const REFERENCE_INDEXES_CREATE: &[&str] = &[
     "CREATE INDEX references_by_source ON symbol_references (from_symbol)",
     "CREATE INDEX references_by_file ON symbol_references (file_id)",
 ];
+/// Number of stored fingerprints, over all snapshots.
+pub const FINGERPRINT_COUNT: &str = "SELECT COUNT(*) FROM fingerprints";
+/// Drops the index of `fingerprints` before a bulk load. The hashes arrive in random order, so
+/// keeping the index while millions of rows come in makes every insert a random write; building it
+/// from the finished table sorts once.
+pub const FINGERPRINT_INDEX_DROP: &str = "DROP INDEX fingerprints_by_hash";
+/// Builds the index of `fingerprints` again (the same one migration 0004 creates).
+pub const FINGERPRINT_INDEX_CREATE: &str =
+    "CREATE INDEX fingerprints_by_hash ON fingerprints (hash)";
 /// Adds a metric, replacing the one of the same symbol and kind: symbol, kind, value.
 pub const METRIC_INSERT: &str =
     "INSERT OR REPLACE INTO metric_rows (symbol_id, kind, value) VALUES (?1, ?2, ?3)";
@@ -276,17 +285,13 @@ pub const CARRY_FILES: &str = "INSERT INTO files \
     (snapshot_id, id, path, language, content_hash, loc) \
     SELECT ?2, id, path, language, content_hash, loc FROM files \
     WHERE snapshot_id = ?1 AND path NOT IN (SELECT path FROM files WHERE snapshot_id = ?2)";
-/// Number of files, symbols and references of a snapshot: snapshot, kind that the usage counts
-/// leave out (`test`). The references are the sum of the usage counts plus the references of
-/// that kind that the snapshot holds (as in the view `snapshot_references`, but the view would
-/// cost half a second on a large snapshot), so the read models of the snapshot must be up to date.
+/// Number of files, symbols and references of a snapshot: snapshot, number of references of kind
+/// `test` that the snapshot holds (counted by `read_models::rebuild`). The references are the sum
+/// of the usage counts, which leave out that kind, plus these, as in the view
+/// `snapshot_references`, so the read models of the snapshot must be up to date.
 pub const TOTALS: &str = "SELECT (SELECT COUNT(*) FROM files WHERE snapshot_id = ?1), \
     (SELECT COUNT(*) FROM symbols WHERE snapshot_id = ?1), \
-    (SELECT COALESCE(SUM(usages), 0) FROM usage_counts WHERE snapshot_id = ?1) + \
-    (SELECT COUNT(*) FROM symbol_references r WHERE r.kind = ?2 AND r.first_snapshot <= ?1 \
-        AND r.file_id IN (SELECT id FROM files WHERE snapshot_id = ?1) \
-        AND r.to_symbol IN (SELECT s.id FROM symbol_rows s \
-            JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1))";
+    (SELECT COALESCE(SUM(usages), 0) FROM usage_counts WHERE snapshot_id = ?1) + ?2";
 
 /// Fills `search_index`: snapshot, kind that is left out.
 pub const SEARCH_REBUILD: &str = "INSERT INTO search_index \
@@ -299,13 +304,13 @@ pub const FILE_IDS: &str = "SELECT id FROM files WHERE snapshot_id = ?1";
 /// The ids of the symbols of a snapshot: snapshot.
 pub const SYMBOL_IDS: &str = "SELECT s.id FROM symbol_rows s \
     JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1";
-/// File and target of every reference that is not newer than a snapshot and not of the given
-/// kind: snapshot, excluded kind (`test`). The view `snapshot_references` keeps those whose file
-/// and target the snapshot holds; counting them here in one pass over the table is much cheaper
-/// than its four lookups per reference. Read with `IN_FILES_OF_SNAPSHOT`
-/// unless the snapshot holds most files of the database.
+/// File, target and kind of every reference that is not newer than a snapshot: snapshot. The
+/// view `snapshot_references` keeps those whose file and target the snapshot holds; counting
+/// them here in one pass over the table is much cheaper than its four lookups per reference, and
+/// the same pass counts the references of kind `test`, which the totals add. Read with
+/// `IN_FILES_OF_SNAPSHOT` unless the snapshot holds most files of the database.
 pub const REFERENCE_TARGETS: &str =
-    "SELECT file_id, to_symbol FROM symbol_references WHERE first_snapshot <= ?1 AND kind <> ?2";
+    "SELECT file_id, to_symbol, kind FROM symbol_references WHERE first_snapshot <= ?1";
 /// Adds the usage count of a symbol: snapshot, symbol, usages.
 pub const USAGE_INSERT: &str =
     "INSERT INTO usage_counts (snapshot_id, symbol_id, usages) VALUES (?1, ?2, ?3)";

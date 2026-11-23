@@ -12,6 +12,7 @@ import type { ProjectRow } from "../projects/types";
 import { refreshStatus, statusInfo } from "../status/status";
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
 import { Budgets, type Measured } from "./Budgets";
+import { perFullScanUnit } from "./rate";
 import { cancelScan } from "./cancel";
 import {
   BRANCH_COMMIT_JOIN,
@@ -86,7 +87,7 @@ function measured(row: ProjectRow | undefined, run: Run | undefined): Measured {
     result.incremental_rescan = took * MS_PER_SECOND;
   }
   if (run?.state === STATE.done && row?.scan?.mode === SCAN_MODE.full && took !== null) {
-    result.full_scan_100k_loc = took * MS_PER_SECOND;
+    result.full_scan_100k_loc = perFullScanUnit(took * MS_PER_SECOND, row.loc);
   }
   return result;
 }

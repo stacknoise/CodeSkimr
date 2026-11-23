@@ -30,6 +30,13 @@ export const TIMED_COMMANDS: Record<string, string> = {
   "graph.layers": "graph_layout",
 };
 
+/** Commands whose round trip counts as a measurement only for these values of the field `level`
+ * of the input (`undefined` is the default level). The other levels read the references of the
+ * whole project, so their round trip is no layout time. */
+export const TIMED_LEVELS: Record<string, ReadonlyArray<string | undefined>> = {
+  "graph.layers": [undefined, "layers"],
+};
+
 /** The header with which the server asks to wait, and the form of its value that is used: whole seconds. */
 export const HEADER_RETRY_AFTER = "Retry-After";
 export const SECONDS_ONLY = /^\d{1,6}$/;
