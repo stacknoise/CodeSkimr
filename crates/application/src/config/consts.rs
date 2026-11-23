@@ -106,6 +106,8 @@ pub mod keys {
     pub const GRAPH_NODE_HEIGHT: &str = "graph.node_height";
     /// `graph.row_boxes`
     pub const GRAPH_ROW_BOXES: &str = "graph.row_boxes";
+    /// `export.max_references`
+    pub const EXPORT_MAX_REFERENCES: &str = "export.max_references";
     /// `similarity.ngram_size`
     pub const NGRAM_SIZE: &str = "similarity.ngram_size";
     /// `similarity.window_size`
@@ -144,6 +146,12 @@ pub mod keys {
     pub const MAX_SOURCE_MB: &str = "scan.max_source_mb";
     /// `scan.max_signature_chars`
     pub const MAX_SIGNATURE_CHARS: &str = "scan.max_signature_chars";
+    /// `scan.max_candidates`
+    pub const MAX_CANDIDATES: &str = "scan.max_candidates";
+    /// `scan.max_memory_mb`
+    pub const MAX_MEMORY_MB: &str = "scan.max_memory_mb";
+    /// `scan.max_left_out_listed`
+    pub const MAX_LEFT_OUT_LISTED: &str = "scan.max_left_out_listed";
     /// `level2.max_index_bytes`
     pub const LEVEL2_MAX_INDEX_BYTES: &str = "level2.max_index_bytes";
     /// `level2.timeout_seconds`
@@ -195,8 +203,9 @@ pub const SCHEME_EXTRA_CHARS: [char; 3] = ['+', '-', '.'];
 
 /// Tables of the project file that are never read: a scanned repository must not switch on
 /// running its own build scripts (`level2`, ADR 0033, decision 9), allow other URL schemes for
-/// "open in editor" (`editor`) or point the server at a folder (`ui`) (ADR 0030, decisions 7, 12).
-pub const UNTRUSTED_PROJECT_TABLES: [&str; 3] = ["level2", "editor", "ui"];
+/// "open in editor" (`editor`), point the server at a folder (`ui`) (ADR 0030, decisions 7, 12) or
+/// lift the size limit of the HTML export (`export`, ADR 0090).
+pub const UNTRUSTED_PROJECT_TABLES: [&str; 4] = ["level2", "editor", "ui", "export"];
 
 /// URL schemes that run script or open local files in a browser. They are refused in
 /// `editor.allowed_schemes` in every layer (ADR 0030).
@@ -207,7 +216,12 @@ pub const SCAN_TABLE: &str = "scan";
 /// Settings of [`SCAN_TABLE`] that the project file may only lower: a scanned repository must not
 /// lift the protection of the machine that scans it (#54). The user file and the flags may still
 /// raise them.
-pub const LOWER_ONLY_SCAN_KEYS: [&str; 2] = ["max_source_mb", "parse_timeout_ms"];
+pub const LOWER_ONLY_SCAN_KEYS: [&str; 4] = [
+    "max_source_mb",
+    "parse_timeout_ms",
+    "max_candidates",
+    "max_memory_mb",
+];
 
 /// Header of a table in an array of tables, as it starts a layer in `.codeskimr.toml`.
 pub const LAYER_TABLE_HEADER: &str = "[[layers]]";

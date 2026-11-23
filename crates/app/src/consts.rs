@@ -115,6 +115,12 @@ pub const TRANSPORT_HELPER_MARKER: &str = "::";
 
 /// Bytes in a megabyte, for the size limit of a source.
 pub const BYTES_PER_MB: u64 = 1_048_576;
+/// How often a running scan checks its memory, in milliseconds (ADR 0087).
+pub const MEMORY_CHECK_INTERVAL_MS: u64 = 500;
+/// The share of the installed memory that a scan may hold at most, in percent (ADR 0087).
+pub const MEMORY_RAM_SHARE_PERCENT: u64 = 70;
+/// The whole in percent: the divisor of a percentage.
+pub const PERCENT_WHOLE: u64 = 100;
 /// Bytes in a kilobyte, for the size of an export file.
 pub const BYTES_PER_KILOBYTE: usize = 1_024;
 
@@ -292,10 +298,21 @@ pub const FILE_FLAG_BACKUP_SEMANTICS: u32 = 0x0200_0000;
 /// Opening flag that opens a link itself and does not follow it (`FILE_FLAG_OPEN_REPARSE_POINT`).
 #[cfg(windows)]
 pub const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
-/// Owners besides the user that are fine for the launch folder, as SID strings: the group of the
-/// administrators and the system account (the Windows counterpart of root on Unix).
+/// Owners besides the user that are fine for the launch folder and the folders above it, as SID
+/// strings: the group of the administrators, the system account and the service that installs
+/// Windows itself, which owns a drive root (the Windows counterparts of root on Unix).
 #[cfg(windows)]
-pub const TRUSTED_OWNER_SIDS: &[&str] = &["S-1-5-32-544", "S-1-5-18"];
+pub const TRUSTED_OWNER_SIDS: &[&str] = &[
+    "S-1-5-32-544",
+    "S-1-5-18",
+    "S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464",
+];
+/// Access right that is enough to read who owns a file or folder (`READ_CONTROL`).
+#[cfg(windows)]
+pub const READ_CONTROL: u32 = 0x0002_0000;
+/// Log event: a folder above the launch folder belongs to an account that is not trusted.
+#[cfg(windows)]
+pub const LOG_LAUNCH_PARENT_REFUSED: &str = "launch_parent_refused";
 /// Environment variable with the Windows folder, below which the tool is looked for.
 #[cfg(windows)]
 pub const ENV_SYSTEM_ROOT: &str = "SYSTEMROOT";
@@ -462,12 +479,14 @@ pub const CONSOLE_INPUT: &str = "CONIN$";
 #[cfg(windows)]
 pub const CONSOLE_OUTPUT: &str = "CONOUT$";
 
-/// Name of the thread that builds the usages index in the background.
-pub const WARM_THREAD_NAME: &str = "usages-warm-up";
 /// Pause between two looks at whether the runs have ended.
 pub const IDLE_POLL: Duration = Duration::from_millis(50);
 /// How long the end of the server waits for the runs it cancelled (ADR 0072).
 pub const SHUTDOWN_GRACE: Duration = Duration::from_secs(5);
+/// Name of the thread that deletes the dismissed alerts that are past their retention (ADR 0068).
+pub const PURGE_THREAD_NAME: &str = "alert-purge";
+/// How long the server waits between two purges of dismissed alerts: one day (ADR 0068).
+pub const PURGE_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
 /// Name of the thread that runs level 2 after a scan from the browser (ADR 0072).
 pub const LEVEL2_THREAD_NAME: &str = "level2-run";
 

@@ -52,11 +52,61 @@ pub const LATEST_FILES: &str = "SELECT snapshot_id, id, path, language, content_
     ORDER BY path";
 /// Id of the newest snapshot of a project, null without one: project id.
 pub const LATEST_SNAPSHOT_ID: &str = "SELECT MAX(id) FROM snapshots WHERE project_id = ?1";
-/// Id of the newest snapshot of all projects, null without one.
-pub const SNAPSHOT_NEWEST: &str = "SELECT MAX(id) FROM snapshots";
 /// The newest snapshot of a project: project id.
 pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files, \
     symbols, refs FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";
+
+/// Every reference of a snapshot with the columns the usage counts need: snapshot, then file,
+/// start, target, kind, confidence and whether level 2 verified it. One pass over the table; the
+/// caller keeps the rows whose file and target the snapshot holds (ADR 0089).
+pub const REFERENCE_TALLY_ROWS: &str = "SELECT file_id, from_symbol, to_symbol, kind, confidence, \
+    verified FROM symbol_references WHERE first_snapshot <= ?1";
+/// The references of a snapshot that point at some symbols, in the column order of
+/// `REFERENCES_OF_SNAPSHOT`: snapshot, JSON list of symbol ids. Read through the index on the
+/// target; only the file of a reference is looked up, which is what the view `snapshot_references`
+/// does besides looking up the target as well.
+pub const REFERENCES_INTO: &str = "SELECT r.id, r.from_symbol, r.to_symbol, r.file_id, \
+    r.start_line, r.start_column, r.end_line, r.end_column, r.kind, r.confidence, r.verified \
+    FROM symbol_references r CROSS JOIN files f ON f.snapshot_id = ?1 AND f.id = r.file_id \
+    WHERE r.first_snapshot <= ?1 AND r.to_symbol IN (SELECT value FROM json_each(?2))";
+/// Whether a snapshot holds a symbol: snapshot, symbol. The walk into a symbol checks its start
+/// once and then trusts the symbols it reaches through references of the snapshot's own files.
+pub const SYMBOL_IN_SNAPSHOT: &str =
+    "SELECT COUNT(*) FROM symbols WHERE snapshot_id = ?1 AND id = ?2";
+/// The references of a snapshot that start in some symbols, in the column order of
+/// `REFERENCES_OF_SNAPSHOT`: snapshot, JSON list of symbol ids.
+pub const REFERENCES_OUT_OF: &str = "SELECT r.id, r.from_symbol, r.to_symbol, r.file_id, \
+    r.start_line, r.start_column, r.end_line, r.end_column, r.kind, r.confidence, r.verified \
+    FROM symbol_references r CROSS JOIN files f ON f.snapshot_id = ?1 AND f.id = r.file_id \
+    CROSS JOIN symbol_rows t ON t.id = r.to_symbol \
+    CROSS JOIN files tf ON tf.snapshot_id = ?1 AND tf.id = t.file_id \
+    WHERE r.first_snapshot <= ?1 AND r.from_symbol IN (SELECT value FROM json_each(?2))";
+/// Start and target of the references of a snapshot that touch some symbols at either end:
+/// snapshot, JSON list of symbol ids.
+pub const REFERENCE_ENDS_TOUCHING: &str = "SELECT r.from_symbol, r.to_symbol \
+    FROM symbol_references r CROSS JOIN files f ON f.snapshot_id = ?1 AND f.id = r.file_id \
+    WHERE r.first_snapshot <= ?1 AND r.to_symbol IN (SELECT value FROM json_each(?2)) \
+    UNION ALL SELECT r.from_symbol, r.to_symbol \
+    FROM symbol_references r CROSS JOIN files f ON f.snapshot_id = ?1 AND f.id = r.file_id \
+    WHERE r.first_snapshot <= ?1 AND r.from_symbol IN (SELECT value FROM json_each(?2)) \
+    AND r.to_symbol NOT IN (SELECT value FROM json_each(?2))";
+/// File, start and target of every reference that is not newer than a snapshot, not of the given
+/// kind and not of the given confidence: snapshot, test kind, probable label. One pass over the
+/// table; the caller keeps the rows whose file and target the snapshot holds.
+pub const REFERENCE_ENDS_CERTAIN: &str = "SELECT file_id, from_symbol, to_symbol \
+    FROM symbol_references WHERE first_snapshot <= ?1 AND kind <> ?2 AND confidence <> ?3";
+/// The symbols of a snapshot with what the namespace graph and the type focus need: snapshot.
+pub const SYMBOL_PARENTS: &str = "SELECT s.id, s.qualified_name, s.kind, s.parent_id \
+    FROM symbols s WHERE s.snapshot_id = ?1";
+/// The symbols of a snapshot named in a list, as result lines with their file paths: snapshot,
+/// JSON list of symbol ids; the columns of `SYMBOL_LABELS`.
+pub const SYMBOL_LABELS_OF: &str = "SELECT s.id, s.qualified_name, s.kind, s.parent_id, \
+    s.visibility, f.path FROM symbol_rows s \
+    CROSS JOIN files f ON f.snapshot_id = ?1 AND f.id = s.file_id \
+    WHERE s.id IN (SELECT value FROM json_each(?2))";
+/// The files of a snapshot named in a list: snapshot, JSON list of file ids.
+pub const FILE_PATHS_OF: &str = "SELECT id, path FROM files WHERE snapshot_id = ?1 \
+    AND id IN (SELECT value FROM json_each(?2))";
 
 /// The project a snapshot belongs to: snapshot id.
 pub const SNAPSHOT_PROJECT: &str = "SELECT project_id FROM snapshots WHERE id = ?1";
@@ -102,6 +152,7 @@ pub const SNAPSHOT_CONTENT_DELETE: &[&str] = &[
     "DELETE FROM layer_graph WHERE snapshot_id = ?1",
     "DELETE FROM parse_times WHERE snapshot_id = ?1",
     "DELETE FROM snapshot_warnings WHERE snapshot_id = ?1",
+    "DELETE FROM snapshot_left_out WHERE snapshot_id = ?1",
     "DELETE FROM coupling_rows WHERE snapshot_id = ?1",
     "DELETE FROM files WHERE snapshot_id = ?1",
 ];
@@ -236,7 +287,7 @@ pub const SEARCH_REBUILD: &str = "INSERT INTO search_index \
     (snapshot_id, symbol_id, name_lower, name, qualified_name, kind, path) \
     SELECT f.snapshot_id, s.id, lower(s.name), s.name, s.qualified_name, s.kind, f.path \
     FROM files f JOIN symbol_rows s ON s.file_id = f.id \
-    WHERE f.snapshot_id = ?1 AND s.kind <> ?2";
+    WHERE f.snapshot_id = ?1 AND s.kind <> ?2 ORDER BY s.id";
 /// The ids of the files of a snapshot: snapshot.
 pub const FILE_IDS: &str = "SELECT id FROM files WHERE snapshot_id = ?1";
 /// The ids of the symbols of a snapshot: snapshot.
@@ -269,6 +320,16 @@ pub const SYMBOL_NAMES: &str = "SELECT id, qualified_name FROM symbols WHERE sna
 /// matches several symbols are no layer edges (issue #464).
 pub const REFERENCE_ENDS: &str = "SELECT from_symbol, to_symbol FROM snapshot_references \
     WHERE snapshot_id = ?1 AND kind <> ?2 AND confidence = ?3";
+/// The certain references of a snapshot that start in one file, with both ends named:
+/// snapshot, excluded kind (`test`), confidence (`certain`), path.
+pub const REFERENCE_SITES: &str = "SELECT f.path, a.qualified_name, a.start_line, a.start_column, \
+    a.end_line, a.end_column, b.qualified_name FROM snapshot_references r \
+    JOIN symbols a ON a.snapshot_id = r.snapshot_id AND a.id = r.from_symbol \
+    JOIN files f ON f.snapshot_id = a.snapshot_id AND f.id = a.file_id \
+    JOIN symbols b ON b.snapshot_id = r.snapshot_id AND b.id = r.to_symbol \
+    WHERE r.snapshot_id = ?1 AND r.kind <> ?2 AND r.confidence = ?3 \
+    AND f.path = ?4 \
+    ORDER BY a.start_line, a.start_column, r.id";
 /// Adds a layer graph edge: snapshot, from, to, count, violates, in cycle.
 pub const EDGE_INSERT: &str = "INSERT INTO layer_graph \
     (snapshot_id, from_layer, to_layer, edge_count, violates_layering, in_cycle) \
@@ -278,13 +339,19 @@ pub const EDGE_INSERT: &str = "INSERT INTO layer_graph \
 pub const USAGES_OF: &str =
     "SELECT usages FROM usage_counts WHERE snapshot_id = ?1 AND symbol_id = ?2";
 /// Fuzzy search: snapshot, subsequence pattern, exact text, prefix pattern, substring text,
-/// limit. Exact matches come first, then prefix, substring and the rest, shorter names first.
+/// limit. Exact matches come first, then prefix, substring and the rest, shorter names first. The
+/// limit is applied before the join with `symbols`, which only the few hits need. Names that
+/// are equal are told apart by the row id, which `SEARCH_REBUILD` hands out in symbol id order.
 pub const SEARCH: &str = "SELECT i.symbol_id, i.name, i.qualified_name, i.kind, i.path, s.parent_id \
-    FROM search_index i JOIN symbols s ON s.snapshot_id = i.snapshot_id AND s.id = i.symbol_id \
-    WHERE i.snapshot_id = ?1 AND i.name_lower LIKE ?2 ESCAPE '\\' \
-    ORDER BY CASE WHEN i.name_lower = ?3 THEN 0 WHEN i.name_lower LIKE ?4 ESCAPE '\\' THEN 1 \
-    WHEN instr(i.name_lower, ?5) > 0 THEN 2 ELSE 3 END, length(i.name_lower), i.name_lower \
-    LIMIT ?6";
+    FROM (SELECT x.rowid AS hit_row, x.name_lower, \
+    CASE WHEN x.name_lower = ?3 THEN 0 WHEN x.name_lower LIKE ?4 ESCAPE '\\' THEN 1 \
+    WHEN instr(x.name_lower, ?5) > 0 THEN 2 ELSE 3 END AS rank \
+    FROM search_index x INDEXED BY search_by_name \
+    WHERE x.snapshot_id = ?1 AND x.name_lower LIKE ?2 ESCAPE '\\' \
+    ORDER BY rank, length(x.name_lower), x.name_lower, x.rowid LIMIT ?6) h \
+    JOIN search_index i ON i.rowid = h.hit_row \
+    JOIN symbols s ON s.snapshot_id = i.snapshot_id AND s.id = i.symbol_id \
+    ORDER BY h.rank, length(h.name_lower), h.name_lower, i.symbol_id";
 /// Fuzzy search over file paths: snapshot, subsequence pattern, substring text, limit. Only files
 /// that declare a type count; the first type is the one with the lowest id.
 pub const SEARCH_FILES: &str = "SELECT f.path, f.loc, MIN(t.symbol_id) FROM files f \
@@ -354,12 +421,6 @@ pub const MEMBERS_OF: &str =
 /// Metrics of a symbol: snapshot, symbol.
 pub const METRICS_OF: &str =
     "SELECT kind, value FROM metrics WHERE snapshot_id = ?1 AND symbol_id = ?2 ORDER BY kind";
-/// All symbols of a snapshot as result lines, with their file paths: snapshot.
-pub const SYMBOL_LABELS: &str = "SELECT s.id, s.qualified_name, s.kind, s.parent_id, s.visibility, f.path \
-    FROM symbols s JOIN files f ON f.snapshot_id = s.snapshot_id AND f.id = s.file_id \
-    WHERE s.snapshot_id = ?1";
-/// Id and path of every file of a snapshot: snapshot.
-pub const FILE_PATHS: &str = "SELECT id, path FROM files WHERE snapshot_id = ?1";
 /// Whether a snapshot is stored: snapshot.
 pub const SNAPSHOT_EXISTS: &str = "SELECT COUNT(*) FROM snapshots WHERE id = ?1";
 
@@ -442,6 +503,13 @@ pub const WARNING_INSERT: &str =
 pub const WARNINGS: &str =
     "SELECT code, count FROM snapshot_warnings WHERE snapshot_id = ?1 ORDER BY code";
 
+/// Records one file that a scan left out: snapshot, path, code, whether the snapshot kept it.
+pub const LEFT_OUT_INSERT: &str =
+    "INSERT INTO snapshot_left_out (snapshot_id, path, code, kept) VALUES (?1, ?2, ?3, ?4)";
+/// The files a scan left out, in the order of their paths: snapshot.
+pub const LEFT_OUT: &str =
+    "SELECT path, code, kept FROM snapshot_left_out WHERE snapshot_id = ?1 ORDER BY path";
+
 /// Adds a name as written: file, from, start line and column, end line and column, kind, target,
 /// receiver kind, receiver name.
 pub const PENDING_INSERT: &str = "INSERT INTO pending_references (file_id, from_symbol, \
@@ -491,6 +559,33 @@ pub const PENDING_OF_SNAPSHOT: &str = "SELECT file_id, from_symbol, start_line, 
 pub const SNAPSHOT_NAMES_SET: &str = "UPDATE snapshots SET names_stored = 1 WHERE id = ?1";
 /// Whether the snapshot holds the names as written: snapshot.
 pub const SNAPSHOT_NAMES_STORED: &str = "SELECT names_stored FROM snapshots WHERE id = ?1";
+/// Records how many places of a snapshot match several symbols, `NULL` for unknown: count,
+/// snapshot.
+pub const SNAPSHOT_AMBIGUOUS_SET: &str = "UPDATE snapshots SET ambiguous_places = ?1 WHERE id = ?2";
+/// How many places of the snapshot match several symbols, `NULL` if not known: snapshot.
+pub const SNAPSHOT_AMBIGUOUS: &str = "SELECT ambiguous_places FROM snapshots WHERE id = ?1";
+/// The references that point at some symbols, in the column order of `REFERENCES_OF_SNAPSHOT`:
+/// snapshot, JSON list of symbol ids.
+pub const REFERENCES_TO: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
+    start_column, end_line, end_column, kind, confidence, verified FROM symbol_references \
+    WHERE first_snapshot <= ?1 AND to_symbol IN (SELECT value FROM json_each(?2))";
+/// The references that start in some symbols, in the column order of `REFERENCES_OF_SNAPSHOT`:
+/// snapshot, JSON list of symbol ids.
+pub const REFERENCES_FROM: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
+    start_column, end_line, end_column, kind, confidence, verified FROM symbol_references \
+    WHERE first_snapshot <= ?1 AND from_symbol IN (SELECT value FROM json_each(?2))";
+/// The references that stand in some files, in the column order of `REFERENCES_OF_SNAPSHOT`:
+/// snapshot, JSON list of file ids.
+pub const REFERENCES_IN: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
+    start_column, end_line, end_column, kind, confidence, verified FROM symbol_references \
+    WHERE first_snapshot <= ?1 AND file_id IN (SELECT value FROM json_each(?2))";
+/// File and target of every verified reference that is not newer than a snapshot: snapshot.
+pub const VERIFIED_REFERENCE_FILES: &str = "SELECT DISTINCT file_id, to_symbol \
+    FROM symbol_references WHERE verified = 1 AND first_snapshot <= ?1";
+/// File, start and target of every reference that is not newer than a snapshot and not of the
+/// given kind: snapshot, excluded kind (`test`).
+pub const REFERENCE_PAIRS: &str = "SELECT file_id, from_symbol, to_symbol FROM symbol_references \
+    WHERE first_snapshot <= ?1 AND kind <> ?2";
 /// Removes a reference that the new snapshot does not contain: id.
 pub const REFERENCE_DELETE: &str = "DELETE FROM symbol_references WHERE id = ?1";
 
@@ -661,3 +756,12 @@ pub const LEVEL2_LANGUAGE_INSERT: &str = "INSERT INTO level2_languages \
 /// The language lines of a project in the order of the language id: project id.
 pub const LEVEL2_LANGUAGES_BY_PROJECT: &str = "SELECT language, outcome, files, stale, reason, code \
     FROM level2_languages WHERE project_id = ?1 ORDER BY language";
+
+/// Every symbol of a snapshot with its file, for the statistics: snapshot.
+pub const STATISTICS_SYMBOLS: &str = "SELECT s.id, s.name, s.qualified_name, s.kind, s.parent_id, \
+    s.visibility, s.file_id, f.path, f.language \
+    FROM symbols s JOIN files f ON f.snapshot_id = s.snapshot_id AND f.id = s.file_id \
+    WHERE s.snapshot_id = ?1 ORDER BY s.id";
+/// Every measured value of a snapshot: snapshot.
+pub const STATISTICS_METRICS: &str =
+    "SELECT symbol_id, kind, value FROM metrics WHERE snapshot_id = ?1";

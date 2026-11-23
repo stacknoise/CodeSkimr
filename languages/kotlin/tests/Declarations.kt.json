@@ -625,7 +625,7 @@
       "kind": "method",
       "name": "com.example.shapes.Shape.Factory.create",
       "parent": "com.example.shapes.Shape.Factory",
-      "signature": null,
+      "signature": "fun create(id: Int): Shape",
       "span": "12:8-12:46",
       "static": false,
       "visibility": "public"
@@ -645,7 +645,7 @@
       "kind": "method",
       "name": "com.example.shapes.Shape.area",
       "parent": "com.example.shapes.Shape",
-      "signature": null,
+      "signature": "open fun area(): Double",
       "span": "20:4-20:33",
       "static": false,
       "visibility": "public"
@@ -655,7 +655,7 @@
       "kind": "method",
       "name": "com.example.shapes.Shape.helper",
       "parent": "com.example.shapes.Shape",
-      "signature": null,
+      "signature": "protected fun helper()",
       "span": "22:4-25:5",
       "static": false,
       "visibility": "protected"
@@ -665,7 +665,7 @@
       "kind": "function",
       "name": "com.example.shapes.Shape.helper.inner",
       "parent": "com.example.shapes.Shape.helper",
-      "signature": null,
+      "signature": "fun inner()",
       "span": "24:8-24:27",
       "static": false,
       "visibility": "public"
@@ -705,7 +705,7 @@
       "kind": "constructor",
       "name": "com.example.shapes.Shape.Shape",
       "parent": "com.example.shapes.Shape",
-      "signature": null,
+      "signature": "constructor(label: String) : this(0, label)",
       "span": "35:4-35:47",
       "static": false,
       "visibility": "public"
@@ -715,7 +715,7 @@
       "kind": "constructor",
       "name": "com.example.shapes.Shape.Shape",
       "parent": "com.example.shapes.Shape",
-      "signature": null,
+      "signature": "private constructor(id: Int, other: Shape) : this(id)",
       "span": "38:4-38:57",
       "static": false,
       "visibility": "private"
@@ -765,7 +765,7 @@
       "kind": "method",
       "name": "com.example.shapes.Shape.Kind.SQUARE.describe",
       "parent": "com.example.shapes.Shape.Kind.SQUARE",
-      "signature": null,
+      "signature": "override fun describe()",
       "span": "47:12-47:46",
       "static": false,
       "visibility": "public"
@@ -775,7 +775,7 @@
       "kind": "method",
       "name": "com.example.shapes.Shape.Kind.describe",
       "parent": "com.example.shapes.Shape.Kind",
-      "signature": null,
+      "signature": "open fun describe()",
       "span": "51:8-51:36",
       "static": false,
       "visibility": "public"
@@ -795,7 +795,7 @@
       "kind": "method",
       "name": "com.example.shapes.Shape.Singleton.hello",
       "parent": "com.example.shapes.Shape.Singleton",
-      "signature": null,
+      "signature": "fun hello()",
       "span": "55:8-55:26",
       "static": false,
       "visibility": "public"
@@ -835,7 +835,7 @@
       "kind": "method",
       "name": "com.example.shapes.Named.greet",
       "parent": "com.example.shapes.Named",
-      "signature": null,
+      "signature": "fun greet(): String",
       "span": "69:4-69:23",
       "static": false,
       "visibility": "public"
@@ -845,7 +845,7 @@
       "kind": "method",
       "name": "com.example.shapes.Named.shout",
       "parent": "com.example.shapes.Named",
-      "signature": null,
+      "signature": "fun shout(): String",
       "span": "70:4-70:45",
       "static": false,
       "visibility": "public"
@@ -865,7 +865,7 @@
       "kind": "method",
       "name": "com.example.shapes.Action.run",
       "parent": "com.example.shapes.Action",
-      "signature": null,
+      "signature": "fun run()",
       "span": "74:4-74:13",
       "static": false,
       "visibility": "public"
@@ -985,7 +985,7 @@
       "kind": "function",
       "name": "com.example.shapes.shout",
       "parent": "com.example.shapes",
-      "signature": null,
+      "signature": "fun String.shout(): String",
       "span": "85:0-85:45",
       "static": false,
       "visibility": "public"
@@ -995,7 +995,7 @@
       "kind": "function",
       "name": "com.example.shapes.top",
       "parent": "com.example.shapes",
-      "signature": null,
+      "signature": "internal fun top()",
       "span": "86:0-86:29",
       "static": false,
       "visibility": "internal"
@@ -1005,7 +1005,7 @@
       "kind": "function",
       "name": "com.example.shapes.hidden",
       "parent": "com.example.shapes",
-      "signature": null,
+      "signature": "private fun hidden()",
       "span": "87:0-87:23",
       "static": false,
       "visibility": "private"

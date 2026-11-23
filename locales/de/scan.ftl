@@ -13,6 +13,7 @@ scan-action-cancel = Abbrechen
 scan-cancel-key = Esc
 scan-metric-cores = Kerne aktiv
 scan-metric-memory = Speicher
+scan-progress-label = Fortschritt des Scans
 scan-pipeline = Pipeline
 scan-column-language = Sprache
 scan-column-tier = Stufe
@@ -30,6 +31,9 @@ nav-scan = Scans und Leistung
 scan-state-failed = Scan fehlgeschlagen
 scan-state-idle = Kein Scan läuft
 scan-idle-hint = Starte einen Scan auf dem Projektbildschirm; sein Fortschritt erscheint hier.
+scan-state-starting = Scan startet
+scan-starting-hint = Der Scan läuft. Der Fortschritt erscheint mit der nächsten Meldung des Servers.
+scan-stage-unmeasured = Läuft; der Fortschritt dieses Schritts lässt sich nicht messen
 scan-no-project = Lege zuerst ein Projekt an, dann stehen seine Scans hier.
 scan-files-done = { $done } von { $total } Dateien
 scan-pending = wartet
@@ -66,3 +70,15 @@ scan-stage-counts = { $text } · { $done } / { $total }
 scan-stage-time = { $seconds } s
 scan-tier-full = voll
 scan-tier-basic = Basis
+scan-left-out-title = Ausgelassene Dateien
+scan-left-out-hint = Diese Dateien konnten nicht analysiert werden. Der Rest des Projekts wurde gescannt.
+scan-left-out-missing = fehlt im Ergebnis
+scan-left-out-kept = Stand des vorigen Scans bleibt
+scan-left-out-more = { $count ->
+    [one] und eine weitere Datei
+   *[other] und { $count } weitere Dateien
+}
+scan-left-out-unnamed = { $count ->
+    [one] Eine Datei wurde ausgelassen. Ihr Name erscheint nach dem nächsten Scan.
+   *[other] { $count } Dateien wurden ausgelassen. Ihre Namen erscheinen nach dem nächsten Scan.
+}

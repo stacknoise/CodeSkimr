@@ -1,0 +1,139 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 14,
+      "operands": null,
+      "operators": null,
+      "symbol": "literals"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "literals.defaults"
+    },
+    {
+      "decisions": 0,
+      "loc": 5,
+      "operands": [
+        6,
+        8
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "literals.constants"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "literals.tagged"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "literals.view"
+    }
+  ],
+  "loc": 14,
+  "references": [
+    {
+      "at": "4:9",
+      "from": "literals.defaults",
+      "kind": "read",
+      "receiver": null,
+      "target": "n"
+    },
+    {
+      "at": "4:13",
+      "from": "literals.defaults",
+      "kind": "read",
+      "receiver": null,
+      "target": "a"
+    },
+    {
+      "at": "14:9",
+      "from": "literals.tagged",
+      "kind": "call",
+      "receiver": null,
+      "target": "sql"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "literals",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-20:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.defaults",
+      "parent": "literals",
+      "signature": "function defaults(n = 5, { a = 6 } = {})",
+      "span": "3:7-5:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.constants",
+      "parent": "literals",
+      "signature": "function constants()",
+      "span": "7:7-11:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.tagged",
+      "parent": "literals",
+      "signature": "function tagged()",
+      "span": "13:7-15:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.view",
+      "parent": "literals",
+      "signature": "function view()",
+      "span": "17:7-19:1",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

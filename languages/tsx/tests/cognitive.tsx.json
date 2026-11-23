@@ -236,7 +236,7 @@
       "kind": "function",
       "name": "cognitive.Form",
       "parent": "cognitive",
-      "signature": null,
+      "signature": "function Form(props: Props)",
       "span": "2:7-4:1",
       "static": false,
       "visibility": "public"
@@ -246,7 +246,7 @@
       "kind": "function",
       "name": "cognitive.Plain",
       "parent": "cognitive",
-      "signature": null,
+      "signature": "function Plain(props: Props)",
       "span": "6:7-8:1",
       "static": false,
       "visibility": "public"
@@ -256,7 +256,7 @@
       "kind": "function",
       "name": "cognitive.Child",
       "parent": "cognitive",
-      "signature": null,
+      "signature": "function Child(props: Props)",
       "span": "10:7-12:1",
       "static": false,
       "visibility": "public"
@@ -266,7 +266,7 @@
       "kind": "function",
       "name": "cognitive.Cast",
       "parent": "cognitive",
-      "signature": null,
+      "signature": "function Cast(props: Props)",
       "span": "14:7-19:1",
       "static": false,
       "visibility": "public"

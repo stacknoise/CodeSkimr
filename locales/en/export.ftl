@@ -5,3 +5,13 @@ export-banner-commit = commit { $commit }
 export-usages-state = Usages: { $verified } verified, { $unchecked } unchecked. Unchecked usages were found by name resolution only and may be incomplete or wrong.
 export-limits = Static export: the source code is not included, and the scan cannot be repeated here.
 export-nav-label = Export
+
+# The button in the top bar and its quick-search entry.
+export-button-label = Export HTML
+export-button-title = Download the newest scan as one self-contained HTML page. The source code is not included.
+export-button-needs-scan = Scan the project first, then it can be exported.
+export-button-busy = Exporting … { $seconds } s
+export-button-cancel = Cancel
+export-button-timeout = The app no longer waits for the export; the server may still be working on it. Large projects can take several minutes; the command `codeskimr export` on the command line has no time limit.
+export-button-failed = The export failed.
+export-command-html = Export project as HTML

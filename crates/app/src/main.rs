@@ -47,6 +47,7 @@ mod mcp;
 mod mcp_http_tests;
 #[cfg(test)]
 mod memory_keystore;
+mod memory_limit;
 #[cfg(test)]
 mod oauth_stub;
 mod open;
@@ -55,6 +56,9 @@ mod principal;
 mod private_acl;
 mod redact;
 mod refresh;
+mod retention;
+#[cfg(test)]
+mod retention_tests;
 mod run;
 mod running;
 mod scan;

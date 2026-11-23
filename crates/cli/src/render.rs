@@ -4,11 +4,12 @@ use codeskimr_application::tools::{ToolView, ToolsView};
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
     CLI_CREDENTIAL_DELETED, CLI_CREDENTIAL_DEVICE_PROMPT, CLI_CREDENTIAL_STORED, CLI_ERROR_LINE,
-    CLI_EXPORT_WRITTEN, CLI_OPEN_READY, CLI_SCAN_DETAILS, CLI_SCAN_FINISHED, CLI_SCAN_STARTED,
-    CLI_SCAN_TOOL_MISSING, CLI_SCAN_TOOL_NOT_RUNNABLE, CLI_SCAN_TOOL_NOT_RUNNABLE_SILENT,
-    CLI_SCAN_TOOL_TOO_NEW, CLI_SCAN_TOOL_TOO_OLD, CLI_SCAN_TOOL_UNKNOWN, CLI_SECRET_PROMPT,
-    CLI_SERVE_LISTENING, CLI_START_KEEP_OPEN, CLI_START_TRAY, CLI_TRAY_LOG, CLI_TRAY_OPEN,
-    CLI_TRAY_QUIT, CLI_TRAY_TOOLTIP, CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
+    CLI_EXPORT_WRITTEN, CLI_OPEN_READY, CLI_OPEN_URL_WARNING, CLI_SCAN_DETAILS, CLI_SCAN_FINISHED,
+    CLI_SCAN_STARTED, CLI_SCAN_TOOL_MISSING, CLI_SCAN_TOOL_NOT_RUNNABLE,
+    CLI_SCAN_TOOL_NOT_RUNNABLE_SILENT, CLI_SCAN_TOOL_TOO_NEW, CLI_SCAN_TOOL_TOO_OLD,
+    CLI_SCAN_TOOL_UNKNOWN, CLI_SECRET_PROMPT, CLI_SERVE_LISTENING, CLI_START_KEEP_OPEN,
+    CLI_START_TRAY, CLI_TRAY_LOG, CLI_TRAY_OPEN, CLI_TRAY_QUIT, CLI_TRAY_TOOLTIP,
+    CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
 };
 use codeskimr_domain::ToolState;
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
@@ -16,7 +17,7 @@ use serde::Serialize;
 
 use crate::consts::{LINE_BREAK, LIST_SEPARATOR, NO_VERSION, SECONDS_BASE, SECONDS_DECIMALS, arg};
 use crate::level2::Level2Line;
-use crate::warning::WarningLine;
+use crate::warning::{LeftOutView, WarningLine};
 
 /// The outcome of a scan as shown to the user and written by `--json`.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -44,6 +45,8 @@ pub struct ScanSummary {
     pub level2: Vec<Level2Line>,
     /// What the scan warns about, one line per code with a count; empty if nothing.
     pub warnings: Vec<WarningLine>,
+    /// The files the scan left out because they could not be analysed; empty if none.
+    pub left_out: LeftOutView,
     /// What the check of the tools found (ADR 0033); a tool that is not ready is shown below the
     /// summary.
     pub tools: ToolsView,
@@ -140,6 +143,23 @@ pub fn tray_labels(messages: &Messages, language: &str) -> Result<TrayLabels, I1
         log: say(CLI_TRAY_LOG)?,
         quit: say(CLI_TRAY_QUIT)?,
     })
+}
+
+/// The warning that goes with a printed address (ADR 0088).
+///
+/// # Errors
+/// `I18N-201` if the message is missing.
+pub fn open_url_warning(
+    messages: &Messages,
+    language: &str,
+    seconds: u64,
+) -> Result<String, I18nError> {
+    format_values(
+        messages,
+        language,
+        CLI_OPEN_URL_WARNING,
+        [(arg::LAUNCH_SECONDS, seconds.into())],
+    )
 }
 
 /// The line that tells where the launch file is and how long it is good for.
@@ -330,6 +350,7 @@ pub fn scan_finished(
     for line in &summary.warnings {
         lines.push(line.render(messages, language)?);
     }
+    lines.extend(summary.left_out.render(messages, language)?);
     lines.extend(scan_tools(messages, language, &summary.tools)?);
     Ok(lines.join(LINE_BREAK))
 }

@@ -3,9 +3,10 @@
 #[cfg(test)]
 mod common;
 
-use codeskimr_application::ports::ProjectRepository;
+use codeskimr_application::ports::{ProjectRepository, ReferenceSites};
 use codeskimr_domain::{
-    Confidence, MetricKind, ProjectId, Reference, ReferenceKind, SnapshotId, SymbolId, SymbolKind,
+    Confidence, MetricKind, ProjectId, Reference, ReferenceKind, RelativePath, SnapshotId,
+    SymbolId, SymbolKind,
 };
 use common::{metric, project, reference, scanned, scanned_project, symbol};
 
@@ -66,6 +67,18 @@ fn search_respects_the_limit_and_returns_where_the_symbol_lives() {
     assert_eq!(hits[0].path.as_str(), "src/order.cs");
     assert_eq!(hits[0].kind, SymbolKind::Class);
     assert_eq!(hits[0].qualified_name.as_str(), "App.Order");
+}
+
+#[test]
+fn equal_names_are_told_apart_by_symbol_id_when_the_limit_cuts_them_off() {
+    let symbols = (21..=25)
+        .rev()
+        .map(|id| symbol(id, 11, SymbolKind::Method, &format!("App.C{id}.get"), None))
+        .collect();
+    let store = scanned(&[], symbols, vec![], vec![]);
+    let hits = store.search(SNAPSHOT, "get", 3).unwrap();
+    let ids: Vec<u64> = hits.iter().map(|hit| hit.symbol.get()).collect();
+    assert_eq!(ids, [21, 22, 23]);
 }
 
 fn from_a_test(reference: Reference) -> Reference {
@@ -256,4 +269,20 @@ fn namespace_edges_leave_out_probable_and_test_references() {
         .map(|edge| (named(edge.from), named(edge.to), edge.count))
         .collect();
     assert_eq!(edges, [("App.Api".to_owned(), "App.Core".to_owned(), 1)]);
+}
+
+#[test]
+fn the_certain_references_of_a_file_come_with_both_names() {
+    let file = RelativePath::new("src/order.cs").unwrap();
+    let other = RelativePath::new("src/none.cs").unwrap();
+    let sites = layered()
+        .references_from(SNAPSHOT, &[file.clone(), other])
+        .unwrap();
+    let shown: Vec<_> = sites
+        .iter()
+        .map(|site| (site.path.as_str(), site.from.as_str(), site.to.as_str()))
+        .collect();
+    assert_eq!(shown.len(), 6, "test and probable references are left out");
+    assert!(shown.contains(&("src/order.cs", "App.Api.Controller", "App.Core.Service")));
+    assert!(shown.iter().all(|(path, _, _)| *path == file.as_str()));
 }

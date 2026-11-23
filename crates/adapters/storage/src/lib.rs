@@ -7,6 +7,7 @@
 
 mod alerts;
 mod annotations;
+mod answers;
 mod baselines;
 mod catalog;
 mod codec;
@@ -17,7 +18,6 @@ mod detail;
 mod error;
 mod headers;
 mod integrity;
-mod lookup;
 mod migrate;
 mod outline;
 mod pending;
@@ -30,9 +30,11 @@ mod removal;
 mod replace;
 mod reports;
 mod similarity;
+mod sites;
 mod snapshots;
 mod sql;
 mod states;
+mod statistics;
 mod store;
 mod tools;
 mod usages;

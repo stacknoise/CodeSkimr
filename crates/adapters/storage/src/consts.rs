@@ -19,6 +19,8 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0015_annotations.sql"),
     include_str!("../migrations/0016_symbol_content_hash.sql"),
     include_str!("../migrations/0017_scan_reports.sql"),
+    include_str!("../migrations/0018_snapshot_left_out.sql"),
+    include_str!("../migrations/0019_ambiguous_places.sql"),
 ];
 
 /// Name of the pragma that holds the schema version.
@@ -152,3 +154,13 @@ pub const NO_ANNOTATION: i64 = 0;
 
 /// How many indexes the alert step needs (`ENSURE_STATE_INDEXES`).
 pub const STATE_INDEX_COUNT: i64 = 3;
+
+/// Log event: the extra read connection of a long read could not be opened; the read runs on the
+/// shared connection and holds up the other queries.
+pub const LOG_READ_CONNECTION_UNAVAILABLE: &str = "read_connection_unavailable";
+
+/// How many snapshots keep their namespace graph and their statistics facts in memory at once.
+pub const KEPT_BUILDS: usize = 2;
+/// How many walks of usages and impact keep their references in memory at once: the reads of one
+/// question to the screen (both directions, the direct usages, the impact).
+pub const KEPT_WALKS: usize = 4;

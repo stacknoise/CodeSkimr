@@ -22,11 +22,13 @@ use tokio::sync::oneshot;
 
 use crate::mcp_http_tests::locations;
 use crate::memory_keystore::Memory;
-use crate::open::{Plan, launch};
+use crate::open::{Plan, Ready, launch};
 use crate::serve::{Parts, serve_for_test, test_ui};
 use crate::ui_commands::command_api;
 
 const UI_DIR_VARIABLE: &str = "CODESKIMR_E2E_UI_DIR";
+/// The setting that names the UI folder, so that the export command finds its page there.
+const UI_DIR_KEY: &str = "ui.dir";
 const LAUNCH_COMMAND: &str = "launch";
 const RESET_COMMAND: &str = "reset";
 const RESET_DONE_LINE: &str = "E2E_RESET=done";
@@ -61,10 +63,13 @@ fn serve_requests(
             lifetime: CODE_LIFETIME,
             dir: folder.path().to_path_buf(),
             browser: false,
+            print_url: false,
         };
         thread::spawn(move || {
             let result = launch(&*store, &plan, |ready| {
-                say(&format!("E2E_LAUNCH_FILE={}", ready.path.display()));
+                if let Ready::File { path, .. } = ready {
+                    say(&format!("E2E_LAUNCH_FILE={}", path.display()));
+                }
             });
             result.unwrap();
         });
@@ -78,12 +83,20 @@ fn e2e_server() {
     let ui_dir = PathBuf::from(std::env::var(UI_DIR_VARIABLE).unwrap());
     let events = EventBus::new();
     let mut ui = test_ui();
+    // The export command reads its page from the same folder: a test build embeds no UI.
+    let options = GlobalOptions {
+        overrides: vec![(
+            UI_DIR_KEY.to_owned(),
+            format!("{:?}", ui_dir.display().to_string()),
+        )],
+        ..GlobalOptions::default()
+    };
     ui.dir = Some(ui_dir);
     let data = tempfile::tempdir().unwrap();
     let parts = Parts {
         ui,
         api: command_api(
-            &GlobalOptions::default(),
+            &options,
             &locations(data.path()),
             events.clone(),
             crate::memory_keystore::secrets(),
@@ -93,6 +106,7 @@ fn e2e_server() {
         confirmation: None,
         events,
         token_lock: None,
+        purge: None,
     };
     let store = Arc::new(KeystoreCredentials::new(Memory::default()));
     let (stop, stopped) = oneshot::channel::<()>();

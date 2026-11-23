@@ -271,6 +271,7 @@ def options():
     args.add_argument("--indexer", help="program that made the --scip index, for the version check (default: the usual name)")
     args.add_argument("--import-scip", default=str(ROOT / "target/debug/codeskimr_import_scip"), help="the measuring tool of --scip")
     args.add_argument("--no-created", action="store_true", help="--scip without the symbols that level 2 creates (ADR 0055): the state before it")
+    args.add_argument("--symbols", metavar="FILE", help="draw exactly the symbols that the `--json` output FILE names (qualified names of its rows) instead of a random sample, so that two versions of the scanner are measured on the same list; symbols the scanner does not have are skipped")
     args.add_argument("--no-overrides", action="store_true", help="leave out the links of a method to the method it overrides (no compiler counts them as uses)")
     args.add_argument("--certain-only", action="store_true", help="count only references with confidence certain (blueprint 17.2: precision of certain)")
     args.add_argument("--verified-only", action="store_true", help="count only references that level 2 produced (verified)")
@@ -313,8 +314,12 @@ def measure(opt):
         files, symbols, used, kinds = ours(db, opt.verified_only, opt.certain_only, ("import", "override") if opt.no_overrides else ("import",))
         # Drawn by qualified name so that two versions of the scanner see the same symbols.
         pool = sorted((s[4], i) for i, s in symbols.items() if s[2] in KINDS and not s[3].startswith("_"))
-        rng = random.Random(opt.seed)
-        picked = [i for _, i in rng.sample(pool, min(opt.samples, len(pool)))]
+        if opt.symbols:
+            wanted = {row["symbol"] for row in json.loads(Path(opt.symbols).read_text())["rows"]}
+            picked = [i for name, i in pool if name in wanted]
+        else:
+            rng = random.Random(opt.seed)
+            picked = [i for _, i in rng.sample(pool, min(opt.samples, len(pool)))]
         targets = [{"file": files[symbols[i][1]].replace("\\", "/"), "line": symbols[i][5] + 1, "column": symbols[i][6], "end_line": symbols[i][7] + 1, "origin": symbols[i][8], "name": symbols[i][3], "kind": symbols[i][2]} for i in picked]
         sets = truth(opt.language, tmp / "src", Path(opt.workspace) if opt.workspace else src, targets)
     return picked, targets, sets, symbols, used, kinds, import_stats, run_report

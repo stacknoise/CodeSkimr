@@ -82,8 +82,15 @@
 
 .table td {
     padding: var(--space-10) var(--space-12);
-    border-bottom: 1px solid var(--line);
     vertical-align: top;
+}
+
+.table tbody tr {
+    border-bottom: 1px solid var(--line);
+}
+
+.scroll {
+    overflow-x: auto;
 }
 
 .sub {

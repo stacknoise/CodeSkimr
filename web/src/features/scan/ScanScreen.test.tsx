@@ -126,6 +126,59 @@ describe("ScanScreen", () => {
     stop();
   });
 
+  it("names the files the scan left out with their code, and how many more there were", async () => {
+    setLanguage("en");
+    serve({
+      "projects.list": () =>
+        answer([
+          {
+            ...ROW,
+            left_out: [
+              { path: "src/legacy.txt", code: "PRS-101", kept: false },
+              { path: "src/big.cs", code: "PRS-501", kept: true },
+              { path: "src/old.txt", code: "PRS-101", kept: false },
+            ],
+            left_out_more: 3,
+          },
+        ]),
+      "status.info": () => answer(STATUS),
+    });
+    const stop = await shown();
+    expect(await screen.findByText("Files left out")).toBeInTheDocument();
+    expect(screen.getByText("src/legacy.txt")).toBeInTheDocument();
+    expect(screen.getAllByText("PRS-101")).toHaveLength(2);
+    expect(screen.getAllByText("missing in the result")).toHaveLength(2);
+    expect(screen.getByText("PRS-501")).toBeInTheDocument();
+    expect(screen.getByText("shown as the previous scan saw it")).toBeInTheDocument();
+    expect(screen.getByText("and 3 more files")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("A source file is not valid UTF-8 or UTF-16 and was skipped."),
+    ).toHaveLength(1);
+    stop();
+  });
+
+  it("says that the names come with the next scan if only the count is known", async () => {
+    setLanguage("en");
+    serve({
+      "projects.list": () => answer([{ ...ROW, left_out: [], left_out_more: 2 }]),
+      "status.info": () => answer(STATUS),
+    });
+    const stop = await shown();
+    expect(
+      await screen.findByText("2 files were left out. Their names show after the next scan."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("and 2 more files")).not.toBeInTheDocument();
+    stop();
+  });
+
+  it("shows no list of left-out files if the scan left none out", async () => {
+    setLanguage("en");
+    const stop = await shown();
+    expect(await screen.findByText("No scan running")).toBeInTheDocument();
+    expect(screen.queryByText("Files left out")).not.toBeInTheDocument();
+    stop();
+  });
+
   it("lists tier, files, lines and symbols per language and the place of the scan", async () => {
     setLanguage("en");
     serve({
@@ -286,8 +339,12 @@ describe("ScanScreen", () => {
       total: 3812,
     });
     expect(await screen.findByText("Scan running")).toBeInTheDocument();
-    expect(screen.getByText("62 %")).toBeInTheDocument();
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "62");
+    // Once in the card of the scan and once on the row of the stage.
+    expect(screen.getAllByText("62 %")).toHaveLength(2);
+    expect(screen.getByRole("progressbar", { name: "Progress of the scan" })).toHaveAttribute(
+      "aria-valuenow",
+      "62",
+    );
     expect(screen.getByText("2,364 of 3,812 files", { exact: false })).toBeInTheDocument();
     const pipeline = screen.getByText("Pipeline").parentElement as HTMLElement;
     expect(within(pipeline).getByText("Fetch source")).toBeInTheDocument();
@@ -296,7 +353,46 @@ describe("ScanScreen", () => {
     ).toBeInTheDocument();
     FakeSocket.last?.send({ type: "snapshot_created", project: 1, snapshot: 6 });
     expect(await screen.findByText("Scan finished")).toBeInTheDocument();
-    expect(screen.getByText("100 %")).toBeInTheDocument();
+    expect(screen.getAllByText("100 %")[0]).toBeInTheDocument();
+    stop();
+  });
+
+  it("shows a share only for a stage that counts, and a moving bar for one that cannot", async () => {
+    setLanguage("en");
+    const stop = await shown();
+    FakeSocket.last?.send({ ...RUNNING, stage: "fetch", done: 1, total: 1 });
+    FakeSocket.last?.send({ ...RUNNING, stage: "analyze", done: 100, total: 100 });
+    FakeSocket.last?.send({ ...RUNNING, stage: "resolve", done: 0, total: 5000 });
+    const pipeline = (await screen.findByText("Pipeline")).parentElement as HTMLElement;
+    expect(within(pipeline).getAllByText("100 %")).toHaveLength(2);
+    const resolving = within(pipeline).getByRole("progressbar", { name: "Resolve dependencies" });
+    expect(resolving).not.toHaveAttribute("aria-valuenow");
+    expect(resolving).toHaveAccessibleDescription(/cannot be measured/);
+    expect(within(pipeline).getByRole("progressbar", { name: "Parse" })).toHaveAttribute(
+      "aria-valuenow",
+      "100",
+    );
+    FakeSocket.last?.send({ ...RUNNING, stage: "resolve", done: 2500, total: 5000 });
+    expect(await within(pipeline).findByText("50 %")).toBeInTheDocument();
+    expect(resolving).toHaveAttribute("aria-valuenow", "50");
+    expect(within(pipeline).queryByText(/cannot be measured/)).toBeNull();
+    stop();
+  });
+
+  it("picks up a scan that was running before the page was loaded", async () => {
+    setLanguage("en");
+    serve({
+      "projects.list": () => answer([{ ...ROW, running: true }]),
+      "status.info": () => answer(STATUS),
+    });
+    const stop = await shown();
+    expect(await screen.findByText("Scan starting")).toBeInTheDocument();
+    expect(screen.getByText(/The progress shows up with the next report/)).toBeInTheDocument();
+    // What the server replays when the stream opens: the stages that are over and the open one.
+    FakeSocket.last?.send({ ...RUNNING, stage: "fetch", done: 1, total: 1, elapsed_ms: 900 });
+    FakeSocket.last?.send({ ...RUNNING, stage: "analyze", done: 50, total: 100, elapsed_ms: 5000 });
+    expect(await screen.findByText("Scan running")).toBeInTheDocument();
+    expect(screen.getAllByText("50 %")).toHaveLength(2);
     stop();
   });
 

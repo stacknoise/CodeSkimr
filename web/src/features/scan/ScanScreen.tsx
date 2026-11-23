@@ -4,9 +4,10 @@ import type { MessageKey } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { measuredTimes } from "../../shared/api/timings";
 import { activeProject } from "../../shared/project/active";
-import { SCAN_MODE } from "../projects/consts";
-import { seconds } from "../projects/format";
-import { projects, refreshProjects } from "../projects/projects";
+import { LEVEL2_STAGE, SCAN_MODE } from "../projects/consts";
+import { languageName, seconds } from "../projects/format";
+import { level2RunOf } from "../projects/level2run";
+import { projectAdding, projects, refreshProjects, scanRequestedAt } from "../projects/projects";
 import type { ProjectRow } from "../projects/types";
 import { refreshStatus, statusInfo } from "../status/status";
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
@@ -17,12 +18,14 @@ import {
   CANCEL_KEY,
   FULL_SCAN_BUDGET,
   FULL_SCAN_LOC,
+  IDLE,
   MS_PER_SECOND,
   SHORT_COMMIT_LENGTH,
   STATE,
 } from "./consts";
 import { scanRuns } from "./events";
 import { Languages } from "./Languages";
+import { LeftOut } from "./LeftOut";
 import { Pipeline } from "./Pipeline";
 import { Progress } from "./Progress";
 import { Recent } from "./Recent";
@@ -30,12 +33,12 @@ import { latestRun } from "./run";
 import type { BudgetTargets, Run } from "./types";
 import styles from "./ScanScreen.module.css";
 
-const TITLE: Record<Run["state"] | "idle", MessageKey> = {
+const TITLE: Record<Run["state"] | typeof IDLE, MessageKey> = {
   running: I18N_KEYS.SCAN_STATE_RUNNING,
   done: I18N_KEYS.SCAN_STATE_DONE,
   cancelled: I18N_KEYS.SCAN_STATE_CANCELLED,
   failed: I18N_KEYS.SCAN_STATE_FAILED,
-  idle: I18N_KEYS.SCAN_STATE_IDLE,
+  [IDLE]: I18N_KEYS.SCAN_STATE_IDLE,
 };
 
 /** The project the screen is about: the one the user opened. */
@@ -94,11 +97,46 @@ function unrated(row: ProjectRow | undefined): Array<keyof BudgetTargets> {
   return row !== undefined && row.loc < FULL_SCAN_LOC ? [FULL_SCAN_BUDGET] : [];
 }
 
-function Idle(props: { hasProjects: boolean }) {
+/** What the screen says while it has no report of a scan: that a scan was started and has told
+ * nothing yet, or that none runs. */
+function Idle(props: { hasProjects: boolean; starting: boolean }) {
+  const hint = () => {
+    if (props.starting) {
+      return I18N_KEYS.SCAN_STARTING_HINT;
+    }
+    return props.hasProjects ? I18N_KEYS.SCAN_IDLE_HINT : I18N_KEYS.SCAN_NO_PROJECT;
+  };
+  return <div class={styles.idle}>{t(hint())}</div>;
+}
+
+/** Whether a scan of the project was started and has told nothing yet: the list says it runs
+ * or this tab asked for it, and the newest run the stream knows is older than that. */
+function isStarting(row: ProjectRow | undefined, run: Run | undefined): boolean {
+  if (row === undefined) {
+    return false;
+  }
+  if (run === undefined) {
+    return row.running || scanRequestedAt(row.id) !== null;
+  }
+  const asked = scanRequestedAt(row.id);
+  return run.state !== STATE.running && asked !== null && run.startedAt < asked;
+}
+
+/** The pass of stage 2 that works for the project, as far as the stream told; it has no count. */
+function Indexer(props: { project: number }) {
   return (
-    <div class={styles.idle}>
-      {t(props.hasProjects ? I18N_KEYS.SCAN_IDLE_HINT : I18N_KEYS.SCAN_NO_PROJECT)}
-    </div>
+    <Show when={level2RunOf(props.project)}>
+      {(run) => (
+        <div class={styles.indexer}>
+          {t(
+            run().stage === LEVEL2_STAGE.importing
+              ? I18N_KEYS.PROJECTS_LEVEL2_RUNNING_IMPORTING
+              : I18N_KEYS.PROJECTS_LEVEL2_RUNNING,
+            { language: languageName(run().language) },
+          )}
+        </div>
+      )}
+    </Show>
   );
 }
 
@@ -146,11 +184,16 @@ function Head(props: {
   row: ProjectRow | undefined;
   run: Run | undefined;
   running: boolean;
+  starting: boolean;
   onCancel: () => void;
 }) {
+  const title = () =>
+    props.run === undefined && props.starting
+      ? I18N_KEYS.SCAN_STATE_STARTING
+      : TITLE[props.run?.state ?? IDLE];
   return (
     <div class={styles.head}>
-      <h1>{t(TITLE[props.run?.state ?? "idle"])}</h1>
+      <h1>{t(title())}</h1>
       <Show when={props.row}>{(project) => <Meta project={project()} run={props.run} />}</Show>
       <Show when={props.running}>
         <button type="button" class={styles.cancel} onClick={props.onCancel}>
@@ -162,6 +205,30 @@ function Head(props: {
   );
 }
 
+/** The project of the screen, its newest run, and what of it the screen shows: while a new scan
+ * has told nothing, the run of the scan before it is not shown as if it were this one. */
+function useScan() {
+  const row = createMemo(() => projects().find((item) => item.id === subjectId()));
+  const run = createMemo(() => latestRun(scanRuns(), subjectId()));
+  const starting = () => isStarting(row(), run()) || (run() === undefined && projectAdding());
+  const shown = () => (starting() ? undefined : run());
+  return { row, run, starting, shown };
+}
+
+/** The budgets and the recent scans, beside the progress. */
+function Aside(props: { row: ProjectRow | undefined; run: Run | undefined }) {
+  return (
+    <aside class={styles.aside}>
+      <Budgets
+        targets={statusInfo()?.budgets ?? null}
+        measured={measured(props.row, props.run)}
+        unrated={unrated(props.row)}
+      />
+      <Recent rows={projects()} />
+    </aside>
+  );
+}
+
 /** Screen 5, scan and performance (blueprint B.5, mock `Scan.dc.html`): the progress of a scan as
  * the event stream reports it, the pipeline stages, the languages of the project, the time
  * budgets and the recent scans. */
@@ -170,31 +237,34 @@ export function ScanScreen() {
     void refreshProjects();
     void refreshStatus();
   });
-  const row = createMemo(() => projects().find((item) => item.id === subjectId()));
-  const run = createMemo(() => latestRun(scanRuns(), subjectId()));
+  const { row, run, starting, shown } = useScan();
   const { running, cancel } = useCancel(run);
   return (
     <section class={styles.screen}>
       <div class={styles.main}>
-        <Head row={row()} run={run()} running={running()} onCancel={cancel} />
-        <Show when={run()} fallback={<Idle hasProjects={projects().length > 0} />}>
+        <Head
+          row={row()}
+          run={shown()}
+          running={running()}
+          starting={starting()}
+          onCancel={cancel}
+        />
+        <Show
+          when={shown()}
+          fallback={<Idle hasProjects={projects().length > 0} starting={starting()} />}
+        >
           {(current) => (
             <Progress run={current()} linesPerSecond={linesPerSecond(row(), current())} />
           )}
         </Show>
-        <Show when={run()}>{(current) => <Pipeline run={current()} />}</Show>
+        <Show when={shown()}>{(current) => <Pipeline run={current()} />}</Show>
+        <Show when={subjectId()}>{(id) => <Indexer project={id()} />}</Show>
         <Show when={(row()?.languages.length ?? 0) > 0}>
           <Languages languages={row()?.languages ?? []} />
         </Show>
+        <LeftOut row={row()} />
       </div>
-      <aside class={styles.aside}>
-        <Budgets
-          targets={statusInfo()?.budgets ?? null}
-          measured={measured(row(), run())}
-          unrated={unrated(row())}
-        />
-        <Recent rows={projects()} />
-      </aside>
+      <Aside row={row()} run={run()} />
     </section>
   );
 }

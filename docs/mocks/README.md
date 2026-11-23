@@ -23,6 +23,7 @@ Binding UI reference for the web frontend (blueprint section 15). One file per s
 | 17 | Settings: indexers (tool check of level 2) | `Indexers.dc.html` |
 | 18 | Projects: level 2 switch per project (ADR 0071) and the scan section: progress, cancel, reasons, report (ADR 0072) | `Level2Switch.dc.html` |
 | 19 | Projects: folder dialog for a new project (ADR 0075) | `FolderPicker.html` |
+| 20 | Statistics: overview, rankings, complexity (ADR 0081); a plain page that renders in a browser, all three themes, with sample data from a scan of CodeSkimr | `Statistics.html` |
 
 Mocks 7 to 13 have a `theme` property (`hell`, `petrol`, `dunkel`; values in blueprint 15.3, ADR 0021). Mocks 1 to 6 are drawn in Hell. Screens 7 to 12 belong to the team edition (ADR 0019), screen 13 to 1.0.
 

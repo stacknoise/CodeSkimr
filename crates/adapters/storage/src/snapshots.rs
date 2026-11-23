@@ -28,7 +28,7 @@ impl SnapshotStore for SqliteStore {
         let stored = self
             .write(|tx| write_snapshot(tx, &data, self.retention().get()))
             .map_err(CodedError::from)?;
-        self.refresh_lookup(stored.id);
+        self.forget_builds();
         Ok(stored)
     }
 
@@ -36,8 +36,12 @@ impl SnapshotStore for SqliteStore {
         let stored = self
             .write(|tx| crate::replace::replace_level2(tx, &replacement))
             .map_err(CodedError::from)?;
-        self.refresh_lookup(stored.id);
+        self.forget_builds();
         Ok(stored)
+    }
+
+    fn next_free_id(&self) -> Result<u64, CodedError> {
+        Self::next_free_id(self)
     }
 }
 
@@ -54,9 +58,15 @@ fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageR
         sql::SNAPSHOT_NAMING_SET,
         params![data.naming_rules, column_int(header.id.get())?],
     )?;
+    let ambiguous = data.ambiguous_places.map(column_int).transpose()?;
+    conn.execute(
+        sql::SNAPSHOT_AMBIGUOUS_SET,
+        params![ambiguous, column_int(header.id.get())?],
+    )?;
     insert_facts(conn, data)?;
     insert_parse_times(conn, data)?;
     insert_warnings(conn, data)?;
+    insert_left_out(conn, data)?;
     if header.mode == ScanMode::Incremental {
         carry_over(conn, header.project, header.id, &data.removed)?;
     }
@@ -187,6 +197,21 @@ fn insert_warnings(conn: &Connection, data: &SnapshotData) -> StorageResult<()> 
             snapshot,
             warning.code.id(),
             column_int(warning.count)?
+        ])?;
+    }
+    Ok(())
+}
+
+/// The files the scan left out by name.
+fn insert_left_out(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
+    let snapshot = column_int(data.snapshot.id.get())?;
+    let mut insert = conn.prepare_cached(sql::LEFT_OUT_INSERT)?;
+    for left in &data.left_out {
+        insert.execute(params![
+            snapshot,
+            left.path.as_str(),
+            left.code.id(),
+            left.kept
         ])?;
     }
     Ok(())

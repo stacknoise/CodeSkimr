@@ -5,6 +5,7 @@ export const ICON_SIZE = 20;
 export const ICON_SEARCH = "search";
 export const ICON_BRANCH = "branch";
 export const ICON_BELL = "bell";
+export const ICON_DOWNLOAD = "download";
 /** Sizes of the small icons of the top bar. */
 export const ICON_SIZE_SMALL = 13;
 export const ICON_SIZE_MEDIUM = 16;
@@ -27,6 +28,7 @@ export const ICON_PATHS = {
     "M8.4 6.4l7.2 1.2M7 8.3l2.2 7.4M16.6 10.2l-5 6",
   ],
   scan: ["M13 3L5 14h6l-1 7 8-11h-6z"],
+  stats: ["M4 20V10", "M10 20V4", "M16 20v-8", "M2 20h20"],
   search: ["M11 5a6 6 0 1 0 0 12 6 6 0 0 0 0-12z", "M20 20l-4.5-4.5"],
   branch: [
     "M4 5a2 2 0 1 0 4 0 2 2 0 1 0-4 0",
@@ -34,6 +36,7 @@ export const ICON_PATHS = {
     "M16 7a2 2 0 1 0 4 0 2 2 0 1 0-4 0",
     "M6 7v10M18 9c0 5-12 3-12 8",
   ],
+  download: ["M12 4v11M7 10l5 5 5-5", "M5 20h14"],
   bell: ["M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8", "M10 20a2 2 0 0 0 4 0"],
   annotations: [
     "M9 6h11M9 12h11M9 18h11",
@@ -64,3 +67,6 @@ export const BREAK_AFTER = /(?<=[._:])/;
 
 /** The ARIA role of a note that screen readers announce at once. */
 export const ALERT_ROLE = "alert";
+
+/** How long an answer may take before the screen says that it is still loading, in milliseconds. */
+export const SLOW_LOAD_DELAY_MS = 1000;

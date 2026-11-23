@@ -86,7 +86,7 @@ export async function loadSummary(project: number, snapshot: number | null): Pro
 function byTarget(items: readonly Annotation[]): Map<string, Annotation[]> {
   const grouped = new Map<string, Annotation[]>();
   for (const item of items.filter((one) => one.kind !== KIND.critical)) {
-    const key = targetKey(item.target.kind, item.target.name);
+    const key = targetKey(item.target.kind, item.target.name, item.target.parameters);
     grouped.set(key, [...(grouped.get(key) ?? []), item]);
   }
   return grouped;

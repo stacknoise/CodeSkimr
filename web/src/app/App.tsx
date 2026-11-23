@@ -1,4 +1,4 @@
-import { createEffect, For, onCleanup, Show } from "solid-js";
+import { createEffect, ErrorBoundary, For, onCleanup, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { AlertsDrawer } from "../features/alerts/Drawer";
 import { hideDrawer, refreshCount } from "../features/alerts/store";
@@ -9,6 +9,7 @@ import { LayersScreen } from "../features/layers/LayersScreen";
 import { ExplorerScreen } from "../features/explorer/ExplorerScreen";
 import { listenToScans } from "../features/scan/events";
 import { ScanScreen } from "../features/scan/ScanScreen";
+import { StatsScreen } from "../features/stats/StatsScreen";
 import { ProjectsScreen } from "../features/projects/ProjectsScreen";
 import { QuickSearch } from "../features/search/QuickSearch";
 import { useSearchShortcut } from "../features/search/keys";
@@ -35,10 +36,12 @@ import {
   PROJECTS_ROUTE,
   SCAN_ROUTE,
   SETTINGS_ROUTE,
+  STATS_ROUTE,
   USAGES_ROUTE,
 } from "./consts";
 import styles from "./App.module.css";
 import { RailLink, TopBar } from "./Frame";
+import { UnexpectedError } from "./UnexpectedError";
 import { ProjectCrumb } from "./ProjectCrumb";
 import { currentPath, navigate } from "./router";
 
@@ -48,6 +51,7 @@ const SCREENS: ScreenTable = [
   [LAYERS_ROUTE.path, LayersScreen],
   [GRAPH_ROUTE.path, GraphScreen],
   [SCAN_ROUTE.path, ScanScreen],
+  [STATS_ROUTE.path, StatsScreen],
   [EXPLORER_ROUTE.path, ExplorerScreen],
   [ANNOTATIONS_ROUTE.path, BoardScreen],
   [USAGES_ROUTE.path, UsagesScreen],
@@ -104,7 +108,11 @@ export function App() {
             when={sessionState().kind === KIND.connected}
             fallback={<ConnectionScreen state={sessionState()} />}
           >
-            <Screen />
+            <ErrorBoundary
+              fallback={(error, reset) => <UnexpectedError error={error} reset={reset} />}
+            >
+              <Screen />
+            </ErrorBoundary>
           </Show>
         </main>
       </div>

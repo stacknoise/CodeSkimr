@@ -64,3 +64,42 @@ fn missing_tolerance_is_reported() -> TestResult {
     );
     Ok(())
 }
+
+#[test]
+fn reads_the_accepted_slowdowns() -> TestResult {
+    let mapping = "[benchmarks]\n\"g/b\" = \"usages_query_ms\"\n[accepted]\n\"g/b\" = \"ADR 1\"\n";
+    let limits = load(&root("cfg_accepted", CONFIG, mapping)?)?;
+    assert!(limits.accepted.contains("g/b"));
+    Ok(())
+}
+
+#[test]
+fn every_accepted_slowdown_of_the_repository_names_an_existing_adr() -> TestResult {
+    let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let text = fs::read_to_string(repository.join("tools/bench/budgets.toml"))?;
+    let table = text.parse::<toml::Table>()?;
+    let accepted = table
+        .get("accepted")
+        .and_then(toml::Value::as_table)
+        .cloned()
+        .unwrap_or_default();
+    for (id, reason) in accepted {
+        let number = reason
+            .as_str()
+            .unwrap_or_default()
+            .trim_start_matches("ADR ");
+        let found = fs::read_dir(repository.join("docs/adr"))?
+            .filter_map(Result::ok)
+            .any(|entry| {
+                entry
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with(&format!("{number}-"))
+            });
+        assert!(
+            found,
+            "the accepted slowdown of {id} names no existing ADR: {reason}"
+        );
+    }
+    Ok(())
+}

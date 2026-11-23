@@ -25,7 +25,7 @@ export function useSymbolItems(project: () => number, target: () => Target) {
         ? false
         : { project: project(), target: target(), changes: annotationChanges() },
     async (source): Promise<Read> => ({
-      key: targetKey(source.target.kind, source.target.name),
+      key: targetKey(source.target.kind, source.target.name, source.target.parameters),
       items: await readSymbol(source.project, source.target),
     }),
   );

@@ -13,7 +13,8 @@ export function typeTarget(info: SymbolInfo): Target {
 
 /** The symbol an annotation on a member is about. */
 export function memberTarget(member: MemberRow): Target {
-  return { kind: member.kind, name: member.qualified_name };
+  const target = { kind: member.kind, name: member.qualified_name };
+  return member.parameters.length === 0 ? target : { ...target, parameters: member.parameters };
 }
 
 /** The type that the middle column shows, `null` if none is read yet. */

@@ -15,14 +15,14 @@ use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Req
 use codeskimr_application::report_view::ReportView;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
-    Confidence, Direction, Permission, Project, ProjectId, SnapshotId, SymbolId, UsageQuery,
-    Visibility,
+    Confidence, Direction, Permission, Principal, Project, ProjectId, SnapshotId, SymbolId,
+    UsageQuery, Visibility,
 };
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
-    LEVEL2_ACTIVE, LEVEL2_UNAVAILABLE, LINE_OFFSET, USAGES_DESCRIPTION, USAGES_LIMIT, USAGES_QUERY,
-    USAGES_TITLE,
+    DIRECT_DEPTH, LEVEL2_ACTIVE, LEVEL2_UNAVAILABLE, LINE_OFFSET, USAGES_DESCRIPTION, USAGES_LIMIT,
+    USAGES_QUERY, USAGES_TITLE,
 };
 
 /// Which way the screen walks the references.
@@ -282,6 +282,17 @@ pub struct UsagesQuery {
 }
 
 impl UsagesPorts {
+    /// The project and the id of its newest snapshot; `ProjectNotScanned` if there is none.
+    fn current(&self, id: ProjectId) -> Result<(Project, SnapshotId), CodedError> {
+        let project = self.projects.project(id)?;
+        let snapshot = self
+            .index
+            .latest_snapshot(id)?
+            .ok_or_else(|| CodedError::new(ErrorCode::ProjectNotScanned))?
+            .id;
+        Ok((project, snapshot))
+    }
+
     /// The depth a request walks: the maximum if none is asked for, never more than the maximum.
     fn clamp_depth(&self, requested: u32) -> u32 {
         if requested == 0 {
@@ -312,8 +323,37 @@ impl UsagesPorts {
         let outgoing = wants(Way::Outgoing)
             .then(|| self.walk(project, snapshot, &query(Direction::Outgoing, depth)))
             .transpose()?;
-        let direct = self.walk(project, snapshot, &query(Direction::Incoming, 1))?;
+        let direct = self.walk(project, snapshot, &query(Direction::Incoming, DIRECT_DEPTH))?;
         Ok((incoming, outgoing, direct))
+    }
+}
+
+impl UsagesQuery {
+    /// The counts of the direct usages of a symbol, nothing else: no second direction, no walk
+    /// through other symbols and no impact. The HTML export asks for the counts without tests
+    /// of every symbol, and the impact of each one would be computed for nothing.
+    ///
+    /// # Errors
+    /// - `AUTH-401` if the principal lacks `read`.
+    /// - `PRJ-201` and `MCP-203` as the query itself. The symbol is not looked up: an unknown one
+    ///   counts nothing, the export only asks for symbols it just read.
+    pub fn direct_summary(
+        &self,
+        principal: Principal,
+        input: UsagesInput,
+    ) -> Result<Summary, CodedError> {
+        access::require(&principal, Permission::Read)?;
+        let ports = &self.ports;
+        let id = ProjectId::new(input.project);
+        let (project, snapshot) = ports.current(id)?;
+        let query = UsageQuery {
+            symbol: SymbolId::new(input.symbol),
+            direction: Direction::Incoming,
+            depth: DIRECT_DEPTH,
+            include_tests: input.include_tests,
+        };
+        let direct = ports.walk(&project, snapshot, &query)?;
+        Ok(UsagesPorts::summary(&direct))
     }
 }
 
@@ -335,12 +375,7 @@ impl Command for UsagesQuery {
         let ports = &self.ports;
         let input = request.input;
         let id = ProjectId::new(input.project);
-        let project = ports.projects.project(id)?;
-        let snapshot = ports
-            .index
-            .latest_snapshot(id)?
-            .ok_or_else(|| CodedError::new(ErrorCode::ProjectNotScanned))?
-            .id;
+        let (project, snapshot) = ports.current(id)?;
         let key = SymbolKey::Id(SymbolId::new(input.symbol));
         let detail = ports
             .index

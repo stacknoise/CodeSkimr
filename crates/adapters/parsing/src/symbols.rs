@@ -14,8 +14,8 @@ use tree_sitter::{Node, QueryCapture, QueryCursor, StreamingIterator};
 
 use crate::captures::Capture;
 use crate::consts::{
-    BODY_FIELD, CALLABLE_KINDS, LINE_SEPARATOR, NO_EXTENSION, PATH_SEPARATOR, SIGNATURE_CUT,
-    WORD_SEPARATOR,
+    BODY_FIELD, CALLABLE_KINDS, COMMENT_KIND, HEADER_SEPARATOR, LIFT_MIN_FRAMES, LINE_SEPARATOR,
+    NO_EXTENSION, PATH_SEPARATOR, SIGNATURE_CUT, VALUE_FIELD, WORD_SEPARATOR,
 };
 use crate::error::ParsingError;
 use crate::location::{span_between, span_of, text_of};
@@ -140,6 +140,9 @@ struct Declaration<'t> {
     container: bool,
     /// The type the declaration belongs to although it is written outside it (`@owner`).
     owner: Option<Node<'t>>,
+    /// The declaration is written inside a symbol but belongs to the parent of that symbol
+    /// (`@lift`).
+    lift: bool,
 }
 
 #[derive(Default)]
@@ -153,6 +156,7 @@ struct Parts<'t> {
     scope_end: Option<Node<'t>>,
     container: Option<Node<'t>>,
     owner: Option<Node<'t>>,
+    lift: bool,
 }
 
 impl<'t> Parts<'t> {
@@ -167,6 +171,7 @@ impl<'t> Parts<'t> {
             Capture::ScopeEnd => self.scope_end = Some(node),
             Capture::Container => self.container = Some(node),
             Capture::Owner => self.owner = Some(node),
+            Capture::Lift => self.lift = true,
             Capture::Reference(_)
             | Capture::Receiver(_)
             | Capture::Local
@@ -184,6 +189,7 @@ impl<'t> Parts<'t> {
         Some(Declaration {
             container,
             owner: self.owner,
+            lift: self.lift,
             node,
             kind,
             name: self.name?,
@@ -278,6 +284,7 @@ impl<'t> Declaration<'t> {
         self.is_static |= other.is_static;
         self.scope_end = self.scope_end.or(other.scope_end);
         self.owner = self.owner.or(other.owner);
+        self.lift |= other.lift;
         self.signature = self.signature.or(other.signature);
         merge_nodes(&mut self.modifiers, &mut other.modifiers);
         merge_nodes(&mut self.docs, &mut other.docs);
@@ -405,6 +412,33 @@ impl Builder<'_, '_> {
             let owner = text_of(owner, ctx.source);
             self.enter_owner(owner, declaration.node.end_byte(), true);
         }
+        if declaration.lift && self.stack.len() >= LIFT_MIN_FRAMES {
+            return self.add_lifted(declaration);
+        }
+        self.add_member(declaration)
+    }
+
+    /// A lifted declaration (`@lift`) is a child of the parent of the symbol it is written in. That
+    /// symbol stays its lexical parent, so references around it are still assigned to that symbol.
+    fn add_lifted(&mut self, declaration: &Declaration<'_>) -> Result<(), ParsingError> {
+        let Some(held) = self.stack.pop() else {
+            return self.add_member(declaration);
+        };
+        let added = self.add_member(declaration);
+        if added.is_ok() {
+            // The lifted symbol has no children: its own frame gives way to the held one.
+            self.stack.pop();
+            if let Some(last) = self.parents.last_mut() {
+                *last = Some(held.index);
+            }
+        }
+        self.stack.push(held);
+        added
+    }
+
+    /// Adds the symbol of `declaration` as a child of the innermost open frame.
+    fn add_member(&mut self, declaration: &Declaration<'_>) -> Result<(), ParsingError> {
+        let ctx = self.ctx;
         let name = text_of(declaration.name, ctx.source).to_owned();
         let prefix = self
             .stack
@@ -554,26 +588,83 @@ fn new_symbol(
 }
 
 /// The signature text: the `@signature` capture of the pack. A constant without one gets its whole
-/// declaration, so that its value is visible (`find_constants`).
+/// declaration, so that its value is visible (`find_constants`); a function, method or constructor
+/// without one gets its header, the declaration up to its body, on one line (so that overloads
+/// can be told apart, ADR 0068).
 fn signature_of(
     kind: SymbolKind,
     declaration: &Declaration<'_>,
     ctx: &SymbolContext<'_>,
 ) -> Option<String> {
-    let node = match (declaration.signature, kind) {
-        (Some(node), _) => node,
-        (None, SymbolKind::Constant) => declaration.node,
+    let text = match (declaration.signature, kind) {
+        (Some(node), _) => text_of(node, ctx.source).trim().to_owned(),
+        (None, SymbolKind::Constant) => text_of(declaration.node, ctx.source).trim().to_owned(),
+        (None, kind) if CALLABLE_KINDS.contains(&kind) => header_of(declaration.node, ctx)?,
         (None, _) => return None,
     };
-    let text = text_of(node, ctx.source).trim();
     if text.chars().count() <= ctx.signature_limit {
-        return Some(text.to_owned());
+        return Some(text);
     }
     let room = ctx
         .signature_limit
         .saturating_sub(SIGNATURE_CUT.chars().count());
     let kept: String = text.chars().take(room).collect();
     Some([kept.trim_end(), SIGNATURE_CUT].concat())
+}
+
+/// The declaration of a callable up to its body without comments, whitespace runs folded into one
+/// space; `None` if that leaves nothing.
+fn header_of(node: Node<'_>, ctx: &SymbolContext<'_>) -> Option<String> {
+    let end = body_start(ctx.pack, node).unwrap_or_else(|| node.end_byte());
+    let mut comments = Vec::new();
+    collect_comments(node, end, &mut comments);
+    let mut text = String::new();
+    let mut at = node.start_byte();
+    for comment in comments {
+        text.push_str(ctx.source.get(at..comment.start)?);
+        text.push_str(HEADER_SEPARATOR);
+        at = comment.end;
+    }
+    text.push_str(ctx.source.get(at..end)?);
+    let header = text
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(HEADER_SEPARATOR);
+    (!header.is_empty()).then_some(header)
+}
+
+/// The byte ranges of the comments in `node` that start before `end`, in source order.
+fn collect_comments(node: Node<'_>, end: usize, found: &mut Vec<Range<usize>>) {
+    for index in 0..node.child_count() {
+        let Some(child) = node.child(index) else {
+            continue;
+        };
+        if child.start_byte() >= end {
+            break;
+        }
+        if child.kind().contains(COMMENT_KIND) {
+            found.push(child.start_byte()..child.end_byte().min(end));
+        } else {
+            collect_comments(child, end, found);
+        }
+    }
+}
+
+/// Where the body of a declaration starts. A declaration that holds its function in a value
+/// (`const f = () => {}`) has the body of that function.
+fn body_start(pack: &LanguagePack, node: Node<'_>) -> Option<usize> {
+    let own = node
+        .child_by_field_name(BODY_FIELD)
+        .or_else(|| {
+            (0..node.child_count())
+                .filter_map(|index| node.child(index))
+                .find(|child| pack.body_nodes.contains(child.kind()))
+        })
+        .map(|body| body.start_byte());
+    own.or_else(|| {
+        node.child_by_field_name(VALUE_FIELD)
+            .and_then(|value| body_start(pack, value))
+    })
 }
 
 /// The kind of the declaration: a modifier can change it, and the parent can give it another one.

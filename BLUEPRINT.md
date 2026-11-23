@@ -403,7 +403,7 @@ Name resolution is based on Tree-sitter, in this order:
 
 - A reference resolved through steps 1–4 is `certain`.
 - A reference resolved through step 5, through an interface or base-class dispatch, or with several candidates is `probable`. It points to all candidates.
-- **Level 1 never drops a candidate** (ADR 0033). A name that matches members of unrelated types is reported for all of them, as `probable`. A missing usage makes an impact analysis worthless, so recall ranks above precision here; level 1 makes up for it by marking what it found as unchecked (section 9.4).
+- **Level 1 never drops a candidate** (ADR 0033). A name that matches members of unrelated types is reported for all of them, as `probable`. A missing usage makes an impact analysis worthless, so recall ranks above precision here; level 1 makes up for it by marking what it found as unchecked (section 9.4). Bound (ADR 0084): a place that reaches more than `scan.max_candidates` (default 100) symbols through the bare name alone (step 5, or a receiver of unknown type) is given up, counted and reported as `RES-304`; a place that a scope, a receiver type or an import narrows down is never given up.
 
 ### 9.3 Level 2 – compiler-precise (before 1.0, optional, off by default)
 
@@ -746,7 +746,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
   - level 2 (`level2.*`: switch, time, memory and output limits, index size, share of mappable uses). Only the user config and CLI flags may set them; the project file cannot
   - excluded folders (`bin`, `obj`, `.git`, `node_modules`, `target`, `dist` …)
   - annotations (`annotations.*`, ADR 0068): `dismissed_retention_days` (30), `max_text_chars` (4000), `max_title_chars` (500), `max_assignee_chars` (100), `max_name_chars` (500), `max_parameter_chars` (200), `max_parameters` (32), `default_page_size` (100), `max_page_size` (500)
-- **Overrides,** applied in this order: user config file → project config (`.codeskimr.toml` in the repository) → CLI flags. The project config may only lower `scan.max_source_mb` and `scan.parse_timeout_ms`, not raise them above the value of the defaults and the user file, so that a scanned repository cannot lift the protection of the scanning machine (ADR 0040).
+- **Overrides,** applied in this order: user config file → project config (`.codeskimr.toml` in the repository) → CLI flags. The project config may only lower `scan.max_source_mb`, `scan.parse_timeout_ms`, `scan.max_candidates` and `scan.max_memory_mb`, not raise them above the value of the defaults and the user file, so that a scanned repository cannot lift the protection of the scanning machine (ADR 0040).
 - **Typed config:** the config is deserialised into typed structs and validated at start-up. Invalid values produce `CFG-1xx` errors. There is no `config.get("string")` anywhere in the code.
 - **`consts.rs` / `consts.ts`:** technical constants that are not tunable. One file per crate or feature, never a global constants file.
 
@@ -778,8 +778,9 @@ The screens (details in Appendix B):
 | 14 | Annotations: marks, notes, tasks | `docs/mocks/Annotations.dc.html` |
 | 15 | Alerts | `docs/mocks/Alerts.dc.html` |
 | 16 | Task board | `docs/mocks/Tasks.dc.html` |
+| 20 | Statistics: rankings over the symbols of a project (ADR 0081) | `docs/mocks/Statistics.html` |
 
-Screens 7 to 12 belong to the team edition (after 1.0, ADR 0019, milestone T2) and exist as mocks so that the UI can be built to them; screen 13 belongs to 1.0 (ADR 0021); screens 14 to 16 belong to the annotations (ADR 0068). Mocks 14 to 16 are static pages: they show all three themes by the class of `body`. The mocks 7 to 13 take a `theme` property (15.3); mocks 1 to 6 are drawn in the theme Hell (layout binding, colours follow the active theme, see 15.3).
+Screens 7 to 12 belong to the team edition (after 1.0, ADR 0019, milestone T2) and exist as mocks so that the UI can be built to them; screen 13 belongs to 1.0 (ADR 0021); screens 14 to 16 belong to the annotations (ADR 0068); screen 20 belongs to 1.0 (ADR 0081; the numbers 17 to 19 are mocks of parts of other screens, see `docs/mocks/README.md`). Mock 20 is a static page with all three themes. Mocks 14 to 16 are static pages: they show all three themes by the class of `body`. The mocks 7 to 13 take a `theme` property (15.3); mocks 1 to 6 are drawn in the theme Hell (layout binding, colours follow the active theme, see 15.3).
 
 The mock sources are written in a design-canvas format; render them through the link above. Read the files for exact values (inline styles). All numbers and names in them are **sample data**.
 
@@ -788,7 +789,7 @@ The mock sources are written in a design-canvas format; render them through the 
 | Element | Size | Content |
 |---|---|---|
 | Top bar | height 48 px | logo + product name, project breadcrumb, branch / working-folder chip, search field opening the quick search (shows `Strg K` / `Ctrl K`); in team mode also server name and user menu |
-| Navigation rail | width 56 px | Projects, Explorer, Dependencies, Scans & performance at the top; at the bottom Administration (admins in team mode only) and Settings; active item tinted |
+| Navigation rail | width 56 px | Projects, Explorer, Dependencies, Statistics (ADR 0081), Scans & performance at the top; at the bottom Administration (admins in team mode only) and Settings; active item tinted |
 | Status bar | height 28 px | live measurements (watch state, counts, last query time, memory), monospace |
 | Explorer tree | width 290 px | filter, collapse all, show selection |
 | Source pane | width 560 px (shrinks) | file path, member position, code |
@@ -1119,7 +1120,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 |---|---|---|
 | APP-201 | `data_dir_unavailable` | The user data directory cannot be created or opened. |
 | APP-202 | `launch_file_unavailable` | The private file for starting the browser could not be created. |
-| APP-301 | `instance_already_running` | Another CodeSkimr instance holds the workspace; connecting to it failed. |
+| APP-301 | `instance_already_running` | Another CodeSkimr instance holds the workspace; connecting to it failed. Retired (ADR 0078). |
 | APP-901 | `unexpected_internal_error` | An unexpected internal error occurred (bug). |
 | APP-601 | `browser_start_failed` | The system did not start a browser for the launch file. |
 | APP-602 | `language_packs_unavailable` | The language packs built into the program could not be written to the data directory. |
@@ -1137,6 +1138,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | PRJ-303 | `scan_cancelled` | The scan was cancelled by the user; no snapshot was written. (info) |
 | PRJ-501 | `too_many_scans` | As many scans run at the same time as the server allows; try again when one has ended. |
 | PRJ-502 | `scan_report_not_stored` | The report of the scan (its level and what level 2 did per language) could not be stored; the scan and its snapshot are stored. |
+| PRJ-503 | `scan_memory_limit` | The scan held more memory than `scan.max_memory_mb` allows (at most 70 % of the installed memory) and was stopped; no snapshot was written (ADR 0087). (error) |
 | SRC-201 | `source_path_not_found` | A source folder, a source file or a language pack folder does not exist or cannot be read. |
 | SRC-202 | `git_branch_not_found` | The requested branch does not exist on the remote. |
 | SRC-401 | `git_auth_required` | The remote requires authentication and no usable credential is available. |
@@ -1152,12 +1154,13 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | RES-301 | `ambiguous_reference` | A reference matches several symbols; it was stored as probable. (warning) |
 | RES-302 | `scip_mapping_too_low` | Too few occurrences of a SCIP index map onto project symbols; level 1 references stay. |
 | RES-303 | `scip_too_many_created_symbols` | A SCIP index wants level 2 to create more symbols than level2.max_created_symbols allows; the whole import is refused and level 1 stays. |
+| RES-304 | `name_too_common` | A name reaches more symbols than `scan.max_candidates` and nothing narrows it down; the place was given up (ADR 0084). (warning) |
 | RES-501 | `scip_index_too_large` | A SCIP index is larger than the configured limit and was refused; level 1 references stay. |
 | RES-502 | `indexer_timeout` | An indexer ran longer than level2.timeout_seconds and was stopped with all its child processes; level 1 references stay. |
 | RES-503 | `indexer_output_too_large` | An indexer wrote more than level2.max_output_bytes and was stopped; level 1 references stay. |
 | RES-504 | `indexer_memory_limit` | An indexer used more memory than level2.max_memory_mb and was stopped; level 1 references stay. |
 | RES-601 | `indexer_failed` | An indexer could not be started or ended with an error; level 1 references stay. |
-| IDX-301 | `read_model_stale` | A read model is older than the current snapshot and is being rebuilt. (info) |
+| IDX-301 | `read_model_stale` | A read model is older than the current snapshot and is being rebuilt. (info) Retired (ADR 0078). |
 | STO-301 | `schema_migration_failed` | Applying a database migration failed. |
 | STO-302 | `transaction_conflict` | A concurrent write conflicted; the operation can be retried. |
 | STO-501 | `disk_full` | Not enough disk space to persist the snapshot. |
@@ -1171,8 +1174,8 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | SEC-403 | `indexer_not_permitted` | The caller may not confirm or start indexers; only the local owner may (ADR 0033, decision 10). |
 | SEC-601 | `keystore_unavailable` | The OS keystore service is not available. |
 | SEC-901 | `memory_lock_failed` | Locking secret memory against swapping failed. |
-| NET-501 | `request_timeout` | A request to an external platform timed out. |
-| NET-502 | `rate_limited` | The external platform rate-limited the request. |
+| NET-501 | `request_timeout` | A request to an external platform timed out. Retired (ADR 0078). |
+| NET-502 | `rate_limited` | The external platform rate-limited the request. Retired (ADR 0078). |
 | NET-601 | `oauth_flow_failed` | The OAuth device flow did not complete. |
 | AUTH-401 | `permission_denied` | The caller lacks the permission this action needs. |
 | API-101 | `request_invalid` | The REST request failed validation. |
@@ -1197,6 +1200,8 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | CLI-103 | `secret_input_invalid` | No secret could be read from the terminal or standard input, or it was empty. |
 | I18N-201 | `message_key_missing` | A message key is missing for the active language (falls back to English). |
 | EXP-201 | `export_bundle_missing` | The built export page of the UI is missing or unusable. |
+| EXP-501 | `export_running` | An export of the same project is already running; try again when it has ended (ADR 0090). |
+| EXP-502 | `export_too_large` | The project has more references than export.max_references allows, so the export page would be too large for a browser (ADR 0090). |
 | EXP-601 | `export_write_failed` | The export file could not be written. |
 | UI-201 | `api_unreachable` | The UI cannot reach the local server. |
 | UI-901 | `unexpected_ui_error` | An uncaught exception was converted at a feature boundary (bug). |

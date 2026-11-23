@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{AuthError, CredentialStore, ProjectCatalog};
+use codeskimr_application::ports::{CredentialStore, ProjectCatalog};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{CredentialId, Permission, ProjectSource};
@@ -58,7 +58,7 @@ impl Command for ListCredentials {
         description_key: CREDENTIALS_LIST_DESCRIPTION,
         shortcut: None,
         read_only: true,
-        permission: Permission::Read,
+        permission: Permission::ReadSource,
     };
 
     fn execute(&self, _request: Request<'_, Self>) -> Result<Vec<CredentialRow>, CodedError> {
@@ -74,11 +74,7 @@ impl Command for ListCredentials {
         named
             .into_iter()
             .map(|id| {
-                let stored = match self.secrets.with_credential(&id, |_| Ok(())) {
-                    Ok(()) => true,
-                    Err(AuthError::NotFound) => false,
-                    Err(other) => return Err(CodedError::from(other)),
-                };
+                let stored = self.secrets.exists(&id)?;
                 Ok(CredentialRow {
                     id: id.to_string(),
                     stored,

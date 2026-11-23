@@ -15,6 +15,8 @@ pub const COMMAND_SERVE: &str = "serve";
 pub const COMMAND_OPEN: &str = "open";
 /// Flag of `open` that keeps the browser from starting.
 pub const ARG_NO_BROWSER: &str = "no-browser";
+/// Flag of `open` that prints the address with the one-time code (ADR 0088).
+pub const ARG_PRINT_URL: &str = "print-url";
 
 /// Flag of the bare start that keeps the program in the console window.
 pub const ARG_CONSOLE: &str = "console";
@@ -228,6 +230,10 @@ pub mod arg {
     pub const LANGUAGE: &str = "language";
     /// `{ $count }`: how many times something happened.
     pub const COUNT: &str = "count";
+    /// `{ $from_layer }`: the layer of a function that breaks the layer rule.
+    pub const FROM_LAYER: &str = "from_layer";
+    /// `{ $to_layer }`: the layer that function must not use.
+    pub const TO_LAYER: &str = "to_layer";
     /// `{ $stale }`: files that changed since the scan.
     pub const STALE: &str = "stale";
     /// `{ $reason }`: why level 2 was skipped.

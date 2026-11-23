@@ -298,7 +298,7 @@
       "kind": "constructor",
       "name": "Shop.Orders.Order.Order",
       "parent": "Shop.Orders.Order",
-      "signature": null,
+      "signature": "public Order(int id) : base(id)",
       "span": "11:8-11:43",
       "static": false,
       "visibility": "public"
@@ -338,7 +338,7 @@
       "kind": "method",
       "name": "Shop.Orders.Order.CountAsync",
       "parent": "Shop.Orders.Order",
-      "signature": null,
+      "signature": "public static async Task<int> CountAsync(string filter)",
       "span": "19:8-22:9",
       "static": true,
       "visibility": "public"
@@ -358,7 +358,7 @@
       "kind": "method",
       "name": "Shop.Orders.Order.+",
       "parent": "Shop.Orders.Order",
-      "signature": null,
+      "signature": "public static Order operator +(Order left, Order right)",
       "span": "26:8-26:72",
       "static": true,
       "visibility": "public"
@@ -368,7 +368,7 @@
       "kind": "method",
       "name": "Shop.Orders.Order.ToString",
       "parent": "Shop.Orders.Order",
-      "signature": null,
+      "signature": "public override string ToString()",
       "span": "28:8-28:53",
       "static": false,
       "visibility": "public"
@@ -378,7 +378,7 @@
       "kind": "method",
       "name": "Shop.Orders.Order.Helper",
       "parent": "Shop.Orders.Order",
-      "signature": null,
+      "signature": "private void Helper()",
       "span": "30:8-33:9",
       "static": false,
       "visibility": "private"
@@ -388,7 +388,7 @@
       "kind": "function",
       "name": "Shop.Orders.Order.Helper.Local",
       "parent": "Shop.Orders.Order.Helper",
-      "signature": null,
+      "signature": "int Local(int value)",
       "span": "32:12-32:42",
       "static": false,
       "visibility": "private"
@@ -418,7 +418,7 @@
       "kind": "method",
       "name": "Shop.Orders.IOrder.Submit",
       "parent": "Shop.Orders.IOrder",
-      "signature": null,
+      "signature": "void Submit();",
       "span": "40:8-40:22",
       "static": false,
       "visibility": "public"

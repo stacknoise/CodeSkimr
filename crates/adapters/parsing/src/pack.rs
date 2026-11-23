@@ -4,6 +4,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::thread;
 
 use codeskimr_domain::{LanguageId, SymbolKind};
 use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
@@ -11,9 +12,10 @@ use tree_sitter::{Language, Query};
 
 use crate::captures::{MetricsQuery, Vocabulary};
 use crate::consts::{
-    ID_MISMATCH, METRICS_QUERY_FILE, PATH_DOT, PATH_SEPARATORS, QUERIES_FILE_UNKNOWN,
-    QUERIES_FROM_CHAINED, QUERIES_FROM_INVALID, QUERIES_FROM_SELF, QUERY_JOIN,
-    REFERENCES_QUERY_FILE, SHAREABLE_QUERY_FILES, SYMBOLS_QUERY_FILE, TEST_PATTERN_SEPARATOR,
+    COMPILE_STACK_BYTES, COMPILE_THREAD_NAME, ID_MISMATCH, LOAD_PANIC_SEPARATOR, LOAD_PANICKED,
+    METRICS_QUERY_FILE, PATH_DOT, PATH_SEPARATORS, QUERIES_FILE_UNKNOWN, QUERIES_FROM_CHAINED,
+    QUERIES_FROM_INVALID, QUERIES_FROM_SELF, QUERY_JOIN, REFERENCES_QUERY_FILE,
+    SHAREABLE_QUERY_FILES, SYMBOLS_QUERY_FILE, TEST_PATTERN_SEPARATOR,
 };
 use crate::error::ParsingError;
 use crate::grammar;
@@ -69,15 +71,31 @@ impl LanguagePack {
             grammar::builtin(&manifest.grammar).ok_or_else(|| invalid(manifest.grammar.clone()))?;
         let shared = shared_queries(dir, &manifest, &folder)?;
         let text = |file: &str| query_text(dir, shared.as_ref(), file, &folder);
-        let symbols = text(SYMBOLS_QUERY_FILE)?
-            .ok_or_else(|| invalid(SYMBOLS_QUERY_FILE.to_owned()))
-            .and_then(|source| compile(&language, &source, &folder))?;
-        let references = text(REFERENCES_QUERY_FILE)?
-            .map(|source| compile(&language, &source, &folder))
-            .transpose()?;
-        let metrics = text(METRICS_QUERY_FILE)?
-            .map(|source| load_metrics(&language, &source, &folder))
-            .transpose()?;
+        let symbols =
+            text(SYMBOLS_QUERY_FILE)?.ok_or_else(|| invalid(SYMBOLS_QUERY_FILE.to_owned()))?;
+        let references = text(REFERENCES_QUERY_FILE)?;
+        let metrics = text(METRICS_QUERY_FILE)?;
+        // Compiling a query of a full-tier pack takes long, so the three compile side by side.
+        let (symbols, references, metrics) = thread::scope(|scope| {
+            let symbols = compiling(scope, &folder, || compile(&language, &symbols, &folder));
+            let references = compiling(scope, &folder, || {
+                references
+                    .map(|source| compile(&language, &source, &folder))
+                    .transpose()
+            });
+            let metrics = compiling(scope, &folder, || {
+                metrics
+                    .map(|source| load_metrics(&language, &source, &folder))
+                    .transpose()
+            });
+            (
+                joined(symbols, &folder),
+                joined(references, &folder),
+                joined(metrics, &folder),
+            )
+        });
+        // The first failure in the order of the files is reported, whichever thread was first.
+        let (symbols, references, metrics) = (symbols?, references?, metrics?);
         Self::assemble(manifest, language, (symbols, references, metrics), &folder)
     }
 
@@ -218,6 +236,39 @@ fn folder_name(dir: &Path) -> String {
     dir.file_name()
         .map(|name| name.to_string_lossy().into_owned())
         .unwrap_or_default()
+}
+
+/// A thread that compiles one query, or why it could not be started.
+type Compiling<'scope, T> =
+    Result<thread::ScopedJoinHandle<'scope, Result<T, ParsingError>>, ParsingError>;
+
+/// Starts `work` on a thread of its own with the stack of a main thread: the query compiler of
+/// tree-sitter recurses, and the default stack of a spawned thread is a quarter of that. A thread
+/// that the system refuses to start is an error of the pack, not a panic.
+fn compiling<'scope, T: Send + 'scope>(
+    scope: &'scope thread::Scope<'scope, '_>,
+    folder: &str,
+    work: impl FnOnce() -> Result<T, ParsingError> + Send + 'scope,
+) -> Compiling<'scope, T> {
+    thread::Builder::new()
+        .name(COMPILE_THREAD_NAME.to_owned())
+        .stack_size(COMPILE_STACK_BYTES)
+        .spawn_scoped(scope, work)
+        .map_err(|error| ParsingError::invalid(folder, error.to_string()))
+}
+
+/// The result of a thread that compiled a query. A panic there is reported as an invalid pack with
+/// the message of the panic, so that it reaches the log with the error of the scan.
+fn joined<T>(started: Compiling<'_, T>, folder: &str) -> Result<T, ParsingError> {
+    started?.join().unwrap_or_else(|payload| {
+        let message = payload
+            .downcast_ref::<&str>()
+            .map(ToString::to_string)
+            .or_else(|| payload.downcast_ref::<String>().cloned())
+            .unwrap_or_default();
+        let reason = [LOAD_PANICKED, LOAD_PANIC_SEPARATOR, message.as_str()].concat();
+        Err(ParsingError::invalid(folder, reason))
+    })
 }
 
 fn load_metrics(

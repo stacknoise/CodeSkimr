@@ -1,0 +1,130 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 12,
+      "operands": null,
+      "operators": null,
+      "symbol": "overloads.cs"
+    },
+    {
+      "decisions": null,
+      "loc": 12,
+      "operands": null,
+      "operators": null,
+      "symbol": "Shop"
+    },
+    {
+      "decisions": null,
+      "loc": 11,
+      "operands": null,
+      "operators": null,
+      "symbol": "Shop.Order"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "Shop.Order.Total"
+    },
+    {
+      "decisions": 0,
+      "loc": 6,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "Shop.Order.Total"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Shop.Order.Open"
+    }
+  ],
+  "loc": 12,
+  "references": [
+    {
+      "at": "9:8",
+      "from": "Shop.Order.Total",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Map"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "overloads.cs",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-16:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "Shop",
+      "parent": "overloads.cs",
+      "signature": null,
+      "span": "0:0-16:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Shop.Order",
+      "parent": "Shop",
+      "signature": null,
+      "span": "2:0-15:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Shop.Order.Total",
+      "parent": "Shop.Order",
+      "signature": "public int Total(int a)",
+      "span": "5:4-5:41",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Shop.Order.Total",
+      "parent": "Shop.Order",
+      "signature": "public int Total( int a, Map<string, int> b)",
+      "span": "7:4-12:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Shop.Order.Open",
+      "parent": "Shop.Order",
+      "signature": "public abstract void Open();",
+      "span": "14:4-14:32",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

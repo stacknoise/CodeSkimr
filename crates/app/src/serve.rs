@@ -20,8 +20,9 @@ use codeskimr_storage::SqliteStore;
 
 use crate::consts::{SHUTDOWN_GRACE, URL_SCHEME};
 use crate::locations::Locations;
+use crate::retention::DailyPurge;
 use crate::running::RunningScans;
-use crate::wiring::{Secrets, open_serving_store, os_secrets};
+use crate::wiring::{Secrets, open_store, os_secrets};
 use crate::{config_files, installation_token, mcp, principal, ui_commands};
 
 /// Serves until the user interrupts the program. `listening` is called once with the address as
@@ -60,7 +61,7 @@ pub fn run_until(
     // The UI and the MCP service refuse a second scan of a project together.
     let running = RunningScans::default();
     // One store for both: they share one usages index, which a level 2 import renews.
-    let catalog = open_serving_store(locations, &config)?;
+    let catalog = open_store(locations, &config)?;
     let parts = serving_parts(
         &catalog,
         &config,
@@ -68,20 +69,32 @@ pub fn run_until(
         (events, &secrets),
         running.clone(),
     )?;
-    let served = tokio::runtime::Builder::new_current_thread()
+    block_on_then_stop(
+        serve(&store, config.server.port, parts, listening, shutdown),
+        // A level 2 run that is still going is cancelled the way `projects.cancel` does it.
+        || running.cancel_all(SHUTDOWN_GRACE),
+        SHUTDOWN_GRACE,
+    )?
+}
+
+/// Runs `future` to its end on a runtime of its own and then stops the runtime, waiting at most
+/// `grace` for the blocking tasks that are still running, after `cancel` has told the work that
+/// can be cancelled to stop. Dropping the runtime instead would wait for them for good: a command
+/// that is still running (an export, a statistic) would keep the program alive after "Quit" in the
+/// tray.
+fn block_on_then_stop<T>(
+    future: impl Future<Output = T>,
+    cancel: impl FnOnce(),
+    grace: Duration,
+) -> Result<T, CodedError> {
+    let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
-        .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?
-        .block_on(serve(
-            &store,
-            config.server.port,
-            parts,
-            listening,
-            shutdown,
-        ));
-    // A level 2 run that is still going is cancelled the way `projects.cancel` does it.
-    running.cancel_all(SHUTDOWN_GRACE);
-    served
+        .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?;
+    let output = runtime.block_on(future);
+    cancel();
+    runtime.shutdown_timeout(grace);
+    Ok(output)
 }
 
 /// What the browser UI gets from the configuration. Without a built UI folder the server answers
@@ -158,6 +171,10 @@ pub(crate) fn serving_parts(
         )?),
         events,
         token_lock: Some(locations.token_lock()),
+        purge: Some(DailyPurge::daily(
+            catalog.clone(),
+            config.annotations.dismissed_retention_days,
+        )),
     })
 }
 
@@ -172,6 +189,8 @@ pub(crate) struct Parts {
     pub events: EventBus,
     /// File that serialises the first start of several programs (`None`: no lock, for tests).
     pub token_lock: Option<PathBuf>,
+    /// The timer that deletes expired dismissed alerts; it ends with the server (ADR 0068).
+    pub purge: Option<DailyPurge>,
 }
 
 /// Wires the server and runs it until `shutdown` completes.
@@ -182,6 +201,8 @@ pub(crate) async fn serve(
     listening: impl FnOnce(&str),
     shutdown: impl Future<Output = ()> + Send + 'static,
 ) -> Result<(), CodedError> {
+    // Kept until the server ends, so the purge timer runs as long as the server does.
+    let _purge = parts.purge;
     let token = match &parts.token_lock {
         Some(lock) => installation_token::load_or_create_locked(store, lock)?,
         None => installation_token::load_or_create(store)?,
@@ -223,6 +244,7 @@ pub(crate) fn bare_parts(ui: UiOptions) -> Parts {
         )),
         events: EventBus::new(),
         token_lock: None,
+        purge: None,
     }
 }
 
@@ -287,6 +309,31 @@ mod tests {
         let mut answer = String::new();
         stream.read_to_string(&mut answer).unwrap();
         answer
+    }
+
+    #[test]
+    fn a_blocking_task_that_is_still_running_does_not_hold_the_stop() {
+        let (running, is_running) = std::sync::mpsc::channel::<()>();
+        let order = std::sync::Mutex::new(Vec::new());
+        let started = std::time::Instant::now();
+        let done = block_on_then_stop(
+            async {
+                // Never awaited, like a command that is still running when the user picks "Quit".
+                drop(tokio::task::spawn_blocking(move || {
+                    running.send(()).unwrap();
+                    std::thread::sleep(Duration::from_secs(30));
+                }));
+                // The task has really started before the server ends.
+                is_running.recv().unwrap();
+                order.lock().unwrap().push("served");
+                7
+            },
+            || order.lock().unwrap().push("cancelled"),
+            Duration::from_millis(100),
+        );
+        assert_eq!(done.unwrap(), 7);
+        assert!(started.elapsed() < Duration::from_secs(10));
+        assert_eq!(*order.lock().unwrap(), ["served", "cancelled"]);
     }
 
     #[test]

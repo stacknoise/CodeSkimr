@@ -401,7 +401,7 @@
       "kind": "method",
       "name": "com.example.Child.run",
       "parent": "com.example.Child",
-      "signature": null,
+      "signature": "@Override public void run()",
       "span": "11:4-18:5",
       "static": false,
       "visibility": "public"
@@ -411,7 +411,7 @@
       "kind": "method",
       "name": "com.example.Child.use",
       "parent": "com.example.Child",
-      "signature": null,
+      "signature": "int use(Helper other, int count) throws IOException",
       "span": "20:4-34:5",
       "static": false,
       "visibility": "internal"

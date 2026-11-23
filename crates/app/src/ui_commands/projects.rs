@@ -6,7 +6,8 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    LanguageShare, ProjectCatalog, ProjectOverview, ProjectToolCheck, ScanReportStore, ScanWarning,
+    LanguageShare, LeftOut, ProjectCatalog, ProjectOverview, ProjectToolCheck, ScanReportStore,
+    ScanWarning,
 };
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_application::report_view::ReportView;
@@ -70,6 +71,17 @@ pub struct WarningRow {
     pub count: u64,
 }
 
+/// A file the newest scan of a project left out because it alone could not be analysed.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct LeftOutRow {
+    /// The file, relative to the root of the project.
+    pub path: String,
+    /// Why, for example `PRS-101`.
+    pub code: &'static str,
+    /// Whether the snapshot still shows the file as the scan before saw it.
+    pub kept: bool,
+}
+
 /// One row of the project list.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ProjectRow {
@@ -95,6 +107,10 @@ pub struct ProjectRow {
     pub languages: Vec<LanguageRow>,
     /// The warnings of the newest scan; empty if it had none.
     pub warnings: Vec<WarningRow>,
+    /// The files the newest scan left out, at most `scan.max_left_out_listed` of them (ADR 0085).
+    pub left_out: Vec<LeftOutRow>,
+    /// How many more files it left out than `left_out` names.
+    pub left_out_more: u64,
     /// Whether a scan of the project is running right now.
     pub running: bool,
     /// What the last check of the tools found; `None` if the project was never checked.
@@ -134,6 +150,25 @@ fn warning_row(warning: &ScanWarning) -> WarningRow {
     }
 }
 
+fn left_out_row(left: &LeftOut) -> LeftOutRow {
+    LeftOutRow {
+        path: left.path.to_string(),
+        code: left.code.id(),
+        kept: left.kept,
+    }
+}
+
+/// How many files the scan left out in all: the warnings count them by code, the list names some.
+fn left_out_more(overview: &ProjectOverview) -> u64 {
+    let all: u64 = overview
+        .warnings
+        .iter()
+        .filter(|warning| LeftOut::CODES.contains(&warning.code))
+        .map(|warning| warning.count)
+        .sum();
+    all.saturating_sub(u64::try_from(overview.left_out.len()).unwrap_or(u64::MAX))
+}
+
 fn project_row(
     overview: &ProjectOverview,
     running: bool,
@@ -166,6 +201,8 @@ fn project_row(
             .map(|share| language_row(share, context))
             .collect(),
         warnings: overview.warnings.iter().map(warning_row).collect(),
+        left_out: overview.left_out.iter().map(left_out_row).collect(),
+        left_out_more: left_out_more(overview),
         running,
         tools,
         report,

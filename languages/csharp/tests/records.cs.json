@@ -1,0 +1,1388 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 49,
+      "operands": null,
+      "operators": null,
+      "symbol": "records.cs"
+    },
+    {
+      "decisions": null,
+      "loc": 49,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Settings"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Inner"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Entry"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Holder"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "Demo.Holder.Pick"
+    },
+    {
+      "decisions": null,
+      "loc": 11,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Reader"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "Demo.Reader.Negated"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "Demo.Reader.Chain"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        1,
+        2
+      ],
+      "symbol": "Demo.Reader.Deep"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        4,
+        7
+      ],
+      "operators": [
+        5,
+        11
+      ],
+      "symbol": "Demo.Reader.Twice"
+    },
+    {
+      "decisions": 2,
+      "loc": 1,
+      "operands": [
+        6,
+        7
+      ],
+      "operators": [
+        4,
+        7
+      ],
+      "symbol": "Demo.Reader.Both"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        3
+      ],
+      "symbol": "Demo.Reader.Returned"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        3
+      ],
+      "symbol": "Demo.Reader.Picked"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        4,
+        5
+      ],
+      "operators": [
+        5,
+        6
+      ],
+      "symbol": "Demo.Reader.Local"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IStore"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IStore.Load"
+    },
+    {
+      "decisions": null,
+      "loc": 6,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Consumer"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "Demo.Consumer.Consumer"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Demo.Consumer.Go"
+    },
+    {
+      "decisions": null,
+      "loc": 7,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.ConsumerTests"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        6,
+        7
+      ],
+      "operators": [
+        2,
+        6
+      ],
+      "symbol": "Demo.ConsumerTests.Arranged"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        6,
+        8
+      ],
+      "operators": [
+        2,
+        8
+      ],
+      "symbol": "Demo.ConsumerTests.Field"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        5,
+        5
+      ],
+      "operators": [
+        4,
+        6
+      ],
+      "symbol": "Demo.ConsumerTests.Wrapped"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IDisk"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IDisk.Exists"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Index"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "Demo.Index.IndexOf"
+    },
+    {
+      "decisions": null,
+      "loc": 8,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Foreign"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        4,
+        6
+      ],
+      "operators": [
+        3,
+        5
+      ],
+      "symbol": "Demo.Foreign.Static"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Demo.Foreign.Listed"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Demo.Foreign.Own"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Demo.Foreign.Disk"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        4,
+        6
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "Demo.Foreign.Unknown"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Counter"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Counting"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        6
+      ],
+      "operators": [
+        5,
+        9
+      ],
+      "symbol": "Demo.Counting.Bump"
+    }
+  ],
+  "loc": 49,
+  "references": [
+    {
+      "at": "4:20",
+      "from": "Demo.Entry.Child",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Inner"
+    },
+    {
+      "at": "8:11",
+      "from": "Demo.Holder.Settings",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Settings"
+    },
+    {
+      "at": "9:11",
+      "from": "Demo.Holder.Pick",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Entry"
+    },
+    {
+      "at": "14:24",
+      "from": "Demo.Reader.Negated",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Holder"
+    },
+    {
+      "at": "14:40",
+      "from": "Demo.Reader.Negated",
+      "kind": "read",
+      "receiver": "typed Holder",
+      "target": "Settings"
+    },
+    {
+      "at": "14:49",
+      "from": "Demo.Reader.Negated",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "Enabled"
+    },
+    {
+      "at": "15:22",
+      "from": "Demo.Reader.Chain",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Entry"
+    },
+    {
+      "at": "15:44",
+      "from": "Demo.Reader.Chain",
+      "kind": "read",
+      "receiver": "typed Entry",
+      "target": "IsActive"
+    },
+    {
+      "at": "16:21",
+      "from": "Demo.Reader.Deep",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Entry"
+    },
+    {
+      "at": "16:35",
+      "from": "Demo.Reader.Deep",
+      "kind": "read",
+      "receiver": "typed Entry",
+      "target": "Child"
+    },
+    {
+      "at": "16:41",
+      "from": "Demo.Reader.Deep",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "IsOpen"
+    },
+    {
+      "at": "17:22",
+      "from": "Demo.Reader.Twice",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Holder"
+    },
+    {
+      "at": "17:41",
+      "from": "Demo.Reader.Twice",
+      "kind": "read",
+      "receiver": "typed Holder",
+      "target": "Settings"
+    },
+    {
+      "at": "17:50",
+      "from": "Demo.Reader.Twice",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "Enabled"
+    },
+    {
+      "at": "17:83",
+      "from": "Demo.Reader.Twice",
+      "kind": "read",
+      "receiver": "typed Holder",
+      "target": "Settings"
+    },
+    {
+      "at": "17:92",
+      "from": "Demo.Reader.Twice",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "Enabled"
+    },
+    {
+      "at": "18:21",
+      "from": "Demo.Reader.Both",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Entry"
+    },
+    {
+      "at": "18:38",
+      "from": "Demo.Reader.Both",
+      "kind": "read",
+      "receiver": "typed Entry",
+      "target": "IsActive"
+    },
+    {
+      "at": "18:52",
+      "from": "Demo.Reader.Both",
+      "kind": "read",
+      "receiver": "typed Entry",
+      "target": "Child"
+    },
+    {
+      "at": "18:58",
+      "from": "Demo.Reader.Both",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "IsOpen"
+    },
+    {
+      "at": "19:25",
+      "from": "Demo.Reader.Returned",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Holder"
+    },
+    {
+      "at": "19:46",
+      "from": "Demo.Reader.Returned",
+      "kind": "read",
+      "receiver": "typed Holder",
+      "target": "Settings"
+    },
+    {
+      "at": "19:55",
+      "from": "Demo.Reader.Returned",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "Enabled"
+    },
+    {
+      "at": "20:23",
+      "from": "Demo.Reader.Picked",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Holder"
+    },
+    {
+      "at": "20:38",
+      "from": "Demo.Reader.Picked",
+      "kind": "call",
+      "receiver": "typed Holder",
+      "target": "Pick"
+    },
+    {
+      "at": "20:45",
+      "from": "Demo.Reader.Picked",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "IsActive"
+    },
+    {
+      "at": "21:22",
+      "from": "Demo.Reader.Local",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Holder"
+    },
+    {
+      "at": "21:44",
+      "from": "Demo.Reader.Local",
+      "kind": "call",
+      "receiver": "typed Holder",
+      "target": "Pick"
+    },
+    {
+      "at": "21:62",
+      "from": "Demo.Reader.Local",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "IsActive"
+    },
+    {
+      "at": "28:21",
+      "from": "Demo.Consumer",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IStore"
+    },
+    {
+      "at": "29:20",
+      "from": "Demo.Consumer.Consumer",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IStore"
+    },
+    {
+      "at": "29:36",
+      "from": "Demo.Consumer.Consumer",
+      "kind": "write",
+      "receiver": null,
+      "target": "_store"
+    },
+    {
+      "at": "30:23",
+      "from": "Demo.Consumer.Go",
+      "kind": "read",
+      "receiver": null,
+      "target": "_store"
+    },
+    {
+      "at": "30:30",
+      "from": "Demo.Consumer.Go",
+      "kind": "call",
+      "receiver": "typed IStore",
+      "target": "Load"
+    },
+    {
+      "at": "35:21",
+      "from": "Demo.ConsumerTests",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IStore"
+    },
+    {
+      "at": "35:36",
+      "from": "Demo.ConsumerTests._stub",
+      "kind": "read",
+      "receiver": null,
+      "target": "Substitute"
+    },
+    {
+      "at": "35:47",
+      "from": "Demo.ConsumerTests._stub",
+      "kind": "call",
+      "receiver": "named Substitute",
+      "target": "For"
+    },
+    {
+      "at": "35:51",
+      "from": "Demo.ConsumerTests._stub",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IStore"
+    },
+    {
+      "at": "36:41",
+      "from": "Demo.ConsumerTests.Arranged",
+      "kind": "read",
+      "receiver": null,
+      "target": "Substitute"
+    },
+    {
+      "at": "36:52",
+      "from": "Demo.ConsumerTests.Arranged",
+      "kind": "call",
+      "receiver": "named Substitute",
+      "target": "For"
+    },
+    {
+      "at": "36:56",
+      "from": "Demo.ConsumerTests.Arranged",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IStore"
+    },
+    {
+      "at": "36:73",
+      "from": "Demo.ConsumerTests.Arranged",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "Load"
+    },
+    {
+      "at": "36:83",
+      "from": "Demo.ConsumerTests.Arranged",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "Returns"
+    },
+    {
+      "at": "37:26",
+      "from": "Demo.ConsumerTests.Field",
+      "kind": "read",
+      "receiver": null,
+      "target": "_stub"
+    },
+    {
+      "at": "37:32",
+      "from": "Demo.ConsumerTests.Field",
+      "kind": "call",
+      "receiver": "typed IStore",
+      "target": "Load"
+    },
+    {
+      "at": "37:37",
+      "from": "Demo.ConsumerTests.Field",
+      "kind": "read",
+      "receiver": null,
+      "target": "Arg"
+    },
+    {
+      "at": "37:41",
+      "from": "Demo.ConsumerTests.Field",
+      "kind": "call",
+      "receiver": "named Arg",
+      "target": "Any"
+    },
+    {
+      "at": "37:56",
+      "from": "Demo.ConsumerTests.Field",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "Returns"
+    },
+    {
+      "at": "37:68",
+      "from": "Demo.ConsumerTests.Field",
+      "kind": "read",
+      "receiver": null,
+      "target": "_stub"
+    },
+    {
+      "at": "37:74",
+      "from": "Demo.ConsumerTests.Field",
+      "kind": "call",
+      "receiver": "typed IStore",
+      "target": "Load"
+    },
+    {
+      "at": "38:28",
+      "from": "Demo.ConsumerTests.Wrapped",
+      "kind": "read",
+      "receiver": null,
+      "target": "Assert"
+    },
+    {
+      "at": "38:35",
+      "from": "Demo.ConsumerTests.Wrapped",
+      "kind": "call",
+      "receiver": "named Assert",
+      "target": "True"
+    },
+    {
+      "at": "38:44",
+      "from": "Demo.ConsumerTests.Wrapped",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Consumer"
+    },
+    {
+      "at": "38:53",
+      "from": "Demo.ConsumerTests.Wrapped",
+      "kind": "read",
+      "receiver": null,
+      "target": "_stub"
+    },
+    {
+      "at": "38:60",
+      "from": "Demo.ConsumerTests.Wrapped",
+      "kind": "call",
+      "receiver": "typed Consumer",
+      "target": "Go"
+    },
+    {
+      "at": "46:36",
+      "from": "Demo.Foreign.Static",
+      "kind": "read",
+      "receiver": null,
+      "target": "File"
+    },
+    {
+      "at": "46:41",
+      "from": "Demo.Foreign.Static",
+      "kind": "call",
+      "receiver": "named File",
+      "target": "Exists"
+    },
+    {
+      "at": "46:54",
+      "from": "Demo.Foreign.Static",
+      "kind": "read",
+      "receiver": null,
+      "target": "Directory"
+    },
+    {
+      "at": "46:64",
+      "from": "Demo.Foreign.Static",
+      "kind": "call",
+      "receiver": "named Directory",
+      "target": "Exists"
+    },
+    {
+      "at": "47:22",
+      "from": "Demo.Foreign.Listed",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "List"
+    },
+    {
+      "at": "47:51",
+      "from": "Demo.Foreign.Listed",
+      "kind": "call",
+      "receiver": "typed List",
+      "target": "IndexOf"
+    },
+    {
+      "at": "48:19",
+      "from": "Demo.Foreign.Own",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Index"
+    },
+    {
+      "at": "48:41",
+      "from": "Demo.Foreign.Own",
+      "kind": "call",
+      "receiver": "typed Index",
+      "target": "IndexOf"
+    },
+    {
+      "at": "49:21",
+      "from": "Demo.Foreign.Disk",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IDisk"
+    },
+    {
+      "at": "49:41",
+      "from": "Demo.Foreign.Disk",
+      "kind": "call",
+      "receiver": "typed IDisk",
+      "target": "Exists"
+    },
+    {
+      "at": "50:44",
+      "from": "Demo.Foreign.Unknown",
+      "kind": "call",
+      "receiver": null,
+      "target": "Open"
+    },
+    {
+      "at": "50:62",
+      "from": "Demo.Foreign.Unknown",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "Exists"
+    },
+    {
+      "at": "57:21",
+      "from": "Demo.Counting.Bump",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Counter"
+    },
+    {
+      "at": "57:36",
+      "from": "Demo.Counting.Bump",
+      "kind": "write",
+      "receiver": "typed Counter",
+      "target": "Total"
+    },
+    {
+      "at": "57:49",
+      "from": "Demo.Counting.Bump",
+      "kind": "write",
+      "receiver": "typed Counter",
+      "target": "Step"
+    },
+    {
+      "at": "57:57",
+      "from": "Demo.Counting.Bump",
+      "kind": "write",
+      "receiver": "typed Counter",
+      "target": "Step"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "records.cs",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-59:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "Demo",
+      "parent": "records.cs",
+      "signature": null,
+      "span": "0:0-59:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "record",
+      "name": "Demo.Settings",
+      "parent": "Demo",
+      "signature": null,
+      "span": "2:0-2:50",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Settings.Enabled",
+      "parent": "Demo.Settings",
+      "signature": null,
+      "span": "2:23-2:35",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Settings.Name",
+      "parent": "Demo.Settings",
+      "signature": null,
+      "span": "2:37-2:48",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "record",
+      "name": "Demo.Inner",
+      "parent": "Demo",
+      "signature": null,
+      "span": "3:0-3:44",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Inner.Start",
+      "parent": "Demo.Inner",
+      "signature": null,
+      "span": "3:20-3:29",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Inner.IsOpen",
+      "parent": "Demo.Inner",
+      "signature": null,
+      "span": "3:31-3:42",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "record",
+      "name": "Demo.Entry",
+      "parent": "Demo",
+      "signature": null,
+      "span": "4:0-4:48",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Entry.Child",
+      "parent": "Demo.Entry",
+      "signature": null,
+      "span": "4:20-4:31",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Entry.IsActive",
+      "parent": "Demo.Entry",
+      "signature": null,
+      "span": "4:33-4:46",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Holder",
+      "parent": "Demo",
+      "signature": null,
+      "span": "6:0-10:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Holder.Settings",
+      "parent": "Demo.Holder",
+      "signature": null,
+      "span": "8:4-8:37",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Holder.Pick",
+      "parent": "Demo.Holder",
+      "signature": "public Entry Pick()",
+      "span": "9:4-9:32",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Reader",
+      "parent": "Demo",
+      "signature": null,
+      "span": "12:0-22:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Reader.Negated",
+      "parent": "Demo.Reader",
+      "signature": "public bool Negated(Holder h)",
+      "span": "14:4-14:57",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Reader.Chain",
+      "parent": "Demo.Reader",
+      "signature": "public bool Chain(Entry entry)",
+      "span": "15:4-15:53",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Reader.Deep",
+      "parent": "Demo.Reader",
+      "signature": "public bool Deep(Entry a)",
+      "span": "16:4-16:48",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Reader.Twice",
+      "parent": "Demo.Reader",
+      "signature": "public bool Twice(Holder x)",
+      "span": "17:4-17:102",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Reader.Both",
+      "parent": "Demo.Reader",
+      "signature": "public bool Both(Entry c)",
+      "span": "18:4-18:94",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Reader.Returned",
+      "parent": "Demo.Reader",
+      "signature": "public bool Returned(Holder h)",
+      "span": "19:4-19:65",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Reader.Picked",
+      "parent": "Demo.Reader",
+      "signature": "public bool Picked(Holder h)",
+      "span": "20:4-20:54",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Reader.Local",
+      "parent": "Demo.Reader",
+      "signature": "public bool Local(Holder h)",
+      "span": "21:4-21:73",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "Demo.IStore",
+      "parent": "Demo",
+      "signature": null,
+      "span": "24:0-24:49",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.IStore.Load",
+      "parent": "Demo.IStore",
+      "signature": "int Load(string key);",
+      "span": "24:26-24:47",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Consumer",
+      "parent": "Demo",
+      "signature": null,
+      "span": "26:0-31:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Demo.Consumer._store",
+      "parent": "Demo.Consumer",
+      "signature": null,
+      "span": "28:28-28:34",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "constructor",
+      "name": "Demo.Consumer.Consumer",
+      "parent": "Demo.Consumer",
+      "signature": "public Consumer(IStore store)",
+      "span": "29:4-29:53",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Consumer.Go",
+      "parent": "Demo.Consumer",
+      "signature": "public int Go()",
+      "span": "30:4-30:40",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.ConsumerTests",
+      "parent": "Demo",
+      "signature": null,
+      "span": "33:0-39:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Demo.ConsumerTests._stub",
+      "parent": "Demo.ConsumerTests",
+      "signature": null,
+      "span": "35:28-35:60",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.ConsumerTests.Arranged",
+      "parent": "Demo.ConsumerTests",
+      "signature": "public void Arranged()",
+      "span": "36:4-36:96",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.ConsumerTests.Field",
+      "parent": "Demo.ConsumerTests",
+      "signature": "public void Field()",
+      "span": "37:4-37:86",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.ConsumerTests.Wrapped",
+      "parent": "Demo.ConsumerTests",
+      "signature": "public void Wrapped()",
+      "span": "38:4-38:73",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "Demo.IDisk",
+      "parent": "Demo",
+      "signature": null,
+      "span": "41:0-41:52",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.IDisk.Exists",
+      "parent": "Demo.IDisk",
+      "signature": "bool Exists(string path);",
+      "span": "41:25-41:50",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Index",
+      "parent": "Demo",
+      "signature": null,
+      "span": "42:0-42:59",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Index.IndexOf",
+      "parent": "Demo.Index",
+      "signature": "public int IndexOf(string key)",
+      "span": "42:21-42:57",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Foreign",
+      "parent": "Demo",
+      "signature": null,
+      "span": "44:0-51:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Foreign.Static",
+      "parent": "Demo.Foreign",
+      "signature": "public bool Static(string p)",
+      "span": "46:4-46:74",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Foreign.Listed",
+      "parent": "Demo.Foreign",
+      "signature": "public int Listed(List<string> names)",
+      "span": "47:4-47:64",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Foreign.Own",
+      "parent": "Demo.Foreign",
+      "signature": "public int Own(Index index)",
+      "span": "48:4-48:54",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Foreign.Disk",
+      "parent": "Demo.Foreign",
+      "signature": "public bool Disk(IDisk disk)",
+      "span": "49:4-49:53",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Foreign.Unknown",
+      "parent": "Demo.Foreign",
+      "signature": "public bool Unknown(string p)",
+      "span": "50:4-50:74",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Counter",
+      "parent": "Demo",
+      "signature": null,
+      "span": "53:0-53:72",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Counter.Total",
+      "parent": "Demo.Counter",
+      "signature": null,
+      "span": "53:23-53:53",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Demo.Counter.Step",
+      "parent": "Demo.Counter",
+      "signature": null,
+      "span": "53:65-53:69",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Counting",
+      "parent": "Demo",
+      "signature": null,
+      "span": "55:0-58:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Counting.Bump",
+      "parent": "Demo.Counting",
+      "signature": "public void Bump(Counter c)",
+      "span": "57:4-57:66",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

@@ -34,6 +34,29 @@ describe("buildIndex", () => {
     });
   });
 
+  it("counts two overloads apart when the annotations name their parameters", () => {
+    const named = (parameters: string[], over: Partial<SummaryRow>): SummaryRow =>
+      row("A.f", { ...over, target: { kind: "method", name: "A.f", parameters } });
+    const index = buildIndex([
+      named(["int x"], { notes: 1 }),
+      named(["int x", "string s"], { critical: true }),
+    ]);
+    const short = countersOf(index, { kind: "method", name: "A.f", parameters: ["int x"] });
+    const long = countersOf(index, {
+      kind: "method",
+      name: "A.f",
+      parameters: ["int x", "string s"],
+    });
+    expect(short).toMatchObject({ critical: false, notes: 1 });
+    expect(long).toMatchObject({ critical: true, notes: 0 });
+  });
+
+  it("falls back to an annotation without parameters, made before overloads were told apart", () => {
+    const index = buildIndex([row("A.f", { notes: 4 })]);
+    const target = { kind: "method", name: "A.f", parameters: ["int x"] };
+    expect(countersOf(index, target)).toMatchObject({ notes: 4 });
+  });
+
   it("leaves out a symbol that is gone from the snapshot", () => {
     const index = buildIndex([row("A.g", { critical: true, without_target: true })]);
     expect(index.exact.size).toBe(0);

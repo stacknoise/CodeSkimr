@@ -9,7 +9,9 @@ use std::cell::Cell;
 use rusqlite::Row;
 use rusqlite::types::FromSql;
 
-use crate::consts::{COLUMN_STEP, FIRST_COLUMN, FIRST_POSITION};
+use crate::consts::{
+    COLUMN_STEP, FIRST_COLUMN, FIRST_POSITION, JSON_LIST_CLOSE, JSON_LIST_OPEN, JSON_LIST_SEPARATOR,
+};
 use crate::error::{StorageError, StorageResult};
 
 /// An id or count as a column value.
@@ -116,4 +118,26 @@ impl<'a> Cols<'a> {
 /// Positions 0, 1, 2, ... for ordered child rows.
 pub fn ordinals() -> impl Iterator<Item = i64> {
     FIRST_POSITION..
+}
+
+/// A list of numbers as the JSON text that `json_each` reads, so one statement takes any number
+/// of values.
+pub(crate) fn json_list(values: impl Iterator<Item = i64>) -> String {
+    let items: Vec<String> = values.map(|value| value.to_string()).collect();
+    format!(
+        "{JSON_LIST_OPEN}{}{JSON_LIST_CLOSE}",
+        items.join(&JSON_LIST_SEPARATOR.to_string())
+    )
+}
+
+/// Ids as the JSON text that `json_each` reads.
+///
+/// # Errors
+/// `OutOfRange` for an id beyond the column range.
+pub(crate) fn id_list(ids: impl Iterator<Item = u64>) -> StorageResult<String> {
+    let mut columns = Vec::new();
+    for id in ids {
+        columns.push(column_int(id)?);
+    }
+    Ok(json_list(columns.into_iter()))
 }

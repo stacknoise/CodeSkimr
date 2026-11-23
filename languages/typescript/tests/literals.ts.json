@@ -1,0 +1,279 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 38,
+      "operands": null,
+      "operators": null,
+      "symbol": "literals"
+    },
+    {
+      "decisions": 1,
+      "loc": 7,
+      "operands": [
+        6,
+        9
+      ],
+      "operators": [
+        6,
+        7
+      ],
+      "symbol": "literals.clean"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        2,
+        4
+      ],
+      "symbol": "literals.numbers"
+    },
+    {
+      "decisions": 0,
+      "loc": 4,
+      "operands": [
+        6,
+        7
+      ],
+      "operators": [
+        2,
+        4
+      ],
+      "symbol": "literals.strings"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        4,
+        7
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "literals.types"
+    },
+    {
+      "decisions": 2,
+      "loc": 4,
+      "operands": [
+        8,
+        10
+      ],
+      "operators": [
+        4,
+        6
+      ],
+      "symbol": "literals.flags"
+    },
+    {
+      "decisions": 0,
+      "loc": 4,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "literals.register"
+    },
+    {
+      "decisions": null,
+      "loc": 7,
+      "operands": null,
+      "operators": null,
+      "symbol": "literals.Holder"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "literals.Holder.method"
+    },
+    {
+      "decisions": 0,
+      "loc": 6,
+      "operands": [
+        8,
+        11
+      ],
+      "operators": [
+        4,
+        5
+      ],
+      "symbol": "literals.localConst"
+    }
+  ],
+  "loc": 38,
+  "references": [
+    {
+      "at": "8:28",
+      "from": "literals.clean",
+      "kind": "read",
+      "receiver": null,
+      "target": "item"
+    },
+    {
+      "at": "8:33",
+      "from": "literals.clean",
+      "kind": "read",
+      "receiver": "named item",
+      "target": "length"
+    },
+    {
+      "at": "26:38",
+      "from": "literals.flags",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "other"
+    },
+    {
+      "at": "30:8",
+      "from": "literals.register",
+      "kind": "call",
+      "receiver": "typed string[]",
+      "target": "push"
+    },
+    {
+      "at": "37:3",
+      "from": "literals.Holder",
+      "kind": "call",
+      "receiver": null,
+      "target": "Dec"
+    },
+    {
+      "at": "47:27",
+      "from": "literals.localConst",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "length"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "literals",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-49:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.clean",
+      "parent": "literals",
+      "signature": "function clean(items: number[]): number",
+      "span": "3:7-9:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.numbers",
+      "parent": "literals",
+      "signature": "function numbers(): number",
+      "span": "11:7-13:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.strings",
+      "parent": "literals",
+      "signature": "function strings(name: string): string",
+      "span": "15:7-18:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.types",
+      "parent": "literals",
+      "signature": "function types(kind: \"a\" | \"b\", count: 3 = 3): \"a\" | \"b\"",
+      "span": "20:7-22:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.flags",
+      "parent": "literals",
+      "signature": "function flags(value?: object): boolean",
+      "span": "24:7-27:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.register",
+      "parent": "literals",
+      "signature": "function register(items: string[]): void",
+      "span": "29:0-32:1",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "literals.Holder",
+      "parent": "literals",
+      "signature": null,
+      "span": "34:7-41:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "literals.Holder.LIMIT",
+      "parent": "literals.Holder",
+      "signature": null,
+      "span": "35:2-35:19",
+      "static": true,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "literals.Holder.method",
+      "parent": "literals.Holder",
+      "signature": "method(): number[]",
+      "span": "38:2-40:3",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.localConst",
+      "parent": "literals",
+      "signature": "function localConst(): number",
+      "span": "43:7-48:1",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

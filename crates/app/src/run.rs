@@ -12,8 +12,8 @@ use codeskimr_cli::{
     Action, CliError, CredentialAction, ExportArgs, Invocation, Level2Action, OpenArgs, Parsed,
     ScanArgs, ScanSummary, StartArgs, check_json, check_text, credential_deleted,
     credential_stored, device_prompt, error_line, export_written, from_ui_notice, from_ui_wait,
-    language_from, level2_confirmed, level2_declined, level2_revoked, open_ready, parse,
-    scan_finished, scan_json, scan_started, secret_prompt, serve_started, start_keep_open,
+    language_from, level2_confirmed, level2_declined, level2_revoked, open_ready, open_url_warning,
+    parse, scan_finished, scan_json, scan_started, secret_prompt, serve_started, start_keep_open,
     start_tray, tray_labels, watch_started, watch_updated,
 };
 use codeskimr_codes::i18n::{CLI_CREDENTIAL_UNUSABLE_HINT, CLI_CREDENTIALS_HINT};
@@ -316,10 +316,18 @@ fn run_open(
     env: Lookup<'_>,
     (messages, language): (&Messages, &str),
 ) -> Result<Outcome, Failure> {
-    let announce = |ready: &open::Ready<'_>| {
-        let path = ready.path.display().to_string();
-        if let Ok(line) = open_ready(messages, language, &path, ready.seconds) {
-            write_out(&line);
+    let announce = |ready: &open::Ready<'_>| match ready {
+        open::Ready::File { path, seconds } => {
+            let path = path.display().to_string();
+            if let Ok(line) = open_ready(messages, language, &path, *seconds) {
+                write_out(&line);
+            }
+        }
+        open::Ready::Url { url, seconds } => {
+            if let Ok(line) = open_url_warning(messages, language, *seconds) {
+                write_err(&line);
+            }
+            write_out(url);
         }
     };
     open::run(args, &invocation.global, locations, env, announce)?;
@@ -409,7 +417,10 @@ fn run_console_start(
         if let Ok(line) = start_keep_open(messages, language) {
             write_out(&line);
         }
-        let args = OpenArgs { no_browser: false };
+        let args = OpenArgs {
+            no_browser: false,
+            print_url: false,
+        };
         run_open(args, invocation, locations, env, (messages, language)).map(|_| ())
     };
     let failed = |failure: Failure| {

@@ -21,6 +21,7 @@ fn marker(verdict: &Verdict) -> String {
     match verdict {
         Verdict::Ok => text::OK.to_owned(),
         Verdict::Regression(change) => format!("{} (+{change:.1} %)", text::REGRESSION),
+        Verdict::Accepted(change) => format!("{} (+{change:.1} %)", text::ACCEPTED),
         Verdict::OverBudget(budget) => format!("{} (budget {budget} ms)", text::OVER_BUDGET),
         Verdict::NewBench => text::NEW_BENCH.to_owned(),
         Verdict::Removed => text::REMOVED.to_owned(),

@@ -238,7 +238,7 @@
       "kind": "function",
       "name": "component.Greeting",
       "parent": "component",
-      "signature": null,
+      "signature": "function Greeting({ name }: { name: string })",
       "span": "3:7-6:1",
       "static": false,
       "visibility": "public"
@@ -258,7 +258,7 @@
       "kind": "method",
       "name": "component.Panel.render",
       "parent": "component.Panel",
-      "signature": null,
+      "signature": "render()",
       "span": "10:2-12:3",
       "static": false,
       "visibility": "public"
@@ -268,7 +268,7 @@
       "kind": "function",
       "name": "component.Card",
       "parent": "component",
-      "signature": null,
+      "signature": "(props: Props) =>",
       "span": "15:20-15:79",
       "static": false,
       "visibility": "public"
@@ -288,7 +288,7 @@
       "kind": "function",
       "name": "component.Row",
       "parent": "component",
-      "signature": null,
+      "signature": "function Row(props: { id: string })",
       "span": "19:0-21:1",
       "static": false,
       "visibility": "private"
@@ -298,7 +298,7 @@
       "kind": "function",
       "name": "component.Item",
       "parent": "component",
-      "signature": null,
+      "signature": "(props: { id: string }) =>",
       "span": "23:13-23:61",
       "static": false,
       "visibility": "private"
@@ -308,7 +308,7 @@
       "kind": "function",
       "name": "component.List",
       "parent": "component",
-      "signature": null,
+      "signature": "function List()",
       "span": "25:7-34:1",
       "static": false,
       "visibility": "public"

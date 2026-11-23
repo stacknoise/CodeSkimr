@@ -8,3 +8,11 @@
 (arguments (as_expression [(function_expression) (generator_function)] @nesting))
 (arguments (satisfies_expression [(function_expression) (generator_function)] @nesting))
 (arguments (non_null_expression [(function_expression) (generator_function)] @nesting))
+
+; Literals (ADR 0058) in the places the shared file cannot name: a literal in a JSX expression, and
+; one behind `as`, `satisfies` or `!`.
+[
+  (jsx_expression [(number) (string) (template_string)] @literal)
+  (as_expression . [(number) (string) (template_string)] @literal)
+  (satisfies_expression . [(number) (string) (template_string)] @literal)
+  (non_null_expression [(number) (string) (template_string)] @literal)]

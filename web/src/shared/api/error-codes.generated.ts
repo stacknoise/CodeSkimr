@@ -22,6 +22,7 @@ export type ErrorCode =
   | "PRJ-303"
   | "PRJ-501"
   | "PRJ-502"
+  | "PRJ-503"
   | "SRC-201"
   | "SRC-202"
   | "SRC-401"
@@ -29,6 +30,7 @@ export type ErrorCode =
   | "SRC-601"
   | "SRC-602"
   | "PRS-101"
+  | "PRS-102"
   | "PRS-201"
   | "PRS-301"
   | "PRS-501"
@@ -37,6 +39,7 @@ export type ErrorCode =
   | "RES-301"
   | "RES-302"
   | "RES-303"
+  | "RES-304"
   | "RES-501"
   | "RES-502"
   | "RES-503"
@@ -82,6 +85,8 @@ export type ErrorCode =
   | "CLI-103"
   | "I18N-201"
   | "EXP-201"
+  | "EXP-501"
+  | "EXP-502"
   | "EXP-601"
   | "ANN-101"
   | "ANN-102"
@@ -119,7 +124,7 @@ export interface ErrorCodeInfo {
 export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "APP-201": { id: "APP-201", name: "data_dir_unavailable", group: "APP", class: "not_found", severity: "error", retryable: false, description: "The user data directory cannot be created or opened.", since: "0.1.0", deprecated: false, messageKey: "error-APP-201" },
   "APP-202": { id: "APP-202", name: "launch_file_unavailable", group: "APP", class: "not_found", severity: "error", retryable: true, description: "The private file for starting the browser could not be created.", since: "0.1.0", deprecated: false, messageKey: "error-APP-202" },
-  "APP-301": { id: "APP-301", name: "instance_already_running", group: "APP", class: "conflict", severity: "error", retryable: false, description: "Another CodeSkimr instance holds the workspace; connecting to it failed.", since: "0.1.0", deprecated: false, messageKey: "error-APP-301" },
+  "APP-301": { id: "APP-301", name: "instance_already_running", group: "APP", class: "conflict", severity: "error", retryable: false, description: "Another CodeSkimr instance holds the workspace; connecting to it failed.", since: "0.1.0", deprecated: true, messageKey: "error-APP-301" },
   "APP-901": { id: "APP-901", name: "unexpected_internal_error", group: "APP", class: "internal", severity: "error", retryable: false, description: "An unexpected internal error occurred (bug).", since: "0.1.0", deprecated: false, messageKey: "error-APP-901" },
   "APP-601": { id: "APP-601", name: "browser_start_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The system did not start a browser for the launch file.", since: "0.1.0", deprecated: false, messageKey: "error-APP-601" },
   "APP-602": { id: "APP-602", name: "language_packs_unavailable", group: "APP", class: "external", severity: "error", retryable: true, description: "The language packs built into the program could not be written to the data directory.", since: "0.1.0", deprecated: false, messageKey: "error-APP-602" },
@@ -137,6 +142,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "PRJ-303": { id: "PRJ-303", name: "scan_cancelled", group: "PRJ", class: "conflict", severity: "info", retryable: true, description: "The scan was cancelled by the user; no snapshot was written.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-303" },
   "PRJ-501": { id: "PRJ-501", name: "too_many_scans", group: "PRJ", class: "limit", severity: "error", retryable: true, description: "As many scans run at the same time as the server allows; try again when one has ended.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-501" },
   "PRJ-502": { id: "PRJ-502", name: "scan_report_not_stored", group: "PRJ", class: "limit", severity: "warning", retryable: false, description: "The report of the scan (its level and what level 2 did per language) could not be stored; the scan and its snapshot are stored.", since: "0.9.0", deprecated: false, messageKey: "error-PRJ-502" },
+  "PRJ-503": { id: "PRJ-503", name: "scan_memory_limit", group: "PRJ", class: "limit", severity: "error", retryable: false, description: "The scan added more memory than scan.max_memory_mb allows, or the program passed 70 % of the installed memory, and the scan was stopped before the machine ran out of memory; no snapshot was written (ADR 0087).", since: "1.0.0", deprecated: false, messageKey: "error-PRJ-503" },
   "SRC-201": { id: "SRC-201", name: "source_path_not_found", group: "SRC", class: "not_found", severity: "error", retryable: false, description: "A source folder, a source file or a language pack folder does not exist or cannot be read.", since: "0.1.0", deprecated: false, messageKey: "error-SRC-201" },
   "SRC-202": { id: "SRC-202", name: "git_branch_not_found", group: "SRC", class: "not_found", severity: "error", retryable: false, description: "The requested branch does not exist on the remote.", since: "0.1.0", deprecated: false, messageKey: "error-SRC-202" },
   "SRC-401": { id: "SRC-401", name: "git_auth_required", group: "SRC", class: "permission", severity: "error", retryable: false, description: "The remote requires authentication and no usable credential is available.", since: "0.1.0", deprecated: false, messageKey: "error-SRC-401" },
@@ -144,6 +150,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "SRC-601": { id: "SRC-601", name: "git_fetch_failed", group: "SRC", class: "external", severity: "error", retryable: true, description: "Fetching from the Git remote failed (network or remote error).", since: "0.1.0", deprecated: false, messageKey: "error-SRC-601" },
   "SRC-602": { id: "SRC-602", name: "watcher_failed", group: "SRC", class: "external", severity: "error", retryable: false, description: "The file-system watcher could not be started or stopped unexpectedly.", since: "0.1.0", deprecated: false, messageKey: "error-SRC-602" },
   "PRS-101": { id: "PRS-101", name: "file_encoding_unsupported", group: "PRS", class: "invalid_input", severity: "error", retryable: false, description: "A source file is not valid UTF-8/UTF-16 and was skipped.", since: "0.1.0", deprecated: false, messageKey: "error-PRS-101" },
+  "PRS-102": { id: "PRS-102", name: "file_unreadable", group: "PRS", class: "invalid_input", severity: "error", retryable: true, description: "A source file could not be read during the scan (gone or locked) and was skipped.", since: "1.0.0", deprecated: false, messageKey: "error-PRS-102" },
   "PRS-201": { id: "PRS-201", name: "language_pack_missing", group: "PRS", class: "not_found", severity: "error", retryable: false, description: "No language pack is installed for this file type.", since: "0.1.0", deprecated: false, messageKey: "error-PRS-201" },
   "PRS-301": { id: "PRS-301", name: "language_pack_invalid", group: "PRS", class: "conflict", severity: "error", retryable: false, description: "A language pack's TOML or query files are invalid.", since: "0.1.0", deprecated: false, messageKey: "error-PRS-301" },
   "PRS-501": { id: "PRS-501", name: "parse_timeout", group: "PRS", class: "limit", severity: "error", retryable: false, description: "Parsing a single file exceeded the configured time limit.", since: "0.1.0", deprecated: false, messageKey: "error-PRS-501" },
@@ -152,12 +159,13 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "RES-301": { id: "RES-301", name: "ambiguous_reference", group: "RES", class: "conflict", severity: "warning", retryable: false, description: "A reference matches several symbols; it was stored as probable.", since: "0.1.0", deprecated: false, messageKey: "error-RES-301" },
   "RES-302": { id: "RES-302", name: "scip_mapping_too_low", group: "RES", class: "conflict", severity: "error", retryable: false, description: "Too few occurrences of a SCIP index map onto project symbols; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-302" },
   "RES-303": { id: "RES-303", name: "scip_too_many_created_symbols", group: "RES", class: "conflict", severity: "error", retryable: false, description: "A SCIP index wants level 2 to create more symbols than level2.max_created_symbols allows; the whole import is refused and level 1 stays.", since: "0.1.0", deprecated: false, messageKey: "error-RES-303" },
+  "RES-304": { id: "RES-304", name: "name_too_common", group: "RES", class: "conflict", severity: "warning", retryable: false, description: "A name reaches more symbols than scan.max_candidates and no scope or type narrows it down; the place was given up (ADR 0084).", since: "1.0.0", deprecated: false, messageKey: "error-RES-304" },
   "RES-501": { id: "RES-501", name: "scip_index_too_large", group: "RES", class: "limit", severity: "error", retryable: false, description: "A SCIP index is larger than the configured limit and was refused; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-501" },
   "RES-502": { id: "RES-502", name: "indexer_timeout", group: "RES", class: "limit", severity: "error", retryable: false, description: "An indexer ran longer than level2.timeout_seconds and was stopped with all its child processes; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-502" },
   "RES-503": { id: "RES-503", name: "indexer_output_too_large", group: "RES", class: "limit", severity: "error", retryable: false, description: "An indexer wrote more than level2.max_output_bytes and was stopped; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-503" },
   "RES-504": { id: "RES-504", name: "indexer_memory_limit", group: "RES", class: "limit", severity: "error", retryable: false, description: "An indexer used more memory than level2.max_memory_mb and was stopped; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-504" },
   "RES-601": { id: "RES-601", name: "indexer_failed", group: "RES", class: "external", severity: "error", retryable: false, description: "An indexer could not be started or ended with an error; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-601" },
-  "IDX-301": { id: "IDX-301", name: "read_model_stale", group: "IDX", class: "conflict", severity: "info", retryable: false, description: "A read model is older than the current snapshot and is being rebuilt.", since: "0.1.0", deprecated: false, messageKey: "error-IDX-301" },
+  "IDX-301": { id: "IDX-301", name: "read_model_stale", group: "IDX", class: "conflict", severity: "info", retryable: false, description: "A read model is older than the current snapshot and is being rebuilt.", since: "0.1.0", deprecated: true, messageKey: "error-IDX-301" },
   "STO-301": { id: "STO-301", name: "schema_migration_failed", group: "STO", class: "conflict", severity: "error", retryable: false, description: "Applying a database migration failed.", since: "0.1.0", deprecated: false, messageKey: "error-STO-301" },
   "STO-302": { id: "STO-302", name: "transaction_conflict", group: "STO", class: "conflict", severity: "error", retryable: true, description: "A concurrent write conflicted; the operation can be retried.", since: "0.1.0", deprecated: false, messageKey: "error-STO-302" },
   "STO-501": { id: "STO-501", name: "disk_full", group: "STO", class: "limit", severity: "error", retryable: false, description: "Not enough disk space to persist the snapshot.", since: "0.1.0", deprecated: false, messageKey: "error-STO-501" },
@@ -171,8 +179,8 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "SEC-403": { id: "SEC-403", name: "indexer_not_permitted", group: "SEC", class: "permission", severity: "error", retryable: false, description: "The caller may not confirm or start indexers; only the local owner may (ADR 0033, decision 10).", since: "0.1.0", deprecated: false, messageKey: "error-SEC-403" },
   "SEC-601": { id: "SEC-601", name: "keystore_unavailable", group: "SEC", class: "external", severity: "error", retryable: false, description: "The OS keystore service is not available.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-601" },
   "SEC-901": { id: "SEC-901", name: "memory_lock_failed", group: "SEC", class: "internal", severity: "error", retryable: false, description: "Locking secret memory against swapping failed.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-901" },
-  "NET-501": { id: "NET-501", name: "request_timeout", group: "NET", class: "limit", severity: "error", retryable: true, description: "A request to an external platform timed out.", since: "0.1.0", deprecated: false, messageKey: "error-NET-501" },
-  "NET-502": { id: "NET-502", name: "rate_limited", group: "NET", class: "limit", severity: "error", retryable: true, description: "The external platform rate-limited the request.", since: "0.1.0", deprecated: false, messageKey: "error-NET-502" },
+  "NET-501": { id: "NET-501", name: "request_timeout", group: "NET", class: "limit", severity: "error", retryable: true, description: "A request to an external platform timed out.", since: "0.1.0", deprecated: true, messageKey: "error-NET-501" },
+  "NET-502": { id: "NET-502", name: "rate_limited", group: "NET", class: "limit", severity: "error", retryable: true, description: "The external platform rate-limited the request.", since: "0.1.0", deprecated: true, messageKey: "error-NET-502" },
   "NET-601": { id: "NET-601", name: "oauth_flow_failed", group: "NET", class: "external", severity: "error", retryable: false, description: "The OAuth device flow did not complete.", since: "0.1.0", deprecated: false, messageKey: "error-NET-601" },
   "AUTH-401": { id: "AUTH-401", name: "permission_denied", group: "AUTH", class: "permission", severity: "error", retryable: false, description: "The caller lacks the permission this action needs.", since: "0.1.0", deprecated: false, messageKey: "error-AUTH-401" },
   "API-101": { id: "API-101", name: "request_invalid", group: "API", class: "invalid_input", severity: "error", retryable: false, description: "The REST request failed validation.", since: "0.1.0", deprecated: false, messageKey: "error-API-101" },
@@ -197,6 +205,8 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "CLI-103": { id: "CLI-103", name: "secret_input_invalid", group: "CLI", class: "invalid_input", severity: "error", retryable: false, description: "No secret could be read from the terminal or standard input, or it was empty.", since: "0.1.0", deprecated: false, messageKey: "error-CLI-103" },
   "I18N-201": { id: "I18N-201", name: "message_key_missing", group: "I18N", class: "not_found", severity: "error", retryable: false, description: "A message key is missing for the active language (falls back to English).", since: "0.1.0", deprecated: false, messageKey: "error-I18N-201" },
   "EXP-201": { id: "EXP-201", name: "export_bundle_missing", group: "EXP", class: "not_found", severity: "error", retryable: false, description: "The built export page of the UI is missing or unusable.", since: "0.1.0", deprecated: false, messageKey: "error-EXP-201" },
+  "EXP-501": { id: "EXP-501", name: "export_running", group: "EXP", class: "limit", severity: "error", retryable: true, description: "An export of the same project is already running; try again when it has ended (ADR 0090).", since: "1.0.0", deprecated: false, messageKey: "error-EXP-501" },
+  "EXP-502": { id: "EXP-502", name: "export_too_large", group: "EXP", class: "limit", severity: "error", retryable: false, description: "The project has more references than export.max_references allows, so the export page would be too large for a browser (ADR 0090).", since: "1.0.0", deprecated: false, messageKey: "error-EXP-502" },
   "EXP-601": { id: "EXP-601", name: "export_write_failed", group: "EXP", class: "external", severity: "error", retryable: false, description: "The export file could not be written.", since: "0.1.0", deprecated: false, messageKey: "error-EXP-601" },
   "ANN-101": { id: "ANN-101", name: "annotation_target_not_found", group: "ANN", class: "invalid_input", severity: "error", retryable: false, description: "The symbol an annotation is meant for is not in the newest snapshot of the project.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-101" },
   "ANN-102": { id: "ANN-102", name: "annotation_text_too_long", group: "ANN", class: "invalid_input", severity: "error", retryable: false, description: "The text or the title of an annotation is longer than the configured limit.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-102" },

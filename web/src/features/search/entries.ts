@@ -73,7 +73,12 @@ function commandEntries(commands: readonly UiCommand[], filter: Filter, text: st
   const needle = text.toLowerCase();
   const wanted = filter === FILTER.commands || (filter === FILTER.all && needle !== "");
   return commands
-    .filter((command) => wanted && t(command.label).toLowerCase().includes(needle))
+    .filter(
+      (command) =>
+        wanted &&
+        (command.available?.() ?? true) &&
+        t(command.label).toLowerCase().includes(needle),
+    )
     .map((command) => ({
       key: `${GROUP.commands}-${command.label}`,
       group: GROUP.commands,

@@ -28,3 +28,12 @@ app-action-show-in-graph = Im Graph zeigen
 app-action-copy-name = Namen kopieren
 app-resize-width = Breite ändern (ziehen oder Pfeiltasten)
 app-resize-height = Höhe ändern (ziehen oder Pfeiltasten)
+table-col-resize = Breite der Spalte { $name } ändern (ziehen oder Pfeiltasten)
+table-col-reset-tip = Pos1 oder Doppelklick: alle Spalten dieser Tabelle auf die Ausgangsbreiten
+app-error-title = Etwas ist schiefgelaufen
+app-error-copy = Details kopieren
+app-error-copied = Kopiert
+app-error-retry = Erneut versuchen
+app-error-details = Details zum Kopieren
+
+loading-slow = Lädt noch. Ein großes Projekt braucht einen Moment, weil CodeSkimr zuerst eine Übersicht aufbaut.

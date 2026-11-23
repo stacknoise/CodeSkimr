@@ -1,9 +1,13 @@
 import { I18N_KEYS } from "../shared/i18n/keys";
 import type { MessageKey } from "../shared/i18n/i18n";
+import type { ErrorCode } from "../shared/api/error-codes.generated";
 import type { IconName } from "../shared/ui/Icon";
 
 /** Id of the element the UI is drawn into. */
 export const ROOT_ID = "root";
+
+/** Id of the loading page in `index.html`; the app removes it as soon as it starts. */
+export const BOOT_ID = "boot";
 
 /** The screens of the rail, top to bottom; the settings sit at the bottom (mock 13). */
 export interface Route {
@@ -45,6 +49,13 @@ export const GRAPH_ROUTE: Route = {
   icon: "graph",
   needsProject: true,
 };
+/** The statistics of the project (ADR 0081). */
+export const STATS_ROUTE: Route = {
+  path: "/stats",
+  label: I18N_KEYS.NAV_STATS,
+  icon: "stats",
+  needsProject: true,
+};
 export const SETTINGS_ROUTE: Route = {
   path: "/settings",
   label: I18N_KEYS.NAV_SETTINGS,
@@ -62,6 +73,7 @@ export const PROJECT_PATHS: readonly string[] = [
   GRAPH_ROUTE.path,
   ANNOTATIONS_ROUTE.path,
   SCAN_ROUTE.path,
+  STATS_ROUTE.path,
   USAGES_ROUTE.path,
 ];
 
@@ -70,6 +82,7 @@ export const MAIN_ROUTES: Route[] = [
   PROJECTS_ROUTE,
   EXPLORER_ROUTE,
   GRAPH_ROUTE,
+  STATS_ROUTE,
   ANNOTATIONS_ROUTE,
   SCAN_ROUTE,
 ];
@@ -100,3 +113,14 @@ export const FLUSH_PATHS: readonly string[] = [
   GRAPH_ROUTE.path,
   USAGES_ROUTE.path,
 ];
+
+/** How long the button of an error panel says that the details were copied. */
+export const ERROR_COPIED_MS = 2000;
+/** The line in the console and in the copied details that names the code. */
+export const ERROR_CODE_FIELD = "code";
+/** Separates the lines of the copied details. */
+export const DETAILS_SEPARATOR = "\n";
+/** The code of an exception nobody expected: it is a bug (blueprint 11.6, E-03). */
+export const UNEXPECTED_CODE: ErrorCode = "UI-901";
+/** Height of the box that shows the details when they cannot be copied. */
+export const DETAILS_ROWS = 4;

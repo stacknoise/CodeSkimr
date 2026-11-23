@@ -7,18 +7,19 @@ mod tests {
     use codeskimr_application::cancel::CancelToken;
     use codeskimr_application::config::Conventions;
     use codeskimr_application::conventions::{
-        CheckRequest, ConventionChecker, Detail, StoredProject,
+        CheckReport, CheckRequest, ConventionChecker, Detail, StoredProject,
     };
     use codeskimr_application::error::CodedError;
     use codeskimr_application::ports::{
         AnalyzeRequest, DiscoveredFile, Excerpt, FileAnalyzer, FileDiscovery, FileFacts,
-        SimilarHit, SimilarQuery, SimilarityIndex, SourceText, SymbolFingerprints,
+        ReferenceSite, ReferenceSites, SimilarHit, SimilarQuery, SimilarityIndex, SourceText,
+        SymbolFingerprints,
     };
     use codeskimr_codes::{Coded, ErrorCode};
     use codeskimr_domain::{
-        BodyCounts, ContentHash, FingerprintParams, FolderPath, LanguageId, Loc, Permission,
-        PermissionSet, Position, Principal, QualifiedName, RelativePath, SnapshotId, SourceFile,
-        Span, Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, TokenId, winnow,
+        BodyCounts, ContentHash, FingerprintParams, FolderPath, LanguageId, Layer, LayerName, Loc,
+        Permission, PermissionSet, Position, Principal, QualifiedName, RelativePath, SnapshotId,
+        SourceFile, Span, Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, TokenId, winnow,
     };
 
     /// What the fake analyser finds in a file: code lines and the seed of its token stream.
@@ -548,7 +549,10 @@ mod tests {
                 Detail::Duplicate { of, .. } => {
                     Some((finding.location.path.as_str(), of.path.as_str()))
                 }
-                Detail::TooLong { .. } | Detail::Over { .. } | Detail::Literals { .. } => None,
+                Detail::TooLong { .. }
+                | Detail::Over { .. }
+                | Detail::Literals { .. }
+                | Detail::Layering { .. } => None,
             })
             .collect();
         assert_eq!(found, [("b.rs", "a.rs"), ("c.rs", "a.rs")]);
@@ -572,6 +576,19 @@ mod tests {
             _: &SimilarQuery<'_>,
         ) -> Result<Vec<SimilarHit>, CodedError> {
             Ok(self.0.clone())
+        }
+    }
+
+    /// A stored project without references.
+    struct NoReferences;
+
+    impl ReferenceSites for NoReferences {
+        fn references_from(
+            &self,
+            _: SnapshotId,
+            _: &[RelativePath],
+        ) -> Result<Vec<ReferenceSite>, CodedError> {
+            Ok(Vec::new())
         }
     }
 
@@ -601,6 +618,8 @@ mod tests {
             paths: &[],
             stored: Some(StoredProject {
                 index: stored,
+                references: &NoReferences,
+                layers: &[],
                 snapshot: SnapshotId::new(1),
             }),
         };
@@ -613,7 +632,10 @@ mod tests {
                     finding.location.path.as_str().to_owned(),
                     of.path.as_str().to_owned(),
                 )),
-                Detail::TooLong { .. } | Detail::Over { .. } | Detail::Literals { .. } => None,
+                Detail::TooLong { .. }
+                | Detail::Over { .. }
+                | Detail::Literals { .. }
+                | Detail::Layering { .. } => None,
             })
             .collect()
     }
@@ -655,6 +677,8 @@ mod tests {
             paths: &[],
             stored: Some(StoredProject {
                 index: &stored,
+                references: &NoReferences,
+                layers: &[],
                 snapshot: SnapshotId::new(1),
             }),
         };
@@ -764,5 +788,122 @@ mod tests {
             run(&checker, Principal::local_owner(), &["src/a", "src/ab.rs"]).expect("checked");
         assert_eq!(report.unmatched, ["src/a"]);
         assert_eq!(report.files_checked, 1);
+    }
+
+    /// Stored references: the pairs `(from, to)`, all of them in the file that is asked for.
+    struct References(Vec<(&'static str, &'static str)>);
+
+    impl ReferenceSites for References {
+        fn references_from(
+            &self,
+            _: SnapshotId,
+            files: &[RelativePath],
+        ) -> Result<Vec<ReferenceSite>, CodedError> {
+            let span = Span::new(
+                Position { line: 2, column: 0 },
+                Position { line: 4, column: 1 },
+            )
+            .expect("span");
+            let name = |text: &str| QualifiedName::new(text).expect("name");
+            Ok(files
+                .iter()
+                .flat_map(|path| {
+                    self.0.iter().map(move |(from, to)| ReferenceSite {
+                        path: path.clone(),
+                        from: name(from),
+                        span,
+                        to: name(to),
+                    })
+                })
+                .collect())
+        }
+    }
+
+    fn layer(name: &str, namespace: &str, may_use: Option<&[&str]>) -> Layer {
+        Layer {
+            name: LayerName::new(name).expect("layer"),
+            namespaces: vec![QualifiedName::new(namespace).expect("namespace")],
+            may_use: may_use.map(|names| {
+                names
+                    .iter()
+                    .map(|target| LayerName::new(*target).expect("layer"))
+                    .collect()
+            }),
+        }
+    }
+
+    fn layered(layers: &[Layer], pairs: Vec<(&'static str, &'static str)>) -> CheckReport {
+        let references = References(pairs);
+        let stored = Stored(Vec::new());
+        let request = CheckRequest {
+            principal: &Principal::local_owner(),
+            root: &root(),
+            paths: &[],
+            stored: Some(StoredProject {
+                index: &stored,
+                references: &references,
+                layers,
+                snapshot: SnapshotId::new(1),
+            }),
+        };
+        only(vec![("a.rs", short(0))])
+            .check(&request)
+            .expect("checked")
+    }
+
+    fn three_layers() -> Vec<Layer> {
+        vec![
+            layer("Domain", "app.domain", None),
+            layer("Application", "app.application", Some(&["Domain"])),
+            layer("Web", "app.web", Some(&["Application"])),
+        ]
+    }
+
+    fn layer_findings(report: &CheckReport) -> Vec<(&str, &Detail)> {
+        report
+            .findings
+            .iter()
+            .filter(|finding| finding.code == ErrorCode::LayerViolation)
+            .map(|finding| (finding.location.symbol.as_str(), &finding.detail))
+            .collect()
+    }
+
+    #[test]
+    fn a_function_that_uses_a_forbidden_layer_is_reported_once_per_layer() {
+        let report = layered(
+            &three_layers(),
+            vec![
+                ("app.web.Page.show", "app.domain.Order"),
+                ("app.web.Page.show", "app.domain.Customer"),
+                ("app.web.Page.show", "app.application.Service.place"),
+                ("app.web.Page.show", "app.web.Page.render"),
+                ("app.web.Page.show", "elsewhere.Thing"),
+                ("app.application.Service.place", "app.domain.Order"),
+            ],
+        );
+        let expected = Detail::Layering {
+            from_layer: "Web".to_owned(),
+            to_layer: "Domain".to_owned(),
+            count: 2,
+        };
+        assert_eq!(layer_findings(&report), [("app.web.Page.show", &expected)]);
+        assert!(!report.not_checked.contains(&ErrorCode::LayerViolation));
+    }
+
+    #[test]
+    fn layers_without_limits_leave_the_layer_rule_unchecked() {
+        let free = [
+            layer("Domain", "app.domain", None),
+            layer("Web", "app.web", None),
+        ];
+        let report = layered(&free, vec![("app.web.Page.show", "app.domain.Order")]);
+        assert_eq!(layer_findings(&report), []);
+        assert!(report.not_checked.contains(&ErrorCode::LayerViolation));
+    }
+
+    #[test]
+    fn without_a_stored_project_the_layer_rule_is_not_checked() {
+        let report = run(&checker(sample()), Principal::local_owner(), &[]).expect("checked");
+        assert!(report.not_checked.contains(&ErrorCode::LayerViolation));
     }
 }

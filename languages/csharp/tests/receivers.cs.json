@@ -941,6 +941,13 @@
       "target": "Weight"
     },
     {
+      "at": "61:62",
+      "from": "Demo.NullConditional.Forms",
+      "kind": "read",
+      "receiver": "own",
+      "target": "_field"
+    },
+    {
       "at": "61:70",
       "from": "Demo.NullConditional.Forms",
       "kind": "read",
@@ -1019,7 +1026,7 @@
       "kind": "method",
       "name": "Demo.IReader.Open",
       "parent": "Demo.IReader",
-      "signature": null,
+      "signature": "void Open();",
       "span": "2:27-2:39",
       "static": false,
       "visibility": "public"
@@ -1039,7 +1046,7 @@
       "kind": "method",
       "name": "Demo.IWriter.Open",
       "parent": "Demo.IWriter",
-      "signature": null,
+      "signature": "void Open();",
       "span": "3:27-3:39",
       "static": false,
       "visibility": "public"
@@ -1059,7 +1066,7 @@
       "kind": "method",
       "name": "Demo.FileReader.Open",
       "parent": "Demo.FileReader",
-      "signature": null,
+      "signature": "public void Open()",
       "span": "4:36-4:58",
       "static": false,
       "visibility": "public"
@@ -1079,7 +1086,7 @@
       "kind": "method",
       "name": "Demo.FileWriter.Open",
       "parent": "Demo.FileWriter",
-      "signature": null,
+      "signature": "public void Open()",
       "span": "5:36-5:58",
       "static": false,
       "visibility": "public"
@@ -1099,7 +1106,7 @@
       "kind": "method",
       "name": "Demo.Sensor.Apply",
       "parent": "Demo.Sensor",
-      "signature": null,
+      "signature": "public void Apply(int x)",
       "span": "7:22-7:50",
       "static": false,
       "visibility": "public"
@@ -1219,7 +1226,7 @@
       "kind": "method",
       "name": "Demo.Shapes.NullForgiving",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "public void NullForgiving(IReader? r)",
       "span": "22:4-22:56",
       "static": false,
       "visibility": "public"
@@ -1229,7 +1236,7 @@
       "kind": "method",
       "name": "Demo.Shapes.Cast",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "public void Cast(object o)",
       "span": "23:4-23:55",
       "static": false,
       "visibility": "public"
@@ -1239,7 +1246,7 @@
       "kind": "method",
       "name": "Demo.Shapes.As",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "public void As(object o)",
       "span": "24:4-24:56",
       "static": false,
       "visibility": "public"
@@ -1249,7 +1256,7 @@
       "kind": "method",
       "name": "Demo.Shapes.ThisField",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "public void ThisField()",
       "span": "25:4-25:52",
       "static": false,
       "visibility": "public"
@@ -1259,7 +1266,7 @@
       "kind": "method",
       "name": "Demo.Shapes.Awaited",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "public async void Awaited(IReader r)",
       "span": "26:4-26:61",
       "static": false,
       "visibility": "public"
@@ -1269,7 +1276,7 @@
       "kind": "method",
       "name": "Demo.Shapes.Pattern",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "public void Pattern(object o)",
       "span": "27:4-27:67",
       "static": false,
       "visibility": "public"
@@ -1279,7 +1286,7 @@
       "kind": "method",
       "name": "Demo.Shapes.SwitchCase",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "public void SwitchCase(object o)",
       "span": "28:4-28:88",
       "static": false,
       "visibility": "public"
@@ -1289,7 +1296,7 @@
       "kind": "method",
       "name": "Demo.Shapes.OutVar",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "public void OutVar()",
       "span": "29:4-29:63",
       "static": false,
       "visibility": "public"
@@ -1299,7 +1306,7 @@
       "kind": "method",
       "name": "Demo.Shapes.Primary",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "public void Primary()",
       "span": "30:4-30:60",
       "static": false,
       "visibility": "public"
@@ -1309,7 +1316,7 @@
       "kind": "method",
       "name": "Demo.Shapes.Unknown",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "public void Unknown(object o)",
       "span": "31:4-31:52",
       "static": false,
       "visibility": "public"
@@ -1319,7 +1326,7 @@
       "kind": "method",
       "name": "Demo.Shapes.Deconstruct",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "public void Deconstruct()",
       "span": "33:4-33:77",
       "static": false,
       "visibility": "public"
@@ -1329,7 +1336,7 @@
       "kind": "method",
       "name": "Demo.Shapes.DeconstructLoop",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "public void DeconstructLoop()",
       "span": "34:4-34:103",
       "static": false,
       "visibility": "public"
@@ -1339,7 +1346,7 @@
       "kind": "method",
       "name": "Demo.Shapes.Query",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "public void Query()",
       "span": "35:4-35:83",
       "static": false,
       "visibility": "public"
@@ -1349,7 +1356,7 @@
       "kind": "method",
       "name": "Demo.Shapes.Join",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "public void Join()",
       "span": "36:4-36:112",
       "static": false,
       "visibility": "public"
@@ -1359,7 +1366,7 @@
       "kind": "method",
       "name": "Demo.Shapes.Initializers",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "public int Initializers()",
       "span": "38:4-38:85",
       "static": false,
       "visibility": "public"
@@ -1369,7 +1376,7 @@
       "kind": "method",
       "name": "Demo.Shapes.Fill",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "private void Fill(out IReader r)",
       "span": "40:4-40:62",
       "static": false,
       "visibility": "private"
@@ -1379,7 +1386,7 @@
       "kind": "method",
       "name": "Demo.Shapes.Make",
       "parent": "Demo.Shapes",
-      "signature": null,
+      "signature": "private IReader Make()",
       "span": "41:4-41:47",
       "static": false,
       "visibility": "private"
@@ -1409,7 +1416,7 @@
       "kind": "method",
       "name": "Demo.Leaf.Measure",
       "parent": "Demo.Leaf",
-      "signature": null,
+      "signature": "public int Measure()",
       "span": "47:4-47:38",
       "static": false,
       "visibility": "public"
@@ -1449,7 +1456,7 @@
       "kind": "method",
       "name": "Demo.Twig.Measure",
       "parent": "Demo.Twig",
-      "signature": null,
+      "signature": "public int Measure()",
       "span": "50:52-50:86",
       "static": false,
       "visibility": "public"
@@ -1499,7 +1506,7 @@
       "kind": "method",
       "name": "Demo.NullConditional.Member",
       "parent": "Demo.NullConditional",
-      "signature": null,
+      "signature": "public void Member()",
       "span": "57:4-57:71",
       "static": false,
       "visibility": "public"
@@ -1509,7 +1516,7 @@
       "kind": "method",
       "name": "Demo.NullConditional.Chain",
       "parent": "Demo.NullConditional",
-      "signature": null,
+      "signature": "public void Chain()",
       "span": "58:4-58:56",
       "static": false,
       "visibility": "public"
@@ -1519,7 +1526,7 @@
       "kind": "method",
       "name": "Demo.NullConditional.Call",
       "parent": "Demo.NullConditional",
-      "signature": null,
+      "signature": "public void Call()",
       "span": "59:4-59:65",
       "static": false,
       "visibility": "public"
@@ -1529,7 +1536,7 @@
       "kind": "method",
       "name": "Demo.NullConditional.Index",
       "parent": "Demo.NullConditional",
-      "signature": null,
+      "signature": "public void Index()",
       "span": "60:4-60:47",
       "static": false,
       "visibility": "public"
@@ -1539,7 +1546,7 @@
       "kind": "method",
       "name": "Demo.NullConditional.Forms",
       "parent": "Demo.NullConditional",
-      "signature": null,
+      "signature": "public void Forms()",
       "span": "61:4-61:79",
       "static": false,
       "visibility": "public"
@@ -1559,7 +1566,7 @@
       "kind": "method",
       "name": "Demo.Clause.Null",
       "parent": "Demo.Clause",
-      "signature": null,
+      "signature": "public void Null(int value)",
       "span": "64:22-64:53",
       "static": false,
       "visibility": "public"
@@ -1599,7 +1606,7 @@
       "kind": "method",
       "name": "Demo.Checks.Run",
       "parent": "Demo.Checks",
-      "signature": null,
+      "signature": "public void Run(int count)",
       "span": "71:4-71:61",
       "static": false,
       "visibility": "public"

@@ -170,7 +170,10 @@ pub(crate) fn show(
 #[cfg(any(windows, target_os = "macos"))]
 fn open_browser(global: &GlobalOptions, locations: &Locations) {
     let env = |name: &str| std::env::var(name).ok();
-    let args = OpenArgs { no_browser: false };
+    let args = OpenArgs {
+        no_browser: false,
+        print_url: false,
+    };
     if let Err(error) = open::run(args, global, locations, &env, |_| ()) {
         tracing::warn!(code = error.code().id());
     }

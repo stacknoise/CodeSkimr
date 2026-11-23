@@ -50,7 +50,8 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     check_ui(&config.ui)?;
     positive(keys::GRAPH_NODE_WIDTH, config.graph.node_width)?;
     positive(keys::GRAPH_NODE_HEIGHT, config.graph.node_height)?;
-    positive(keys::GRAPH_ROW_BOXES, config.graph.row_boxes)
+    positive(keys::GRAPH_ROW_BOXES, config.graph.row_boxes)?;
+    positive(keys::EXPORT_MAX_REFERENCES, config.export.max_references)
 }
 
 fn check_conventions(conventions: &Conventions) -> Result<(), ConfigError> {
@@ -271,6 +272,9 @@ fn check_scan(scan: &Scan) -> Result<(), ConfigError> {
     positive(keys::PARSE_TIMEOUT_MS, scan.parse_timeout_ms)?;
     positive(keys::MAX_SOURCE_MB, scan.max_source_mb)?;
     positive(keys::MAX_SIGNATURE_CHARS, scan.max_signature_chars)?;
+    positive(keys::MAX_CANDIDATES, scan.max_candidates)?;
+    positive(keys::MAX_MEMORY_MB, scan.max_memory_mb)?;
+    positive(keys::MAX_LEFT_OUT_LISTED, scan.max_left_out_listed)?;
     if scan.excluded_folders.is_empty() {
         return fail(keys::EXCLUDED_FOLDERS, Violation::MustNotBeEmpty);
     }

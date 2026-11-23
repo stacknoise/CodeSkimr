@@ -30,8 +30,7 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | Code | Bedeutung | Was tun |
 |---|---|---|
 | `APP-201` | der Datenordner kann nicht angelegt oder geöffnet werden | Pfad und Rechte prüfen (`--data-dir`) |
-| `APP-202` | die private Datei zum Starten des Browsers konnte nicht angelegt werden; wird auch abgelehnt, wenn ihr Ordner ein Link oder eine Junction ist (Windows) | Rechte des Datenordners prüfen; `codeskimr serve` starten und die Adresse von Hand öffnen |
-| `APP-301` | eine andere CodeSkimr-Instanz hält den Arbeitsbereich, die Verbindung zu ihr ist fehlgeschlagen | die andere Instanz schließen oder `--data-dir` nutzen |
+| `APP-202` | die private Datei zum Starten des Browsers konnte nicht angelegt werden; wird auch abgelehnt, wenn ihr Ordner ein Link oder eine Junction ist oder wenn ein Ordner darüber einem fremden Konto gehört (Windows; kann Firmenprofile auf Netzlaufwerken und Ordner auf einem zweiten Laufwerk treffen) | Rechte des Datenordners prüfen; unter Windows nennt das Protokoll (`codeskimr.log`, Ereignis `launch_parent_refused`) den abgelehnten Ordner: den Datenordner mit `--data-dir` an einen Ort legen, dessen Ordner alle dem eigenen Konto gehören; `codeskimr serve` starten und die Adresse von Hand öffnen |
 | `APP-601` | das System hat keinen Browser gestartet | die von `codeskimr serve` ausgegebene Adresse von Hand öffnen |
 | `APP-603` | das Programm konnte sich nicht im Hintergrund starten oder sein Tray-Symbol nicht anzeigen | mit `--console` starten, dann bleibt es im Fenster; das Log liegt im Datenordner (`codeskimr.log`) |
 | `APP-604` | das Konsolenfenster für die Bestätigung von Ebene 2 ließ sich nicht starten | den angezeigten Befehl kopieren und in einem Terminal ausführen |
@@ -48,7 +47,11 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | `CLI-103` | es konnte kein Geheimnis gelesen werden, oder es war leer | per Pipe übergeben oder am Prompt eingeben |
 | `SRC-501` | die Quelle oder eine Datei ist zu groß | `scan.max_source_mb` erhöhen oder Ordner ausschließen (`scan.excluded_folders`) |
 | `PRS-201` | kein Sprachpaket für einen Dateityp | die Dateien dieses Typs werden nicht analysiert; Paket installieren |
-| `PRS-501` | eine Datei brauchte zu lange zum Parsen | `scan.parse_timeout_ms` erhöhen, wenn die Datei in Ordnung ist |
+| `PRS-501` | eine Datei brauchte zu lange zum Parsen und wurde ausgelassen; der Scan läuft weiter | `scan.parse_timeout_ms` erhöhen, wenn die Datei in Ordnung ist |
+| `PRS-101` | eine Datei ist kein gültiges UTF-8 oder UTF-16 und fehlt im Ergebnis; der Scan läuft weiter. Gilt das für alle Dateien, scheitert der Scan mit diesem Code | die genannte Datei als UTF-8 speichern |
+| `PRS-102` | eine Datei war während des Scans weg oder gesperrt und wurde ausgelassen; der Scan läuft weiter | erneut scannen, wenn die Datei wieder lesbar ist |
+| `PRJ-503` | der Scan belegte mehr Arbeitsspeicher als `scan.max_memory_mb` (höchstens 70 % des eingebauten Speichers) und wurde angehalten; es wurde kein Stand gespeichert | Ordner ausschließen (`scan.excluded_folders`), `scan.max_candidates` senken oder die Grenze in der eigenen Konfigurationsdatei erhöhen |
+| `RES-304` | ein Name trifft mehr Symbole als `scan.max_candidates` und nichts grenzt ihn ein; die Stelle wurde nicht zugeordnet (nur Warnung) | Stufe 2 aktivieren oder `scan.max_candidates` erhöhen (eigene Konfigurationsdatei) |
 | `CFG-101`, `CFG-102`, `CFG-103` | ungültiger Wert, nicht lesbare Datei, unbekannter Schlüssel in der Konfiguration | die in der Meldung genannte Einstellung korrigieren |
 | `CFG-104` | die Datei `.codeskimr.toml` ließ sich beim Speichern der Schichten in der Oberfläche nicht schreiben | Projektordner beschreibbar machen oder die `[[layers]]`-Tabellen von Hand eintragen |
 | `CFG-105` | Ebene 2 ist in der Benutzerkonfiguration nicht eingeschaltet | `[level2]` / `enabled = true` in die eigene `config.toml` schreiben; CodeSkimr tut das nie selbst |
@@ -64,6 +67,8 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | `MCP-202` | Symbol nicht gefunden | die ID aus `search_symbols` nehmen |
 | `MCP-203` | das Projekt hat keinen Snapshot | scannen |
 | `MCP-501` | kein Fehler: das Ergebnis wurde auf das Limit gekürzt | weniger verlangen oder `limit` erhöhen |
+| `EXP-501` | für dieses Projekt läuft schon ein HTML-Export | warten, bis er beendet ist |
+| `EXP-502` | das Projekt hat mehr Verweisungen als `export.max_references` (Vorgabe 600000) | Grenze in der eigenen Konfigurationsdatei erhöhen (etwa 250 Byte je Verweisung) oder ein kleineres Projekt exportieren |
 | `EXP-201`, `EXP-601` | die Export-Seite fehlt, oder die Exportdatei kann nicht geschrieben werden | siehe [HTML-Export](export.md#fehler) |
 | `STO-501` | Datenträger voll | Platz schaffen |
 | `CLI-101` | ungültige Kommandozeilenargumente | siehe `codeskimr --help` |

@@ -36,9 +36,7 @@ use codeskimr_source::{
 use codeskimr_storage::SqliteStore;
 
 use crate::clock::SystemClock;
-use crate::consts::{
-    BYTES_PER_MB, REQUIREMENT_MAX_BYTES, WARM_THREAD_NAME, is_reserved_credential,
-};
+use crate::consts::{BYTES_PER_MB, REQUIREMENT_MAX_BYTES, is_reserved_credential};
 use crate::locations::Locations;
 use crate::redact::redact;
 use crate::refresh::{Refresher, RefreshingSource};
@@ -59,6 +57,13 @@ impl CredentialStore for ForRemotes {
             return Err(AuthError::NotFound);
         }
         self.0.with_credential(id, action)
+    }
+
+    fn exists(&self, id: &CredentialId) -> Result<bool, AuthError> {
+        if is_reserved_credential(id.as_str()) {
+            return Ok(false);
+        }
+        self.0.exists(id)
     }
 
     fn store(&self, id: &CredentialId, credential: &Credential) -> Result<(), AuthError> {
@@ -85,26 +90,6 @@ pub fn open_store(locations: &Locations, config: &Config) -> Result<Arc<SqliteSt
     let retention = NonZeroU32::new(config.snapshots.retention_count)
         .ok_or_else(|| CodedError::new(ErrorCode::UnexpectedInternalError))?;
     SqliteStore::open(&locations.database(), retention).map(Arc::new)
-}
-
-/// Like [`open_store`], for a process that answers queries (the UI and the MCP service): the
-/// usages index of the newest snapshot is built in the background, so that the first query does
-/// not wait for it (#333). A failure is left to the first query, which reports it.
-///
-/// # Errors
-/// The same as [`open_store`].
-pub fn open_serving_store(
-    locations: &Locations,
-    config: &Config,
-) -> Result<Arc<SqliteStore>, CodedError> {
-    let store = open_store(locations, config)?;
-    let warming = Arc::clone(&store);
-    // A thread that cannot start leaves the index to the first query.
-    std::thread::Builder::new()
-        .name(WARM_THREAD_NAME.to_owned())
-        .spawn(move || warming.warm_newest().ok())
-        .ok();
-    Ok(store)
 }
 
 /// Builds the scanner with every port wired to its adapter, over an [`Analysis`] that was built
@@ -140,14 +125,18 @@ pub fn scanner_over(
         source: Arc::new(scan_source(locations, secrets)),
         discovery,
         analyzer,
-        resolver: Arc::new(ScopedResolver),
+        resolver: Arc::new(ScopedResolver::new(
+            usize::try_from(config.scan.max_candidates).unwrap_or(usize::MAX),
+        )),
         metrics: Arc::new(StandardMetrics),
         projects: store.clone(),
         store: store.clone(),
         clock: Arc::new(SystemClock),
         max_workers: config.scan.max_workers,
+        max_left_out_listed: config.scan.max_left_out_listed,
     };
     Ok(Scanner::new(ports, &ids, events.clone())
+        .with_memory(crate::memory_limit::scan_limit(config))
         .with_level2(pass)
         .with_alerts(alert_step(store, events))
         .with_reports(ReportStep::new(store.clone(), Arc::new(SystemClock))))
@@ -225,8 +214,9 @@ pub fn indexer_check(
 /// The id sequence of the database file in this process. Scans of different projects run at the
 /// same time (the UI, MCP `rescan`), and each one reads the highest stored id when it starts,
 /// which is too early for ids another scan has reserved but not stored yet. One sequence per
-/// database, moved up to the store at every start, keeps them apart. (A scan in another process
-/// stays uncoordinated.)
+/// database keeps them apart. The scanner moves it up to the store again when each scan starts,
+/// which covers what another process stored in the meantime; two processes that scan at the very
+/// same moment stay uncoordinated.
 fn shared_ids(database: PathBuf, first_free: u64) -> Arc<IdSequence> {
     static IDS: OnceLock<Mutex<BTreeMap<PathBuf, Arc<IdSequence>>>> = OnceLock::new();
     let mut all = IDS
@@ -318,6 +308,10 @@ mod tests {
             Err(AuthError::NotFound)
         ));
         assert!(remotes.with_credential(&work, |_| Ok(())).is_ok());
+        // The same for the question whether it exists.
+        assert!(secrets.exists(&token).unwrap());
+        assert!(!remotes.exists(&token).unwrap());
+        assert!(remotes.exists(&work).unwrap());
     }
 
     #[test]

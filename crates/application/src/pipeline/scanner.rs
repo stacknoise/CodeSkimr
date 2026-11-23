@@ -19,15 +19,17 @@ use super::stages::{
 use crate::access;
 use crate::alerts::AlertStep;
 use crate::cancel::CancelToken;
-use crate::consts::{LOG_ALERT_STEP_FAILED, LOG_ALERTS_CHECKED, LOG_REPORT_NOT_STORED};
+use crate::consts::{
+    LOG_ALERT_STEP_FAILED, LOG_ALERTS_CHECKED, LOG_IDS_NOT_CAUGHT_UP, LOG_REPORT_NOT_STORED,
+};
 use crate::error::CodedError;
 use crate::events::{Event, EventBus, Level2Finished, ScanStopped, SnapshotCreated, StopReason};
 use crate::ids::IdSequence;
 use crate::level2::{LanguageReport, Level2Outcome, Level2Pass, Skipped};
 use crate::ports::{
-    Clock, FileAnalyzer, FileDiscovery, LanguageLine, LanguageOutcome, MetricsCalculator,
-    ProjectRepository, ProjectScanner, ReferenceResolver, Rescanned, ScanWarning, SnapshotStore,
-    SourceProvider,
+    Clock, FileAnalyzer, FileDiscovery, LanguageLine, LanguageOutcome, MemoryLimit, MemoryWatch,
+    MetricsCalculator, ProjectRepository, ProjectScanner, ReferenceResolver, Rescanned,
+    ScanWarning, SnapshotStore, SourceProvider,
 };
 
 /// Everything the scanner needs from the adapters, wired by the composition root.
@@ -50,6 +52,8 @@ pub struct ScannerPorts {
     pub clock: Arc<dyn Clock>,
     /// Most threads that analyse files at the same time; 0 means one per core (`scan.max_workers`).
     pub max_workers: u32,
+    /// Most files a scan names when it left them out (`scan.max_left_out_listed`).
+    pub max_left_out_listed: u32,
 }
 
 /// The six stages in order, with every type spelled out by the compiler.
@@ -81,39 +85,50 @@ pub struct Scanner {
     alerts: Option<AlertStep>,
     reports: Option<ReportStep>,
     analyzer: Arc<dyn FileAnalyzer>,
+    ids: Arc<IdSequence>,
+    store: Arc<dyn SnapshotStore>,
+    memory: Option<MemoryLimit>,
+}
+
+/// The six stages in order, wired with the ports of the scanner.
+fn pipeline_of(ports: &ScannerPorts, ids: &Arc<IdSequence>) -> Pipeline<ScanFlow> {
+    Pipeline::new(FetchStage {
+        source: Arc::clone(&ports.source),
+        ids: Arc::clone(ids),
+    })
+    .then(DiscoverStage {
+        discovery: Arc::clone(&ports.discovery),
+        projects: Arc::clone(&ports.projects),
+        analyzer: Arc::clone(&ports.analyzer),
+    })
+    .then(AnalyzeStage {
+        analyzer: Arc::clone(&ports.analyzer),
+        ids: Arc::clone(ids),
+        max_workers: ports.max_workers,
+        projects: Arc::clone(&ports.projects),
+    })
+    .then(ResolveStage {
+        projects: Arc::clone(&ports.projects),
+        resolver: Arc::clone(&ports.resolver),
+        analyzer: Arc::clone(&ports.analyzer),
+        ids: Arc::clone(ids),
+    })
+    .then(MeasureStage {
+        calculator: Arc::clone(&ports.metrics),
+    })
+    .then(PersistStage {
+        store: Arc::clone(&ports.store),
+        clock: Arc::clone(&ports.clock),
+        max_left_out_listed: ports.max_left_out_listed,
+    })
 }
 
 impl Scanner {
-    /// Wires the six stages from `ports`; `ids` must continue after the highest stored id.
+    /// Wires the six stages from `ports`. `ids` is moved up to the store when a scan starts, so it
+    /// only has to be shared by the scanners that write to the same store in this process.
     #[must_use]
     pub fn new(ports: ScannerPorts, ids: &Arc<IdSequence>, events: EventBus) -> Self {
-        let pipeline = Pipeline::new(FetchStage {
-            source: ports.source,
-            ids: Arc::clone(ids),
-        })
-        .then(DiscoverStage {
-            discovery: ports.discovery,
-            projects: Arc::clone(&ports.projects),
-            analyzer: Arc::clone(&ports.analyzer),
-        })
-        .then(AnalyzeStage {
-            analyzer: Arc::clone(&ports.analyzer),
-            ids: Arc::clone(ids),
-            max_workers: ports.max_workers,
-        })
-        .then(ResolveStage {
-            projects: Arc::clone(&ports.projects),
-            resolver: ports.resolver,
-            analyzer: Arc::clone(&ports.analyzer),
-            ids: Arc::clone(ids),
-        })
-        .then(MeasureStage {
-            calculator: ports.metrics,
-        })
-        .then(PersistStage {
-            store: ports.store,
-            clock: ports.clock,
-        });
+        let pipeline = pipeline_of(&ports, ids);
         Self {
             pipeline,
             projects: ports.projects,
@@ -122,7 +137,18 @@ impl Scanner {
             alerts: None,
             reports: None,
             analyzer: ports.analyzer,
+            ids: Arc::clone(ids),
+            store: ports.store,
+            memory: None,
         }
+    }
+
+    /// Limits the memory a scan may add (`scan.max_memory_mb`, ADR 0087) and the memory of the
+    /// whole program: a scan that passes either is stopped with `PRJ-503`.
+    #[must_use]
+    pub fn with_memory(mut self, limit: MemoryLimit) -> Self {
+        self.memory = Some(limit);
+        self
     }
 
     /// Adds the second pass: after each scan the indexers of the languages run, if the user
@@ -160,6 +186,8 @@ impl Scanner {
         let project_id = job.project();
         let mode = job.mode();
         let job = job.start();
+        // Whatever ends this run, a panic included, the bus stops listing the scan as running.
+        let _tracking = self.events.track(project_id);
         // A clock of the whole analyzer: scans that run at the same time can count each other's
         // loads, so the value can be a little too long (see `FileAnalyzer::pack_load_time`).
         let loading_before = self.analyzer.pack_load_time();
@@ -170,23 +198,42 @@ impl Scanner {
             Ok(project) => project,
             Err(cause) => return self.fail(job.fail(cause.code()), project_id),
         };
+        if let Err(cause) = self.catch_up() {
+            return self.fail(job.fail(cause.code()), project_id);
+        }
         let trigger = trigger_of(&project.source, job.trigger());
         let ctx = StageContext::new(project_id, job.token(), &self.events);
-        match self.pipeline.run(
+        let watch = self
+            .memory
+            .as_ref()
+            .map(|limit| limit.watch(job.token().clone()));
+        let outcome = self.pipeline.run(
             ScanRequest {
                 project,
                 mode,
                 paths: job.paths().clone(),
             },
             &ctx,
-        ) {
+        );
+        let out_of_memory = watch.as_ref().is_some_and(MemoryWatch::tripped);
+        drop(watch);
+        match outcome {
             Ok(persisted) => self.finished(*principal, job, (persisted, trigger, loading_before)),
+            Err(_) if out_of_memory => self.fail(job.fail(ErrorCode::ScanMemoryLimit), project_id),
             Err(Halt::Cancelled(_)) => {
                 self.stopped(project_id, StopReason::Cancelled);
                 JobResult::Cancelled(job.cancel())
             }
             Err(Halt::Failed(error)) => self.fail(job.fail(error.code()), project_id),
         }
+    }
+
+    /// Moves the id sequence above every stored id. Another process (a scan in the terminal while
+    /// the app or an MCP server runs) may have written rows since this scanner was built; without
+    /// this its ids would be handed out a second time and the snapshot would be refused.
+    fn catch_up(&self) -> Result<(), CodedError> {
+        self.ids.advance_to(self.store.next_free_id()?);
+        Ok(())
     }
 
     /// Level 1 is complete and usable now; level 2 may take minutes. Tells so, runs the second
@@ -265,6 +312,9 @@ impl Scanner {
         let Some(pass) = &self.level2 else {
             return Vec::new();
         };
+        if let Err(cause) = self.catch_up() {
+            tracing::warn!(event = LOG_IDS_NOT_CAUGHT_UP, code = cause.code().id());
+        }
         let done = pass.run(run.principal, run.snapshot, run.root, run.cancel);
         if done.snapshot != *run.snapshot {
             self.created(&done.snapshot, Duration::ZERO);
