@@ -203,6 +203,36 @@ jobs:
         run: |
           ulimit -n 4096
           cargo test -p codeskimr_server --test limits --locked
+      # Issue #670: the export page is built from the UI on the machine that makes the release, and
+      # its build swaps modules by their paths. On Windows the page once called the server (#669) and
+      # once held its data twice, so the tree stayed empty (#676); the tests on Linux saw neither. So
+      # every system builds the page, exports a small project with the program just built and opens
+      # the file from disk in a browser: the tree must show the project, with no request to a server.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Export page opens from disk
+        shell: bash
+        env:
+          CODESKIMR_LANG: en
+          CODESKIMR_DATA_DIR: ${{ runner.temp }}/export-check/data
+          CODESKIMR_LANGUAGES_DIR: ${{ github.workspace }}/languages
+          CODESKIMR_EXPORT_FILE: ${{ runner.temp }}/export-check/out.html
+          CODESKIMR_EXPORT_TYPE: Basket
+          UI_DIR: ${{ github.workspace }}/web/dist
+          PROJECT: ${{ github.workspace }}/web/e2e-export/project
+        run: |
+          cd web
+          npm ci
+          npm run build
+          npx playwright install --with-deps chromium
+          cd ..
+          ./target/release/codeskimr scan "$PROJECT"
+          ./target/release/codeskimr --set "ui.dir='$UI_DIR'" export "$PROJECT" --html "$CODESKIMR_EXPORT_FILE"
+          cd web
+          npx playwright test --config playwright.export.config.ts
 
   # ADR 0033: the level 2 runner kills a process group on Unix and a job object on Windows. The test job
   # runs on Linux only, so the tests of the runner (timeout, cancel, child processes, limits) run on
