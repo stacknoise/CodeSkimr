@@ -442,14 +442,15 @@ pub const LANGUAGE_SYMBOLS: &str = "SELECT f.language, COUNT(*) FROM symbol_rows
 /// Number of types of a snapshot: snapshot.
 pub const TYPE_COUNT: &str = "SELECT COUNT(*) FROM type_summary WHERE snapshot_id = ?1";
 
-/// Namespaces, modules and types of one kind with their member count: snapshot, kind. The `+`
-/// keeps the index on the kind out of it: that index holds the symbols of every project, so a
-/// small project next to a large one would read all of the large one's symbols of that kind.
-/// Without it the rows are read through the files of the snapshot.
-pub const OUTLINE_OF_KIND: &str = "SELECT s.kind, s.id, s.name, s.qualified_name, s.parent_id, \
+/// Namespaces, modules and types of some kinds with their member count: snapshot, the kinds as a
+/// JSON list. The `+` keeps the index on the kind out of it: that index holds the symbols of
+/// every project, so a small project next to a large one would read all of the large one's
+/// symbols of those kinds. Without it the rows are read through the files of the snapshot, in
+/// one pass for all kinds.
+pub const OUTLINE_OF_KINDS: &str = "SELECT s.kind, s.id, s.name, s.qualified_name, s.parent_id, \
     (SELECT COUNT(*) FROM symbols m WHERE m.snapshot_id = s.snapshot_id AND m.parent_id = s.id), \
     (SELECT f.language FROM files f WHERE f.snapshot_id = s.snapshot_id AND f.id = s.file_id) \
-    FROM symbols s WHERE s.snapshot_id = ?1 AND +s.kind = ?2";
+    FROM symbols s WHERE s.snapshot_id = ?1 AND +s.kind IN (SELECT value FROM json_each(?2))";
 /// The language of a file: snapshot, file id.
 pub const FILE_LANGUAGE: &str = "SELECT language FROM files WHERE snapshot_id = ?1 AND id = ?2";
 /// Member table of a symbol: snapshot, symbol, complexity metric.
@@ -626,12 +627,12 @@ pub const ANNOTATION_ANY: &str = "SELECT EXISTS (SELECT 1 FROM annotation WHERE 
 pub const ANNOTATION_LOSE_TARGET: &str = "UPDATE annotation SET without_target = 1 \
     WHERE project_id = ?1 AND without_target = 0 AND NOT EXISTS \
     (SELECT 1 FROM symbol_rows s JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?2 \
-     WHERE s.qualified_name = annotation.target_name AND s.kind = annotation.target_kind)";
+     WHERE s.qualified_name = annotation.target_name AND +s.kind = annotation.target_kind)";
 /// Unmarks the annotations of a project whose symbol the snapshot has: project, snapshot.
 pub const ANNOTATION_FIND_TARGET: &str = "UPDATE annotation SET without_target = 0 \
     WHERE project_id = ?1 AND without_target = 1 AND EXISTS \
     (SELECT 1 FROM symbol_rows s JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?2 \
-     WHERE s.qualified_name = annotation.target_name AND s.kind = annotation.target_kind)";
+     WHERE s.qualified_name = annotation.target_name AND +s.kind = annotation.target_kind)";
 /// Deletes an annotation with its baseline and alerts: id.
 pub const ANNOTATION_DELETE: &str = "DELETE FROM annotation WHERE id = ?1";
 /// The annotations of a project, optionally of one kind: project, kind or null.
@@ -712,13 +713,16 @@ pub const STATE_SYMBOLS: &str = "SELECT s.kind, s.qualified_name, s.signature, s
     FROM symbol_rows s JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1 \
     WHERE s.origin = ?3 AND s.qualified_name = ?2 ORDER BY s.id";
 /// The content hashes below a namespace, through the symbols that have none (nested namespaces):
-/// snapshot, kind of the namespace, its qualified name.
+/// snapshot, kind of the namespace, its qualified name. `CROSS JOIN` fixes the order: from the
+/// tree to its children through the index on the parent, never a pass over the symbols of every
+/// project that looks each one up in the tree.
 pub const STATE_CHILD_HASHES: &str = "WITH RECURSIVE tree(id) AS ( \
     SELECT s.id FROM symbol_rows s JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1 \
         WHERE +s.kind = ?2 AND s.qualified_name = ?3 \
     UNION ALL \
-    SELECT c.id FROM symbol_rows c JOIN tree t ON c.parent_id = t.id WHERE c.content_hash IS NULL) \
-    SELECT c.content_hash FROM symbol_rows c JOIN tree t ON c.parent_id = t.id \
+    SELECT c.id FROM tree t CROSS JOIN symbol_rows c ON c.parent_id = t.id \
+        WHERE c.content_hash IS NULL) \
+    SELECT c.content_hash FROM tree t CROSS JOIN symbol_rows c ON c.parent_id = t.id \
     WHERE c.content_hash IS NOT NULL";
 /// How many names written in the files of a snapshot are one of two texts: snapshot, qualified
 /// name, simple name.

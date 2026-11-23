@@ -5,7 +5,7 @@ use codeskimr_application::ports::{CodeOutline, MemberRow, OutlineNode};
 use codeskimr_domain::{LanguageId, MetricKind, QualifiedName, SnapshotId, SymbolId, SymbolName};
 use rusqlite::{Connection, Row, params};
 
-use crate::codec::{Cols, column_int, id_from, label_from, small_from};
+use crate::codec::{Cols, column_int, id_from, json_labels, label_from, small_from};
 use crate::consts::{CONTAINER_KINDS, TYPE_KINDS};
 use crate::error::StorageResult;
 use crate::sql;
@@ -53,24 +53,18 @@ impl NodeRow {
     }
 }
 
-fn nodes_of_kind(
-    conn: &Connection,
-    snapshot: i64,
-    kind: &str,
-    nodes: &mut Vec<OutlineNode>,
-) -> StorageResult<()> {
-    let mut statement = conn.prepare_cached(sql::OUTLINE_OF_KIND)?;
-    for row in statement.query_map(params![snapshot, kind], NodeRow::from_row)? {
-        nodes.push(row?.node()?);
-    }
-    Ok(())
-}
-
 fn outline(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<OutlineNode>> {
     let raw = column_int(snapshot.get())?;
+    let kinds = json_labels(
+        CONTAINER_KINDS
+            .iter()
+            .chain(TYPE_KINDS)
+            .map(|kind| kind.label()),
+    );
+    let mut statement = conn.prepare_cached(sql::OUTLINE_OF_KINDS)?;
     let mut nodes = Vec::new();
-    for kind in CONTAINER_KINDS.iter().chain(TYPE_KINDS) {
-        nodes_of_kind(conn, raw, kind.label(), &mut nodes)?;
+    for row in statement.query_map(params![raw, kinds], NodeRow::from_row)? {
+        nodes.push(row?.node()?);
     }
     nodes.sort_by(|a, b| {
         a.qualified_name

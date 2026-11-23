@@ -117,6 +117,8 @@ pub const JSON_LIST_OPEN: char = '[';
 pub const JSON_LIST_CLOSE: char = ']';
 /// Separates the values of the JSON list.
 pub const JSON_LIST_SEPARATOR: char = ',';
+/// Around a text in a JSON list.
+pub const JSON_TEXT_QUOTE: char = '"';
 /// Containers that appear in the explorer tree next to the types of `TYPE_KINDS`.
 pub const CONTAINER_KINDS: &[codeskimr_domain::SymbolKind] = &[
     codeskimr_domain::SymbolKind::Namespace,

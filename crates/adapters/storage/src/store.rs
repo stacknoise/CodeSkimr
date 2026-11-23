@@ -548,18 +548,25 @@ mod tests {
     }
 
     /// The symbols of every project share one table and its index on the kind. A statement that
-    /// goes through that index makes a small project read the symbols of the largest one.
+    /// goes through that index, or walks the table, makes a small project read the symbols of the
+    /// largest one.
     #[test]
-    fn the_symbols_of_a_snapshot_are_not_read_through_the_index_on_the_kind() {
+    fn the_symbols_of_a_snapshot_are_read_through_its_files_or_their_parent() {
         let store = SqliteStore::open_in_memory(NonZeroU32::new(3).unwrap()).unwrap();
-        let of_one_kind = [
-            sql::OUTLINE_OF_KIND,
+        let of_one_snapshot = [
+            sql::OUTLINE_OF_KINDS,
             sql::ANNOTATION_TARGET_EXISTS,
+            sql::ANNOTATION_LOSE_TARGET,
+            sql::ANNOTATION_FIND_TARGET,
             sql::STATE_CHILD_HASHES,
         ];
-        for statement in of_one_kind {
+        for statement in of_one_snapshot {
             let plan = plan(&store, statement);
-            assert!(!plan.contains("symbols_by_kind"), "{statement}\n{plan}");
+            let whole_table = ["symbols_by_kind", "SCAN s", "SCAN c", "SCAN m"];
+            assert!(
+                !whole_table.iter().any(|step| plan.contains(step)),
+                "{statement}\n{plan}"
+            );
         }
     }
 

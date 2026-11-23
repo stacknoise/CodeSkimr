@@ -291,8 +291,9 @@ mod tests {
 
     const SNAPSHOT: u64 = 7;
     const RETENTION: u32 = 3;
-    /// Long enough for the build to arrive at the gate.
-    const AT_THE_GATE: std::time::Duration = std::time::Duration::from_millis(200);
+    /// Far longer than the build needs to arrive at the gate.
+    const AT_THE_GATE: std::time::Duration = std::time::Duration::from_secs(10);
+    const GATE_HOLDERS: usize = 3;
 
     /// Asks for the graph twice; `write_meanwhile` says whether a write comes in during the build.
     /// Returns how often the graph was built.
@@ -340,7 +341,12 @@ mod tests {
                 let graphs = (&store.graphs, Build::Graph);
                 store.built(graphs, snapshot, |_, _| Ok(NamespaceGraph::default()))
             });
-            std::thread::sleep(AT_THE_GATE);
+            // The map, this test and the build hold the gate once the build has taken its count.
+            let arrived = std::time::Instant::now() + AT_THE_GATE;
+            while std::sync::Arc::strong_count(&gate) < GATE_HOLDERS {
+                assert!(std::time::Instant::now() < arrived, "the build never came");
+                std::thread::yield_now();
+            }
             store.forget_builds();
             drop(held);
             build.join().unwrap().unwrap();
