@@ -5,14 +5,14 @@ mod common;
 
 #[cfg(test)]
 mod tests {
-    use codeskimr_application::ports::{SnapshotStore, UsageIndex};
+    use codeskimr_application::ports::UsageIndex;
     use codeskimr_domain::{
-        Confidence, Direction, ProjectId, Reference, ReferenceKind, ReverseIndex, ScanMode,
-        SnapshotId, SymbolId, SymbolKind, UsageQuery,
+        Confidence, Direction, Reference, ReferenceKind, ReverseIndex, SnapshotId, SymbolId,
+        SymbolKind, UsageQuery,
     };
     use codeskimr_storage::SqliteStore;
 
-    use super::common::{data, file, header, project, reference, store, symbol};
+    use super::common::{reference, symbol, three_snapshots};
 
     const LIMIT: u32 = 1_000;
     const SYMBOLS: [u64; 10] = [21, 22, 23, 24, 31, 32, 41, 42, 301, 99];
@@ -88,36 +88,33 @@ mod tests {
     }
 
     fn two_projects() -> SqliteStore {
-        let store = store(5);
-        store.save_project(&project(1, "/work/app", &[])).unwrap();
-        store.save_project(&project(2, "/work/other", &[])).unwrap();
-        let mut first = data(header(10, ScanMode::Full));
-        first.files = vec![file(10, 11, "a.cs", "h1"), file(10, 12, "b.cs", "h2")];
-        first.symbols = vec![
-            symbol(21, 11, SymbolKind::Method, "App.A.One", None),
-            symbol(22, 11, SymbolKind::Method, "App.A.Two", None),
-            symbol(23, 11, SymbolKind::Method, "App.A.Three", None),
-            symbol(24, 11, SymbolKind::Method, "App.Tests.Check", None),
-            symbol(31, 12, SymbolKind::Method, "App.B.One", None),
-            symbol(32, 12, SymbolKind::Method, "App.B.Two", None),
-        ];
-        first.references = first_scan();
-        store.persist(first).unwrap();
-        let mut second = data(header(20, ScanMode::Incremental));
-        second.files = vec![file(20, 13, "c.cs", "h3")];
-        second.symbols = vec![
-            symbol(41, 13, SymbolKind::Method, "App.C.One", None),
-            symbol(42, 13, SymbolKind::Method, "App.C.Two", None),
-        ];
-        second.references = second_scan();
-        store.persist(second).unwrap();
-        let mut other = data(header(30, ScanMode::Full));
-        other.snapshot.project = ProjectId::new(2);
-        other.files = vec![file(30, 300, "other.cs", "h4")];
-        other.symbols = vec![symbol(301, 300, SymbolKind::Method, "Other.One", None)];
-        other.references = vec![call(113, 300, 301, 301)];
-        store.persist(other).unwrap();
-        store
+        let symbols = |names: &[(u64, u64, &str)]| -> Vec<_> {
+            names
+                .iter()
+                .map(|(id, file, name)| symbol(*id, *file, SymbolKind::Method, name, None))
+                .collect()
+        };
+        three_snapshots(
+            (
+                symbols(&[
+                    (21, 11, "App.A.One"),
+                    (22, 11, "App.A.Two"),
+                    (23, 11, "App.A.Three"),
+                    (24, 11, "App.Tests.Check"),
+                    (31, 12, "App.B.One"),
+                    (32, 12, "App.B.Two"),
+                ]),
+                first_scan(),
+            ),
+            (
+                symbols(&[(41, 13, "App.C.One"), (42, 13, "App.C.Two")]),
+                second_scan(),
+            ),
+            (
+                symbols(&[(301, 300, "Other.One")]),
+                vec![call(113, 300, 301, 301)],
+            ),
+        )
     }
 
     /// The references each snapshot holds: the incremental one carries the first two files, and

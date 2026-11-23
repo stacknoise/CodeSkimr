@@ -263,3 +263,49 @@ impl UsageIndex for SqliteStore {
 fn data_version(conn: &Connection) -> StorageResult<i64> {
     Ok(conn.pragma_query_value(None, PRAGMA_DATA_VERSION, |row| row.get(0))?)
 }
+
+#[cfg(test)]
+mod tests {
+    use std::cell::Cell;
+    use std::num::NonZeroU32;
+
+    use codeskimr_domain::SnapshotId;
+
+    use super::{Build, NamespaceGraph, SqliteStore};
+
+    const SNAPSHOT: u64 = 7;
+    const RETENTION: u32 = 3;
+
+    /// Asks for the graph twice; `write_meanwhile` says whether a write comes in during the build.
+    /// Returns how often the graph was built.
+    fn builds_of_two_asks(write_meanwhile: bool) -> u32 {
+        let store = SqliteStore::open_in_memory(NonZeroU32::new(RETENTION).unwrap()).unwrap();
+        let builds = Cell::new(0);
+        for _ in 0..2 {
+            store
+                .built(
+                    (&store.graphs, Build::Graph),
+                    SnapshotId::new(SNAPSHOT),
+                    |_, _| {
+                        builds.set(builds.get() + 1);
+                        if write_meanwhile {
+                            store.forget_builds();
+                        }
+                        Ok(NamespaceGraph::default())
+                    },
+                )
+                .unwrap();
+        }
+        builds.get()
+    }
+
+    #[test]
+    fn what_was_built_is_kept_when_no_write_came_in_meanwhile() {
+        assert_eq!(builds_of_two_asks(false), 1);
+    }
+
+    #[test]
+    fn what_was_built_during_a_write_is_not_kept() {
+        assert_eq!(builds_of_two_asks(true), 2);
+    }
+}
