@@ -18,5 +18,3 @@
 # applies. Each entry names the ADR that explains it and is removed again once the base commit
 # contains the change (the next pull request measures against the new numbers).
 [accepted]
-# ADR 0089: the usages are read from the database; the index is no longer built in memory at start.
-"usages_page/depth_2_hub" = "ADR 0089"
