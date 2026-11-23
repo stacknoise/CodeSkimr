@@ -148,7 +148,7 @@ fn member_rows(
 
 impl CodeOutline for SqliteStore {
     fn outline(&self, snapshot: SnapshotId) -> Result<Vec<OutlineNode>, CodedError> {
-        self.read(|conn| outline(conn, snapshot))
+        self.read_apart(|conn| outline(conn, snapshot))
             .map_err(CodedError::from)
     }
 
@@ -157,7 +157,7 @@ impl CodeOutline for SqliteStore {
         snapshot: SnapshotId,
         symbol: SymbolId,
     ) -> Result<Vec<MemberRow>, CodedError> {
-        self.read(|conn| member_rows(conn, snapshot, symbol))
+        self.read_apart(|conn| member_rows(conn, snapshot, symbol))
             .map_err(CodedError::from)
     }
 }

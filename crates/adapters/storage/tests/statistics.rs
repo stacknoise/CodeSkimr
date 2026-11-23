@@ -7,7 +7,8 @@ mod common;
 mod tests {
     use codeskimr_application::ports::CodeStatistics;
     use codeskimr_domain::{
-        Confidence, MetricKind, ReferenceKind, SnapshotId, SymbolId, SymbolKind, UsageTally,
+        Confidence, MetricKind, ReferenceKind, SnapshotId, SymbolFacts, SymbolId, SymbolKind,
+        UsageTally,
     };
 
     use super::common::{metric, reference, scanned, symbol};
@@ -43,17 +44,21 @@ mod tests {
         scanned(&[], symbols, references, metrics)
     }
 
+    /// The usages of `App.Repo.Save`: the certain and the probable call, not the test, not itself.
+    const SAVE_USAGE: UsageTally = UsageTally {
+        certain: 2,
+        total: 3,
+    };
+
+    fn usage_of_save(facts: &[SymbolFacts]) -> UsageTally {
+        let save = facts.iter().find(|fact| fact.id.get() == 23).unwrap();
+        save.usage
+    }
+
     #[test]
     fn usages_are_counted_without_tests_and_without_the_symbol_itself() {
         let facts = store().symbol_facts(SNAPSHOT).unwrap();
-        let save = facts.iter().find(|fact| fact.id.get() == 23).unwrap();
-        assert_eq!(
-            save.usage,
-            UsageTally {
-                certain: 2,
-                total: 3
-            }
-        );
+        assert_eq!(usage_of_save(&facts), SAVE_USAGE);
         let main = facts.iter().find(|fact| fact.id.get() == 21).unwrap();
         assert_eq!(main.usage, UsageTally::default());
     }
@@ -115,5 +120,31 @@ mod tests {
                 .iter()
                 .all(|facts| std::sync::Arc::ptr_eq(facts, &loaded[0]))
         );
+    }
+
+    /// With larger projects in the database, the references of a snapshot are read through its
+    /// files; the counts are the same as in a database of its own.
+    #[test]
+    fn the_usages_are_the_same_next_to_larger_projects() {
+        use codeskimr_application::ports::SnapshotStore;
+        use codeskimr_domain::{ProjectId, ScanMode};
+
+        use super::common::{data, file, header, project};
+
+        let store = store();
+        for (id, snapshot) in [(2, 20), (3, 30)] {
+            let folder = format!("/work/other{id}");
+            store.save_project(&project(id, &folder, &[])).unwrap();
+            let mut head = header(snapshot, ScanMode::Full);
+            head.project = ProjectId::new(id);
+            let mut scan = data(head);
+            scan.files = (1..=3)
+                .map(|at| file(snapshot, snapshot * 100 + at, &format!("src/f{at}.cs"), "h"))
+                .collect();
+            store.persist(scan).unwrap();
+        }
+        let facts = store.symbol_facts(SNAPSHOT).unwrap();
+        assert_eq!(usage_of_save(&facts), SAVE_USAGE);
+        assert!(facts.iter().all(|fact| fact.test));
     }
 }

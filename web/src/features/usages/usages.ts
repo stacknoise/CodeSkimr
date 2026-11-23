@@ -4,11 +4,13 @@ import { EXPLORER_ROUTE } from "../../app/consts";
 import { runCommand } from "../../shared/api/commands";
 import {
   clearOrigin,
+  focusProject,
   focusSymbol,
   requestFocus,
   setFocusSymbol,
   type TypeFocus,
 } from "../../shared/navigation/navigation";
+import { SLOW_LOAD_DELAY_MS } from "../../shared/ui/consts";
 import { COMMAND, TYPE_KINDS } from "../explorer/consts";
 import { failed, type Failure } from "../explorer/failure";
 import type { SymbolInfo } from "../explorer/types";
@@ -37,9 +39,30 @@ const [code, setCode] = createSignal<Map<string, string>>(new Map());
 
 /** Counts the questions asked; the answer to an earlier one is dropped. */
 let generation = 0;
+/** Stops the question that is still open when the next one is asked, so that the browser does not
+ * keep a connection for an answer nobody reads. */
+let asking: AbortController | null = null;
+/** The project the answer on the screen belongs to. */
+let answered: number | null = null;
+
+function askAgain(): AbortSignal {
+  asking?.abort();
+  asking = new AbortController();
+  return asking.signal;
+}
+
+/** Takes the answer of another symbol off the screen once the new one takes long: a quick answer
+ * replaces it without a flicker, a slow one must not look like the answer. */
+function hideOldAnswerWhenSlow(symbol: number, mine: number): ReturnType<typeof setTimeout> {
+  return setTimeout(() => {
+    if (mine === generation && answer()?.symbol.id !== symbol) {
+      setAnswer(null);
+    }
+  }, SLOW_LOAD_DELAY_MS);
+}
 
 /** The symbol the screen shows, `null` until one is chosen. */
-export { focusSymbol };
+export { focusProject, focusSymbol };
 /** The directions, the depth and the tests flag of the toolbar. */
 export const direction = way;
 export const setDirection = setWay;
@@ -108,6 +131,13 @@ export async function loadUsages(project: number, symbol: number): Promise<void>
   clearPreview();
   setLoading(true);
   setFailure(null);
+  if (answered !== project) {
+    setAnswer(null);
+    setCode(new Map());
+  }
+  answered = project;
+  const signal = askAgain();
+  const slow = hideOldAnswerWhenSlow(symbol, mine);
   const input = {
     project,
     symbol,
@@ -116,12 +146,12 @@ export async function loadUsages(project: number, symbol: number): Promise<void>
     include_tests: showTests(),
   };
   try {
-    const read = await runCommand<UsagesAnswer>(USAGES_COMMAND, input);
+    const read = await runCommand<UsagesAnswer>(USAGES_COMMAND, input, signal);
     if (mine === generation) {
       setSelected(NO_HIT);
       setCode(new Map());
       setAnswer(read);
-      void loadCode(input, mine);
+      void loadCode(input, mine, signal);
     }
   } catch (error) {
     if (mine === generation) {
@@ -129,6 +159,7 @@ export async function loadUsages(project: number, symbol: number): Promise<void>
       setFailure(failed(error));
     }
   } finally {
+    clearTimeout(slow);
     if (mine === generation) {
       setLoading(false);
     }
@@ -137,9 +168,13 @@ export async function loadUsages(project: number, symbol: number): Promise<void>
 
 /** Reads the code lines of the hits after the list is shown. They are an addition: if the code
  * cannot be read (a Git project, a missing right) the list keeps the file and line. */
-async function loadCode(input: Record<string, unknown>, mine: number): Promise<void> {
+async function loadCode(
+  input: Record<string, unknown>,
+  mine: number,
+  signal: AbortSignal,
+): Promise<void> {
   try {
-    const read = await runCommand<CodeAnswer>(USAGES_CODE_COMMAND, input);
+    const read = await runCommand<CodeAnswer>(USAGES_CODE_COMMAND, input, signal);
     if (mine === generation) {
       setCode(codeByPlace(read.lines));
     }
@@ -152,6 +187,9 @@ async function loadCode(input: Record<string, unknown>, mine: number): Promise<v
  * usages. */
 export function clearUsages(): void {
   generation += 1;
+  asking?.abort();
+  asking = null;
+  answered = null;
   clearPreview();
   setFocusSymbol(null);
   clearOrigin();

@@ -58,7 +58,8 @@ pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files,
 
 /// Every reference of a snapshot with the columns the usage counts need: snapshot, then file,
 /// start, target, kind, confidence and whether level 2 verified it. One pass over the table; the
-/// caller keeps the rows whose file and target the snapshot holds (ADR 0089).
+/// caller keeps the rows whose file and target the snapshot holds (ADR 0089). Read with `IN_FILES_OF_SNAPSHOT`
+/// unless the snapshot holds most files of the database.
 pub const REFERENCE_TALLY_ROWS: &str = "SELECT file_id, from_symbol, to_symbol, kind, confidence, \
     verified FROM symbol_references WHERE first_snapshot <= ?1";
 /// The references of a snapshot that point at some symbols, in the column order of
@@ -92,7 +93,8 @@ pub const REFERENCE_ENDS_TOUCHING: &str = "SELECT r.from_symbol, r.to_symbol \
     AND r.to_symbol NOT IN (SELECT value FROM json_each(?2))";
 /// File, start and target of every reference that is not newer than a snapshot, not of the given
 /// kind and not of the given confidence: snapshot, test kind, probable label. One pass over the
-/// table; the caller keeps the rows whose file and target the snapshot holds.
+/// table; the caller keeps the rows whose file and target the snapshot holds. Read with `IN_FILES_OF_SNAPSHOT`
+/// unless the snapshot holds most files of the database.
 pub const REFERENCE_ENDS_CERTAIN: &str = "SELECT file_id, from_symbol, to_symbol \
     FROM symbol_references WHERE first_snapshot <= ?1 AND kind <> ?2 AND confidence <> ?3";
 /// The symbols of a snapshot with what the namespace graph and the type focus need: snapshot.
@@ -296,7 +298,8 @@ pub const SYMBOL_IDS: &str = "SELECT s.id FROM symbol_rows s \
 /// File and target of every reference that is not newer than a snapshot and not of the given
 /// kind: snapshot, excluded kind (`test`). The view `snapshot_references` keeps those whose file
 /// and target the snapshot holds; counting them here in one pass over the table is much cheaper
-/// than its four lookups per reference.
+/// than its four lookups per reference. Read with `IN_FILES_OF_SNAPSHOT`
+/// unless the snapshot holds most files of the database.
 pub const REFERENCE_TARGETS: &str =
     "SELECT file_id, to_symbol FROM symbol_references WHERE first_snapshot <= ?1 AND kind <> ?2";
 /// Adds the usage count of a symbol: snapshot, symbol, usages.
@@ -414,7 +417,7 @@ pub const SYMBOL_ALL: &str = "1 = 1 ORDER BY s.id";
 /// `snapshot_references` does with four lookups per reference.
 pub const REFERENCES_OF_SNAPSHOT: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
     start_column, end_line, end_column, kind, confidence, verified FROM symbol_references \
-    WHERE first_snapshot <= ?1 ORDER BY id";
+    WHERE first_snapshot <= ?1";
 /// Direct members of a symbol: snapshot, symbol.
 pub const MEMBERS_OF: &str =
     "SELECT id, name, kind FROM symbols WHERE snapshot_id = ?1 AND parent_id = ?2 ORDER BY id";
@@ -765,3 +768,12 @@ pub const STATISTICS_SYMBOLS: &str = "SELECT s.id, s.name, s.qualified_name, s.k
 /// Every measured value of a snapshot: snapshot.
 pub const STATISTICS_METRICS: &str =
     "SELECT symbol_id, kind, value FROM metrics WHERE snapshot_id = ?1";
+
+/// Narrows a statement over `symbol_references` (snapshot as `?1`) to the files of the snapshot.
+/// The references of all projects share the table: without it a small project reads the
+/// references of the largest project in the database. It is appended to the statement.
+pub const IN_FILES_OF_SNAPSHOT: &str =
+    " AND file_id IN (SELECT id FROM files WHERE snapshot_id = ?1)";
+/// The number of files of a snapshot and of distinct files in the database: snapshot.
+pub const FILE_SHARE: &str = "SELECT (SELECT COUNT(*) FROM files WHERE snapshot_id = ?1), \
+    (SELECT COUNT(DISTINCT id) FROM files)";

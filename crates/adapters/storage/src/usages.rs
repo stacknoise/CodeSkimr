@@ -40,7 +40,7 @@ impl SqliteStore {
         let raw = column_int(snapshot.get())?;
         let index = self.walked(snapshot, query)?;
         let (total, entries) =
-            self.read(|conn| answers::usages(conn, raw, (&index, query), limit as usize))?;
+            self.read_apart(|conn| answers::usages(conn, raw, (&index, query), limit as usize))?;
         Ok(UsagePage { total, entries })
     }
 
@@ -60,7 +60,7 @@ impl SqliteStore {
         let raw = column_int(snapshot.get())?;
         let index = self.walked(snapshot, &query)?;
         let (total, symbols) =
-            self.read(|conn| answers::impact(conn, raw, (&index, &query), limit as usize))?;
+            self.read_apart(|conn| answers::impact(conn, raw, (&index, &query), limit as usize))?;
         Ok(ImpactPage { total, symbols })
     }
 
@@ -73,7 +73,7 @@ impl SqliteStore {
             return Ok(found);
         }
         let written = self.write_count();
-        let index = Arc::new(self.read(|conn| answers::walked_references(conn, raw, query))?);
+        let index = Arc::new(self.read_apart(|conn| answers::walked_references(conn, raw, query))?);
         let mut kept = self.walks.lock().unwrap_or_else(PoisonError::into_inner);
         if self.unwritten_since(written) {
             kept.insert(0, (snapshot, version, *query, Arc::clone(&index)));
@@ -215,7 +215,7 @@ impl SqliteStore {
             snapshot,
             answers::type_owners,
         )
-        .and_then(|owners| self.read(|conn| answers::type_focus(conn, raw, &owners, symbol)))
+        .and_then(|owners| self.read_apart(|conn| answers::type_focus(conn, raw, &owners, symbol)))
         .map_err(CodedError::from)
     }
 }
@@ -250,7 +250,7 @@ impl UsageIndex for SqliteStore {
     ) -> Result<DependencyPage, CodedError> {
         let raw = column_int(snapshot.get()).map_err(CodedError::from)?;
         let mut edges = self
-            .read(|conn| dependency_edges(conn, raw, query))
+            .read_apart(|conn| dependency_edges(conn, raw, query))
             .map_err(CodedError::from)?;
         let total = edges.len();
         edges.truncate(limit as usize);

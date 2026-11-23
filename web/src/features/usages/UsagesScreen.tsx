@@ -22,6 +22,7 @@ import {
   clearUsages,
   direction,
   focusSymbol,
+  focusProject,
   hitCode,
   hitFilter,
   loadPreview,
@@ -69,7 +70,10 @@ function useReading(): void {
     direction();
     walkDepth();
     testsShown();
-    if (project !== null && symbol !== null) {
+    if (symbol !== null && focusProject() !== project) {
+      // The symbol was chosen in another project while this screen was closed.
+      clearUsages();
+    } else if (project !== null && symbol !== null) {
       void loadUsages(project, symbol);
     }
   });
