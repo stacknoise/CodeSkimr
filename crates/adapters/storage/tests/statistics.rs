@@ -7,7 +7,8 @@ mod common;
 mod tests {
     use codeskimr_application::ports::CodeStatistics;
     use codeskimr_domain::{
-        Confidence, MetricKind, ReferenceKind, SnapshotId, SymbolId, SymbolKind, UsageTally,
+        Confidence, MetricKind, ReferenceKind, SnapshotId, SymbolFacts, SymbolId, SymbolKind,
+        UsageTally,
     };
 
     use super::common::{metric, reference, scanned, symbol};
@@ -43,17 +44,21 @@ mod tests {
         scanned(&[], symbols, references, metrics)
     }
 
+    /// The usages of `App.Repo.Save`: the certain and the probable call, not the test, not itself.
+    const SAVE_USAGE: UsageTally = UsageTally {
+        certain: 2,
+        total: 3,
+    };
+
+    fn usage_of_save(facts: &[SymbolFacts]) -> UsageTally {
+        let save = facts.iter().find(|fact| fact.id.get() == 23).unwrap();
+        save.usage
+    }
+
     #[test]
     fn usages_are_counted_without_tests_and_without_the_symbol_itself() {
         let facts = store().symbol_facts(SNAPSHOT).unwrap();
-        let save = facts.iter().find(|fact| fact.id.get() == 23).unwrap();
-        assert_eq!(
-            save.usage,
-            UsageTally {
-                certain: 2,
-                total: 3
-            }
-        );
+        assert_eq!(usage_of_save(&facts), SAVE_USAGE);
         let main = facts.iter().find(|fact| fact.id.get() == 21).unwrap();
         assert_eq!(main.usage, UsageTally::default());
     }
@@ -139,14 +144,7 @@ mod tests {
             store.persist(scan).unwrap();
         }
         let facts = store.symbol_facts(SNAPSHOT).unwrap();
-        let save = facts.iter().find(|fact| fact.id.get() == 23).unwrap();
-        assert_eq!(
-            save.usage,
-            UsageTally {
-                certain: 2,
-                total: 3
-            }
-        );
+        assert_eq!(usage_of_save(&facts), SAVE_USAGE);
         assert!(facts.iter().all(|fact| fact.test));
     }
 }
