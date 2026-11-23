@@ -8,7 +8,7 @@ import { ErrorBoundary } from "solid-js";
 import { render } from "solid-js/web";
 import { App } from "./app/App";
 import { UnexpectedError } from "./app/UnexpectedError";
-import { ROOT_ID } from "./app/consts";
+import { BOOT_ID, ROOT_ID } from "./app/consts";
 import { currentLanguage, setLanguage } from "./shared/i18n/i18n";
 import { startSession } from "./shared/session/session";
 import { syncPreferences } from "./shared/settings/preferences";
@@ -17,6 +17,7 @@ import { applyTheme } from "./shared/theme/theme";
 
 const root = document.getElementById(ROOT_ID);
 if (root) {
+  document.getElementById(BOOT_ID)?.remove();
   applyTheme();
   setLanguage(currentLanguage());
   render(
