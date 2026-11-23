@@ -363,3 +363,6 @@ pub const STATS_TOP: u32 = 5;
 /// The separator between the namespace and the name in the qualified name of a type that the tree
 /// leaves out of its answer (the reader puts it together again).
 pub(super) const QUALIFIED_SEPARATOR: &str = ".";
+
+/// Name of the thread that builds the usages index after the outline of a project was read.
+pub const INDEX_WARM_THREAD: &str = "index-warm-up";

@@ -29,3 +29,7 @@ Option 3.
 - A scan that is too large ends within about half a second of passing the limit, with a clear message, instead of an abrupt end of the program. A step that holds one block of memory for longer (the write of a snapshot) is not interrupted; the stage boundaries before it are.
 - The program measures its own memory: a second scan or the UI at the same time count toward the limit of a scan.
 - The limit is a protection, not a budget: it never makes a scan faster.
+
+## Amendment (2026-11-23)
+
+The watch counts the growth of the memory of the program since the scan started, not the whole resident memory. The app holds the usages index and the answers of the screens of an opened project, and a scan of a small project then failed with `PRJ-503` after one second because the index of a large project was in memory. The 70 % share of the installed memory stays as a ceiling for the whole program. The text of `PRJ-503` and the setting keep their names.

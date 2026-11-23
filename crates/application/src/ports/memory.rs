@@ -18,29 +18,52 @@ pub trait MemoryGauge: Send + Sync {
     fn used_mb(&self) -> Option<u64>;
 }
 
-/// The most memory a scan may hold, and the gauge that measures it.
+/// The most memory a scan may add to what the program held when it started, with an optional
+/// ceiling for the whole program, and the gauge that measures it.
+///
+/// The growth is what counts for `max_mb`: the program may already hold the index of another
+/// project when a scan starts, and that is not the scan's own memory. The ceiling protects the
+/// machine and counts everything.
 #[derive(Clone)]
 pub struct MemoryLimit {
     gauge: Arc<dyn MemoryGauge>,
     max_mb: u64,
+    ceiling_mb: Option<u64>,
     interval: Duration,
 }
 
 impl MemoryLimit {
-    /// A limit of `max_mb` megabytes, checked every `interval` while a scan runs.
+    /// A limit of `max_mb` megabytes of growth, checked every `interval` while a scan runs.
     #[must_use]
     pub fn new(gauge: Arc<dyn MemoryGauge>, max_mb: u64, interval: Duration) -> Self {
         Self {
             gauge,
             max_mb,
+            ceiling_mb: None,
             interval,
         }
     }
 
-    /// Whether the program holds more than the limit.
+    /// Adds a ceiling of `ceiling_mb` megabytes for the whole program, whatever it held before.
     #[must_use]
-    pub fn exceeded(&self) -> bool {
-        self.gauge.used_mb().is_some_and(|used| used > self.max_mb)
+    pub fn with_ceiling(mut self, ceiling_mb: u64) -> Self {
+        self.ceiling_mb = Some(ceiling_mb);
+        self
+    }
+
+    /// The most the program may hold in total, given what it held when the scan started.
+    fn allowed_mb(&self, baseline_mb: u64) -> u64 {
+        let by_growth = baseline_mb.saturating_add(self.max_mb);
+        self.ceiling_mb
+            .map_or(by_growth, |ceiling| by_growth.min(ceiling))
+    }
+
+    /// Whether the program holds more than the scan may, `baseline_mb` being what it held when
+    /// the scan started.
+    #[must_use]
+    pub fn exceeded(&self, baseline_mb: u64) -> bool {
+        let allowed = self.allowed_mb(baseline_mb);
+        self.gauge.used_mb().is_some_and(|used| used > allowed)
     }
 
     /// The limit in megabytes that counts for the scan.
@@ -60,6 +83,7 @@ impl MemoryLimit {
         if self.gauge.used_mb().is_none() {
             tracing::warn!(event = LOG_MEMORY_READING_MISSING, max_mb = self.max_mb);
         }
+        let baseline = self.gauge.used_mb().unwrap_or_default();
         let (stop, wake) = mpsc::channel::<()>();
         let limit = self.clone();
         let flag = Arc::clone(&tripped);
@@ -67,7 +91,7 @@ impl MemoryLimit {
             .name(MEMORY_WATCH_THREAD.to_owned())
             .spawn(move || {
                 while let Err(RecvTimeoutError::Timeout) = wake.recv_timeout(limit.interval) {
-                    if limit.exceeded() {
+                    if limit.exceeded(baseline) {
                         tracing::error!(event = LOG_MEMORY_LIMIT_PASSED, max_mb = limit.max_mb, used_mb = ?limit.gauge.used_mb());
                         flag.store(true, Ordering::Release);
                         cancel.cancel();
@@ -137,6 +161,24 @@ mod tests {
     }
 
     #[test]
+    fn memory_held_before_the_scan_does_not_count_against_the_growth() {
+        let cancel = CancelToken::default();
+        let limit = MemoryLimit::new(Arc::new(Fixed(Some(500))), 100, Duration::from_millis(5));
+        let watch = limit.watch(cancel.clone());
+        std::thread::sleep(Duration::from_millis(50));
+        assert!(!watch.tripped());
+        assert!(limit.exceeded(300));
+        assert!(!limit.exceeded(450));
+    }
+
+    #[test]
+    fn the_ceiling_counts_the_whole_program() {
+        let limit = MemoryLimit::new(Arc::new(Fixed(Some(500))), 1000, Duration::from_secs(1))
+            .with_ceiling(400);
+        assert!(limit.exceeded(450));
+    }
+
+    #[test]
     fn dropping_the_watch_does_not_wait_for_the_interval() {
         let limit = MemoryLimit::new(Arc::new(Fixed(Some(1))), 100, Duration::from_secs(10));
         let watch = limit.watch(CancelToken::default());
@@ -156,7 +198,8 @@ mod tests {
     #[test]
     fn a_reading_above_the_limit_trips_the_watch() {
         let cancel = CancelToken::default();
-        let limit = MemoryLimit::new(Arc::new(Fixed(Some(10))), 1, Duration::from_millis(5));
+        let limit = MemoryLimit::new(Arc::new(Fixed(Some(10))), 1, Duration::from_millis(5))
+            .with_ceiling(1);
         let watch = limit.watch(cancel.clone());
         std::thread::sleep(Duration::from_millis(100));
         assert!(watch.tripped());

@@ -139,9 +139,10 @@ max_signature_chars = 400
 # one of them. It is counted and reported as RES-304; level 2 resolves it exactly (ADR 0084). A place that
 # scope, receiver type or imports narrow down is never given up, however many candidates it has.
 max_candidates = 100
-# Most memory, in megabytes, that a scan may hold. The program checks it twice a second while a scan runs and
-# stops the scan with PRJ-503 and no snapshot, instead of letting the system end the whole program. The
-# limit that counts is the lower of this value and 70 % of the installed memory (ADR 0087).
+# Most memory, in megabytes, that a scan may add to what the program held when the scan started. The program
+# checks it twice a second while a scan runs and stops the scan with PRJ-503 and no snapshot, instead of
+# letting the system end the whole program. Whatever the program holds in total never counts above 70 % of
+# the installed memory (ADR 0087).
 max_memory_mb = 16384
 # Most files that a scan names when it had to leave them out (wrong encoding, parse time limit, not
 # readable); the summary counts the others.

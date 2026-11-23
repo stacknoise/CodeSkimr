@@ -2414,7 +2414,8 @@ fn memory_run(used_mb: u64, max_mb: u64) -> (JobResult, Arc<World>) {
         Arc::new(FixedGauge(used_mb)),
         max_mb,
         std::time::Duration::from_millis(1),
-    );
+    )
+    .with_ceiling(max_mb);
     let job = Job::new(ProjectId::new(7), ScanMode::Full);
     let result = scanner_with(&world, &bus, Some(limit)).run(&Principal::local_owner(), job);
     (result, world)
