@@ -459,6 +459,8 @@ export const I18N_KEYS = {
   EXPORT_BUTTON_TITLE: "export-button-title",
   EXPORT_BUTTON_NEEDS_SCAN: "export-button-needs-scan",
   EXPORT_BUTTON_BUSY: "export-button-busy",
+  EXPORT_BUTTON_CANCEL: "export-button-cancel",
+  EXPORT_BUTTON_TIMEOUT: "export-button-timeout",
   EXPORT_BUTTON_FAILED: "export-button-failed",
   EXPORT_COMMAND_HTML: "export-command-html",
   GRAPH_TITLE: "graph-title",

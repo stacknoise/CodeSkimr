@@ -4,14 +4,24 @@ import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { ICON_DOWNLOAD, ICON_SIZE_MEDIUM } from "../../shared/ui/consts";
 import { Icon } from "../../shared/ui/Icon";
-import type { Failure } from "../projects/projects";
 import type { ProjectRow } from "../projects/types";
 import styles from "./ExportButton.module.css";
-import { clearExportFailure, exportProject, isExporting, lastExportFailure } from "./exportHtml";
+import {
+  cancelExport,
+  clearExportFailure,
+  exportElapsedSeconds,
+  exportProject,
+  isExporting,
+  lastExportFailure,
+  type ExportFailure,
+} from "./exportHtml";
 
 /** The text of a failure: the registered message, or the general one without a code. */
-function failureText(failure: Failure): string {
+function failureText(failure: ExportFailure): string {
   const code = failure.code;
+  if (failure.timedOut === true) {
+    return t(I18N_KEYS.EXPORT_BUTTON_TIMEOUT);
+  }
   return code === null ? t(I18N_KEYS.EXPORT_BUTTON_FAILED) : errorText(code);
 }
 
@@ -34,8 +44,15 @@ export function ExportButton(props: { project: ProjectRow }) {
         onClick={() => void exportProject(props.project.id, props.project.name)}
       >
         <Icon name={ICON_DOWNLOAD} size={ICON_SIZE_MEDIUM} />
-        {isExporting() ? t(I18N_KEYS.EXPORT_BUTTON_BUSY) : t(I18N_KEYS.EXPORT_BUTTON_LABEL)}
+        {isExporting()
+          ? t(I18N_KEYS.EXPORT_BUTTON_BUSY, { seconds: exportElapsedSeconds() })
+          : t(I18N_KEYS.EXPORT_BUTTON_LABEL)}
       </button>
+      <Show when={isExporting()}>
+        <button type="button" class={styles.button} onClick={cancelExport}>
+          {t(I18N_KEYS.EXPORT_BUTTON_CANCEL)}
+        </button>
+      </Show>
       <Show when={lastExportFailure()}>
         {(failure) => (
           <span class={styles.failure} role="alert">

@@ -9,6 +9,10 @@ import {
   EXPORT_LINK_TAG,
   EXPORT_MEDIA_TYPE,
   EXPORT_NAME_EDGES,
+  EXPORT_TICK_MS,
+  EXPORT_TIMEOUT_MS,
+  EXPORT_TIMEOUT_REASON,
+  MS_PER_SECOND,
   EXPORT_NAME_MAX,
   EXPORT_NAME_FILL,
   EXPORT_NAME_UNSAFE,
@@ -23,8 +27,16 @@ interface Exported {
   symbols: number;
 }
 
+/** Why the last export gave no page: the failure of the server, or that the wait ran out. */
+export type ExportFailure = Failure & { timedOut?: boolean };
+
 const [exporting, setExporting] = createSignal(false);
-const [exportFailure, setExportFailure] = createSignal<Failure | null>(null);
+const [exportFailure, setExportFailure] = createSignal<ExportFailure | null>(null);
+const [exportSeconds, setExportSeconds] = createSignal(0);
+let running: AbortController | null = null;
+
+/** Seconds the running export has taken so far. */
+export const exportElapsedSeconds = exportSeconds;
 
 /** True while a page is being made. */
 export const isExporting = exporting;
@@ -66,20 +78,46 @@ function save(html: string, fileName: string): void {
   setTimeout(() => URL.revokeObjectURL(url), EXPORT_REVOKE_DELAY_MS);
 }
 
+/** Gives up waiting for the running export without a message: the user asked for it. The server
+ * may still finish its work, but nothing waits for the page any more. */
+export function cancelExport(): void {
+  running?.abort();
+}
+
+/** The failure to show for an error of the call; `null` if the user cancelled. */
+function failureOf(error: unknown, controller: AbortController): ExportFailure | null {
+  if (!controller.signal.aborted) {
+    return failed(error);
+  }
+  return controller.signal.reason === EXPORT_TIMEOUT_REASON ? { code: null, timedOut: true } : null;
+}
+
 /** Exports the newest scan of a project as one HTML page and offers it as a download (blueprint
  * 10.2). Source text is not part of it. A second call while one runs does nothing. */
 export async function exportProject(project: number, name: string): Promise<void> {
   if (exporting()) {
     return;
   }
+  const controller = new AbortController();
+  running = controller;
+  const started = Date.now();
   setExporting(true);
   setExportFailure(null);
+  setExportSeconds(0);
+  const ticker = setInterval(
+    () => setExportSeconds(Math.floor((Date.now() - started) / MS_PER_SECOND)),
+    EXPORT_TICK_MS,
+  );
+  const limit = setTimeout(() => controller.abort(EXPORT_TIMEOUT_REASON), EXPORT_TIMEOUT_MS);
   try {
-    const page = await runCommand<Exported>(EXPORT_COMMAND, { project });
+    const page = await runCommand<Exported>(EXPORT_COMMAND, { project }, controller.signal);
     save(page.html, exportFileName(name));
   } catch (error) {
-    setExportFailure(failed(error));
+    setExportFailure(failureOf(error, controller));
   } finally {
+    clearInterval(ticker);
+    clearTimeout(limit);
+    running = null;
     setExporting(false);
   }
 }
