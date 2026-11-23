@@ -12,6 +12,6 @@ export-button-title = Download the newest scan as one self-contained HTML page. 
 export-button-needs-scan = Scan the project first, then it can be exported.
 export-button-busy = Exporting … { $seconds } s
 export-button-cancel = Cancel
-export-button-timeout = The export took too long and was stopped. Large projects can take several minutes; the command `codeskimr export` on the command line has no time limit.
+export-button-timeout = The app no longer waits for the export; the server may still be working on it. Large projects can take several minutes; the command `codeskimr export` on the command line has no time limit.
 export-button-failed = The export failed.
 export-command-html = Export project as HTML

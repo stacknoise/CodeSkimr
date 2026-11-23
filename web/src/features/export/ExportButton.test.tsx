@@ -88,7 +88,7 @@ describe("an export that does not come back", () => {
     fireEvent.click(screen.getByRole("button", { name: "Export HTML" }));
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
     await vi.advanceTimersByTimeAsync(EXPORT_TIMEOUT_MS + 1);
-    expect(screen.getByRole("alert")).toHaveTextContent("took too long");
+    expect(screen.getByRole("alert")).toHaveTextContent("no longer waits");
     expect(screen.getByRole("button", { name: "Export HTML" })).toBeEnabled();
   });
 

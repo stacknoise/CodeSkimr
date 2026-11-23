@@ -3,8 +3,9 @@ import { COMMANDS_PATH, METHOD_POST, TIMED_COMMANDS } from "./consts";
 import { recordTime } from "./timings";
 
 /** Runs a command of the registry on the local server (`POST /api/v1/commands/{id}`) and returns
- * its output. A `signal` lets the caller give up waiting. The round trip of a command that measures a time budget is remembered for the
- * performance screen and the status bar. Commands that change something need the token, which `api` sends.
+ * its output. A `signal` lets the caller give up waiting. The round trip of a command that
+ * measures a time budget is remembered for the performance screen and the status bar. Commands
+ * that change something need the token, which `api` sends.
  *
  * @throws ApiError with the registered code of the failure.
  */
