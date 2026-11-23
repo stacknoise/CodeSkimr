@@ -4,7 +4,9 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use codeskimr_application::ports::Level2Replacement;
-use codeskimr_domain::{FileId, ProjectId, Snapshot, SnapshotId, Symbol, SymbolOrigin, coupling};
+use codeskimr_domain::{
+    FileId, ProjectId, Snapshot, SnapshotId, SnapshotStats, Symbol, SymbolOrigin, coupling,
+};
 use rusqlite::{Connection, params};
 
 use crate::codec::{column_int, id_from};
@@ -146,8 +148,12 @@ pub(crate) fn replace_level2(
         insert_reference(&mut insert, first, reference)?;
     }
     drop_shadowed(conn, &change.files)?;
+    let mut stats = None;
     for affected in &holders.all {
-        refresh(conn, *affected, project)?;
+        let refreshed = refresh(conn, *affected, project)?;
+        if *affected == change.snapshot {
+            stats = Some(refreshed);
+        }
     }
     refresh_coupling(conn, change.snapshot, project)?;
     // The numbers of the statistics counted the references that were replaced: they are counted
@@ -157,8 +163,11 @@ pub(crate) fn replace_level2(
     for affected in &stale {
         forget_statistics(conn, column_int(affected.get())?)?;
     }
-    let stats = totals(conn, change.snapshot)?;
-    Ok(Snapshot { stats, ..latest })
+    // The latest snapshot holds the replaced files, so it was refreshed above.
+    match stats {
+        Some(stats) => Ok(Snapshot { stats, ..latest }),
+        None => latest_snapshot(conn, project)?.ok_or(StorageError::DanglingReference),
+    }
 }
 
 /// The snapshots that hold the replaced files. They share the rows of a file (ADR 0032), so their
@@ -191,15 +200,21 @@ fn holders(conn: &Connection, change: &Level2Replacement) -> StorageResult<Holde
 /// Builds the read models of `snapshot` again and writes its totals. The number of ambiguous
 /// places is forgotten, because verified references change it; the next scan counts again
 /// (ADR 0086).
-fn refresh(conn: &Connection, snapshot: SnapshotId, project: ProjectId) -> StorageResult<()> {
+fn refresh(
+    conn: &Connection,
+    snapshot: SnapshotId,
+    project: ProjectId,
+) -> StorageResult<SnapshotStats> {
     let id = column_int(snapshot.get())?;
     conn.execute(sql::SNAPSHOT_AMBIGUOUS_SET, params![None::<i64>, id])?;
     for delete in sql::READ_MODELS_DELETE {
         conn.execute(delete, params![id])?;
     }
-    read_models::rebuild(conn, snapshot, &load_layers(conn, project)?)?;
+    let tests = read_models::rebuild(conn, snapshot, &load_layers(conn, project)?)?;
     // The totals count the references from the usage counts, so the read models come first.
-    set_totals(conn, snapshot, totals(conn, snapshot)?)
+    let stats = totals(conn, snapshot, tests)?;
+    set_totals(conn, snapshot, stats)?;
+    Ok(stats)
 }
 
 /// Calculates the coupling of the newest snapshot again from its stored references, because the

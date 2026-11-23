@@ -2,8 +2,8 @@
 //! references and metrics, shared by the writes of `snapshots` and `replace`.
 
 use codeskimr_domain::{
-    CommitHash, Metric, ProjectId, Reference, ReferenceKind, Snapshot, SnapshotId, SnapshotStats,
-    Symbol, Timestamp, Visibility,
+    CommitHash, Metric, ProjectId, Reference, Snapshot, SnapshotId, SnapshotStats, Symbol,
+    Timestamp, Visibility,
 };
 use rusqlite::{Connection, OptionalExtension, Statement, params};
 
@@ -34,10 +34,16 @@ pub(crate) fn insert_reference(
     Ok(())
 }
 
-pub(crate) fn totals(conn: &Connection, snapshot: SnapshotId) -> StorageResult<SnapshotStats> {
+/// The totals of a snapshot; `tests` is the number of its references of kind `test`, which
+/// `read_models::rebuild` counted.
+pub(crate) fn totals(
+    conn: &Connection,
+    snapshot: SnapshotId,
+    tests: u64,
+) -> StorageResult<SnapshotStats> {
     let (files, symbols, references): (i64, i64, i64) = conn.query_row(
         sql::TOTALS,
-        params![column_int(snapshot.get())?, ReferenceKind::Test.label()],
+        params![column_int(snapshot.get())?, column_int(tests)?],
         |row| {
             let cols = Cols::new(row);
             Ok((cols.take()?, cols.take()?, cols.take()?))

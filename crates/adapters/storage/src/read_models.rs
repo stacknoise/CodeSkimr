@@ -9,20 +9,21 @@ use codeskimr_domain::{Confidence, Layer, MetricKind, ReferenceKind, SnapshotId,
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, column_int, id_from};
-use crate::consts::{EDGE_STEP, TYPE_KINDS};
+use crate::consts::{EDGE_STEP, REFERENCE_KIND_COLUMN, TYPE_KINDS};
 use crate::cycles::edges_in_cycles;
 use crate::error::StorageResult;
 use crate::references::{id_set, of_snapshot};
 use crate::sql;
 
-/// Fills `search_index`, `usage_counts`, `type_summary` and `layer_graph` of a snapshot.
-pub fn rebuild(conn: &Connection, snapshot: SnapshotId, layers: &[Layer]) -> StorageResult<()> {
+/// Fills `search_index`, `usage_counts`, `type_summary` and `layer_graph` of a snapshot. Returns
+/// how many references of kind `test` the snapshot holds, which the usage counts leave out.
+pub fn rebuild(conn: &Connection, snapshot: SnapshotId, layers: &[Layer]) -> StorageResult<u64> {
     let id = column_int(snapshot.get())?;
     conn.execute(
         sql::SEARCH_REBUILD,
         params![id, SymbolKind::Parameter.label()],
     )?;
-    rebuild_usages(conn, id)?;
+    let tests = rebuild_usages(conn, id)?;
     for kind in TYPE_KINDS.iter().copied() {
         conn.execute(
             sql::TYPE_SUMMARY_REBUILD,
@@ -35,22 +36,34 @@ pub fn rebuild(conn: &Connection, snapshot: SnapshotId, layers: &[Layer]) -> Sto
             ],
         )?;
     }
-    rebuild_layer_graph(conn, id, layers)
+    rebuild_layer_graph(conn, id, layers)?;
+    Ok(tests)
 }
 
 /// Fills `usage_counts`: how many references of the snapshot point at each symbol. References of
 /// kind `test` are left out, like in coupling; the usages list still shows them. A reference
 /// counts when its file and its target are in the snapshot, as in the view `snapshot_references`.
-fn rebuild_usages(conn: &Connection, snapshot: i64) -> StorageResult<()> {
+/// Returns the number of references of kind `test` that count in this sense.
+fn rebuild_usages(conn: &Connection, snapshot: i64) -> StorageResult<u64> {
     let files = id_set(conn, sql::FILE_IDS, snapshot)?;
     let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
     let mut counts: BTreeMap<i64, i64> = BTreeMap::new();
     let mut statement =
         conn.prepare_cached(&of_snapshot(conn, snapshot, sql::REFERENCE_TARGETS)?)?;
-    let mut rows = statement.query(params![snapshot, ReferenceKind::Test.label()])?;
+    let mut tests = u64::default();
+    let mut rows = statement.query(params![snapshot])?;
     while let Some(row) = rows.next()? {
         let (file, target): (i64, i64) = (row.get(0)?, row.get(1)?);
-        if files.contains(&file) && symbols.contains(&target) {
+        if !(files.contains(&file) && symbols.contains(&target)) {
+            continue;
+        }
+        let kind = row
+            .get_ref(REFERENCE_KIND_COLUMN)?
+            .as_str()
+            .map_err(rusqlite::Error::from)?;
+        if kind == ReferenceKind::Test.label() {
+            tests += 1;
+        } else {
             *counts.entry(target).or_default() += 1;
         }
     }
@@ -58,7 +71,7 @@ fn rebuild_usages(conn: &Connection, snapshot: i64) -> StorageResult<()> {
     for (symbol, usages) in counts {
         insert.execute(params![snapshot, symbol, usages])?;
     }
-    Ok(())
+    Ok(tests)
 }
 
 /// Index of the layer a qualified name belongs to: the first layer with a namespace that equals
