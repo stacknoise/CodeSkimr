@@ -52,11 +52,49 @@ pub const LATEST_FILES: &str = "SELECT snapshot_id, id, path, language, content_
     ORDER BY path";
 /// Id of the newest snapshot of a project, null without one: project id.
 pub const LATEST_SNAPSHOT_ID: &str = "SELECT MAX(id) FROM snapshots WHERE project_id = ?1";
-/// Id of the newest snapshot of all projects, null without one.
-pub const SNAPSHOT_NEWEST: &str = "SELECT MAX(id) FROM snapshots";
 /// The newest snapshot of a project: project id.
 pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files, \
     symbols, refs FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";
+
+/// Every reference of a snapshot with the columns the usage counts need: snapshot, then file,
+/// start, target, kind, confidence and whether level 2 verified it. One pass over the table; the
+/// caller keeps the rows whose file and target the snapshot holds (ADR 0089).
+pub const REFERENCE_TALLY_ROWS: &str = "SELECT file_id, from_symbol, to_symbol, kind, confidence, \
+    verified FROM symbol_references WHERE first_snapshot <= ?1";
+/// The references of a snapshot that point at some symbols, in the column order of
+/// `REFERENCES_OF_SNAPSHOT`: snapshot, JSON list of symbol ids. Read through the index on the
+/// target; the view keeps the references whose file and target the snapshot holds.
+pub const REFERENCES_INTO: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
+    start_column, end_line, end_column, kind, confidence, verified FROM snapshot_references \
+    WHERE snapshot_id = ?1 AND to_symbol IN (SELECT value FROM json_each(?2))";
+/// The references of a snapshot that start in some symbols, in the column order of
+/// `REFERENCES_OF_SNAPSHOT`: snapshot, JSON list of symbol ids.
+pub const REFERENCES_OUT_OF: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
+    start_column, end_line, end_column, kind, confidence, verified FROM snapshot_references \
+    WHERE snapshot_id = ?1 AND from_symbol IN (SELECT value FROM json_each(?2))";
+/// Start and target of the references of a snapshot that touch some symbols at either end:
+/// snapshot, JSON list of symbol ids.
+pub const REFERENCE_ENDS_TOUCHING: &str = "SELECT from_symbol, to_symbol FROM snapshot_references \
+    WHERE snapshot_id = ?1 AND to_symbol IN (SELECT value FROM json_each(?2)) \
+    UNION ALL SELECT from_symbol, to_symbol FROM snapshot_references \
+    WHERE snapshot_id = ?1 AND from_symbol IN (SELECT value FROM json_each(?2)) \
+    AND to_symbol NOT IN (SELECT value FROM json_each(?2))";
+/// Start and target of the references of a snapshot that count for a dependency of namespaces:
+/// not probable, not of the test kind, one row per reference: snapshot, test kind, probable label.
+pub const REFERENCE_PAIRS_CERTAIN: &str = "SELECT from_symbol, to_symbol \
+    FROM snapshot_references WHERE snapshot_id = ?1 AND kind <> ?2 AND confidence <> ?3";
+/// The symbols of a snapshot with what the namespace graph and the type focus need: snapshot.
+pub const SYMBOL_PARENTS: &str = "SELECT s.id, s.qualified_name, s.kind, s.parent_id \
+    FROM symbols s WHERE s.snapshot_id = ?1";
+/// The symbols of a snapshot named in a list, as result lines with their file paths: snapshot,
+/// JSON list of symbol ids; the columns of `SYMBOL_LABELS`.
+pub const SYMBOL_LABELS_OF: &str = "SELECT s.id, s.qualified_name, s.kind, s.parent_id, \
+    s.visibility, f.path FROM symbols s \
+    JOIN files f ON f.snapshot_id = s.snapshot_id AND f.id = s.file_id \
+    WHERE s.snapshot_id = ?1 AND s.id IN (SELECT value FROM json_each(?2))";
+/// The files of a snapshot named in a list: snapshot, JSON list of file ids.
+pub const FILE_PATHS_OF: &str = "SELECT id, path FROM files WHERE snapshot_id = ?1 \
+    AND id IN (SELECT value FROM json_each(?2))";
 
 /// The project a snapshot belongs to: snapshot id.
 pub const SNAPSHOT_PROJECT: &str = "SELECT project_id FROM snapshots WHERE id = ?1";
@@ -371,12 +409,6 @@ pub const MEMBERS_OF: &str =
 /// Metrics of a symbol: snapshot, symbol.
 pub const METRICS_OF: &str =
     "SELECT kind, value FROM metrics WHERE snapshot_id = ?1 AND symbol_id = ?2 ORDER BY kind";
-/// All symbols of a snapshot as result lines, with their file paths: snapshot.
-pub const SYMBOL_LABELS: &str = "SELECT s.id, s.qualified_name, s.kind, s.parent_id, s.visibility, f.path \
-    FROM symbols s JOIN files f ON f.snapshot_id = s.snapshot_id AND f.id = s.file_id \
-    WHERE s.snapshot_id = ?1";
-/// Id and path of every file of a snapshot: snapshot.
-pub const FILE_PATHS: &str = "SELECT id, path FROM files WHERE snapshot_id = ?1";
 /// Whether a snapshot is stored: snapshot.
 pub const SNAPSHOT_EXISTS: &str = "SELECT COUNT(*) FROM snapshots WHERE id = ?1";
 

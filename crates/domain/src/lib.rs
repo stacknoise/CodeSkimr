@@ -84,4 +84,4 @@ pub use tool::{
     Ceiling, RequirementFormat, RequirementSpec, RollForwardSpec, ToolEntry, ToolFinding,
     ToolReport, ToolRole, ToolState,
 };
-pub use type_neighbours::{TypeLink, TypeNeighbours, TypeSymbol, type_neighbours};
+pub use type_neighbours::{TypeLink, TypeNeighbours, TypeSymbol, type_members, type_neighbours};

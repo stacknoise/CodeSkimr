@@ -159,5 +159,5 @@ pub const STATE_INDEX_COUNT: i64 = 3;
 /// shared connection and holds up the other queries.
 pub const LOG_READ_CONNECTION_UNAVAILABLE: &str = "read_connection_unavailable";
 
-/// How many snapshots keep their index and their statistics facts in memory at once.
-pub const KEPT_LOOKUPS: usize = 2;
+/// How many snapshots keep their namespace graph and their statistics facts in memory at once.
+pub const KEPT_BUILDS: usize = 2;

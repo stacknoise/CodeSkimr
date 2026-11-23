@@ -11,7 +11,7 @@ mod tests {
         UsageQuery, Visibility,
     };
 
-    use super::common::{data, file, header, project, reference, scanned, symbol};
+    use super::common::{data, file, header, reference, scanned, symbol};
 
     const SNAPSHOT: SnapshotId = SnapshotId::new(10);
 
@@ -270,71 +270,16 @@ mod tests {
     }
 
     #[test]
-    fn warming_builds_the_index_of_the_newest_snapshot() {
-        let store = calls();
-        assert_eq!(store.kept_snapshot(), None);
-        store.warm_newest().unwrap();
-        assert_eq!(store.kept_snapshot(), Some(SNAPSHOT));
-    }
-
-    #[test]
-    fn warming_an_empty_store_does_nothing() {
-        let store = super::common::store(3);
-        store.warm_newest().unwrap();
-        assert_eq!(store.kept_snapshot(), None);
-    }
-
-    #[test]
-    fn a_scan_nobody_queried_builds_no_index() {
+    fn a_later_snapshot_answers_for_itself_and_the_earlier_one_keeps_its_usages() {
         let store = calls();
         store.persist(later_scan(1, 20)).unwrap();
-        assert_eq!(store.kept_snapshot(), None);
-    }
-
-    #[test]
-    fn a_new_snapshot_of_the_project_takes_over_the_kept_index() {
-        let store = calls();
-        store.warm_newest().unwrap();
-        store.persist(later_scan(1, 20)).unwrap();
-        assert_eq!(store.kept_snapshot(), Some(SnapshotId::new(20)));
-    }
-
-    #[test]
-    fn a_snapshot_of_another_project_leaves_the_kept_index() {
-        let store = calls();
-        store.save_project(&project(2, "/work/other", &[])).unwrap();
-        store.warm_newest().unwrap();
-        store.persist(later_scan(2, 20)).unwrap();
-        assert_eq!(store.kept_snapshot(), Some(SNAPSHOT));
-    }
-
-    #[test]
-    fn the_index_of_a_second_project_is_built_without_dropping_the_first() {
-        let store = calls();
-        store.save_project(&project(2, "/work/other", &[])).unwrap();
-        store.persist(later_scan(2, 20)).unwrap();
-        store.warm(SNAPSHOT).unwrap();
-        store.warm(SnapshotId::new(20)).unwrap();
-        assert_eq!(store.kept_snapshot(), Some(SnapshotId::new(20)));
-        // The first one answers again as the newest, without another build.
-        store.warm(SNAPSHOT).unwrap();
-        assert_eq!(store.kept_snapshot(), Some(SNAPSHOT));
-    }
-
-    #[test]
-    fn a_third_snapshot_pushes_the_oldest_index_out() {
-        let store = calls();
-        store.save_project(&project(2, "/work/other", &[])).unwrap();
-        store.save_project(&project(3, "/work/third", &[])).unwrap();
-        store.persist(later_scan(2, 20)).unwrap();
-        store.persist(later_scan(3, 30)).unwrap();
-        store.warm(SNAPSHOT).unwrap();
-        store.warm(SnapshotId::new(20)).unwrap();
-        store.warm(SnapshotId::new(30)).unwrap();
-        assert_eq!(store.kept_snapshot(), Some(SnapshotId::new(30)));
-        // The oldest was dropped, so asking for it brings it back as the newest.
-        store.warm(SNAPSHOT).unwrap();
-        assert_eq!(store.kept_snapshot(), Some(SNAPSHOT));
+        let earlier = store
+            .usages(SNAPSHOT, &query(23, Direction::Incoming, 1), 10)
+            .unwrap();
+        let later = store
+            .usages(SnapshotId::new(20), &query(23, Direction::Incoming, 1), 10)
+            .unwrap();
+        assert_eq!((earlier.total, later.total), (2, 0));
     }
 
     #[test]

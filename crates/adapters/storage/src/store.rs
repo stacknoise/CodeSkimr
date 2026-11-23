@@ -4,7 +4,8 @@ use std::collections::HashMap;
 use std::fs;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 
 use codeskimr_application::error::CodedError;
@@ -12,7 +13,7 @@ use codeskimr_domain::SnapshotId;
 use rusqlite::{Connection, ErrorCode, OpenFlags, Transaction, TransactionBehavior};
 
 use crate::consts::{
-    BUSY_TIMEOUT_MS, CACHE_SIZE_KIB, FIRST_ID, ID_STEP, JOURNAL_MODE_WAL,
+    BUSY_TIMEOUT_MS, CACHE_SIZE_KIB, FIRST_ID, ID_STEP, JOURNAL_MODE_WAL, KEPT_BUILDS,
     LOG_READ_CONNECTION_UNAVAILABLE, PRAGMA_CACHE_SIZE, PRAGMA_FOREIGN_KEYS, PRAGMA_JOURNAL_MODE,
     PRAGMA_MAX_PAGE_COUNT, PRAGMA_ON, PRAGMA_PAGE_COUNT, PRAGMA_SYNCHRONOUS, PRAGMA_TEMP_STORE,
     SYNCHRONOUS_NORMAL, TEMP_STORE_MEMORY, WAL_SWITCH_ATTEMPTS, WAL_SWITCH_PAUSE_MS,
@@ -59,46 +60,48 @@ pub struct SqliteStore {
     /// to the queries of the screens; `None` for an in-memory database.
     file: Option<PathBuf>,
     retention: NonZeroU32,
-    /// The reverse indexes and the places of the snapshots that were asked about last, the
-    /// newest first, at most `KEPT_LOOKUPS`: a small project that is opened next to a large one
-    /// does not push it out, and a build of one does not make the other wait. They are kept only
-    /// while no other connection has committed since (`data_version`): the level 2 import of a
-    /// scan from the browser or of `codeskimr scan` replaces the references of a snapshot through
-    /// its own store. The lock is held for a look into the list, never during a build.
-    pub(crate) reverse: Mutex<Vec<KeptLookup>>,
-    /// One lock per snapshot whose index is built: a second caller for the same snapshot waits
-    /// for the first and finds its result; callers for other snapshots do not wait.
+    /// The namespace graphs of the snapshots that were asked about last, newest first, at most
+    /// `KEPT_BUILDS`. A graph is kept only while no other connection has committed since
+    /// (`data_version`): the level 2 import of a scan from the browser or of `codeskimr scan`
+    /// replaces the references of a snapshot through its own store. The lock is held for a look
+    /// into the list, never during a build.
+    pub(crate) graphs: Mutex<Vec<KeptGraph>>,
+    /// One lock per snapshot and kind of build: a second caller for the same build waits for the
+    /// first and finds its result; callers for other snapshots do not wait.
     pub(crate) builds: Mutex<HashMap<(i64, Build), BuildGate>>,
     /// The facts of the symbols for the statistics of the snapshots that were asked about last,
-    /// newest first, at most `KEPT_LOOKUPS`; each is marked with the test folders it was built
-    /// for and kept for the lookup it was built from. A write drops them with the lookups.
+    /// newest first, at most `KEPT_BUILDS`; each is marked with the test folders it was built for
+    /// and the `data_version` it was built at. A write through this store drops them.
     pub(crate) facts: Mutex<Vec<KeptFacts>>,
+    /// Counts the writes of this store that may have changed references, so that a build that
+    /// was running during one does not keep what it read before it.
+    pub(crate) writes: AtomicU64,
 }
 
 /// The lock of one build.
 pub(crate) type BuildGate = Arc<Mutex<()>>;
 
-/// What a build gate guards: the reverse index of a snapshot or the facts of its symbols.
+/// What a build gate guards: the namespace graph of a snapshot or the facts of its symbols.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum Build {
-    /// The reverse index (`SnapshotLookup`).
-    Index,
+    /// The namespace graph.
+    Graph,
     /// The facts for the statistics.
     Facts,
 }
 
-/// What [`SqliteStore`] keeps for the statistics: the lookup the usage counts come from, the
-/// names of the test folders, and the facts.
+/// What [`SqliteStore`] keeps for the statistics: the snapshot, the `data_version` the facts were
+/// built at, the names of the test folders, and the facts.
 pub(crate) type KeptFacts = (
     SnapshotId,
-    Weak<crate::lookup::SnapshotLookup>,
+    i64,
     Vec<String>,
     Arc<Vec<codeskimr_domain::SymbolFacts>>,
 );
 
-/// What [`SqliteStore`] keeps of the reverse index: the snapshot, its lookup and the
-/// `data_version` of the database when it was built.
-pub(crate) type KeptLookup = (SnapshotId, Arc<crate::lookup::SnapshotLookup>, i64);
+/// What [`SqliteStore`] keeps of the namespace graph: the snapshot, the `data_version` it was
+/// built at, and the graph.
+pub(crate) type KeptGraph = (SnapshotId, i64, codeskimr_domain::NamespaceGraph);
 
 impl SqliteStore {
     /// Opens the database file, creating it and its folder if needed, and applies the migrations.
@@ -169,10 +172,64 @@ impl SqliteStore {
             conn: Mutex::new(conn),
             file,
             retention,
-            reverse: Mutex::new(Vec::new()),
+            graphs: Mutex::new(Vec::new()),
             builds: Mutex::new(HashMap::new()),
             facts: Mutex::new(Vec::new()),
+            writes: AtomicU64::new(0),
         })
+    }
+
+    /// The lock that serialises one kind of build for one snapshot.
+    pub(crate) fn build_gate(&self, snapshot: i64, what: Build) -> BuildGate {
+        let mut gates = self.builds.lock().unwrap_or_else(PoisonError::into_inner);
+        // A gate nobody holds is dropped, so the map does not grow with every snapshot.
+        gates.retain(|_, gate| Arc::strong_count(gate) > 1);
+        Arc::clone(gates.entry((snapshot, what)).or_default())
+    }
+
+    /// The kept namespace graph of `snapshot` if it was built at `version`.
+    pub(crate) fn kept_graph(
+        &self,
+        snapshot: SnapshotId,
+        version: i64,
+    ) -> Option<codeskimr_domain::NamespaceGraph> {
+        let kept = self.graphs.lock().unwrap_or_else(PoisonError::into_inner);
+        kept.iter()
+            .find(|(id, built_at, _)| *id == snapshot && *built_at == version)
+            .map(|(.., graph)| graph.clone())
+    }
+
+    /// The number of writes so far; a build compares it before and after it reads.
+    pub(crate) fn write_count(&self) -> u64 {
+        self.writes.load(Ordering::SeqCst)
+    }
+
+    /// Keeps the namespace graph of `snapshot` as the newest, instead of an older one of it, if
+    /// no write came in since `written` was read.
+    pub(crate) fn keep_graph(
+        &self,
+        (snapshot, version, written): (SnapshotId, i64, u64),
+        graph: &codeskimr_domain::NamespaceGraph,
+    ) {
+        let mut kept = self.graphs.lock().unwrap_or_else(PoisonError::into_inner);
+        if written != self.write_count() {
+            return;
+        }
+        kept.retain(|(id, ..)| *id != snapshot);
+        kept.insert(0, (snapshot, version, graph.clone()));
+        kept.truncate(KEPT_BUILDS);
+    }
+
+    /// Drops what was built from the references: after a write of this store (a scan, or the
+    /// import of level 2) the references of a snapshot may have changed. A build that is still
+    /// running for a snapshot has read the references before the write; the data version it
+    /// compares against is the one of its start, so the next question builds it again.
+    pub(crate) fn forget_builds(&self) {
+        let mut graphs = self.graphs.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut facts = self.facts.lock().unwrap_or_else(PoisonError::into_inner);
+        self.writes.fetch_add(1, Ordering::SeqCst);
+        graphs.clear();
+        facts.clear();
     }
 
     /// The number of snapshots kept per project.

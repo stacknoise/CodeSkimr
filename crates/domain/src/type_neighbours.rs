@@ -85,6 +85,28 @@ fn ranked(counts: BTreeMap<SymbolId, u32>) -> Vec<TypeLink> {
     links
 }
 
+/// The symbols a type owns: itself and every member inside it, by the rule of the module. `None`
+/// if `focus` is not a type of the symbols. The references that touch these symbols are all that
+/// `type_neighbours` needs of the references of a snapshot.
+#[must_use]
+pub fn type_members<'a>(
+    focus: SymbolId,
+    symbols: impl IntoIterator<Item = TypeSymbol<'a>>,
+) -> Option<Vec<SymbolId>> {
+    let symbols: Vec<_> = symbols.into_iter().collect();
+    let owner = owners(&symbols);
+    if owner.get(&focus) != Some(&focus) {
+        return None;
+    }
+    let mut members: Vec<SymbolId> = owner
+        .iter()
+        .filter(|(_, owned_by)| **owned_by == focus)
+        .map(|(id, _)| *id)
+        .collect();
+    members.sort_unstable();
+    Some(members)
+}
+
 /// The neighbours of `focus`, from the symbols (id, kind, qualified name, parent) and the
 /// references (from, to) of a snapshot. `None` if `focus` is not a type of the snapshot.
 #[must_use]
