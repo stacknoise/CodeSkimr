@@ -796,95 +796,60 @@ pub const STATISTICS_FACET_INSERT: &str =
 pub const STATISTICS_COMPLEXITY_INSERT: &str =
     "INSERT INTO statistics_complexity VALUES (?1, ?2, ?3, ?4)";
 
-/// The assessment of "no usage found" as a number in the order of `Assessment`: the languages
-/// whose usages are an approximation (their ids, each between two unit separators,
-/// `:approximate`) and the visibilities that are not public (`:hidden_first`, `:hidden_second`,
-/// `:hidden_third`).
-macro_rules! assessment_rank {
-    () => {
-        "CASE WHEN instr(:approximate, char(31) || language || char(31)) > 0 THEN 2 \
-         WHEN visibility IN (:hidden_first, :hidden_second, :hidden_third) THEN 0 ELSE 1 END"
-    };
-}
-
-/// The ids of a ranking from the index `$index`, which holds the order of the ranking: the rows
-/// of one snapshot (`:snapshot`) that the query holds, that is the group of kinds (`:is_type`,
-/// NULL for all), the language (`:language`, NULL for all) and test code (`:tests`, 1 if it
-/// counts), and what the ranking asks besides.
-macro_rules! ranked_rows {
-    ($index:expr, $holds:expr, $order:literal) => {
-        concat!(
-            "SELECT symbol_id FROM symbol_statistics ",
-            $index,
-            " WHERE snapshot_id = :snapshot \
-             AND (:is_type IS NULL OR is_type = :is_type) \
-             AND (:language IS NULL OR language = :language) AND (:tests = 1 OR test = 0) AND ",
-            $holds,
-            " ORDER BY ",
-            $order,
-            " LIMIT :limit"
-        )
-    };
-}
-
 /// The ids of the most used symbols by their certain usages, then by all.
-pub const RANKED_MOST_USED_CERTAIN: &str = ranked_rows!(
-    "INDEXED BY statistics_by_certain",
-    "total > 0",
-    "certain DESC, total DESC, place"
-);
+pub const RANKED_MOST_USED_CERTAIN: &str = "SELECT symbol_id FROM symbol_statistics INDEXED BY statistics_by_certain WHERE \
+    snapshot_id = :snapshot AND (:is_type IS NULL OR is_type = :is_type) AND (:language IS \
+    NULL OR language = :language) AND (:tests = 1 OR test = 0) AND total > 0 ORDER BY \
+    certain DESC, total DESC, place LIMIT :limit";
 /// The ids of the most used symbols by all their usages, then by the certain ones.
-pub const RANKED_MOST_USED_ALL: &str =
-    ranked_rows!("", "total > 0", "total DESC, certain DESC, place");
+pub const RANKED_MOST_USED_ALL: &str = "SELECT symbol_id FROM symbol_statistics WHERE snapshot_id = :snapshot AND (:is_type IS \
+    NULL OR is_type = :is_type) AND (:language IS NULL OR language = :language) AND (:tests \
+    = 1 OR test = 0) AND total > 0 ORDER BY total DESC, certain DESC, place LIMIT :limit";
 /// The ids of the symbols without usages that have the assessment `:assessment`, in the order of
-/// their place: the ranking asks for the very likely unused ones first, then the others.
-pub const RANKED_UNUSED: &str = ranked_rows!(
-    "INDEXED BY statistics_by_place",
-    concat!(
-        "total = 0 AND indirect = 0 AND ",
-        assessment_rank!(),
-        " = :assessment"
-    ),
-    "place"
-);
+/// their place: the ranking asks for the very likely unused ones first, then the others. The
+/// assessment is a number in the order of `Assessment`: the languages whose usages are an
+/// approximation (their ids, each between two unit separators, `:approximate`), then the
+/// visibilities that are not public (`:hidden_first`, `:hidden_second`, `:hidden_third`).
+pub const RANKED_UNUSED: &str = "SELECT symbol_id FROM symbol_statistics INDEXED BY statistics_by_place WHERE snapshot_id \
+    = :snapshot AND (:is_type IS NULL OR is_type = :is_type) AND (:language IS NULL OR \
+    language = :language) AND (:tests = 1 OR test = 0) AND total = 0 AND indirect = 0 AND \
+    CASE WHEN instr(:approximate, char(31) || language || char(31)) > 0 THEN 2 WHEN \
+    visibility IN (:hidden_first, :hidden_second, :hidden_third) THEN 0 ELSE 1 END = \
+    :assessment ORDER BY place LIMIT :limit";
 /// The ids of the most complex callables.
-pub const RANKED_COMPLEXITY: &str = ranked_rows!(
-    "INDEXED BY statistics_by_complexity",
-    "is_type = 0 AND complexity IS NOT NULL",
-    "complexity DESC, place"
-);
+pub const RANKED_COMPLEXITY: &str = "SELECT symbol_id FROM symbol_statistics INDEXED BY statistics_by_complexity WHERE \
+    snapshot_id = :snapshot AND (:is_type IS NULL OR is_type = :is_type) AND (:language IS \
+    NULL OR language = :language) AND (:tests = 1 OR test = 0) AND is_type = 0 AND \
+    complexity IS NOT NULL ORDER BY complexity DESC, place LIMIT :limit";
 /// The ids of the symbols with the most lines of code.
-pub const RANKED_SIZE: &str = ranked_rows!("", "loc IS NOT NULL", "loc DESC, place");
+pub const RANKED_SIZE: &str = "SELECT symbol_id FROM symbol_statistics WHERE snapshot_id = :snapshot AND (:is_type IS \
+    NULL OR is_type = :is_type) AND (:language IS NULL OR language = :language) AND (:tests \
+    = 1 OR test = 0) AND loc IS NOT NULL ORDER BY loc DESC, place LIMIT :limit";
 /// The ids of the symbols that depend on the most others.
-pub const RANKED_COUPLING: &str = ranked_rows!(
-    "INDEXED BY statistics_by_efferent",
-    "efferent IS NOT NULL",
-    "efferent DESC, place"
-);
-
-/// How many symbols a ranking holds, from the counts per group: what the ranking asks besides the
-/// filters of the query.
-macro_rules! counted_facets {
-    ($holds:literal) => {
-        concat!(
-            "SELECT COALESCE(SUM(n), 0) FROM statistics_facets WHERE snapshot_id = :snapshot \
-             AND (:is_type IS NULL OR is_type = :is_type) \
-             AND (:language IS NULL OR language = :language) AND (:tests = 1 OR test = 0) AND ",
-            $holds
-        )
-    };
-}
-
+pub const RANKED_COUPLING: &str = "SELECT symbol_id FROM symbol_statistics INDEXED BY statistics_by_efferent WHERE \
+    snapshot_id = :snapshot AND (:is_type IS NULL OR is_type = :is_type) AND (:language IS \
+    NULL OR language = :language) AND (:tests = 1 OR test = 0) AND efferent IS NOT NULL \
+    ORDER BY efferent DESC, place LIMIT :limit";
 /// How many symbols the most used ranking holds.
-pub const COUNT_MOST_USED: &str = counted_facets!("used = 1");
+pub const COUNT_MOST_USED: &str = "SELECT COALESCE(SUM(n), 0) FROM statistics_facets WHERE snapshot_id = :snapshot AND \
+    (:is_type IS NULL OR is_type = :is_type) AND (:language IS NULL OR language = :language) \
+    AND (:tests = 1 OR test = 0) AND used = 1";
 /// How many callables the complexity ranking holds.
-pub const COUNT_COMPLEXITY: &str = counted_facets!("is_type = 0 AND has_complexity = 1");
+pub const COUNT_COMPLEXITY: &str = "SELECT COALESCE(SUM(n), 0) FROM statistics_facets WHERE snapshot_id = :snapshot AND \
+    (:is_type IS NULL OR is_type = :is_type) AND (:language IS NULL OR language = :language) \
+    AND (:tests = 1 OR test = 0) AND is_type = 0 AND has_complexity = 1";
 /// How many symbols the size ranking holds.
-pub const COUNT_SIZE: &str = counted_facets!("has_loc = 1");
+pub const COUNT_SIZE: &str = "SELECT COALESCE(SUM(n), 0) FROM statistics_facets WHERE snapshot_id = :snapshot AND \
+    (:is_type IS NULL OR is_type = :is_type) AND (:language IS NULL OR language = :language) \
+    AND (:tests = 1 OR test = 0) AND has_loc = 1";
 /// How many symbols the coupling ranking holds.
-pub const COUNT_COUPLING: &str = counted_facets!("has_efferent = 1");
+pub const COUNT_COUPLING: &str = "SELECT COALESCE(SUM(n), 0) FROM statistics_facets WHERE snapshot_id = :snapshot AND \
+    (:is_type IS NULL OR is_type = :is_type) AND (:language IS NULL OR language = :language) \
+    AND (:tests = 1 OR test = 0) AND has_efferent = 1";
 /// How many types and callables there are.
-pub const COUNT_RANKED: &str = counted_facets!("1");
+pub const COUNT_RANKED: &str = "SELECT COALESCE(SUM(n), 0) FROM statistics_facets WHERE snapshot_id = :snapshot AND \
+    (:is_type IS NULL OR is_type = :is_type) AND (:language IS NULL OR language = :language) \
+    AND (:tests = 1 OR test = 0) AND 1";
 /// The symbols without usages by visibility, language and test code, with how many there are:
 /// the group of kinds and the language as in the rankings.
 pub const UNUSED_GROUPS: &str = "SELECT visibility, language, test, SUM(n) \

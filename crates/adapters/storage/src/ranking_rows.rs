@@ -10,7 +10,7 @@ use rusqlite::{Connection, Statement, ToSql};
 
 use crate::codec::{Cols, column_int, id_from, id_list, label_from, small_from};
 use crate::consts::{
-    ASSESSMENT_NUMBER_APPROXIMATE, ASSESSMENT_NUMBER_LIKELY, ASSESSMENT_NUMBER_PUBLIC,
+    ASSESSMENT_NUMBER_APPROXIMATE, ASSESSMENT_NUMBER_LIKELY, ASSESSMENT_NUMBER_PUBLIC, MEASURES,
     NAME_SEPARATOR, PARAM_APPROXIMATE, PARAM_ASSESSMENT, PARAM_HIDDEN_FIRST, PARAM_HIDDEN_SECOND,
     PARAM_HIDDEN_THIRD, PARAM_IDS, PARAM_IS_TYPE, PARAM_LANGUAGE, PARAM_LIMIT, PARAM_SNAPSHOT,
     PARAM_TESTS,
@@ -82,8 +82,10 @@ impl Filter {
     }
 
     fn bind(&self, statement: &mut rusqlite::Statement<'_>) -> StorageResult<()> {
-        let hidden = |visibility: Visibility| visibility.label();
-        let values: [(&str, &dyn ToSql); 10] = [
+        let first = Visibility::Private.label();
+        let second = Visibility::Internal.label();
+        let third = Visibility::Protected.label();
+        let values: Vec<(&str, &dyn ToSql)> = vec![
             (PARAM_SNAPSHOT, &self.snapshot),
             (PARAM_IS_TYPE, &self.is_type),
             (PARAM_LANGUAGE, &self.language),
@@ -91,9 +93,9 @@ impl Filter {
             (PARAM_ASSESSMENT, &self.assessment),
             (PARAM_APPROXIMATE, &self.approximate),
             (PARAM_LIMIT, &self.limit),
-            (PARAM_HIDDEN_FIRST, &hidden(Visibility::Private)),
-            (PARAM_HIDDEN_SECOND, &hidden(Visibility::Internal)),
-            (PARAM_HIDDEN_THIRD, &hidden(Visibility::Protected)),
+            (PARAM_HIDDEN_FIRST, &first),
+            (PARAM_HIDDEN_SECOND, &second),
+            (PARAM_HIDDEN_THIRD, &third),
         ];
         bind(statement, &values)
     }
@@ -166,7 +168,7 @@ struct FactRow {
     overrides: bool,
     certain: u32,
     total: u32,
-    measures: [Option<f64>; 5],
+    measures: [Option<f64>; MEASURES],
 }
 
 // codeskimr: allow CHK-102 maps a row of the facts query into its columns
@@ -235,7 +237,7 @@ pub(crate) fn facts_of(
     )?;
     let raw = column_int(snapshot.get())?;
     let mut prepared = conn.prepare_cached(sql::STATISTICS_FACTS)?;
-    let values: [(&str, &dyn ToSql); 2] = [(PARAM_SNAPSHOT, &raw), (PARAM_IDS, &list)];
+    let values: Vec<(&str, &dyn ToSql)> = vec![(PARAM_SNAPSHOT, &raw), (PARAM_IDS, &list)];
     bind(&mut prepared, &values)?;
     let mut rows = prepared.raw_query();
     let mut found = std::collections::HashMap::new();

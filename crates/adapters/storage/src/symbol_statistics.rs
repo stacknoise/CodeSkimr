@@ -19,7 +19,10 @@ use codeskimr_domain::{
 use rusqlite::{Connection, params};
 
 use crate::codec::column_int;
-use crate::consts::{COUNT_ATTEMPTS, NAME_SEPARATOR, PRAGMA_DATA_VERSION};
+use crate::consts::{
+    COUNT_ATTEMPTS, FACET_FLAGS, NAME_SEPARATOR, PRAGMA_DATA_VERSION, STATE_CERTAIN_COLUMN,
+    STATE_PROBABLE_COLUMN,
+};
 use crate::error::StorageResult;
 use crate::ranking_rows::{Filter, facts_of, filter_of};
 use crate::sql;
@@ -141,7 +144,13 @@ fn store(
 /// What a group of the counts of the facets is told apart by: whether the symbol is a type, its
 /// language and visibility, whether it is test code, whether it is used, whether no usage means
 /// something for it, and whether it has a complexity, a size and a coupling.
-type FacetKey = (bool, String, Option<&'static str>, bool, [bool; 5]);
+type FacetKey = (
+    bool,
+    String,
+    Option<&'static str>,
+    bool,
+    [bool; FACET_FLAGS],
+);
 
 /// The counts per group that the questions of the overview read instead of counting rows.
 #[derive(Default)]
@@ -207,7 +216,7 @@ fn places(facts: &[SymbolFacts]) -> Vec<i64> {
     });
     let mut placed: Vec<(usize, i64)> = order
         .into_iter()
-        .zip(0_i64..)
+        .zip(0..)
         .map(|((index, _), place)| (index, place))
         .collect();
     placed.sort_unstable();
@@ -296,7 +305,7 @@ fn statements(query: &RankingQuery) -> (&'static str, &'static str) {
 }
 
 /// The assessments in the order the ranking of unused symbols lists them.
-const ASSESSMENT_ORDER: [Assessment; 3] = [
+const ASSESSMENT_ORDER: &[Assessment] = &[
     Assessment::Likely,
     Assessment::Public,
     Assessment::Approximate,
@@ -327,7 +336,7 @@ fn unused_ids(
     filter: &mut Filter,
 ) -> StorageResult<Vec<i64>> {
     let mut ids = Vec::new();
-    for assessment in ASSESSMENT_ORDER {
+    for &assessment in ASSESSMENT_ORDER {
         if request
             .assessment
             .is_some_and(|wanted| wanted != assessment)
@@ -351,7 +360,7 @@ fn unused_total(
     request: &RankingRequest<'_>,
     filter: &Filter,
 ) -> StorageResult<usize> {
-    let mut total = 0_usize;
+    let mut total: usize = 0;
     for (visibility, language, test, many) in filter.unused_groups(conn)? {
         let approximate = request.setup.approximate.contains(&language);
         let kind = Assessment::of(visibility, approximate);
@@ -402,8 +411,12 @@ fn summary(
     let raw = column_int(snapshot.get())?;
     let filter = Filter::all(raw, include_tests);
     let mut state = conn.prepare_cached(sql::STATISTICS_STATE)?;
-    let (certain, probable): (i64, i64) =
-        state.query_row(params![raw], |row| Ok((row.get(1)?, row.get(2)?)))?;
+    let (certain, probable): (i64, i64) = state.query_row(params![raw], |row| {
+        Ok((
+            row.get(STATE_CERTAIN_COLUMN)?,
+            row.get(STATE_PROBABLE_COLUMN)?,
+        ))
+    })?;
     Ok(StatisticsSummary {
         ranked: u32::try_from(filter.count(conn, sql::COUNT_RANKED)?).unwrap_or(u32::MAX),
         certain_references: u64::try_from(certain).unwrap_or_default(),

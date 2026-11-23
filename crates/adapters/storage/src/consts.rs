@@ -198,3 +198,14 @@ pub const ASSESSMENT_NUMBER_APPROXIMATE: i64 = 2;
 /// How often the numbers of the statistics are counted on a connection of their own before they
 /// are counted under the write lock: a write that comes in meanwhile makes the count useless.
 pub const COUNT_ATTEMPTS: u32 = 3;
+
+/// How many measures a statistics row holds: complexity, lines, maintainability, efferent and
+/// afferent coupling.
+pub const MEASURES: usize = 5;
+/// How many yes/no facts tell the groups of the counts apart: used, idle, has a complexity, has
+/// a size and has a coupling.
+pub const FACET_FLAGS: usize = 5;
+/// The columns of `snapshot_statistics`, as the state query returns them.
+pub const STATE_CERTAIN_COLUMN: usize = 1;
+/// The probable references in the state query.
+pub const STATE_PROBABLE_COLUMN: usize = 2;
