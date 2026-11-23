@@ -7,6 +7,7 @@ import { moveAlongTabs } from "../../shared/keys/tabs";
 import { activeProject } from "../../shared/project/active";
 import { cx } from "../../shared/ui/cx";
 import { NoticeBox } from "../../shared/ui/NoticeBox";
+import { SlowLoad } from "../../shared/ui/SlowLoad";
 import { count } from "../projects/format";
 import { projects, refreshProjects } from "../projects/projects";
 import { Histogram, Hotspots } from "./Charts";
@@ -324,6 +325,10 @@ export function StatsScreen() {
       <Show when={statsFailed()}>
         <NoticeBox class={styles.failed} text={t(I18N_KEYS.STATS_FAILED)} alert={true} />
       </Show>
+      <SlowLoad
+        waiting={() => project() !== null && statsOverview() === null && !statsFailed()}
+        class={styles.loading}
+      />
       <div
         id={PANEL_ID}
         class={styles.panel}

@@ -38,6 +38,7 @@ import {
   useMapState,
   useSelectionActions,
 } from "./useGraphScreen";
+import { SlowLoad } from "../../shared/ui/SlowLoad";
 import styles from "./GraphScreen.module.css";
 
 function Message(props: { title?: string | undefined; text: string; hint?: boolean }) {
@@ -240,7 +241,13 @@ function Loaded(props: { state: MapState; actions: Actions }) {
   return (
     <Show
       when={state.data()}
-      fallback={graphData() ? <EmptyMap state={state} actions={props.actions} /> : null}
+      fallback={
+        graphData() ? (
+          <EmptyMap state={state} actions={props.actions} />
+        ) : (
+          <SlowLoad waiting={() => graphData() === null} class={styles.empty} />
+        )
+      }
     >
       {(current) => (
         <>
