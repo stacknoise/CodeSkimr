@@ -9,7 +9,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, PoisonError};
 
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
@@ -22,9 +22,9 @@ use serde_json::Value;
 
 use super::consts::{
     EXPORT_BUNDLE_DIR, EXPORT_BUNDLE_FILE, EXPORT_DATA_PLACEHOLDER, EXPORT_DEPTH,
-    EXPORT_DESCRIPTION, EXPORT_DIRECT_DEPTH, EXPORT_ESCAPE, EXPORT_ESCAPED_CHAR, EXPORT_FORMAT,
-    EXPORT_FROM, EXPORT_HITS, EXPORT_HTML, EXPORT_ID, EXPORT_INCOMING, EXPORT_OUTGOING,
-    EXPORT_PATH_SEPARATOR, EXPORT_TITLE, EXPORT_TO,
+    EXPORT_DESCRIPTION, EXPORT_ESCAPE, EXPORT_ESCAPED_CHAR, EXPORT_FORMAT, EXPORT_FROM,
+    EXPORT_HITS, EXPORT_HTML, EXPORT_ID, EXPORT_INCOMING, EXPORT_OUTGOING, EXPORT_PATH_SEPARATOR,
+    EXPORT_TITLE, EXPORT_TO,
 };
 use super::explorer::{ExplorerOutline, Outline, OutlineInput};
 use super::graph::{GraphInput, GraphLayers, GraphOut, Level};
@@ -55,6 +55,8 @@ pub struct ExportParts {
     pub(super) symbol: ExplorerSymbol,
     pub(super) usages: UsagesQuery,
     pub(super) graph: GraphLayers,
+    /// Most references a project may have (`export.max_references`, ADR 0090).
+    pub(super) max_references: u32,
 }
 
 /// Exports the newest scan of a project as one HTML page.
@@ -62,6 +64,23 @@ pub struct HtmlExport {
     parts: ExportParts,
     bundle_dir: Option<PathBuf>,
     embedded: Embedded,
+    running: Arc<Mutex<BTreeSet<u64>>>,
+}
+
+/// Holds the place of a running export of one project and gives it back when it ends, however it
+/// ends.
+struct Running {
+    set: Arc<Mutex<BTreeSet<u64>>>,
+    project: u64,
+}
+
+impl Drop for Running {
+    fn drop(&mut self) {
+        self.set
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(&self.project);
+    }
 }
 
 /// The files of the UI that are part of the program: path below the UI folder and content.
@@ -162,12 +181,38 @@ impl HtmlExport {
     /// like the server an existing folder wins. Without a folder the page comes from the files
     /// `embedded` in the program; without both every export fails with `EXP-201`.
     #[must_use]
-    pub const fn new(parts: ExportParts, bundle_dir: Option<PathBuf>, embedded: Embedded) -> Self {
+    pub fn new(parts: ExportParts, bundle_dir: Option<PathBuf>, embedded: Embedded) -> Self {
         Self {
             parts,
             bundle_dir,
             embedded,
+            running: Arc::new(Mutex::new(BTreeSet::new())),
         }
+    }
+
+    /// Takes the place of the export of `project`; `EXP-501` if another export of it runs.
+    fn begin(&self, project: u64) -> Result<Running, CodedError> {
+        let taken = !self
+            .running
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(project);
+        if taken {
+            return Err(CodedError::new(ErrorCode::ExportRunning));
+        }
+        Ok(Running {
+            set: Arc::clone(&self.running),
+            project,
+        })
+    }
+
+    /// `EXP-502` if the newest scan has more references than the limit.
+    fn check_size(&self, project: u64) -> Result<(), CodedError> {
+        let (info, _) = self.project(ProjectId::new(project))?;
+        if info.references > self.parts.max_references {
+            return Err(CodedError::new(ErrorCode::ExportTooLarge));
+        }
+        Ok(())
     }
 
     fn page(&self) -> Result<String, CodedError> {
@@ -211,18 +256,15 @@ impl HtmlExport {
         symbol: u64,
         places: &mut BTreeMap<u64, Place>,
     ) -> Result<Usages, CodedError> {
-        let ask = |way, depth, include_tests| {
-            let input = UsagesInput {
-                project,
-                symbol,
-                way,
-                depth,
-                include_tests,
-            };
-            self.parts.usages.run(&principal, input)
+        let input = |include_tests| UsagesInput {
+            project,
+            symbol,
+            way: Way::Both,
+            depth: EXPORT_DEPTH,
+            include_tests,
         };
-        let answer = ask(Way::Both, EXPORT_DEPTH, true)?;
-        let summary_without_tests = ask(Way::Incoming, EXPORT_DIRECT_DEPTH, false)?.summary;
+        let answer = self.parts.usages.run(&principal, input(true))?;
+        let summary_without_tests = self.parts.usages.direct_summary(principal, input(false))?;
         Ok(Usages {
             answer: pack(&answer, places)?,
             summary_without_tests,
@@ -312,7 +354,9 @@ impl Command for HtmlExport {
 
     fn execute(&self, request: Request<'_, Self>) -> Result<ExportOut, CodedError> {
         access::require(request.principal, Permission::ReadSource)?;
+        let _running = self.begin(request.input.project)?;
         let page = self.page()?;
+        self.check_size(request.input.project)?;
         let data = self.collect(*request.principal, request.input.project)?;
         let json = serde_json::to_string(&data)
             .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?;
@@ -328,6 +372,18 @@ mod tests {
     use codeskimr_codes::Coded;
 
     use super::*;
+
+    #[test]
+    fn the_place_of_a_running_export_is_given_back_when_it_ends() {
+        let set = Arc::new(Mutex::new(BTreeSet::from([7_u64])));
+        let running = Running {
+            set: Arc::clone(&set),
+            project: 7,
+        };
+        assert!(set.lock().unwrap().contains(&7));
+        drop(running);
+        assert!(set.lock().unwrap().is_empty());
+    }
 
     #[test]
     fn the_data_takes_the_place_the_page_keeps() {

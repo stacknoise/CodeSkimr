@@ -106,6 +106,8 @@ pub mod keys {
     pub const GRAPH_NODE_HEIGHT: &str = "graph.node_height";
     /// `graph.row_boxes`
     pub const GRAPH_ROW_BOXES: &str = "graph.row_boxes";
+    /// `export.max_references`
+    pub const EXPORT_MAX_REFERENCES: &str = "export.max_references";
     /// `similarity.ngram_size`
     pub const NGRAM_SIZE: &str = "similarity.ngram_size";
     /// `similarity.window_size`

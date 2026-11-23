@@ -45,6 +45,8 @@ Jede Verwendung behält ihre Markierung (geprüft, ungeprüft, vermutet), und di
 - Aufgelistet werden nur Typen und die Member von Typen, wie im Explorer; freie Funktionen außerhalb eines Typs nicht.
 - Die Schnellsuche ist ein einfacher Abgleich auf Namen (Anfang, Teil, Buchstaben in Reihenfolge), nicht die Rangfolge der App.
 - Die Größe wächst etwa linear mit den Verweisen, weil die direkten Verwendungen jedes Symbols eingebettet sind. Als Anhaltspunkt: etwa 1,4 MB bei 400 Symbolen, etwa 5 MB bei 1.300 und etwa 64 MB bei 7.400 (der ganze CodeSkimr-Quelltext). Sehr große Projekte ergeben Dateien von vielen Megabyte. Wege über weitere Symbole (Tiefe 2 und mehr) gibt es nur in der App: Sie wachsen viel schneller als das Projekt und machten die Datei zu groß zum Öffnen.
+- Ein Projekt mit mehr als `export.max_references` Verweisen (Vorgabe 600000, etwa 150 MB Datei) wird nicht exportiert; der Export endet sofort mit `EXP-502`. Die Grenze lässt sich in der eigenen Konfigurationsdatei erhöhen.
+- Pro Projekt läuft nur ein Export zugleich; ein zweiter endet mit `EXP-501`.
 
 ## Fehler
 
@@ -53,4 +55,6 @@ Jede Verwendung behält ihre Markierung (geprüft, ungeprüft, vermutet), und di
 | `PRJ-201` | das Projekt ist nicht eingetragen | zuerst eintragen und scannen |
 | `MCP-203` | das Projekt wurde nicht gescannt | scannen |
 | `EXP-201` | die gebaute Export-Seite fehlt oder ist unbrauchbar | Programm mit gebauter Oberfläche verwenden (`npm run build` in `web/`, dann das Programm bauen), `ui.dir` prüfen |
+| `EXP-501` | für das Projekt läuft schon ein Export | warten, bis er beendet ist |
+| `EXP-502` | mehr Verweise als `export.max_references` | Grenze erhöhen oder ein kleineres Projekt exportieren |
 | `EXP-601` | die Datei kann nicht geschrieben werden | Pfad, Rechte und freien Platz prüfen |

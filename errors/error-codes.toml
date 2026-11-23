@@ -750,6 +750,22 @@ description = "The built export page of the UI is missing or unusable."
 since = "0.1.0"
 
 [[codes]]
+id = "EXP-501"
+name = "export_running"
+severity = "error"
+retryable = true
+description = "An export of the same project is already running; try again when it has ended (ADR 0090)."
+since = "1.0.0"
+
+[[codes]]
+id = "EXP-502"
+name = "export_too_large"
+severity = "error"
+retryable = false
+description = "The project has more references than export.max_references allows, so the export page would be too large for a browser (ADR 0090)."
+since = "1.0.0"
+
+[[codes]]
 id = "EXP-601"
 name = "export_write_failed"
 severity = "error"

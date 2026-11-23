@@ -673,6 +673,7 @@ pub(crate) fn export_command(
             graph: GraphLayers {
                 ports: graph_ports(store, config.graph.clone()),
             },
+            max_references: config.export.max_references,
         },
         locations.existing_dir(&config.ui.dir),
         crate::embedded_ui::FILES,

@@ -517,6 +517,15 @@ fn the_size_of_a_graph_box_must_be_positive() {
 }
 
 #[test]
+fn the_export_limit_must_be_positive() {
+    assert_rejected(&[(
+        "[export]\nmax_references = 0\n",
+        "export.max_references",
+        Violation::MustBePositive,
+    )]);
+}
+
+#[test]
 fn every_error_maps_to_a_registered_code() {
     let error = Config::resolve(&[user("[watcher]\ndebounce_ms = 0\n")]).expect_err("range");
     assert_eq!(error.code().id(), "CFG-101");

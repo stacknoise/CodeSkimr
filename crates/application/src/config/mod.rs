@@ -17,8 +17,8 @@ pub use error::{ConfigError, LayerSource, Violation};
 pub use layer::ConfigLayer;
 pub use layer_file::with_layers;
 pub use model::{
-    Annotations, Budgets, Config, Conventions, Editor, Graph, KeySources, LayerRule, Level2,
-    McpLimits, MetricThresholds, Scan, Similarity, SnapshotRetention, Ui, Watcher,
+    Annotations, Budgets, Config, Conventions, Editor, Export, Graph, KeySources, LayerRule,
+    Level2, McpLimits, MetricThresholds, Scan, Similarity, SnapshotRetention, Ui, Watcher,
 };
 
 use consts::NO_PREFIX;

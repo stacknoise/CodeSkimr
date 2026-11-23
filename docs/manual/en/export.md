@@ -45,6 +45,8 @@ Every usage keeps its mark (verified, unchecked, presumed) and the page shows th
 - Only types and the members of types are listed, like in the explorer; free functions outside a type are not.
 - The quick search is a plain match on names (start, part, letters in order), not the ranking of the app.
 - The size grows about linearly with the references, because the direct usages of every symbol are embedded. As a guide: about 1.4 MB for 400 symbols, about 5 MB for 1,300 and about 64 MB for 7,400 (the whole CodeSkimr source). Very large projects give files of many megabytes. Walks through other symbols (depth 2 and more) are only in the app: they grow much faster than the project and made the file too big to open.
+- A project with more than `export.max_references` references (default 600000, a file of about 150 MB) is not exported; the export ends at once with `EXP-502`. Raise the limit in your own config file.
+- Only one export per project runs at a time; a second one ends with `EXP-501`.
 
 ## Errors
 
@@ -53,4 +55,6 @@ Every usage keeps its mark (verified, unchecked, presumed) and the page shows th
 | `PRJ-201` | the project is not registered | add and scan it first |
 | `MCP-203` | the project has not been scanned | scan it |
 | `EXP-201` | the built export page is missing or unusable | use a program built with the UI (`npm run build` in `web/`, then build the program), check `ui.dir` |
+| `EXP-501` | an export of the project is already running | wait until it has ended |
+| `EXP-502` | more references than `export.max_references` | raise the limit or export a smaller project |
 | `EXP-601` | the file cannot be written | check the path, the rights and the free space |

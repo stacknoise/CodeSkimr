@@ -214,8 +214,6 @@ pub const EXPORT_FROM: &str = "from";
 pub const EXPORT_TO: &str = "to";
 /// Key of the id in a place.
 pub const EXPORT_ID: &str = "id";
-/// Steps of the walk that counts the direct usages.
-pub const EXPORT_DIRECT_DEPTH: u32 = 1;
 
 /// The gap between two rows is divided by this to get the space a layer band adds above and
 /// below its boxes.

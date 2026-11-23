@@ -15,14 +15,14 @@ use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Req
 use codeskimr_application::report_view::ReportView;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
-    Confidence, Direction, Permission, Project, ProjectId, SnapshotId, SymbolId, UsageQuery,
-    Visibility,
+    Confidence, Direction, Permission, Principal, Project, ProjectId, SnapshotId, SymbolId,
+    UsageQuery, Visibility,
 };
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
-    LEVEL2_ACTIVE, LEVEL2_UNAVAILABLE, LINE_OFFSET, USAGES_DESCRIPTION, USAGES_LIMIT, USAGES_QUERY,
-    USAGES_TITLE,
+    EXPORT_DEPTH, LEVEL2_ACTIVE, LEVEL2_UNAVAILABLE, LINE_OFFSET, USAGES_DESCRIPTION, USAGES_LIMIT,
+    USAGES_QUERY, USAGES_TITLE,
 };
 
 /// Which way the screen walks the references.
@@ -314,6 +314,39 @@ impl UsagesPorts {
             .transpose()?;
         let direct = self.walk(project, snapshot, &query(Direction::Incoming, 1))?;
         Ok((incoming, outgoing, direct))
+    }
+}
+
+impl UsagesQuery {
+    /// The counts of the direct usages of a symbol, nothing else: no second direction, no walk
+    /// through other symbols and no impact. The HTML export asks for the counts without tests
+    /// of every symbol, and the impact of each one would be computed for nothing.
+    ///
+    /// # Errors
+    /// - `AUTH-401` if the principal lacks `read`.
+    /// - `PRJ-201`, `MCP-203` and `API-301` as the query itself.
+    pub fn direct_summary(
+        &self,
+        principal: Principal,
+        input: UsagesInput,
+    ) -> Result<Summary, CodedError> {
+        access::require(&principal, Permission::Read)?;
+        let ports = &self.ports;
+        let id = ProjectId::new(input.project);
+        let project = ports.projects.project(id)?;
+        let snapshot = ports
+            .index
+            .latest_snapshot(id)?
+            .ok_or_else(|| CodedError::new(ErrorCode::ProjectNotScanned))?
+            .id;
+        let query = UsageQuery {
+            symbol: SymbolId::new(input.symbol),
+            direction: Direction::Incoming,
+            depth: EXPORT_DEPTH,
+            include_tests: input.include_tests,
+        };
+        let direct = ports.walk(&project, snapshot, &query)?;
+        Ok(UsagesPorts::summary(&direct))
     }
 }
 
