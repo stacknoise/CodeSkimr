@@ -197,4 +197,4 @@ pub const ASSESSMENT_NUMBER_APPROXIMATE: i64 = 2;
 
 /// How often the numbers of the statistics are counted on a connection of their own before they
 /// are counted under the write lock: a write that comes in meanwhile makes the count useless.
-pub const COUNT_ATTEMPTS: u32 = 2;
+pub const COUNT_ATTEMPTS: u32 = 3;

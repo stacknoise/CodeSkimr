@@ -309,6 +309,7 @@ codeskimr/
   - `usage_counts` – the "Usages" column
   - `layer_graph` – the dependency map
   - `type_summary` – the metric strip
+- **Statistics (ADR 0091):** `symbol_statistics` (one row per type and callable with usage counts, measured values, test flag and the place in the order of path and name), `statistics_facets` and `statistics_complexity` (counts per group) and `snapshot_statistics` (which test folders the rows were counted for). Unlike the read models above they are **not** written in the transaction of the snapshot but right after it, in a thread of their own, so that the scan keeps its budget; a snapshot without these rows is valid and gets them at the first question of the statistics screen. A level 2 import deletes the rows of the snapshots it changed.
 - **Retention:** keep the last N snapshots per project (configurable, default from `config/default.toml`).
 - **Annotations (ADR 0068):** the tables `annotation`, `annotation_baseline` and `alert` are not tied to a snapshot and are not touched by retention. A symbol is found again by kind, qualified name and parameter types. Dismissed alerts are kept for `annotations.dismissed_retention_days`.
 - Schema migrations are versioned SQL files in `crates/adapters/storage/migrations/`, applied at start-up.
