@@ -3,7 +3,9 @@
 use std::collections::HashMap;
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{Level2Replacement, SnapshotData, SnapshotStore};
+use codeskimr_application::ports::{
+    Level2Replacement, SnapshotData, SnapshotStore, SymbolFingerprints,
+};
 use codeskimr_domain::{
     CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, SymbolId,
 };
@@ -11,7 +13,8 @@ use rusqlite::{Connection, params};
 
 use crate::codec::column_int;
 use crate::consts::{
-    BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON,
+    BULK_FINGERPRINTS_MIN, BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR,
+    PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON,
 };
 use crate::error::{StorageError, StorageResult};
 use crate::headers::{insert_metric, insert_reference, insert_symbol, set_totals, totals};
@@ -73,8 +76,8 @@ fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageR
     integrity::check(conn, data)?;
     // The totals count the references from the usage counts, so the read models come first.
     let layers = load_layers(conn, header.project)?;
-    read_models::rebuild(conn, header.id, &layers)?;
-    let stats = totals(conn, header.id)?;
+    let tests = read_models::rebuild(conn, header.id, &layers)?;
+    let stats = totals(conn, header.id, tests)?;
     set_totals(conn, header.id, stats)?;
     prune(conn, project, keep)?;
     Ok(Snapshot {
@@ -150,7 +153,7 @@ fn insert_facts(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
     for metric in &data.metrics {
         insert_metric(conn, snapshot, metric)?;
     }
-    similarity::insert_all(conn, &data.fingerprints)?;
+    insert_fingerprints(conn, &data.fingerprints)?;
     pending::insert_all(conn, &data.pending)?;
     pending::mark_stored(conn, snapshot)?;
     let mut dropped = conn.prepare_cached(sql::REFERENCE_DELETE)?;
@@ -174,6 +177,38 @@ fn bulk_load_starts(conn: &Connection, incoming: usize) -> StorageResult<bool> {
     for drop in sql::REFERENCE_INDEXES_DROP {
         conn.execute(drop, [])?;
     }
+    Ok(true)
+}
+
+/// Writes the fingerprints, with the index by hash built after the load when many arrive.
+fn insert_fingerprints(conn: &Connection, found: &[SymbolFingerprints]) -> StorageResult<()> {
+    let bulk = bulk_fingerprints_start(conn, found)?;
+    similarity::insert_all(conn, found)?;
+    if bulk {
+        conn.execute(sql::FINGERPRINT_INDEX_CREATE, [])?;
+    }
+    Ok(())
+}
+
+/// Drops the index of the fingerprints when so many arrive that building it afterwards is cheaper
+/// than keeping it current; the caller builds it again. Returns whether it did.
+fn bulk_fingerprints_start(
+    conn: &Connection,
+    incoming: &[SymbolFingerprints],
+) -> StorageResult<bool> {
+    let incoming: usize = incoming
+        .iter()
+        .map(|found| found.fingerprints.entries().len())
+        .sum();
+    if incoming < BULK_FINGERPRINTS_MIN {
+        return Ok(false);
+    }
+    let stored: i64 = conn.query_row(sql::FINGERPRINT_COUNT, [], |row| row.get(0))?;
+    let stored = usize::try_from(stored).unwrap_or(usize::MAX);
+    if incoming < stored / BULK_REFERENCES_SHARE_DIVISOR {
+        return Ok(false);
+    }
+    conn.execute(sql::FINGERPRINT_INDEX_DROP, [])?;
     Ok(true)
 }
 
