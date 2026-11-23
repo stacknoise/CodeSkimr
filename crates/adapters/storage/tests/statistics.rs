@@ -5,9 +5,11 @@ mod common;
 
 #[cfg(test)]
 mod tests {
-    use codeskimr_application::ports::CodeStatistics;
+    use codeskimr_application::ports::{CodeStatistics, RankingRequest, StatisticsSetup};
     use codeskimr_domain::{
-        Confidence, MetricKind, ReferenceKind, SnapshotId, SymbolId, SymbolKind, UsageTally,
+        Assessment, Confidence, KindGroup, MetricKind, Ranking, RankingQuery, ReferenceKind,
+        SnapshotId, SymbolFacts, SymbolId, SymbolKind, UsageOrder, UsageTally,
+        complexity_histogram, mark_tests, rank,
     };
 
     use super::common::{metric, reference, scanned, symbol};
@@ -86,34 +88,306 @@ mod tests {
         assert!(facts.iter().all(|fact| fact.test));
     }
 
-    #[test]
-    fn the_shared_facts_are_loaded_once_and_marked_with_the_test_folders() {
-        let store = store();
-        let none: Vec<String> = Vec::new();
-        let first = store.shared_facts(SNAPSHOT, &none).unwrap();
-        let again = store.shared_facts(SNAPSHOT, &none).unwrap();
-        assert!(std::sync::Arc::ptr_eq(&first, &again));
-        assert_eq!(first.len(), 3);
-        // Other test folders ask for their own marking, never a copy marked for different ones.
-        let named = vec!["app".to_owned()];
-        let other = store.shared_facts(SNAPSHOT, &named).unwrap();
-        assert!(!std::sync::Arc::ptr_eq(&first, &other));
+    /// Three files with types and members of every kind: used and unused, public and private,
+    /// ties in every value, a constructor, an override and a test file that calls into the app.
+    fn varied() -> codeskimr_storage::SqliteStore {
+        filled(super::common::store(3))
+    }
+
+    fn filled(store: codeskimr_storage::SqliteStore) -> codeskimr_storage::SqliteStore {
+        use codeskimr_application::ports::SnapshotStore;
+        use codeskimr_domain::ScanMode;
+        store
+            .save_project(&super::common::project(1, "/work/app", &[]))
+            .unwrap();
+        let mut scan = super::common::data(super::common::header(10, ScanMode::Full));
+        scan.files = vec![
+            super::common::file(10, 11, "src/order.cs", "a"),
+            super::common::file(10, 12, "src/cart.cs", "b"),
+            super::common::file(10, 13, "tests/order_tests.cs", "c"),
+        ];
+        scan.symbols = varied_symbols();
+        scan.references = varied_references();
+        scan.metrics = varied_metrics();
+        store.persist(scan).unwrap();
+        store
+    }
+
+    fn varied_symbols() -> Vec<codeskimr_domain::Symbol> {
+        use codeskimr_domain::Visibility;
+        let kinds = [
+            SymbolKind::Class,
+            SymbolKind::Method,
+            SymbolKind::Method,
+            SymbolKind::Constructor,
+            SymbolKind::Interface,
+            SymbolKind::Function,
+        ];
+        let mut symbols = Vec::new();
+        for (index, kind) in (0_u64..).zip(kinds.into_iter().cycle().take(18)) {
+            let name = format!("App.S{:02}", 17 - index);
+            let mut made = symbol(100 + index, 11 + index % 3, kind, &name, None);
+            if index % 4 == 1 {
+                made.visibility = Some(Visibility::Private);
+            }
+            if index % 7 == 3 {
+                made.visibility = None;
+            }
+            symbols.push(made);
+        }
+        symbols
+    }
+
+    fn varied_references() -> Vec<codeskimr_domain::Reference> {
+        let mut references = Vec::new();
+        for id in 0_u64..40 {
+            let mut made = reference(500 + id, 11 + id % 3, 100 + id % 18, 100 + (id * 7) % 11);
+            made.confidence = if id % 3 == 0 {
+                Confidence::Probable
+            } else {
+                Confidence::Certain
+            };
+            if id % 11 == 0 {
+                made.kind = ReferenceKind::Override;
+            }
+            if id == 5 {
+                made.kind = ReferenceKind::Test;
+                made.file = codeskimr_domain::FileId::new(13);
+            }
+            references.push(made);
+        }
+        references
+    }
+
+    fn varied_metrics() -> Vec<codeskimr_domain::Metric> {
+        let mut metrics = Vec::new();
+        for id in 100_u64..118 {
+            let value = f64::from(u32::try_from(id % 5).unwrap());
+            metrics.push(metric(id, MetricKind::CyclomaticComplexity, value));
+            metrics.push(metric(id, MetricKind::Loc, 10.0 + value));
+            if id % 2 == 0 {
+                metrics.push(metric(id, MetricKind::EfferentCoupling, value));
+            }
+        }
+        metrics
+    }
+
+    fn setup<'a>(names: &'a [String], approximate: &'a [String]) -> StatisticsSetup<'a> {
+        StatisticsSetup {
+            test_names: names,
+            approximate,
+        }
+    }
+
+    fn queries() -> Vec<RankingQuery> {
+        let mut all = Vec::new();
+        for ranking in [
+            Ranking::MostUsed,
+            Ranking::Unused,
+            Ranking::Complexity,
+            Ranking::Size,
+            Ranking::Coupling,
+        ] {
+            for kinds in [KindGroup::All, KindGroup::Types, KindGroup::Functions] {
+                for include_tests in [false, true] {
+                    for order in [UsageOrder::Certain, UsageOrder::All] {
+                        all.push(RankingQuery {
+                            ranking,
+                            kinds,
+                            language: None,
+                            include_tests,
+                            order,
+                        });
+                    }
+                }
+            }
+        }
+        all
+    }
+
+    fn marked(store: &codeskimr_storage::SqliteStore, names: &[String]) -> Vec<SymbolFacts> {
+        let mut facts = store.symbol_facts(SNAPSHOT).unwrap();
+        mark_tests(&mut facts, names);
+        facts
+    }
+
+    /// The assessment order of the unused ranking, as the screen sorts it.
+    fn expected(
+        facts: &[SymbolFacts],
+        query: &RankingQuery,
+        approximate: &[String],
+        wanted: Option<Assessment>,
+        limit: usize,
+    ) -> (Vec<u64>, usize) {
+        let assess = |fact: &SymbolFacts| {
+            Assessment::of(
+                fact.visibility,
+                approximate
+                    .iter()
+                    .any(|name| name == fact.language.as_str()),
+            )
+        };
+        let mut rows = rank(facts, query, usize::MAX).rows;
+        if query.ranking == Ranking::Unused {
+            rows.sort_by_key(|fact| assess(fact));
+            if let Some(wanted) = wanted {
+                rows.retain(|fact| assess(fact) == wanted);
+            }
+        }
+        let total = rows.len();
+        (
+            rows.iter().take(limit).map(|fact| fact.id.get()).collect(),
+            total,
+        )
     }
 
     #[test]
-    fn callers_at_the_same_time_share_one_load() {
-        let store = store();
-        let none: Vec<String> = Vec::new();
-        let loaded: Vec<_> = std::thread::scope(|scope| {
-            let runs: Vec<_> = (0..4)
-                .map(|_| scope.spawn(|| store.shared_facts(SNAPSHOT, &none).unwrap()))
-                .collect();
-            runs.into_iter().map(|run| run.join().unwrap()).collect()
-        });
-        assert!(
-            loaded
+    fn every_ranking_equals_the_calculation_over_all_symbols() {
+        let store = varied();
+        let names = vec!["tests".to_owned()];
+        let facts = marked(&store, &names);
+        assert!(facts.iter().any(|fact| fact.test) && facts.iter().any(|fact| !fact.test));
+        for approximate in [Vec::new(), vec!["csharp".to_owned()]] {
+            for query in queries() {
+                for wanted in [None, Some(Assessment::Likely), Some(Assessment::Public)] {
+                    for limit in [3, 1000] {
+                        let found = store
+                            .ranked(&RankingRequest {
+                                snapshot: SNAPSHOT,
+                                query: &query,
+                                assessment: wanted,
+                                limit,
+                                setup: setup(&names, &approximate),
+                            })
+                            .unwrap();
+                        let ids: Vec<u64> = found.rows.iter().map(|fact| fact.id.get()).collect();
+                        let (want_ids, want_total) =
+                            expected(&facts, &query, &approximate, wanted, limit);
+                        assert_eq!((ids, found.total), (want_ids, want_total), "{query:?}");
+                        for row in &found.rows {
+                            let same = facts.iter().find(|fact| fact.id == row.id).unwrap();
+                            assert_eq!(row, same);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn the_sums_of_the_overview_equal_the_calculation_over_all_symbols() {
+        let store = varied();
+        let names = vec!["tests".to_owned()];
+        let facts = marked(&store, &names);
+        for include_tests in [false, true] {
+            let summary = store
+                .summary(SNAPSHOT, include_tests, setup(&names, &[]))
+                .unwrap();
+            let ranked = facts
                 .iter()
-                .all(|facts| std::sync::Arc::ptr_eq(facts, &loaded[0]))
+                .filter(|fact| KindGroup::All.holds(fact.kind) && (include_tests || !fact.test))
+                .count();
+            assert_eq!(summary.ranked as usize, ranked);
+            assert_eq!(
+                summary.histogram,
+                complexity_histogram(&facts, include_tests)
+            );
+            let sum = |part: fn(UsageTally) -> u32| -> u64 {
+                facts.iter().map(|fact| u64::from(part(fact.usage))).sum()
+            };
+            assert_eq!(summary.certain_references, sum(|tally| tally.certain));
+            assert_eq!(summary.probable_references, sum(UsageTally::probable));
+        }
+    }
+
+    #[test]
+    fn the_counts_of_the_unused_symbols_equal_the_calculation_over_all_symbols() {
+        let store = varied();
+        let names = vec!["tests".to_owned()];
+        let facts = marked(&store, &names);
+        for approximate in [Vec::new(), vec!["csharp".to_owned()]] {
+            let mut query = queries()[0].clone();
+            query.ranking = Ranking::Unused;
+            for include_tests in [false, true] {
+                query.include_tests = include_tests;
+                let counts = store
+                    .unused_counts(SNAPSHOT, &query, setup(&names, &approximate))
+                    .unwrap();
+                let shown = rank(&facts, &query, usize::MAX).rows;
+                let with_tests = RankingQuery {
+                    include_tests: true,
+                    ..query.clone()
+                };
+                let per = |wanted: Assessment| {
+                    shown
+                        .iter()
+                        .filter(|fact| {
+                            Assessment::of(
+                                fact.visibility,
+                                approximate.contains(&fact.language.to_string()),
+                            ) == wanted
+                        })
+                        .count()
+                };
+                assert_eq!(counts.likely as usize, per(Assessment::Likely));
+                assert_eq!(counts.public as usize, per(Assessment::Public));
+                assert_eq!(counts.approximate as usize, per(Assessment::Approximate));
+                assert_eq!(
+                    counts.tests_hidden as usize,
+                    rank(&facts, &with_tests, usize::MAX).total - shown.len()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn other_test_folders_count_the_numbers_again() {
+        let store = varied();
+        let query = RankingQuery {
+            ranking: Ranking::MostUsed,
+            kinds: KindGroup::All,
+            language: None,
+            include_tests: false,
+            order: UsageOrder::Certain,
+        };
+        let ask = |names: &[String]| {
+            store
+                .ranked(&RankingRequest {
+                    snapshot: SNAPSHOT,
+                    query: &query,
+                    assessment: None,
+                    limit: 1000,
+                    setup: setup(names, &[]),
+                })
+                .unwrap()
+                .total
+        };
+        let none: Vec<String> = Vec::new();
+        let named = vec!["src".to_owned()];
+        let without = ask(&none);
+        assert_eq!(ask(&named), 0);
+        assert_eq!(ask(&none), without);
+    }
+
+    #[test]
+    fn a_snapshot_without_the_numbers_gets_them_at_the_first_question() {
+        let db = super::common::TempDb::new();
+        let store = filled(
+            codeskimr_storage::SqliteStore::open(&db.0, std::num::NonZeroU32::new(3).unwrap())
+                .unwrap(),
+        );
+        let conn = rusqlite::Connection::open(&db.0).unwrap();
+        conn.execute_batch("DELETE FROM symbol_statistics; DELETE FROM snapshot_statistics;")
+            .unwrap();
+        let none: Vec<String> = Vec::new();
+        let facts = marked(&store, &none);
+        let summary = store.summary(SNAPSHOT, true, setup(&none, &[])).unwrap();
+        assert_eq!(
+            summary.ranked as usize,
+            facts
+                .iter()
+                .filter(|f| KindGroup::All.holds(f.kind))
+                .count()
         );
     }
 }

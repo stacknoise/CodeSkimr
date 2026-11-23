@@ -154,6 +154,10 @@ pub const SNAPSHOT_CONTENT_DELETE: &[&str] = &[
     "DELETE FROM snapshot_warnings WHERE snapshot_id = ?1",
     "DELETE FROM snapshot_left_out WHERE snapshot_id = ?1",
     "DELETE FROM coupling_rows WHERE snapshot_id = ?1",
+    "DELETE FROM symbol_statistics WHERE snapshot_id = ?1",
+    "DELETE FROM statistics_facets WHERE snapshot_id = ?1",
+    "DELETE FROM statistics_complexity WHERE snapshot_id = ?1",
+    "DELETE FROM snapshot_statistics WHERE snapshot_id = ?1",
     "DELETE FROM files WHERE snapshot_id = ?1",
 ];
 /// The read models of a snapshot, emptied before they are built again: snapshot.
@@ -765,3 +769,139 @@ pub const STATISTICS_SYMBOLS: &str = "SELECT s.id, s.name, s.qualified_name, s.k
 /// Every measured value of a snapshot: snapshot.
 pub const STATISTICS_METRICS: &str =
     "SELECT symbol_id, kind, value FROM metrics WHERE snapshot_id = ?1";
+
+/// The statistics rows of a snapshot, emptied before they are counted again: snapshot.
+pub const STATISTICS_DELETE: &[&str] = &[
+    "DELETE FROM symbol_statistics WHERE snapshot_id = ?1",
+    "DELETE FROM statistics_facets WHERE snapshot_id = ?1",
+    "DELETE FROM statistics_complexity WHERE snapshot_id = ?1",
+    "DELETE FROM snapshot_statistics WHERE snapshot_id = ?1",
+];
+/// One row of `symbol_statistics`: snapshot, symbol, place, kind, "is a type", language,
+/// visibility, test code, overrides, reached indirectly, certain and all usages, and the five
+/// measured values.
+pub const STATISTICS_ROW_INSERT: &str = "INSERT INTO symbol_statistics VALUES \
+    (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)";
+/// What the rows were counted for: snapshot, test key, certain and probable references.
+pub const STATISTICS_STATE_INSERT: &str = "INSERT INTO snapshot_statistics VALUES (?1, ?2, ?3, ?4)";
+/// The test key and the usages the rows of a snapshot were counted with; no row if they are not
+/// counted yet: snapshot.
+pub const STATISTICS_STATE: &str = "SELECT test_key, certain_references, probable_references \
+    FROM snapshot_statistics WHERE snapshot_id = ?1";
+/// One row of `statistics_facets`: snapshot, "is a type", language, visibility, test code, used,
+/// idle, has a complexity, has a size, has a coupling, and how many rows.
+pub const STATISTICS_FACET_INSERT: &str =
+    "INSERT INTO statistics_facets VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)";
+/// One row of `statistics_complexity`: snapshot, test, complexity, n.
+pub const STATISTICS_COMPLEXITY_INSERT: &str =
+    "INSERT INTO statistics_complexity VALUES (?1, ?2, ?3, ?4)";
+
+/// The assessment of "no usage found" as a number in the order of `Assessment`: the languages
+/// whose usages are an approximation (their ids, each between two unit separators,
+/// `:approximate`) and the visibilities that are not public (`:hidden_first`, `:hidden_second`,
+/// `:hidden_third`).
+macro_rules! assessment_rank {
+    () => {
+        "CASE WHEN instr(:approximate, char(31) || language || char(31)) > 0 THEN 2 \
+         WHEN visibility IN (:hidden_first, :hidden_second, :hidden_third) THEN 0 ELSE 1 END"
+    };
+}
+
+/// The ids of a ranking from the index `$index`, which holds the order of the ranking: the rows
+/// of one snapshot (`:snapshot`) that the query holds, that is the group of kinds (`:is_type`,
+/// NULL for all), the language (`:language`, NULL for all) and test code (`:tests`, 1 if it
+/// counts), and what the ranking asks besides.
+macro_rules! ranked_rows {
+    ($index:expr, $holds:expr, $order:literal) => {
+        concat!(
+            "SELECT symbol_id FROM symbol_statistics ",
+            $index,
+            " WHERE snapshot_id = :snapshot \
+             AND (:is_type IS NULL OR is_type = :is_type) \
+             AND (:language IS NULL OR language = :language) AND (:tests = 1 OR test = 0) AND ",
+            $holds,
+            " ORDER BY ",
+            $order,
+            " LIMIT :limit"
+        )
+    };
+}
+
+/// The ids of the most used symbols by their certain usages, then by all.
+pub const RANKED_MOST_USED_CERTAIN: &str = ranked_rows!(
+    "INDEXED BY statistics_by_certain",
+    "total > 0",
+    "certain DESC, total DESC, place"
+);
+/// The ids of the most used symbols by all their usages, then by the certain ones.
+pub const RANKED_MOST_USED_ALL: &str =
+    ranked_rows!("", "total > 0", "total DESC, certain DESC, place");
+/// The ids of the symbols without usages that have the assessment `:assessment`, in the order of
+/// their place: the ranking asks for the very likely unused ones first, then the others.
+pub const RANKED_UNUSED: &str = ranked_rows!(
+    "INDEXED BY statistics_by_place",
+    concat!(
+        "total = 0 AND indirect = 0 AND ",
+        assessment_rank!(),
+        " = :assessment"
+    ),
+    "place"
+);
+/// The ids of the most complex callables.
+pub const RANKED_COMPLEXITY: &str = ranked_rows!(
+    "INDEXED BY statistics_by_complexity",
+    "is_type = 0 AND complexity IS NOT NULL",
+    "complexity DESC, place"
+);
+/// The ids of the symbols with the most lines of code.
+pub const RANKED_SIZE: &str = ranked_rows!("", "loc IS NOT NULL", "loc DESC, place");
+/// The ids of the symbols that depend on the most others.
+pub const RANKED_COUPLING: &str = ranked_rows!(
+    "INDEXED BY statistics_by_efferent",
+    "efferent IS NOT NULL",
+    "efferent DESC, place"
+);
+
+/// How many symbols a ranking holds, from the counts per group: what the ranking asks besides the
+/// filters of the query.
+macro_rules! counted_facets {
+    ($holds:literal) => {
+        concat!(
+            "SELECT COALESCE(SUM(n), 0) FROM statistics_facets WHERE snapshot_id = :snapshot \
+             AND (:is_type IS NULL OR is_type = :is_type) \
+             AND (:language IS NULL OR language = :language) AND (:tests = 1 OR test = 0) AND ",
+            $holds
+        )
+    };
+}
+
+/// How many symbols the most used ranking holds.
+pub const COUNT_MOST_USED: &str = counted_facets!("used = 1");
+/// How many callables the complexity ranking holds.
+pub const COUNT_COMPLEXITY: &str = counted_facets!("is_type = 0 AND has_complexity = 1");
+/// How many symbols the size ranking holds.
+pub const COUNT_SIZE: &str = counted_facets!("has_loc = 1");
+/// How many symbols the coupling ranking holds.
+pub const COUNT_COUPLING: &str = counted_facets!("has_efferent = 1");
+/// How many types and callables there are.
+pub const COUNT_RANKED: &str = counted_facets!("1");
+/// The symbols without usages by visibility, language and test code, with how many there are:
+/// the group of kinds and the language as in the rankings.
+pub const UNUSED_GROUPS: &str = "SELECT visibility, language, test, SUM(n) \
+    FROM statistics_facets WHERE snapshot_id = :snapshot AND idle = 1 \
+    AND (:is_type IS NULL OR is_type = :is_type) AND (:language IS NULL OR language = :language) \
+    GROUP BY visibility, language, test";
+/// The callables with a complexity and how many have each, test code only if `:tests` is 1.
+pub const COMPLEXITY_GROUPS: &str = "SELECT complexity, SUM(n) FROM statistics_complexity \
+    WHERE snapshot_id = :snapshot AND (:tests = 1 OR test = 0) GROUP BY complexity";
+/// The rows of the symbols in a JSON list of ids (`:ids`) of a snapshot: id, name, qualified
+/// name, parent, path, and the columns of `symbol_statistics` the facts need (kind, language,
+/// visibility, test, overrides, certain, total, complexity, loc, maintainability, efferent,
+/// afferent).
+pub const STATISTICS_FACTS: &str = "SELECT st.symbol_id, s.name, s.qualified_name, s.parent_id, \
+    f.path, st.kind, st.language, st.visibility, st.test, st.overrides, st.certain, st.total, \
+    st.complexity, st.loc, st.maintainability, st.efferent, st.afferent \
+    FROM symbol_statistics st \
+    JOIN symbol_rows s ON s.id = st.symbol_id JOIN files f ON f.id = s.file_id \
+    AND f.snapshot_id = st.snapshot_id \
+    WHERE st.snapshot_id = :snapshot AND st.symbol_id IN (SELECT value FROM json_each(:ids))";

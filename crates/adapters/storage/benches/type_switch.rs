@@ -48,6 +48,7 @@ fn switches(c: &mut Criterion) -> Option<()> {
         (1..=SYMBOLS).filter_map(member_of_group).collect(),
         Vec::new(),
         Vec::new(),
+        Vec::new(),
     )?;
     let types: Vec<u64> = (1..=SYMBOLS).filter(|id| is_type(*id)).collect();
     let step = types.len() / usize::try_from(TYPES_PER_ITERATION).ok()?;

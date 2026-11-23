@@ -1,24 +1,19 @@
-//! The `CodeStatistics` port: the symbols of a snapshot with their usage counts and measured
-//! values (ADR 0081). The usage counts are counted from the references in the database in one pass
-//! (ADR 0089).
+//! The symbols of a snapshot with their usage counts and measured values, counted from the
+//! references in the database in one pass (ADR 0081, ADR 0089). The scan counts them once and
+//! stores the numbers (`symbol_statistics`, ADR 0091); this is the calculation they are made by.
 
 use std::collections::HashMap;
-use std::sync::{Arc, PoisonError};
 
-use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::CodeStatistics;
 use codeskimr_domain::{
-    FileId, LanguageId, Measures, MetricKind, QualifiedName, RelativePath, SnapshotId, SymbolFacts,
-    SymbolId, SymbolName, UsageTally, mark_tests,
+    FileId, LanguageId, Measures, MetricKind, QualifiedName, RelativePath, SymbolFacts, SymbolId,
+    SymbolName, UsageTally,
 };
 use rusqlite::{Connection, params};
 
-use crate::codec::{Cols, column_int, id_from, label_from};
-use crate::consts::KEPT_BUILDS;
+use crate::codec::{Cols, id_from, label_from};
 use crate::error::StorageResult;
 use crate::references::reference_facts;
 use crate::sql;
-use crate::store::{Build, SqliteStore};
 
 /// The columns of `STATISTICS_SYMBOLS`, still raw.
 struct FactRow {
@@ -94,7 +89,7 @@ fn set_measure(measures: &mut Measures, kind: MetricKind, value: f64) {
     *slot = Some(value);
 }
 
-fn load_facts(conn: &Connection, snapshot: i64) -> StorageResult<Vec<SymbolFacts>> {
+pub(crate) fn load_facts(conn: &Connection, snapshot: i64) -> StorageResult<Vec<SymbolFacts>> {
     let mut measures = load_measures(conn, snapshot)?;
     let counted = reference_facts(conn, snapshot)?;
     let mut statement = conn.prepare_cached(sql::STATISTICS_SYMBOLS)?;
@@ -108,64 +103,4 @@ fn load_facts(conn: &Connection, snapshot: i64) -> StorageResult<Vec<SymbolFacts
         Ok(facts)
     })
     .collect()
-}
-
-impl CodeStatistics for SqliteStore {
-    fn symbol_facts(&self, snapshot: SnapshotId) -> Result<Vec<SymbolFacts>, CodedError> {
-        let raw = column_int(snapshot.get())?;
-        // The load takes long for a large project: it runs on a connection of its own, so the
-        // other screens are not held up by it.
-        Ok(self.read_apart(|conn| load_facts(conn, raw))?)
-    }
-
-    fn shared_facts(
-        &self,
-        snapshot: SnapshotId,
-        test_names: &[String],
-    ) -> Result<Arc<Vec<SymbolFacts>>, CodedError> {
-        let version = self.data_version()?;
-        if let Some(found) = self.kept_facts(snapshot, version, test_names) {
-            return Ok(found);
-        }
-        // One load per snapshot at a time: a second caller waits for the first and gets its
-        // result; the facts of another snapshot do not wait.
-        let raw = column_int(snapshot.get())?;
-        let gate = self.build_gate(raw, Build::Facts);
-        let _loading = gate.lock().unwrap_or_else(PoisonError::into_inner);
-        if let Some(found) = self.kept_facts(snapshot, version, test_names) {
-            return Ok(found);
-        }
-        let written = self.write_count();
-        let mut loaded = self.symbol_facts(snapshot)?;
-        mark_tests(&mut loaded, test_names);
-        let loaded = Arc::new(loaded);
-        let mut kept = self.facts.lock().unwrap_or_else(PoisonError::into_inner);
-        // A write since the load began may have changed the references it counted.
-        if written == self.write_count() {
-            kept.retain(|(id, ..)| *id != snapshot);
-            kept.insert(
-                0,
-                (snapshot, version, test_names.to_vec(), Arc::clone(&loaded)),
-            );
-            kept.truncate(KEPT_BUILDS);
-        }
-        Ok(loaded)
-    }
-}
-
-impl SqliteStore {
-    /// The kept facts of `snapshot` if they were built at `version` for these test folders.
-    fn kept_facts(
-        &self,
-        snapshot: SnapshotId,
-        version: i64,
-        test_names: &[String],
-    ) -> Option<Arc<Vec<SymbolFacts>>> {
-        let kept = self.facts.lock().unwrap_or_else(PoisonError::into_inner);
-        kept.iter()
-            .find(|(id, built_at, names, _)| {
-                *id == snapshot && *built_at == version && names.as_slice() == test_names
-            })
-            .map(|(.., facts)| Arc::clone(facts))
-    }
 }

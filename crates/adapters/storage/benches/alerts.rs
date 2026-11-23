@@ -151,7 +151,7 @@ fn step(vanished: u64) -> Option<AlertStep> {
             })
         })
         .collect();
-    let store = common::store(symbols.clone(), Vec::new(), hashes.clone())?;
+    let store = common::store(symbols.clone(), Vec::new(), hashes.clone(), Vec::new())?;
     (1..=CRITICAL + vanished).try_for_each(|id| annotate(&store, id))?;
     let gone = |id: u64| id > CRITICAL && id <= CRITICAL + vanished;
     next_snapshot(

@@ -57,6 +57,7 @@ fn store() -> Option<SqliteStore> {
             .collect(),
         (1..=REFERENCES).filter_map(reference).collect(),
         Vec::new(),
+        Vec::new(),
     )
 }
 

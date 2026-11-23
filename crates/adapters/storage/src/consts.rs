@@ -21,6 +21,7 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0017_scan_reports.sql"),
     include_str!("../migrations/0018_snapshot_left_out.sql"),
     include_str!("../migrations/0019_ambiguous_places.sql"),
+    include_str!("../migrations/0020_symbol_statistics.sql"),
 ];
 
 /// Name of the pragma that holds the schema version.
@@ -164,3 +165,36 @@ pub const KEPT_BUILDS: usize = 2;
 /// How many walks of usages and impact keep their references in memory at once: the reads of one
 /// question to the screen (both directions, the direct usages, the impact).
 pub const KEPT_WALKS: usize = 4;
+
+/// The names of the parameters of the statements over `symbol_statistics`.
+pub const PARAM_SNAPSHOT: &str = ":snapshot";
+/// The group of kinds of a ranking: 1 for types, 0 for callables, NULL for both.
+pub const PARAM_IS_TYPE: &str = ":is_type";
+/// The language of a ranking, NULL for all.
+pub const PARAM_LANGUAGE: &str = ":language";
+/// Whether test code counts: 1 if it does.
+pub const PARAM_TESTS: &str = ":tests";
+/// The wanted assessment of an unused symbol as a number, NULL for all.
+pub const PARAM_ASSESSMENT: &str = ":assessment";
+/// The languages whose usages are an approximation, each between two unit separators.
+pub const PARAM_APPROXIMATE: &str = ":approximate";
+/// The first visibility that makes an unused symbol "very likely unused".
+pub const PARAM_HIDDEN_FIRST: &str = ":hidden_first";
+/// The second visibility that makes an unused symbol "very likely unused".
+pub const PARAM_HIDDEN_SECOND: &str = ":hidden_second";
+/// The third visibility that makes an unused symbol "very likely unused".
+pub const PARAM_HIDDEN_THIRD: &str = ":hidden_third";
+/// The most rows of a ranking.
+pub const PARAM_LIMIT: &str = ":limit";
+/// The ids of the symbols to read, as a JSON list.
+pub const PARAM_IDS: &str = ":ids";
+/// The number of an assessment in the order of its variants: very likely unused.
+pub const ASSESSMENT_NUMBER_LIKELY: i64 = 0;
+/// The number of an assessment: public.
+pub const ASSESSMENT_NUMBER_PUBLIC: i64 = 1;
+/// The number of an assessment: approximate.
+pub const ASSESSMENT_NUMBER_APPROXIMATE: i64 = 2;
+
+/// How often the numbers of the statistics are counted on a connection of their own before they
+/// are counted under the write lock: a write that comes in meanwhile makes the count useless.
+pub const COUNT_ATTEMPTS: u32 = 2;

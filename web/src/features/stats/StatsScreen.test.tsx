@@ -201,6 +201,24 @@ describe("StatsScreen: rankings", () => {
     expect(screen.getByRole("row", { name: /newest/ })).toBeInTheDocument();
   });
 
+  it("stops the request of an older filter when a newer one is sent", async () => {
+    const signals: (AbortSignal | undefined)[] = [];
+    served();
+    await showRanking("Most used");
+    fetchMock.mockImplementation((path: string, init?: RequestInit) => {
+      if (path.endsWith("stats.ranking")) {
+        signals.push(init?.signal ?? undefined);
+        return new Promise<Response>(() => undefined);
+      }
+      return Promise.resolve(answer(path.endsWith("stats.overview") ? OVERVIEW : [PROJECT_ROW]));
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Types" }));
+    fireEvent.click(screen.getByRole("button", { name: "Functions" }));
+    await waitFor(() => expect(signals).toHaveLength(2));
+    expect(signals[0]?.aborted).toBe(true);
+    expect(signals[1]?.aborted).toBe(false);
+  });
+
   it("starts again with the overview when another project is opened", async () => {
     served();
     await showRanking("Most used");

@@ -17,6 +17,7 @@ use crate::projects::load_layers;
 use crate::read_models;
 use crate::references::id_set;
 use crate::sql;
+use crate::symbol_statistics::forget as forget_statistics;
 
 /// Whether `id` is in `ids`; an id beyond the column range is in none.
 fn contains(ids: &HashSet<i64>, id: u64) -> bool {
@@ -149,6 +150,13 @@ pub(crate) fn replace_level2(
         refresh(conn, *affected, project)?;
     }
     refresh_coupling(conn, change.snapshot, project)?;
+    // The numbers of the statistics counted the references that were replaced: they are counted
+    // again at the next question (ADR 0091).
+    let mut stale = holders.all.clone();
+    stale.insert(change.snapshot);
+    for affected in &stale {
+        forget_statistics(conn, column_int(affected.get())?)?;
+    }
     let stats = totals(conn, change.snapshot)?;
     Ok(Snapshot { stats, ..latest })
 }

@@ -547,3 +547,8 @@ pub mod note_arg {
     /// `{ $dismissed }`: alerts that were dismissed.
     pub const DISMISSED: &str = "dismissed";
 }
+
+/// Name of the thread that counts the numbers of the statistics after a scan (ADR 0091).
+pub const STATISTICS_THREAD_NAME: &str = "statistics-count";
+/// Log event: the numbers of the statistics could not be counted after a scan.
+pub const LOG_STATISTICS_FAILED: &str = "statistics_count_failed";

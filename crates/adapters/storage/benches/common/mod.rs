@@ -99,12 +99,13 @@ pub fn data(snapshot: u64, first_file: u64, content: Content) -> SnapshotData {
     }
 }
 
-/// A store that holds one snapshot with `symbols`, their content `hashes` and `references` in
-/// `FILES` files.
+/// A store that holds one snapshot with `symbols`, their content `hashes`, `references` and
+/// measured values in `FILES` files.
 pub fn store(
     symbols: Vec<Symbol>,
     references: Vec<Reference>,
     hashes: Vec<SymbolHash>,
+    metrics: Vec<codeskimr_domain::Metric>,
 ) -> Option<SqliteStore> {
     let content = Content {
         symbols,
@@ -114,6 +115,8 @@ pub fn store(
     };
     let store = SqliteStore::open_in_memory(NonZeroU32::MIN).ok()?;
     store.save_project(&project()?).ok()?;
-    store.persist(data(SNAPSHOT, 1, content)).ok()?;
+    let mut scan = data(SNAPSHOT, 1, content);
+    scan.metrics = metrics;
+    store.persist(scan).ok()?;
     Some(store)
 }

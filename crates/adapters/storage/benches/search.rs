@@ -42,6 +42,7 @@ fn store() -> Option<SqliteStore> {
             .collect(),
         Vec::new(),
         Vec::new(),
+        Vec::new(),
     )
 }
 
