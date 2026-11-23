@@ -4,7 +4,7 @@
 //! references it needs through the indexes of the database, so the first answer comes as fast as
 //! the second and the memory stays what the answer needs.
 
-use std::sync::PoisonError;
+use std::sync::{Arc, PoisonError};
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
@@ -12,14 +12,14 @@ use codeskimr_application::ports::{
     UsageIndex, UsagePage,
 };
 use codeskimr_domain::{
-    Direction, NamespaceGraph, QualifiedName, ReferenceKind, RelativePath, SnapshotId, SymbolId,
-    UsageQuery,
+    Direction, NamespaceGraph, QualifiedName, ReferenceKind, RelativePath, ReverseIndex,
+    SnapshotId, SymbolId, UsageQuery,
 };
 use rusqlite::{Connection, params};
 
 use crate::answers;
 use crate::codec::{Cols, column_int, label_from, small_from};
-use crate::consts::PRAGMA_DATA_VERSION;
+use crate::consts::{KEPT_WALKS, PRAGMA_DATA_VERSION};
 use crate::error::{StorageError, StorageResult};
 use crate::sql;
 use crate::store::{Build, Kept, SqliteStore};
@@ -38,8 +38,9 @@ impl SqliteStore {
         limit: u32,
     ) -> StorageResult<UsagePage> {
         let raw = column_int(snapshot.get())?;
+        let index = self.walked(snapshot, query)?;
         let (total, entries) =
-            self.read(|conn| answers::usages(conn, raw, query, limit as usize))?;
+            self.read(|conn| answers::usages(conn, raw, (&index, query), limit as usize))?;
         Ok(UsagePage { total, entries })
     }
 
@@ -57,9 +58,49 @@ impl SqliteStore {
             include_tests: true,
         };
         let raw = column_int(snapshot.get())?;
+        let index = self.walked(snapshot, &query)?;
         let (total, symbols) =
-            self.read(|conn| answers::impact(conn, raw, &query, limit as usize))?;
+            self.read(|conn| answers::impact(conn, raw, (&index, &query), limit as usize))?;
         Ok(ImpactPage { total, symbols })
+    }
+
+    /// The references a walk of `query` touches: those of a kept walk that covers it, or read now
+    /// and kept.
+    fn walked(&self, snapshot: SnapshotId, query: &UsageQuery) -> StorageResult<Arc<ReverseIndex>> {
+        let raw = column_int(snapshot.get())?;
+        let version = self.data_version()?;
+        if let Some(found) = self.kept_walk(snapshot, version, query) {
+            return Ok(found);
+        }
+        let written = self.write_count();
+        let index = Arc::new(self.read(|conn| answers::walked_references(conn, raw, query))?);
+        let mut kept = self.walks.lock().unwrap_or_else(PoisonError::into_inner);
+        if self.unwritten_since(written) {
+            kept.insert(0, (snapshot, version, *query, Arc::clone(&index)));
+            kept.truncate(KEPT_WALKS);
+        }
+        Ok(index)
+    }
+
+    /// A kept walk of `snapshot` read at `version` that covers `query`: the same symbol and
+    /// direction, at least as many steps, and tests if `query` wants them.
+    fn kept_walk(
+        &self,
+        snapshot: SnapshotId,
+        version: i64,
+        query: &UsageQuery,
+    ) -> Option<Arc<ReverseIndex>> {
+        let kept = self.walks.lock().unwrap_or_else(PoisonError::into_inner);
+        kept.iter()
+            .find(|(id, built_at, held, _)| {
+                *id == snapshot
+                    && *built_at == version
+                    && held.symbol == query.symbol
+                    && held.direction == query.direction
+                    && held.depth >= query.depth
+                    && (held.include_tests || !query.include_tests)
+            })
+            .map(|(.., index)| Arc::clone(index))
     }
 }
 

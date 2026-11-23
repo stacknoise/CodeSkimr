@@ -161,3 +161,6 @@ pub const LOG_READ_CONNECTION_UNAVAILABLE: &str = "read_connection_unavailable";
 
 /// How many snapshots keep their namespace graph and their statistics facts in memory at once.
 pub const KEPT_BUILDS: usize = 2;
+/// How many walks of usages and impact keep their references in memory at once: the reads of one
+/// question to the screen (both directions, the direct usages, the impact).
+pub const KEPT_WALKS: usize = 4;

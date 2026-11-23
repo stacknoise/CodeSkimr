@@ -72,6 +72,11 @@ pub struct SqliteStore {
     /// newest first, at most `KEPT_BUILDS`; each is marked with the test folders it was built for
     /// and the `data_version` it was built at. A write through this store drops them.
     pub(crate) facts: Mutex<Vec<KeptFacts>>,
+    /// The references read by the last walks of usages and impact, so that the reads of one
+    /// question to the screen (the walk, the direct usages, the impact) read them once. A walk
+    /// is served from one of these if it asks for the same symbol and direction, no more steps
+    /// and no tests that the kept one left out.
+    pub(crate) walks: Mutex<Vec<KeptWalk>>,
     /// Counts the writes of this store that may have changed references, so that a build that
     /// was running during one does not keep what it read before it.
     pub(crate) writes: AtomicU64,
@@ -98,6 +103,15 @@ pub(crate) type KeptFacts = (
     i64,
     Vec<String>,
     Arc<Vec<codeskimr_domain::SymbolFacts>>,
+);
+
+/// What [`SqliteStore`] keeps of a walk: the snapshot, the `data_version` it was read at, the
+/// question it was read for, and the references it touched.
+pub(crate) type KeptWalk = (
+    SnapshotId,
+    i64,
+    codeskimr_domain::UsageQuery,
+    Arc<codeskimr_domain::ReverseIndex>,
 );
 
 /// What [`SqliteStore`] keeps of a build that costs a pass over a snapshot: for the snapshots that
@@ -220,6 +234,7 @@ impl SqliteStore {
             owners: Kept::new(),
             builds: Mutex::new(HashMap::new()),
             facts: Mutex::new(Vec::new()),
+            walks: Mutex::new(Vec::new()),
             writes: AtomicU64::new(0),
         })
     }
@@ -249,6 +264,10 @@ impl SqliteStore {
         self.writes.fetch_add(1, Ordering::SeqCst);
         self.graphs.clear();
         self.owners.clear();
+        self.walks
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clear();
         self.facts
             .lock()
             .unwrap_or_else(PoisonError::into_inner)

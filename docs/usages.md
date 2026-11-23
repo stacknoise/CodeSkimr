@@ -24,7 +24,7 @@ The `usage_counts` read model (the "Usages" column) leaves out references of the
 
 ## Budget
 
-`tools/bench/benches/usages.rs` measures the walk of the `ReverseIndex` alone (depth 2 on a hub symbol with about 5 000 direct users: about 2.4 ms). `crates/adapters/storage/benches/usages_page.rs` measures what the command asks of the store from the database (both walks, the direct usages and the impact, 500 entries each, names and files included) for the same hub, with 100 000 references: about 32 ms (ADR 0089 gives the measurement and what that means against the budget `usages_query_ms`, 20 ms, blueprint 16.1). With the size of `microsoft/vscode` (600 000 symbols, 3 million references) the same four reads cost about 19 ms for a symbol with a few hundred users, and about 1.2 s for a hub that 5 % of all references point at.
+`tools/bench/benches/usages.rs` measures the walk of the `ReverseIndex` alone (depth 2 on a hub symbol with about 5 000 direct users: about 2.4 ms). `crates/adapters/storage/benches/usages_page.rs` measures what the command asks of the store from the database (both walks, the direct usages and the impact, 500 entries each, names and files included) for the same hub, with 100 000 references: about 2.2 ms per question and 21 ms for the first, cold run, because the four reads share the references they read (ADR 0089); the budget is `usages_query_ms`, 20 ms, blueprint 16.1. With the size of `microsoft/vscode` (600 000 symbols, 3 million references) the same four reads cost about 19 ms for a symbol with a few hundred users, and about 1.2 s for a hub that 5 % of all references point at.
 
 ## Not part of this package
 

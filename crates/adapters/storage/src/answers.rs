@@ -107,7 +107,7 @@ fn paths_of(
 /// The references a walk of `query` can touch, read step by step: the references of the start
 /// symbol, then those of the symbols the step reached for the first time, up to the depth. The
 /// walk of the `ReverseIndex` over them finds what a walk over the whole snapshot would.
-fn walked_references(
+pub(crate) fn walked_references(
     conn: &Connection,
     snapshot: i64,
     query: &UsageQuery,
@@ -186,10 +186,10 @@ fn entries(conn: &Connection, snapshot: i64, shown: &[Usage]) -> StorageResult<V
 pub(crate) fn usages(
     conn: &Connection,
     snapshot: i64,
-    query: &UsageQuery,
+    (index, query): (&ReverseIndex, &UsageQuery),
     limit: usize,
 ) -> StorageResult<(usize, Vec<UsageEntry>)> {
-    let found = walked_references(conn, snapshot, query)?.usages(query);
+    let found = index.usages(query);
     let shown = found.get(..limit.min(found.len())).unwrap_or_default();
     Ok((found.len(), entries(conn, snapshot, shown)?))
 }
@@ -208,10 +208,10 @@ fn impacted(found: &Placed, reached: &Reached) -> ImpactedSymbol {
 pub(crate) fn impact(
     conn: &Connection,
     snapshot: i64,
-    query: &UsageQuery,
+    (index, query): (&ReverseIndex, &UsageQuery),
     limit: usize,
 ) -> StorageResult<(usize, Vec<ImpactedSymbol>)> {
-    let reached = walked_references(conn, snapshot, query)?.reached(query);
+    let reached = index.reached(query);
     let shown = reached.get(..limit.min(reached.len())).unwrap_or_default();
     let ids: HashSet<u64> = shown.iter().map(|found| found.symbol.get()).collect();
     let places = places_of(conn, snapshot, &ids)?;
