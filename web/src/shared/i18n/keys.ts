@@ -205,6 +205,8 @@ export const I18N_KEYS = {
   CLI_CHECK_UNMATCHED: "cli-check-unmatched",
   CLI_CMD_OPEN: "cli-cmd-open",
   CLI_ARG_NO_BROWSER: "cli-arg-no-browser",
+  CLI_ARG_PRINT_URL: "cli-arg-print-url",
+  CLI_OPEN_URL_WARNING: "cli-open-url-warning",
   CLI_OPEN_READY: "cli-open-ready",
   CLI_CMD_EXPORT: "cli-cmd-export",
   CLI_ARG_EXPORT_PROJECT: "cli-arg-export-project",

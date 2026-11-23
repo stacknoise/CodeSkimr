@@ -86,6 +86,9 @@ pub struct CheckArgs {
 pub struct OpenArgs {
     /// Only create the launch file and print its path; do not start a browser.
     pub no_browser: bool,
+    /// Print the address with the one-time code instead of writing a launch file (opt-in, ADR 0088).
+    /// The parser demands `no_browser` with it.
+    pub print_url: bool,
 }
 
 /// Arguments of the bare `codeskimr`.
