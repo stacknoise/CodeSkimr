@@ -148,18 +148,6 @@ pub(crate) struct ReferenceFacts {
     pub(crate) overriding: HashSet<SymbolId>,
 }
 
-/// The kind, whether it is probable and whether level 2 verified it, of a row of
-/// `REFERENCE_TALLY_ROWS`, read without copying the text.
-fn tally_columns(row: &rusqlite::Row<'_>) -> StorageResult<(ReferenceKind, bool, bool)> {
-    const KIND: usize = 3;
-    let text = |column: usize| -> rusqlite::Result<&str> {
-        row.get_ref(column)?.as_str().map_err(rusqlite::Error::from)
-    };
-    let kind = label_from::<ReferenceKind>(text(KIND)?)?;
-    let probable = text(KIND + 1)? == Confidence::Probable.label();
-    Ok((kind, probable, row.get(KIND + 2)?))
-}
-
 /// Counts the references of a snapshot: those whose file and target it holds. References of kind
 /// `test` and of a symbol to itself are no usages; a reference is certain if its resolution is,
 /// or if level 2 verified it.
@@ -175,7 +163,9 @@ pub(crate) fn reference_facts(conn: &Connection, snapshot: i64) -> StorageResult
         if !files.contains(&file) || !symbols.contains(&to) {
             continue;
         }
-        let (kind, probable, verified) = tally_columns(row)?;
+        let kind = label_from::<ReferenceKind>(&cols.take::<String>()?)?;
+        let probable = cols.take::<String>()? == Confidence::Probable.label();
+        let verified: bool = cols.take()?;
         let (from, to) = (SymbolId::new(id_from(from)?), SymbolId::new(id_from(to)?));
         match kind {
             ReferenceKind::Test => {

@@ -234,10 +234,10 @@ struct Named {
 fn named_symbols(conn: &Connection, snapshot: i64) -> StorageResult<Vec<Named>> {
     let mut prepared = conn.prepare_cached(sql::SYMBOL_PARENTS)?;
     let rows = prepared.query_map(params![snapshot], |row| {
-        Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+        <(i64, String, String, Option<i64>)>::try_from(row)
     })?;
     rows.map(|row| {
-        let (id, name, kind, parent): (i64, String, String, Option<i64>) = row?;
+        let (id, name, kind, parent) = row?;
         Ok(Named {
             id: SymbolId::new(id_from(id)?),
             kind: label_from(&kind)?,
