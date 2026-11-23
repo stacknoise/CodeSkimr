@@ -211,7 +211,7 @@ mod tests {
             .warming
             .member_rows(SnapshotId::new(1), SymbolId::new(1))
             .unwrap();
-        assert!(rows.is_empty());
+        assert_eq!(rows.len(), 0);
         assert_eq!(rig.gate.builds.load(Ordering::SeqCst), 0);
     }
 }
