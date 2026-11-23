@@ -5,6 +5,7 @@ import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { navigate } from "../../app/router";
 import { SCAN_ROUTE } from "../../app/consts";
 import { closeProject, openProject } from "../../shared/project/active";
+import { pollUnanswered } from "../../shared/api/poll";
 import { COMMAND, POLL_MS } from "./consts";
 import { forgetLevel2 } from "./level2";
 import { keepRunningOnly, noteLevel2Start, resetLevel2Runs } from "./level2run";
@@ -60,10 +61,11 @@ export function failed(error: unknown): Failure {
     : { code: null };
 }
 
-/** Reads the list again. A failure is kept for the screen; the old rows stay. */
-export async function refreshProjects(): Promise<void> {
+/** Reads the list again. A failure is kept for the screen; the old rows stay. A `signal` lets
+ * the caller give up waiting. */
+export async function refreshProjects(signal?: AbortSignal): Promise<void> {
   try {
-    const list = await runCommand<ProjectRow[]>(COMMAND.list);
+    const list = await runCommand<ProjectRow[]>(COMMAND.list, undefined, signal);
     setRows(list);
     keepRunningOnly(new Set(list.filter((row) => row.running).map((row) => row.id)));
     setListFailure(null);
@@ -77,11 +79,11 @@ export async function refreshProjects(): Promise<void> {
 /** Runs `work` and reads the list every `POLL_MS` until it is done, so that the progress of a
  * long scan shows up. */
 async function whileReading<T>(work: () => Promise<T>): Promise<T> {
-  const timer = setInterval(() => void refreshProjects(), POLL_MS);
+  const stop = pollUnanswered(refreshProjects, POLL_MS);
   try {
     return await work();
   } finally {
-    clearInterval(timer);
+    stop();
   }
 }
 

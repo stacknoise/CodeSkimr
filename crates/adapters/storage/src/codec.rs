@@ -10,7 +10,8 @@ use rusqlite::Row;
 use rusqlite::types::FromSql;
 
 use crate::consts::{
-    COLUMN_STEP, FIRST_COLUMN, FIRST_POSITION, JSON_LIST_CLOSE, JSON_LIST_OPEN, JSON_LIST_SEPARATOR,
+    COLUMN_STEP, FIRST_COLUMN, FIRST_POSITION, JSON_LIST_CLOSE, JSON_LIST_OPEN,
+    JSON_LIST_SEPARATOR, JSON_TEXT_QUOTE,
 };
 use crate::error::{StorageError, StorageResult};
 
@@ -124,6 +125,18 @@ pub fn ordinals() -> impl Iterator<Item = i64> {
 /// of values.
 pub(crate) fn json_list(values: impl Iterator<Item = i64>) -> String {
     let items: Vec<String> = values.map(|value| value.to_string()).collect();
+    format!(
+        "{JSON_LIST_OPEN}{}{JSON_LIST_CLOSE}",
+        items.join(&JSON_LIST_SEPARATOR.to_string())
+    )
+}
+
+/// A list of labels as the JSON text that `json_each` reads. The labels are the fixed names of
+/// kinds, which hold nothing that JSON would need to escape.
+pub(crate) fn json_labels<'label>(labels: impl Iterator<Item = &'label str>) -> String {
+    let items: Vec<String> = labels
+        .map(|label| format!("{JSON_TEXT_QUOTE}{label}{JSON_TEXT_QUOTE}"))
+        .collect();
     format!(
         "{JSON_LIST_OPEN}{}{JSON_LIST_CLOSE}",
         items.join(&JSON_LIST_SEPARATOR.to_string())

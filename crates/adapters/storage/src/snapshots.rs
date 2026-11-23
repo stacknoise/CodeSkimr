@@ -28,19 +28,21 @@ use crate::store::SqliteStore;
 
 impl SnapshotStore for SqliteStore {
     fn persist(&self, data: SnapshotData) -> Result<Snapshot, CodedError> {
-        let stored = self
-            .write(|tx| write_snapshot(tx, &data, self.retention().get()))
-            .map_err(CodedError::from)?;
-        self.forget_builds();
-        Ok(stored)
+        self.write(|tx| {
+            let stored = write_snapshot(tx, &data, self.retention().get())?;
+            self.forget_builds();
+            Ok(stored)
+        })
+        .map_err(CodedError::from)
     }
 
     fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError> {
-        let stored = self
-            .write(|tx| crate::replace::replace_level2(tx, &replacement))
-            .map_err(CodedError::from)?;
-        self.forget_builds();
-        Ok(stored)
+        self.write(|tx| {
+            let stored = crate::replace::replace_level2(tx, &replacement)?;
+            self.forget_builds();
+            Ok(stored)
+        })
+        .map_err(CodedError::from)
     }
 
     fn next_free_id(&self) -> Result<u64, CodedError> {
@@ -48,7 +50,11 @@ impl SnapshotStore for SqliteStore {
     }
 }
 
-fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageResult<Snapshot> {
+pub(crate) fn write_snapshot(
+    conn: &Connection,
+    data: &SnapshotData,
+    keep: u32,
+) -> StorageResult<Snapshot> {
     let header = &data.snapshot;
     let project = column_int(header.project.get())?;
     let known: i64 = conn.query_row(sql::PROJECT_EXISTS, params![project], |row| row.get(0))?;

@@ -13,9 +13,9 @@ export const statusInfo = info;
 /** Reads the measurements again. A failure keeps the old values. A call that gets no answer
  * at all tells the session that the server is gone, any answer that the server gave, even a
  * refusal, tells that it is back. */
-export async function refreshStatus(): Promise<void> {
+export async function refreshStatus(signal?: AbortSignal): Promise<void> {
   try {
-    setInfo(await runCommand<StatusInfo>(STATUS_COMMAND));
+    setInfo(await runCommand<StatusInfo>(STATUS_COMMAND, undefined, signal));
     noteReachable(true);
   } catch (error) {
     noteReachable(error instanceof ApiError);

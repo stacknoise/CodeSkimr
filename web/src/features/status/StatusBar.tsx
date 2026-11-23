@@ -9,6 +9,7 @@ import { cx } from "../../shared/ui/cx";
 import { LANGUAGES } from "../../shared/i18n/consts";
 import { projects, projectsLoaded, refreshProjects } from "../projects/projects";
 import { STATUS_DOT } from "../../app/consts";
+import { pollUnanswered } from "../../shared/api/poll";
 import { COUNT_SEPARATOR, LANGUAGE_LABELS, STATUS_POLL_MS } from "./consts";
 import styles from "./StatusBar.module.css";
 import { refreshStatus, statusInfo } from "./status";
@@ -117,8 +118,7 @@ export function StatusBar() {
     if (!projectsLoaded()) {
       void refreshProjects();
     }
-    const timer = setInterval(() => void refreshStatus(), STATUS_POLL_MS);
-    onCleanup(() => clearInterval(timer));
+    onCleanup(pollUnanswered(refreshStatus, STATUS_POLL_MS));
   });
   return (
     <footer class={styles.status}>

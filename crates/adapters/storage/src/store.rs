@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use std::fs;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError, TryLockError};
 use std::time::Duration;
 
 use codeskimr_application::error::CodedError;
@@ -53,13 +53,17 @@ fn limit_growth(conn: &Connection, pages: NonZeroU32) -> rusqlite::Result<()> {
 }
 
 /// The `SQLite` database of one workspace. It implements the storage ports and offers the queries
-/// on the read models. Share it behind an `Arc`; one writer at a time, readers wait for it.
+/// on the read models. Share it behind an `Arc`. There is one writer at a time; a read does not wait for it, it sees
+/// the state before the write (only the reads a write is built on wait, see
+/// `SqliteStore::read_latest`).
 #[derive(Debug)]
 pub struct SqliteStore {
     conn: Mutex<Connection>,
     /// The database file, so that a long read can use a connection of its own and leave `conn`
     /// to the queries of the screens; `None` for an in-memory database.
     file: Option<PathBuf>,
+    /// How long a connection waits for a lock of the file before it reports "busy".
+    busy_timeout: Duration,
     retention: NonZeroU32,
     /// The namespace graphs of the snapshots that were asked about last (small).
     pub(crate) graphs: Kept<codeskimr_domain::NamespaceGraph>,
@@ -77,9 +81,28 @@ pub struct SqliteStore {
     /// Counts the writes of this store that may have changed references, so that a build that
     /// was running during one does not keep what it read before it.
     pub(crate) writes: AtomicU64,
+    /// Whether a write holds the shared connection right now.
+    writing: AtomicBool,
     /// Read-only connections that are not in use, kept so that a read apart does not open the
     /// file every time; at most `IDLE_READERS`.
     readers: Mutex<Vec<Connection>>,
+}
+
+/// Marks the time in which a write holds the shared connection; the mark is taken off when the
+/// write ends, however it ends.
+struct Writing<'store>(&'store AtomicBool);
+
+impl<'store> Writing<'store> {
+    fn begin(mark: &'store AtomicBool) -> Self {
+        mark.store(true, Ordering::SeqCst);
+        Self(mark)
+    }
+}
+
+impl Drop for Writing<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
+    }
 }
 
 /// Runs `work` as one read transaction on `conn`.
@@ -231,12 +254,14 @@ impl SqliteStore {
         Ok(Self {
             conn: Mutex::new(conn),
             file,
+            busy_timeout: options.busy_timeout,
             retention,
             graphs: Kept::new(),
             owners: Kept::new(),
             builds: Mutex::new(HashMap::new()),
             walks: Mutex::new(Vec::new()),
             writes: AtomicU64::new(0),
+            writing: AtomicBool::new(false),
             readers: Mutex::new(Vec::new()),
         })
     }
@@ -259,9 +284,12 @@ impl SqliteStore {
         written == self.write_count()
     }
 
-    /// Drops what was built from the references: after a write of this store (a scan, or the
-    /// import of level 2) the references of a snapshot may have changed. The count goes up first,
-    /// so a build that is still running does not keep what it read before the write.
+    /// Drops what was built from the references: a write of this store (a scan, or the import of
+    /// level 2) may change the references of a snapshot. The write calls this before it commits,
+    /// while it still holds the shared connection, so no caller is handed the state before the
+    /// write once it is through. The count goes up first: a build takes the count before it asks
+    /// for the version (see `version_if_free`), so one that began before this call does not keep
+    /// what it read, and one that begins after it finds the connection taken and keeps nothing.
     pub(crate) fn forget_builds(&self) {
         self.writes.fetch_add(1, Ordering::SeqCst);
         self.graphs.clear();
@@ -281,12 +309,44 @@ impl SqliteStore {
         self.conn.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
-    /// Runs `work` on the connection without a transaction.
+    /// Runs a read. It never waits for a write: while the shared connection is taken (a scan
+    /// stores its snapshot through it for as long as that takes) the read runs on a read-only
+    /// connection of its own and sees the state before that write. A read whose answer the next
+    /// write is built on must not do that; it uses [`Self::read_latest`].
     pub(crate) fn read<T>(
         &self,
         work: impl FnOnce(&Connection) -> StorageResult<T>,
     ) -> StorageResult<T> {
+        match self.conn.try_lock() {
+            Ok(conn) => work(&conn),
+            Err(TryLockError::Poisoned(conn)) => work(&conn.into_inner()),
+            Err(TryLockError::WouldBlock) => self.read_apart(work),
+        }
+    }
+
+    /// Runs `work` on the shared connection without a transaction, after the write that holds it:
+    /// for the reads that a write is built on (the next free id, the files of the last scan) and
+    /// for what only that connection knows (its `data_version`).
+    pub(crate) fn read_latest<T>(
+        &self,
+        work: impl FnOnce(&Connection) -> StorageResult<T>,
+    ) -> StorageResult<T> {
         work(&self.connection())
+    }
+
+    /// What `work` reads on the shared connection, or `None` while a write holds it: for what
+    /// only that connection knows and what is not worth waiting for a write. A short read that
+    /// holds the connection is waited for.
+    pub(crate) fn unless_writing<T>(
+        &self,
+        work: impl FnOnce(&Connection) -> StorageResult<T>,
+    ) -> StorageResult<Option<T>> {
+        match self.conn.try_lock() {
+            Ok(conn) => work(&conn).map(Some),
+            Err(TryLockError::Poisoned(conn)) => work(&conn.into_inner()).map(Some),
+            Err(TryLockError::WouldBlock) if self.writing.load(Ordering::SeqCst) => Ok(None),
+            Err(TryLockError::WouldBlock) => work(&self.connection()).map(Some),
+        }
     }
 
     /// Runs a long read on a read-only connection of its own, so that the other queries and the
@@ -300,22 +360,14 @@ impl SqliteStore {
         work: impl FnOnce(&Connection) -> StorageResult<T>,
     ) -> StorageResult<T> {
         let Some(file) = self.file.as_deref() else {
-            return self.read(work);
+            return self.read_latest(work);
         };
         let idle = self
             .readers
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .pop();
-        let opened = idle.map_or_else(
-            || {
-                Connection::open_with_flags(
-                    file,
-                    OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-                )
-            },
-            Ok,
-        );
+        let opened = idle.map_or_else(|| self.open_reader(file), Ok);
         match opened {
             Ok(conn) => {
                 let value = in_read_transaction(&conn, work)?;
@@ -324,9 +376,22 @@ impl SqliteStore {
             }
             Err(cause) => {
                 tracing::warn!(event = LOG_READ_CONNECTION_UNAVAILABLE, %cause);
-                self.read(work)
+                self.read_latest(work)
             }
         }
+    }
+
+    /// Opens a read-only connection that waits for a lock of the file as long as the shared one
+    /// and has its cache settings.
+    fn open_reader(&self, file: &Path) -> rusqlite::Result<Connection> {
+        let conn = Connection::open_with_flags(
+            file,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?;
+        conn.busy_timeout(self.busy_timeout)?;
+        conn.pragma_update(None, PRAGMA_CACHE_SIZE, CACHE_SIZE_KIB)?;
+        conn.pragma_update(None, PRAGMA_TEMP_STORE, TEMP_STORE_MEMORY)?;
+        Ok(conn)
     }
 
     /// Keeps a read-only connection for the next read apart, unless enough are kept already. A
@@ -344,6 +409,7 @@ impl SqliteStore {
         work: impl FnOnce(&Transaction<'_>) -> StorageResult<T>,
     ) -> StorageResult<T> {
         let mut conn = self.connection();
+        let _writing = Writing::begin(&self.writing);
         let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let value = work(&tx)?;
         tx.commit()?;
@@ -355,7 +421,7 @@ impl SqliteStore {
     /// # Errors
     /// `STO-601` if the database cannot be read.
     pub fn next_free_id(&self) -> Result<u64, CodedError> {
-        self.read(|conn| {
+        self.read_latest(|conn| {
             let highest: Option<i64> = conn.query_row(sql::MAX_ID, [], |row| row.get(0))?;
             highest.map_or(Ok(FIRST_ID), |id| {
                 Ok(codec::id_from(id)?.saturating_add(ID_STEP))
@@ -476,6 +542,29 @@ mod tests {
             let plan = plan(&store, &narrowed);
             assert!(
                 !plan.contains("SCAN symbol_references"),
+                "{statement}\n{plan}"
+            );
+        }
+    }
+
+    /// The symbols of every project share one table and its index on the kind. A statement that
+    /// goes through that index, or walks the table, makes a small project read the symbols of the
+    /// largest one.
+    #[test]
+    fn the_symbols_of_a_snapshot_are_read_through_its_files_or_their_parent() {
+        let store = SqliteStore::open_in_memory(NonZeroU32::new(3).unwrap()).unwrap();
+        let of_one_snapshot = [
+            sql::OUTLINE_OF_KINDS,
+            sql::ANNOTATION_TARGET_EXISTS,
+            sql::ANNOTATION_LOSE_TARGET,
+            sql::ANNOTATION_FIND_TARGET,
+            sql::STATE_CHILD_HASHES,
+        ];
+        for statement in of_one_snapshot {
+            let plan = plan(&store, statement);
+            let whole_table = ["symbols_by_kind", "SCAN s", "SCAN c", "SCAN m"];
+            assert!(
+                !whole_table.iter().any(|step| plan.contains(step)),
                 "{statement}\n{plan}"
             );
         }

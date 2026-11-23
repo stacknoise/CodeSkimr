@@ -33,6 +33,32 @@ fn the_outline_holds_containers_and_types_but_no_members() {
     assert_eq!(names, ["Shop", "Shop.Cart", "Shop.Cart.Line", "Shop.IItem"]);
 }
 
+/// The symbols of all projects share one table: those of another project are not in the tree, and
+/// the tree is read through the files of its snapshot (the plan is checked next to the store).
+#[test]
+fn the_outline_is_the_same_next_to_another_project() {
+    use codeskimr_application::ports::SnapshotStore;
+    use codeskimr_domain::{ProjectId, ScanMode};
+    use common::{data, file, header, project};
+
+    let store = store();
+    store.save_project(&project(2, "/work/other", &[])).unwrap();
+    let mut head = header(20, ScanMode::Full);
+    head.project = ProjectId::new(2);
+    let mut scan = data(head);
+    scan.files = vec![file(20, 2001, "src/other.cs", "h")];
+    scan.symbols = vec![
+        symbol(2100, 2001, SymbolKind::Namespace, "Other", None),
+        symbol(2101, 2001, SymbolKind::Class, "Other.Thing", Some(2100)),
+    ];
+    store.persist(scan).unwrap();
+    let nodes = store.outline(SNAPSHOT).unwrap();
+    let names: Vec<_> = nodes.iter().map(|n| n.qualified_name.as_str()).collect();
+    assert_eq!(names, ["Shop", "Shop.Cart", "Shop.Cart.Line", "Shop.IItem"]);
+    let other = store.outline(SnapshotId::new(20)).unwrap();
+    assert_eq!(other.len(), 2);
+}
+
 #[test]
 fn a_node_names_the_language_of_its_file() {
     let nodes = store().outline(SNAPSHOT).unwrap();
