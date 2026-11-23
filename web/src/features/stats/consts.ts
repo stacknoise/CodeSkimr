@@ -134,6 +134,12 @@ export const HISTOGRAM = {
   axisGap: 14,
 } as const;
 
+/** Lower limits of the complexity classes of the histogram; the class above the limit of the
+ * project starts at its own value so that a bar never mixes functions above and below it. */
+export const COMPLEXITY_CLASS_STARTS = [1, 2, 5, 10, 20, 50, 100] as const;
+/** The dash of a class range ("5–9") and the plus of the open last class ("100+"). */
+export const RANGE_TEXT = { dash: "–", open: "+" } as const;
+
 /** The picture of the hotspots, in the units of its drawing. */
 export const HOTSPOTS = {
   width: 520,

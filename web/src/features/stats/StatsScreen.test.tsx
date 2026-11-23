@@ -298,7 +298,7 @@ describe("StatsScreen: rankings", () => {
     served({ ...RANKING, rows: [row(3, "checkout", { complexity: 17 }), row(1, "Cart")] });
     await showRanking("Complexity");
     expect(await screen.findByRole("img", { name: /How complex/ })).toBeInTheDocument();
-    expect(screen.getByText("Complexity 17: 1 functions")).toBeInTheDocument();
+    expect(screen.getByText("Complexity 11–19: 1 functions")).toBeInTheDocument();
     expect(screen.getByText("above the limit")).toBeInTheDocument();
     expect(screen.getByText("Cart: complexity 4, 3 certain usages, up to 40")).toBeInTheDocument();
   });

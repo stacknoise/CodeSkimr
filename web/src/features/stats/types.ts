@@ -54,6 +54,15 @@ export interface Bar {
   count: number;
 }
 
+/** A class of complexities (`from` to `to`, open upwards when `to` is null) with its functions. */
+export interface ClassBar {
+  from: number;
+  to: number | null;
+  count: number;
+  over: boolean;
+  label: string;
+}
+
 /** The answer of `stats.overview`. */
 export interface Overview {
   snapshot: number | null;

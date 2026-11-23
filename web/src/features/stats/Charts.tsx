@@ -3,7 +3,14 @@ import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
 import { HISTOGRAM, HOTSPOTS, LIMIT_DASH, ROLE, TEXT_ANCHOR } from "./consts";
-import { complexityTicks, histogramShapes, spots, spotScale, usageTicks } from "./geometry";
+import {
+  classBars,
+  complexityTicks,
+  histogramShapes,
+  spots,
+  spotScale,
+  usageTicks,
+} from "./geometry";
 import type { BarShape, Spot, SpotScale } from "./geometry";
 import type { Bar, Row } from "./types";
 import styles from "./Charts.module.css";
@@ -11,9 +18,14 @@ import styles from "./Charts.module.css";
 function BarMark(props: { shape: BarShape; limit: number }) {
   return (
     <g>
-      <title>{t(I18N_KEYS.STATS_HISTOGRAM_BAR, { ...props.shape.bar })}</title>
+      <title>
+        {t(I18N_KEYS.STATS_HISTOGRAM_BAR, {
+          range: props.shape.bar.label,
+          count: props.shape.bar.count,
+        })}
+      </title>
       <rect
-        class={cx(styles.bar, props.shape.bar.complexity > props.limit && styles.over)}
+        class={cx(styles.bar, props.shape.bar.over && styles.over)}
         x={props.shape.x}
         y={props.shape.y}
         width={props.shape.width}
@@ -32,7 +44,7 @@ function BarMark(props: { shape: BarShape; limit: number }) {
         y={HISTOGRAM.height - HISTOGRAM.bottom + HISTOGRAM.axisGap}
         text-anchor={TEXT_ANCHOR.middle}
       >
-        {props.shape.bar.complexity}
+        {props.shape.bar.label}
       </text>
     </g>
   );
@@ -50,7 +62,7 @@ export function Histogram(props: { bars: Bar[]; limit: number }) {
         role={ROLE.img}
         aria-label={t(I18N_KEYS.STATS_HISTOGRAM_TITLE)}
       >
-        <For each={histogramShapes(props.bars)}>
+        <For each={histogramShapes(classBars(props.bars, props.limit))}>
           {(shape) => <BarMark shape={shape} limit={props.limit} />}
         </For>
       </svg>
