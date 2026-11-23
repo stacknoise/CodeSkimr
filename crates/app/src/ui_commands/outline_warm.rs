@@ -6,10 +6,10 @@
 
 use std::sync::Arc;
 
-use codeskimr_storage::SqliteStore;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{CodeOutline, MemberRow, OutlineNode};
 use codeskimr_domain::{SnapshotId, SymbolId};
+use codeskimr_storage::SqliteStore;
 
 use super::consts::INDEX_WARM_THREAD;
 
