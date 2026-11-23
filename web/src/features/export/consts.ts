@@ -29,3 +29,13 @@ export const EXPORT_NAME_MAX = 100;
 export const EXPORT_RESERVED_NAME = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
 /** What is put in front of a reserved name. */
 export const EXPORT_RESERVED_PREFIX = "project-";
+
+/** Milliseconds after which the button gives up waiting for the page and says so. */
+export const EXPORT_TIMEOUT_MS = 300_000;
+
+/** Milliseconds between two updates of the seconds the button shows while it works. */
+export const EXPORT_TICK_MS = 1000;
+/** Milliseconds in a second. */
+export const MS_PER_SECOND = 1000;
+/** The reason with which the wait is aborted when the time is up (a user's cancel has none). */
+export const EXPORT_TIMEOUT_REASON = "timeout";

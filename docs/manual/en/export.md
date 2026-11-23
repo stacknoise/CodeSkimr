@@ -4,7 +4,7 @@ The export is available two ways: the **Export HTML** button in the app and the 
 
 ## In the app
 
-Open the project (Projects, choose the row, Enter). The top bar has the button **Export HTML** next to the name and the branch. A click makes the page from the newest scan, and the browser downloads it as `<project name>.html` into its download folder. Nothing is sent anywhere else. The button is grey while the project has not been scanned. The quick search does the same (`Ctrl K`, then `>` and "Export project as HTML"). If the export fails, the reason with its error code appears next to the button.
+Open the project (Projects, choose the row, Enter). The top bar has the button **Export HTML** next to the name and the branch. A click makes the page from the newest scan, and the browser downloads it as `<project name>.html` into its download folder. Nothing is sent anywhere else. The button is grey while the project has not been scanned. The quick search does the same (`Ctrl K`, then `>` and "Export project as HTML"). While the export runs, the button shows the seconds that have passed, and **Cancel** stands next to it. Cancel and the time limit only end the wait of the app; the server may finish the export anyway. A large project can take several minutes because the usages of every symbol are read. After five minutes the app stops waiting and says so next to the button; the command `codeskimr export` in a console has no time limit. If the export fails, the reason with its error code appears next to the button.
 
 ## On the command line
 

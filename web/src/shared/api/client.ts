@@ -31,6 +31,8 @@ export interface ApiOptions {
   body?: unknown;
   /** Send this token instead of the one of the session. */
   token?: string | null;
+  /** Stops the call: `fetch` then rejects with the reason of the signal. */
+  signal?: AbortSignal;
 }
 
 function knownCode(value: unknown): ErrorCode | null {
@@ -74,6 +76,7 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
   const response = await fetch(path, {
     method: options.method ?? METHOD_GET,
     headers,
+    ...(options.signal === undefined ? {} : { signal: options.signal }),
     ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
   });
   if (!response.ok) {
