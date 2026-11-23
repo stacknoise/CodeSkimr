@@ -3,8 +3,8 @@
 use std::path::PathBuf;
 
 use codeskimr_cli::{
-    Action, CliError, CredentialAction, Level2Action, Parsed, ProviderChoice, ScanArgs, ServeArgs,
-    StartArgs, language_from, parse, serve_started, start_keep_open,
+    Action, CliError, CredentialAction, Level2Action, OpenArgs, Parsed, ProviderChoice, ScanArgs,
+    ServeArgs, StartArgs, language_from, parse, serve_started, start_keep_open,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_i18n::Messages;
@@ -116,6 +116,28 @@ fn the_start_tells_to_keep_the_window_open_in_both_languages() {
     let german = start_keep_open(&messages, "de").unwrap();
     assert!(english.contains("window open"), "{english}");
     assert!(german.contains("offen lassen"), "{german}");
+}
+
+#[test]
+fn printing_the_address_is_an_opt_in_that_needs_no_browser() {
+    let both = invocation(&["codeskimr", "open", "--no-browser", "--print-url"]);
+    assert!(matches!(
+        both.action,
+        Action::Open(OpenArgs {
+            no_browser: true,
+            print_url: true
+        })
+    ));
+    let plain = invocation(&["codeskimr", "open"]);
+    assert!(matches!(
+        plain.action,
+        Action::Open(OpenArgs {
+            print_url: false,
+            ..
+        })
+    ));
+    let error = run(&["codeskimr", "open", "--print-url"]).unwrap_err();
+    assert_eq!(error.code(), ErrorCode::CliArgumentsInvalid);
 }
 
 #[test]
