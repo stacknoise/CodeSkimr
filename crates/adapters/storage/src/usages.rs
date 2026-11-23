@@ -154,19 +154,21 @@ impl SqliteStore {
             let kept = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
             kept.iter().map(|(id, _, _)| *id).collect()
         };
-        self.read(|conn| {
+        let affected = self.read(|conn| {
             let own = project_of(conn, raw)?;
             Ok(ids
-                .into_iter()
+                .iter()
                 .filter(|id| {
                     let other = column_int(id.get())
                         .ok()
                         .and_then(|other| project_of(conn, other).ok().flatten());
                     other.is_none() || other == own
                 })
+                .copied()
                 .collect())
-        })
-        .unwrap_or_default()
+        });
+        // When the projects cannot be read, every kept index counts as affected and is built again.
+        affected.unwrap_or(ids)
     }
 
     fn usage_page(

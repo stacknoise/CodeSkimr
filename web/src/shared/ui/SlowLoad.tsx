@@ -22,10 +22,10 @@ export function useSlow(waiting: () => boolean): () => boolean {
 export function SlowLoad(props: { waiting: () => boolean; class?: string | undefined }) {
   const slow = useSlow(props.waiting);
   return (
-    <Show when={slow()}>
-      <div role="status">
+    <div role="status">
+      <Show when={slow()}>
         <NoticeBox class={props.class} text={t(I18N_KEYS.LOADING_SLOW)} />
-      </div>
-    </Show>
+      </Show>
+    </div>
   );
 }

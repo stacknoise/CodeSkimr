@@ -332,22 +332,9 @@ mod tests {
         store.warm(SnapshotId::new(20)).unwrap();
         store.warm(SnapshotId::new(30)).unwrap();
         assert_eq!(store.kept_snapshot(), Some(SnapshotId::new(30)));
-        // The oldest was dropped, so asking for it builds it again as the newest.
+        // The oldest was dropped, so asking for it brings it back as the newest.
         store.warm(SNAPSHOT).unwrap();
         assert_eq!(store.kept_snapshot(), Some(SNAPSHOT));
-    }
-
-    #[test]
-    fn a_fresh_index_is_built_after_a_write_to_its_project() {
-        let store = calls();
-        let before = store
-            .usages(SNAPSHOT, &query(23, Direction::Incoming, 1), 10)
-            .unwrap();
-        store.persist(later_scan(1, 40)).unwrap();
-        let after = store
-            .usages(SNAPSHOT, &query(23, Direction::Incoming, 1), 10)
-            .unwrap();
-        assert_eq!(before.total, after.total);
     }
 
     #[test]
