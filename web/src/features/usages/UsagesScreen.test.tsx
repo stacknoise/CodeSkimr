@@ -80,6 +80,24 @@ describe("UsagesScreen", () => {
     await waitFor(() => expect(screen.queryByRole("heading", { name: "Cart.Total" })).toBeNull());
   });
 
+  it("takes the answer of another symbol away once the new one takes long and stops the old question", async () => {
+    shown();
+    await screen.findByRole("heading", { name: "Cart.Total" });
+    fetchMock.mockClear();
+    fetchMock.mockImplementation(() => new Promise<Response>(() => undefined));
+    moveUsages(77);
+    await waitFor(() => expect(fetchMock.mock.calls.length).toBe(1));
+    // A quick answer would replace the old one without a flicker, so it stays for a moment.
+    expect(screen.queryByRole("heading", { name: "Cart.Total" })).not.toBeNull();
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Cart.Total" })).toBeNull(), {
+      timeout: 3000,
+    });
+    moveUsages(78);
+    await waitFor(() => expect(fetchMock.mock.calls.length).toBe(2));
+    const first = fetchMock.mock.calls[0]![1] as { signal: AbortSignal };
+    expect(first.signal.aborted).toBe(true);
+  });
+
   it("widens the side panel and keeps the width for the next visit", async () => {
     shown();
     await screen.findByRole("heading", { name: "Cart.Total" });

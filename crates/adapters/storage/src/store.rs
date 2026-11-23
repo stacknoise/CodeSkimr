@@ -490,11 +490,59 @@ mod tests {
     fn the_references_of_a_snapshot_are_read_through_its_files_not_the_whole_table() {
         let store = SqliteStore::open_in_memory(NonZeroU32::new(3).unwrap()).unwrap();
         for statement in OF_ONE_SNAPSHOT {
-            let plan = plan(&store, statement);
+            let narrowed = format!("{statement}{}", sql::IN_FILES_OF_SNAPSHOT);
+            let plan = plan(&store, &narrowed);
             assert!(
                 !plan.contains("SCAN symbol_references"),
                 "{statement}\n{plan}"
             );
         }
+    }
+
+    fn probe_count(conn: &rusqlite::Connection) -> crate::error::StorageResult<i64> {
+        Ok(conn.query_row("SELECT COUNT(*) FROM probe", [], |row| row.get(0))?)
+    }
+
+    #[test]
+    fn a_kept_reader_sees_what_was_written_after_its_last_read() {
+        let (store, folder) = file_store("reuse");
+        store
+            .write(|tx| Ok(tx.execute_batch("CREATE TABLE probe (x);")?))
+            .unwrap();
+        assert_eq!(store.read_apart(probe_count).unwrap(), 0);
+        assert_eq!(store.readers.lock().unwrap().len(), 1);
+        store
+            .write(|tx| Ok(tx.execute("INSERT INTO probe VALUES (1)", [])?))
+            .unwrap();
+        assert_eq!(store.read_apart(probe_count).unwrap(), 1);
+        assert_eq!(store.readers.lock().unwrap().len(), 1);
+        std::fs::remove_dir_all(folder).unwrap();
+    }
+
+    #[test]
+    fn a_reader_whose_read_failed_is_not_kept() {
+        let (store, folder) = file_store("failed");
+        assert!(store.read_apart(probe_count).is_err());
+        assert_eq!(store.readers.lock().unwrap().len(), 0);
+        std::fs::remove_dir_all(folder).unwrap();
+    }
+
+    fn nested(store: &SqliteStore, depth: usize) {
+        if depth > 0 {
+            store
+                .read_apart(|_| {
+                    nested(store, depth - 1);
+                    Ok(())
+                })
+                .unwrap();
+        }
+    }
+
+    #[test]
+    fn only_a_few_readers_stay_open() {
+        let (store, folder) = file_store("cap");
+        nested(&store, super::IDLE_READERS + 2);
+        assert_eq!(store.readers.lock().unwrap().len(), super::IDLE_READERS);
+        std::fs::remove_dir_all(folder).unwrap();
     }
 }

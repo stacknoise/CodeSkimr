@@ -167,3 +167,7 @@ pub const KEPT_WALKS: usize = 4;
 
 /// How many read-only connections stay open between the reads that run apart.
 pub const IDLE_READERS: usize = 4;
+
+/// A snapshot that holds more than one in this many of the files of the database reads its
+/// references in one pass over the table; a smaller one reads them through its files.
+pub const WHOLE_TABLE_SHARE: i64 = 2;

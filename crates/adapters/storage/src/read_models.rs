@@ -12,7 +12,7 @@ use crate::codec::{Cols, column_int, id_from};
 use crate::consts::{EDGE_STEP, TYPE_KINDS};
 use crate::cycles::edges_in_cycles;
 use crate::error::StorageResult;
-use crate::references::id_set;
+use crate::references::{id_set, of_snapshot};
 use crate::sql;
 
 /// Fills `search_index`, `usage_counts`, `type_summary` and `layer_graph` of a snapshot.
@@ -45,7 +45,8 @@ fn rebuild_usages(conn: &Connection, snapshot: i64) -> StorageResult<()> {
     let files = id_set(conn, sql::FILE_IDS, snapshot)?;
     let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
     let mut counts: BTreeMap<i64, i64> = BTreeMap::new();
-    let mut statement = conn.prepare_cached(sql::REFERENCE_TARGETS)?;
+    let mut statement =
+        conn.prepare_cached(&of_snapshot(conn, snapshot, sql::REFERENCE_TARGETS)?)?;
     let mut rows = statement.query(params![snapshot, ReferenceKind::Test.label()])?;
     while let Some(row) = rows.next()? {
         let (file, target): (i64, i64) = (row.get(0)?, row.get(1)?);
