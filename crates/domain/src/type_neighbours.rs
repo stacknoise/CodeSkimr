@@ -209,11 +209,9 @@ mod tests {
     #[test]
     fn the_members_of_a_type_are_the_type_and_what_it_owns() {
         let names = [
-            (1, SymbolKind::Namespace, "App"),
-            (2, SymbolKind::Class, "App.Cart"),
-            (3, SymbolKind::Method, "App.Cart.Total"),
-            (4, SymbolKind::Class, "App.View"),
-            (5, SymbolKind::Method, "App.View.Draw"),
+            (1, SymbolKind::Module, "shop"),
+            (2, SymbolKind::Struct, "shop.Basket"),
+            (3, SymbolKind::Function, "shop.Basket.sum"),
         ];
         let qualified = qualified_names(&names);
         let members = type_members(id(2), triples(&names, &qualified));
