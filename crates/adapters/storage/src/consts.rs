@@ -142,6 +142,9 @@ pub const BULK_REFERENCES_MIN: usize = 20_000;
 /// the stored ones, expressed as "one in N" (a load of half the table or more).
 pub const BULK_REFERENCES_SHARE_DIVISOR: usize = 2;
 
+/// Position of the kind in a row of `REFERENCE_TARGETS`.
+pub const REFERENCE_KIND_COLUMN: usize = 2;
+
 /// Below this many new fingerprints the index by hash stays in place while rows are added.
 pub const BULK_FINGERPRINTS_MIN: usize = 200_000;
 

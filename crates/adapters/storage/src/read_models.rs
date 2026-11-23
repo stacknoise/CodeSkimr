@@ -9,7 +9,7 @@ use codeskimr_domain::{Confidence, Layer, MetricKind, ReferenceKind, SnapshotId,
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, column_int, id_from};
-use crate::consts::{EDGE_STEP, TYPE_KINDS};
+use crate::consts::{EDGE_STEP, REFERENCE_KIND_COLUMN, TYPE_KINDS};
 use crate::cycles::edges_in_cycles;
 use crate::error::StorageResult;
 use crate::references::{id_set, of_snapshot};
@@ -50,14 +50,17 @@ fn rebuild_usages(conn: &Connection, snapshot: i64) -> StorageResult<u64> {
     let mut counts: BTreeMap<i64, i64> = BTreeMap::new();
     let mut statement =
         conn.prepare_cached(&of_snapshot(conn, snapshot, sql::REFERENCE_TARGETS)?)?;
-    let mut tests = 0_u64;
+    let mut tests = u64::default();
     let mut rows = statement.query(params![snapshot])?;
     while let Some(row) = rows.next()? {
         let (file, target): (i64, i64) = (row.get(0)?, row.get(1)?);
         if !(files.contains(&file) && symbols.contains(&target)) {
             continue;
         }
-        let kind = row.get_ref(2)?.as_str().map_err(rusqlite::Error::from)?;
+        let kind = row
+            .get_ref(REFERENCE_KIND_COLUMN)?
+            .as_str()
+            .map_err(rusqlite::Error::from)?;
         if kind == ReferenceKind::Test.label() {
             tests += 1;
         } else {
