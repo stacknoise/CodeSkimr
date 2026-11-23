@@ -6,20 +6,21 @@
 //! answer are read for the entries that are shown, not for the whole snapshot.
 
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 use codeskimr_application::ports::{
     ImpactedSymbol, SymbolLabel, TypeFocus, TypeNeighbour, UsageEntry,
 };
 use codeskimr_domain::{
-    Confidence, Direction, NamespaceGraph, QualifiedName, Reached, Reference, ReferenceKind,
-    RelativePath, ReverseIndex, SymbolId, SymbolKind, TypeLink, Usage, UsageQuery, Visibility,
-    namespace_graph, type_members, type_neighbours,
+    Direction, NamespaceGraph, QualifiedName, Reached, Reference, ReferenceKind, RelativePath,
+    ReverseIndex, SymbolId, SymbolKind, TypeLink, TypeOwners, Usage, UsageQuery, Visibility,
+    namespace_graph,
 };
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, column_int, id_from, id_list, label_from};
 use crate::error::{StorageError, StorageResult};
-use crate::references::load_around;
+use crate::references::{certain_ends, load_around};
 use crate::sql;
 
 /// A symbol as it is stored: its label, visibility and file.
@@ -270,15 +271,7 @@ fn read_ends(
 /// layer graph.
 pub(crate) fn namespaces(conn: &Connection, snapshot: i64) -> StorageResult<NamespaceGraph> {
     let symbols = named_symbols(conn, snapshot)?;
-    let ends = read_ends(
-        conn,
-        sql::REFERENCE_PAIRS_CERTAIN,
-        params![
-            snapshot,
-            ReferenceKind::Test.label(),
-            Confidence::Probable.label()
-        ],
-    )?;
+    let ends = certain_ends(conn, snapshot)?;
     Ok(namespace_graph(
         symbols
             .iter()
@@ -302,25 +295,28 @@ fn neighbours(
         .collect()
 }
 
-/// The types around `symbol`, or `None` if it is no type of the snapshot. The references read are
-/// those that touch a member of the type.
+/// The owning type of every symbol of a snapshot, for the type focus.
+pub(crate) fn type_owners(conn: &Connection, snapshot: i64) -> StorageResult<Arc<TypeOwners>> {
+    let symbols = named_symbols(conn, snapshot)?;
+    Ok(Arc::new(TypeOwners::new(symbols.iter().map(|found| {
+        (found.id, found.kind, &found.name, found.parent)
+    }))))
+}
+
+/// The types around `symbol`, or `None` if it is no type of the snapshot. The references read
+/// are those that touch a member of the type.
 pub(crate) fn type_focus(
     conn: &Connection,
     snapshot: i64,
+    owners: &TypeOwners,
     symbol: SymbolId,
 ) -> StorageResult<Option<TypeFocus>> {
-    let symbols = named_symbols(conn, snapshot)?;
-    let triples = || {
-        symbols
-            .iter()
-            .map(|found| (found.id, found.kind, &found.name, found.parent))
-    };
-    let Some(members) = type_members(symbol, triples()) else {
+    let Some(members) = owners.members(symbol) else {
         return Ok(None);
     };
     let list = id_list(members.iter().map(|member| member.get()))?;
     let ends = read_ends(conn, sql::REFERENCE_ENDS_TOUCHING, params![snapshot, list])?;
-    let Some(found) = type_neighbours(symbol, triples(), ends) else {
+    let Some(found) = owners.neighbours(symbol, ends) else {
         return Ok(None);
     };
     let ids: HashSet<u64> = found

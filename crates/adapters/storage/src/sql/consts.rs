@@ -83,15 +83,18 @@ pub const REFERENCES_OUT_OF: &str = "SELECT r.id, r.from_symbol, r.to_symbol, r.
     WHERE r.first_snapshot <= ?1 AND r.from_symbol IN (SELECT value FROM json_each(?2))";
 /// Start and target of the references of a snapshot that touch some symbols at either end:
 /// snapshot, JSON list of symbol ids.
-pub const REFERENCE_ENDS_TOUCHING: &str = "SELECT from_symbol, to_symbol FROM snapshot_references \
-    WHERE snapshot_id = ?1 AND to_symbol IN (SELECT value FROM json_each(?2)) \
-    UNION ALL SELECT from_symbol, to_symbol FROM snapshot_references \
-    WHERE snapshot_id = ?1 AND from_symbol IN (SELECT value FROM json_each(?2)) \
-    AND to_symbol NOT IN (SELECT value FROM json_each(?2))";
-/// Start and target of the references of a snapshot that count for a dependency of namespaces:
-/// not probable, not of the test kind, one row per reference: snapshot, test kind, probable label.
-pub const REFERENCE_PAIRS_CERTAIN: &str = "SELECT from_symbol, to_symbol \
-    FROM snapshot_references WHERE snapshot_id = ?1 AND kind <> ?2 AND confidence <> ?3";
+pub const REFERENCE_ENDS_TOUCHING: &str = "SELECT r.from_symbol, r.to_symbol \
+    FROM symbol_references r CROSS JOIN files f ON f.snapshot_id = ?1 AND f.id = r.file_id \
+    WHERE r.first_snapshot <= ?1 AND r.to_symbol IN (SELECT value FROM json_each(?2)) \
+    UNION ALL SELECT r.from_symbol, r.to_symbol \
+    FROM symbol_references r CROSS JOIN files f ON f.snapshot_id = ?1 AND f.id = r.file_id \
+    WHERE r.first_snapshot <= ?1 AND r.from_symbol IN (SELECT value FROM json_each(?2)) \
+    AND r.to_symbol NOT IN (SELECT value FROM json_each(?2))";
+/// File, start and target of every reference that is not newer than a snapshot, not of the given
+/// kind and not of the given confidence: snapshot, test kind, probable label. One pass over the
+/// table; the caller keeps the rows whose file and target the snapshot holds.
+pub const REFERENCE_ENDS_CERTAIN: &str = "SELECT file_id, from_symbol, to_symbol \
+    FROM symbol_references WHERE first_snapshot <= ?1 AND kind <> ?2 AND confidence <> ?3";
 /// The symbols of a snapshot with what the namespace graph and the type focus need: snapshot.
 pub const SYMBOL_PARENTS: &str = "SELECT s.id, s.qualified_name, s.kind, s.parent_id \
     FROM symbols s WHERE s.snapshot_id = ?1";

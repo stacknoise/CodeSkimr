@@ -60,12 +60,11 @@ pub struct SqliteStore {
     /// to the queries of the screens; `None` for an in-memory database.
     file: Option<PathBuf>,
     retention: NonZeroU32,
-    /// The namespace graphs of the snapshots that were asked about last, newest first, at most
-    /// `KEPT_BUILDS`. A graph is kept only while no other connection has committed since
-    /// (`data_version`): the level 2 import of a scan from the browser or of `codeskimr scan`
-    /// replaces the references of a snapshot through its own store. The lock is held for a look
-    /// into the list, never during a build.
-    pub(crate) graphs: Mutex<Vec<KeptGraph>>,
+    /// The namespace graphs of the snapshots that were asked about last (small).
+    pub(crate) graphs: Kept<codeskimr_domain::NamespaceGraph>,
+    /// The owning type of every symbol of the snapshots that were asked about last, for the type
+    /// focus: built from all symbols once, so a click only reads the references of one type.
+    pub(crate) owners: Kept<Arc<codeskimr_domain::TypeOwners>>,
     /// One lock per snapshot and kind of build: a second caller for the same build waits for the
     /// first and finds its result; callers for other snapshots do not wait.
     pub(crate) builds: Mutex<HashMap<(i64, Build), BuildGate>>,
@@ -86,6 +85,8 @@ pub(crate) type BuildGate = Arc<Mutex<()>>;
 pub(crate) enum Build {
     /// The namespace graph.
     Graph,
+    /// The owning types of the symbols.
+    Owners,
     /// The facts for the statistics.
     Facts,
 }
@@ -99,9 +100,52 @@ pub(crate) type KeptFacts = (
     Arc<Vec<codeskimr_domain::SymbolFacts>>,
 );
 
-/// What [`SqliteStore`] keeps of the namespace graph: the snapshot, the `data_version` it was
-/// built at, and the graph.
-pub(crate) type KeptGraph = (SnapshotId, i64, codeskimr_domain::NamespaceGraph);
+/// What [`SqliteStore`] keeps of a build that costs a pass over a snapshot: for the snapshots that
+/// were asked about last, newest first, at most `KEPT_BUILDS`, the value and the `data_version` it
+/// was built at. A value is kept only while no other connection has committed since: the level 2
+/// import of a scan from the browser or of `codeskimr scan` replaces the references of a snapshot
+/// through its own store. The lock is held for a look into the list, never during a build.
+#[derive(Debug)]
+pub(crate) struct Kept<T>(Mutex<Vec<(SnapshotId, i64, T)>>);
+
+impl<T: Clone> Kept<T> {
+    fn new() -> Self {
+        Self(Mutex::new(Vec::new()))
+    }
+
+    /// The kept value of `snapshot` if it was built at `version`.
+    pub(crate) fn get(&self, snapshot: SnapshotId, version: i64) -> Option<T> {
+        let kept = self.0.lock().unwrap_or_else(PoisonError::into_inner);
+        kept.iter()
+            .find(|(id, built_at, _)| *id == snapshot && *built_at == version)
+            .map(|(.., value)| value.clone())
+    }
+
+    /// Keeps `value` for `snapshot` as the newest, instead of an older one of it, if `current`
+    /// still holds: it is asked under the lock, so a write that came in since the build began
+    /// (and cleared the list) is not undone.
+    pub(crate) fn put(
+        &self,
+        (snapshot, version): (SnapshotId, i64),
+        value: &T,
+        current: impl FnOnce() -> bool,
+    ) {
+        let mut kept = self.0.lock().unwrap_or_else(PoisonError::into_inner);
+        if !current() {
+            return;
+        }
+        kept.retain(|(id, ..)| *id != snapshot);
+        kept.insert(0, (snapshot, version, value.clone()));
+        kept.truncate(KEPT_BUILDS);
+    }
+
+    fn clear(&self) {
+        self.0
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clear();
+    }
+}
 
 impl SqliteStore {
     /// Opens the database file, creating it and its folder if needed, and applies the migrations.
@@ -172,7 +216,8 @@ impl SqliteStore {
             conn: Mutex::new(conn),
             file,
             retention,
-            graphs: Mutex::new(Vec::new()),
+            graphs: Kept::new(),
+            owners: Kept::new(),
             builds: Mutex::new(HashMap::new()),
             facts: Mutex::new(Vec::new()),
             writes: AtomicU64::new(0),
@@ -187,49 +232,27 @@ impl SqliteStore {
         Arc::clone(gates.entry((snapshot, what)).or_default())
     }
 
-    /// The kept namespace graph of `snapshot` if it was built at `version`.
-    pub(crate) fn kept_graph(
-        &self,
-        snapshot: SnapshotId,
-        version: i64,
-    ) -> Option<codeskimr_domain::NamespaceGraph> {
-        let kept = self.graphs.lock().unwrap_or_else(PoisonError::into_inner);
-        kept.iter()
-            .find(|(id, built_at, _)| *id == snapshot && *built_at == version)
-            .map(|(.., graph)| graph.clone())
-    }
-
     /// The number of writes so far; a build compares it before and after it reads.
     pub(crate) fn write_count(&self) -> u64 {
         self.writes.load(Ordering::SeqCst)
     }
 
-    /// Keeps the namespace graph of `snapshot` as the newest, instead of an older one of it, if
-    /// no write came in since `written` was read.
-    pub(crate) fn keep_graph(
-        &self,
-        (snapshot, version, written): (SnapshotId, i64, u64),
-        graph: &codeskimr_domain::NamespaceGraph,
-    ) {
-        let mut kept = self.graphs.lock().unwrap_or_else(PoisonError::into_inner);
-        if written != self.write_count() {
-            return;
-        }
-        kept.retain(|(id, ..)| *id != snapshot);
-        kept.insert(0, (snapshot, version, graph.clone()));
-        kept.truncate(KEPT_BUILDS);
+    /// Whether no write came in since `written` was read.
+    pub(crate) fn unwritten_since(&self, written: u64) -> bool {
+        written == self.write_count()
     }
 
     /// Drops what was built from the references: after a write of this store (a scan, or the
-    /// import of level 2) the references of a snapshot may have changed. A build that is still
-    /// running for a snapshot has read the references before the write; the data version it
-    /// compares against is the one of its start, so the next question builds it again.
+    /// import of level 2) the references of a snapshot may have changed. The count goes up first,
+    /// so a build that is still running does not keep what it read before the write.
     pub(crate) fn forget_builds(&self) {
-        let mut graphs = self.graphs.lock().unwrap_or_else(PoisonError::into_inner);
-        let mut facts = self.facts.lock().unwrap_or_else(PoisonError::into_inner);
         self.writes.fetch_add(1, Ordering::SeqCst);
-        graphs.clear();
-        facts.clear();
+        self.graphs.clear();
+        self.owners.clear();
+        self.facts
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clear();
     }
 
     /// The number of snapshots kept per project.

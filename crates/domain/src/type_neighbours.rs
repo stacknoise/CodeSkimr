@@ -85,26 +85,71 @@ fn ranked(counts: BTreeMap<SymbolId, u32>) -> Vec<TypeLink> {
     links
 }
 
-/// The symbols a type owns: itself and every member inside it, by the rule of the module. `None`
-/// if `focus` is not a type of the symbols. The references that touch these symbols are all that
-/// `type_neighbours` needs of the references of a snapshot.
-#[must_use]
-pub fn type_members<'a>(
-    focus: SymbolId,
-    symbols: impl IntoIterator<Item = TypeSymbol<'a>>,
-) -> Option<Vec<SymbolId>> {
-    let symbols: Vec<_> = symbols.into_iter().collect();
-    let owner = owners(&symbols);
-    if owner.get(&focus) != Some(&focus) {
-        return None;
+/// The type that owns every symbol of a snapshot that has one. It is built once from the symbols
+/// and answers for any number of types, so a caller that is asked often keeps it.
+#[derive(Debug, Clone, Default)]
+pub struct TypeOwners {
+    owner: HashMap<SymbolId, SymbolId>,
+}
+
+impl TypeOwners {
+    /// Assigns every symbol to its type, by the rule of the module.
+    #[must_use]
+    pub fn new<'a>(symbols: impl IntoIterator<Item = TypeSymbol<'a>>) -> Self {
+        let symbols: Vec<_> = symbols.into_iter().collect();
+        Self {
+            owner: owners(&symbols),
+        }
     }
-    let mut members: Vec<SymbolId> = owner
-        .iter()
-        .filter(|(_, owned_by)| **owned_by == focus)
-        .map(|(id, _)| *id)
-        .collect();
-    members.sort_unstable();
-    Some(members)
+
+    /// The symbols `focus` owns: itself and every member inside it. `None` if `focus` is not a
+    /// type. The references that touch these symbols are all that `neighbours` needs.
+    #[must_use]
+    pub fn members(&self, focus: SymbolId) -> Option<Vec<SymbolId>> {
+        if self.owner.get(&focus) != Some(&focus) {
+            return None;
+        }
+        let mut members: Vec<SymbolId> = self
+            .owner
+            .iter()
+            .filter(|(_, owned_by)| **owned_by == focus)
+            .map(|(id, _)| *id)
+            .collect();
+        members.sort_unstable();
+        Some(members)
+    }
+
+    /// The neighbours of `focus` from the references (from, to) that touch it. `None` if `focus`
+    /// is not a type.
+    #[must_use]
+    pub fn neighbours(
+        &self,
+        focus: SymbolId,
+        references: impl IntoIterator<Item = (SymbolId, SymbolId)>,
+    ) -> Option<TypeNeighbours> {
+        if self.owner.get(&focus) != Some(&focus) {
+            return None;
+        }
+        let mut users: BTreeMap<SymbolId, u32> = BTreeMap::new();
+        let mut used: BTreeMap<SymbolId, u32> = BTreeMap::new();
+        for (from, to) in references {
+            let (Some(&a), Some(&b)) = (self.owner.get(&from), self.owner.get(&to)) else {
+                continue;
+            };
+            if a == b {
+                continue;
+            }
+            if b == focus {
+                *users.entry(a).or_default() += 1;
+            } else if a == focus {
+                *used.entry(b).or_default() += 1;
+            }
+        }
+        Some(TypeNeighbours {
+            users: ranked(users),
+            used: ranked(used),
+        })
+    }
 }
 
 /// The neighbours of `focus`, from the symbols (id, kind, qualified name, parent) and the
@@ -115,30 +160,7 @@ pub fn type_neighbours<'a>(
     symbols: impl IntoIterator<Item = TypeSymbol<'a>>,
     references: impl IntoIterator<Item = (SymbolId, SymbolId)>,
 ) -> Option<TypeNeighbours> {
-    let symbols: Vec<_> = symbols.into_iter().collect();
-    let owner = owners(&symbols);
-    if owner.get(&focus) != Some(&focus) {
-        return None;
-    }
-    let mut users: BTreeMap<SymbolId, u32> = BTreeMap::new();
-    let mut used: BTreeMap<SymbolId, u32> = BTreeMap::new();
-    for (from, to) in references {
-        let (Some(&a), Some(&b)) = (owner.get(&from), owner.get(&to)) else {
-            continue;
-        };
-        if a == b {
-            continue;
-        }
-        if b == focus {
-            *users.entry(a).or_default() += 1;
-        } else if a == focus {
-            *used.entry(b).or_default() += 1;
-        }
-    }
-    Some(TypeNeighbours {
-        users: ranked(users),
-        used: ranked(used),
-    })
+    TypeOwners::new(symbols).neighbours(focus, references)
 }
 
 #[cfg(test)]
@@ -214,9 +236,10 @@ mod tests {
             (3, SymbolKind::Function, "shop.Basket.sum"),
         ];
         let qualified = qualified_names(&names);
-        let members = type_members(id(2), triples(&names, &qualified));
+        let owners = TypeOwners::new(triples(&names, &qualified));
+        let members = owners.members(id(2));
         assert_eq!(members, Some(vec![id(2), id(3)]));
-        assert_eq!(type_members(id(1), triples(&names, &qualified)), None);
+        assert_eq!(owners.members(id(1)), None);
     }
 
     #[test]

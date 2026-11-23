@@ -148,6 +148,18 @@ pub(crate) struct ReferenceFacts {
     pub(crate) overriding: HashSet<SymbolId>,
 }
 
+/// The kind, whether it is probable and whether level 2 verified it, of a row of
+/// `REFERENCE_TALLY_ROWS`, read without copying the text.
+fn tally_columns(row: &rusqlite::Row<'_>) -> StorageResult<(ReferenceKind, bool, bool)> {
+    const KIND: usize = 3;
+    let text = |column: usize| -> rusqlite::Result<&str> {
+        row.get_ref(column)?.as_str().map_err(rusqlite::Error::from)
+    };
+    let kind = label_from::<ReferenceKind>(text(KIND)?)?;
+    let probable = text(KIND + 1)? == Confidence::Probable.label();
+    Ok((kind, probable, row.get(KIND + 2)?))
+}
+
 /// Counts the references of a snapshot: those whose file and target it holds. References of kind
 /// `test` and of a symbol to itself are no usages; a reference is certain if its resolution is,
 /// or if level 2 verified it.
@@ -163,10 +175,7 @@ pub(crate) fn reference_facts(conn: &Connection, snapshot: i64) -> StorageResult
         if !files.contains(&file) || !symbols.contains(&to) {
             continue;
         }
-        let kind: String = cols.take()?;
-        let kind = label_from::<ReferenceKind>(&kind)?;
-        let confidence: String = cols.take()?;
-        let verified: bool = cols.take()?;
+        let (kind, probable, verified) = tally_columns(row)?;
         let (from, to) = (SymbolId::new(id_from(from)?), SymbolId::new(id_from(to)?));
         match kind {
             ReferenceKind::Test => {
@@ -174,8 +183,11 @@ pub(crate) fn reference_facts(conn: &Connection, snapshot: i64) -> StorageResult
             }
             _ if from == to => {}
             _ => {
-                let certain = verified || !label_from::<Confidence>(&confidence)?.is_probable();
-                facts.tallies.entry(to).or_default().count(certain);
+                facts
+                    .tallies
+                    .entry(to)
+                    .or_default()
+                    .count(verified || !probable);
             }
         }
         if kind == ReferenceKind::Override {
@@ -183,6 +195,32 @@ pub(crate) fn reference_facts(conn: &Connection, snapshot: i64) -> StorageResult
         }
     }
     Ok(facts)
+}
+
+/// The ends (start, target) of the references of a snapshot that are not of kind `test` and not
+/// probable, whose file and target the snapshot holds, one per reference. They are what the
+/// dependencies between namespaces count (issue #464).
+pub(crate) fn certain_ends(
+    conn: &Connection,
+    snapshot: i64,
+) -> StorageResult<Vec<(SymbolId, SymbolId)>> {
+    let files = id_set(conn, sql::FILE_IDS, snapshot)?;
+    let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
+    let mut prepared = conn.prepare_cached(sql::REFERENCE_ENDS_CERTAIN)?;
+    let mut rows = prepared.query(params![
+        snapshot,
+        ReferenceKind::Test.label(),
+        Confidence::Probable.label()
+    ])?;
+    let mut ends = Vec::new();
+    while let Some(row) = rows.next()? {
+        let cols = Cols::new(row);
+        let (file, from, to): (i64, i64, i64) = (cols.take()?, cols.take()?, cols.take()?);
+        if files.contains(&file) && symbols.contains(&to) {
+            ends.push((SymbolId::new(id_from(from)?), SymbolId::new(id_from(to)?)));
+        }
+    }
+    Ok(ends)
 }
 
 /// The files of a snapshot that hold a reference verified by level 2, in ascending order.

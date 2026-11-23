@@ -4,6 +4,8 @@
 //! references it needs through the indexes of the database, so the first answer comes as fast as
 //! the second and the memory stays what the answer needs.
 
+use std::sync::PoisonError;
+
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, SymbolLabel, TypeFocus,
@@ -20,7 +22,7 @@ use crate::codec::{Cols, column_int, label_from, small_from};
 use crate::consts::PRAGMA_DATA_VERSION;
 use crate::error::{StorageError, StorageResult};
 use crate::sql;
-use crate::store::{Build, SqliteStore};
+use crate::store::{Build, Kept, SqliteStore};
 
 impl SqliteStore {
     /// The `data_version` of the database: it changes when another connection commits, never for
@@ -117,37 +119,47 @@ fn dependency_edges(
 }
 
 impl SqliteStore {
+    /// What `build` makes of a snapshot, kept in `kept` as long as no write came in: a second
+    /// caller for the same build waits for the first and gets its result. The build reads on a
+    /// connection of its own.
+    fn built<T: Clone>(
+        &self,
+        (kept, what): (&Kept<T>, Build),
+        snapshot: SnapshotId,
+        build: impl FnOnce(&Connection, i64) -> StorageResult<T>,
+    ) -> StorageResult<T> {
+        let raw = column_int(snapshot.get())?;
+        let version = self.data_version()?;
+        if let Some(found) = kept.get(snapshot, version) {
+            return Ok(found);
+        }
+        let gate = self.build_gate(raw, what);
+        let _building = gate.lock().unwrap_or_else(PoisonError::into_inner);
+        if let Some(found) = kept.get(snapshot, version) {
+            return Ok(found);
+        }
+        let written = self.write_count();
+        let value = self.read_apart(|conn| build(conn, raw))?;
+        kept.put((snapshot, version), &value, || {
+            self.unwritten_since(written)
+        });
+        Ok(value)
+    }
+
     /// The namespaces of a snapshot and the references between them. A snapshot that is not
-    /// stored has none. The graph is kept for the snapshot, as long as no other connection has
-    /// committed; it is small, while reading it takes a pass over the references of a large
-    /// project, which runs on a connection of its own.
+    /// stored has none. The graph is kept for the snapshot; it is small, while reading it takes a
+    /// pass over the references of a large project.
     ///
     /// # Errors
     /// A coded `STO` failure.
     pub fn namespace_graph(&self, snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
-        self.kept_namespaces(snapshot).map_err(CodedError::from)
+        self.built((&self.graphs, Build::Graph), snapshot, answers::namespaces)
+            .map_err(CodedError::from)
     }
 
-    fn kept_namespaces(&self, snapshot: SnapshotId) -> StorageResult<NamespaceGraph> {
-        let raw = column_int(snapshot.get())?;
-        let version = self.data_version()?;
-        if let Some(found) = self.kept_graph(snapshot, version) {
-            return Ok(found);
-        }
-        let gate = self.build_gate(raw, Build::Graph);
-        let _building = gate
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if let Some(found) = self.kept_graph(snapshot, version) {
-            return Ok(found);
-        }
-        let written = self.write_count();
-        let built = self.read_apart(|conn| answers::namespaces(conn, raw))?;
-        self.keep_graph((snapshot, version, written), &built);
-        Ok(built)
-    }
-
-    /// The types around one type of a snapshot; `None` if the symbol is not a type of it.
+    /// The types around one type of a snapshot; `None` if the symbol is not a type of it. The
+    /// owning types of all symbols are built once per snapshot and kept; a click reads the
+    /// references that touch the members of the type.
     ///
     /// # Errors
     /// A coded `STO` failure.
@@ -157,8 +169,13 @@ impl SqliteStore {
         symbol: SymbolId,
     ) -> Result<Option<TypeFocus>, CodedError> {
         let raw = column_int(snapshot.get()).map_err(CodedError::from)?;
-        self.read_apart(|conn| answers::type_focus(conn, raw, symbol))
-            .map_err(CodedError::from)
+        self.built(
+            (&self.owners, Build::Owners),
+            snapshot,
+            answers::type_owners,
+        )
+        .and_then(|owners| self.read(|conn| answers::type_focus(conn, raw, &owners, symbol)))
+        .map_err(CodedError::from)
     }
 }
 
