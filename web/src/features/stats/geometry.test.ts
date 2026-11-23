@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { HISTOGRAM, HOTSPOTS, USAGE_BAR } from "./consts";
 import {
+  classBars,
   complexityTicks,
   histogramShapes,
   mostUsages,
@@ -59,10 +60,15 @@ describe("usage bars", () => {
 
 describe("histogramShapes", () => {
   it("keeps a single function visible next to thousands", () => {
-    const shapes = histogramShapes([
-      { complexity: 1, count: 3000 },
-      { complexity: 17, count: 1 },
-    ]);
+    const shapes = histogramShapes(
+      classBars(
+        [
+          { complexity: 1, count: 3000 },
+          { complexity: 17, count: 1 },
+        ],
+        10,
+      ).filter((bar) => bar.count > 0),
+    );
     const [many, one] = shapes;
     expect(shapes).toHaveLength(2);
     expect(one?.height).toBeGreaterThanOrEqual(HISTOGRAM.minBar);
@@ -73,6 +79,38 @@ describe("histogramShapes", () => {
 
   it("draws nothing without bars", () => {
     expect(histogramShapes([])).toEqual([]);
+  });
+});
+
+describe("classBars", () => {
+  it("groups hundreds of complexity values into a handful of classes", () => {
+    const many = Array.from({ length: 500 }, (_, index) => ({ complexity: index + 1, count: 2 }));
+    const classes = classBars(many, 10);
+    expect(classes.map((bar) => bar.label)).toEqual([
+      "1",
+      "2–4",
+      "5–9",
+      "10",
+      "11–19",
+      "20–49",
+      "50–99",
+      "100+",
+    ]);
+    expect(classes.reduce((sum, bar) => sum + bar.count, 0)).toBe(1000);
+    expect(classes.filter((bar) => bar.over).map((bar) => bar.label)).toEqual([
+      "11–19",
+      "20–49",
+      "50–99",
+      "100+",
+    ]);
+  });
+
+  it("counts a value below 1 in the first class", () => {
+    expect(classBars([{ complexity: 0, count: 4 }], 10)[0]?.count).toBe(4);
+  });
+
+  it("starts a class at the limit of the project", () => {
+    expect(classBars([], 25).find((bar) => bar.from === 26)?.over).toBe(true);
   });
 });
 
@@ -96,17 +134,25 @@ describe("hotspots", () => {
     expect(simple?.y).toBeCloseTo(HOTSPOTS.height - HOTSPOTS.bottom);
   });
 
+  it("keeps one huge function from pushing the others to the edge", () => {
+    const huge = [
+      row({ id: 1, complexity: 3001, certain: 0, total: 1 }),
+      row({ id: 2, complexity: 30, certain: 0, total: 1 }),
+    ];
+    const [, middle] = spots(huge, spotScale(huge));
+    const share =
+      ((middle?.x ?? 0) - HOTSPOTS.left) / (HOTSPOTS.width - HOTSPOTS.left - HOTSPOTS.right);
+    expect(share).toBeGreaterThan(0.4);
+  });
+
   it("keeps a least size of the scales for few rows", () => {
     const scale = spotScale([]);
     expect(scale.maxX).toBe(HOTSPOTS.minMaxX);
     expect(scale.maxY).toBe(HOTSPOTS.minMaxY);
   });
 
-  it("steps the usages by powers of ten and the complexity evenly", () => {
+  it("steps both axes by powers of ten", () => {
     expect(usageTicks(500)).toEqual([0, 1, 10, 100]);
-    const ticks = complexityTicks(20);
-    expect(ticks[0]).toBe(0);
-    expect(ticks.at(-1)).toBeLessThanOrEqual(20);
-    expect(ticks.length).toBeLessThanOrEqual(HOTSPOTS.ticksX + 1);
+    expect(complexityTicks(3001)).toEqual([1, 10, 100, 1000]);
   });
 });
