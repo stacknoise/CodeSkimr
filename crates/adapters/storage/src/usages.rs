@@ -28,7 +28,7 @@ impl SqliteStore {
     /// The `data_version` of the database: it changes when another connection commits, never for
     /// the commits of this one.
     pub(crate) fn data_version(&self) -> StorageResult<i64> {
-        self.read(data_version)
+        self.read_latest(data_version)
     }
 
     fn usage_page(

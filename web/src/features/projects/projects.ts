@@ -5,6 +5,7 @@ import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { navigate } from "../../app/router";
 import { SCAN_ROUTE } from "../../app/consts";
 import { closeProject, openProject } from "../../shared/project/active";
+import { pollUnanswered } from "../../shared/api/poll";
 import { COMMAND, POLL_MS } from "./consts";
 import { forgetLevel2 } from "./level2";
 import { keepRunningOnly, noteLevel2Start, resetLevel2Runs } from "./level2run";
@@ -77,11 +78,11 @@ export async function refreshProjects(): Promise<void> {
 /** Runs `work` and reads the list every `POLL_MS` until it is done, so that the progress of a
  * long scan shows up. */
 async function whileReading<T>(work: () => Promise<T>): Promise<T> {
-  const timer = setInterval(() => void refreshProjects(), POLL_MS);
+  const stop = pollUnanswered(refreshProjects, POLL_MS);
   try {
     return await work();
   } finally {
-    clearInterval(timer);
+    stop();
   }
 }
 

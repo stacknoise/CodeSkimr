@@ -5,7 +5,7 @@ use std::fs;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError, TryLockError};
 use std::time::Duration;
 
 use codeskimr_application::error::CodedError;
@@ -281,8 +281,25 @@ impl SqliteStore {
         self.conn.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
-    /// Runs `work` on the connection without a transaction.
+    /// Runs a read. It never waits for a write: while the shared connection is taken (a scan
+    /// stores its snapshot through it for as long as that takes) the read runs on a read-only
+    /// connection of its own and sees the state before that write. A read whose answer the next
+    /// write is built on must not do that; it uses [`Self::read_latest`].
     pub(crate) fn read<T>(
+        &self,
+        work: impl FnOnce(&Connection) -> StorageResult<T>,
+    ) -> StorageResult<T> {
+        match self.conn.try_lock() {
+            Ok(conn) => work(&conn),
+            Err(TryLockError::Poisoned(conn)) => work(&conn.into_inner()),
+            Err(TryLockError::WouldBlock) => self.read_apart(work),
+        }
+    }
+
+    /// Runs `work` on the shared connection without a transaction, after the write that holds it:
+    /// for the reads that a write is built on (the next free id, the files of the last scan) and
+    /// for what only that connection knows (its `data_version`).
+    pub(crate) fn read_latest<T>(
         &self,
         work: impl FnOnce(&Connection) -> StorageResult<T>,
     ) -> StorageResult<T> {
@@ -300,7 +317,7 @@ impl SqliteStore {
         work: impl FnOnce(&Connection) -> StorageResult<T>,
     ) -> StorageResult<T> {
         let Some(file) = self.file.as_deref() else {
-            return self.read(work);
+            return self.read_latest(work);
         };
         let idle = self
             .readers
@@ -324,7 +341,7 @@ impl SqliteStore {
             }
             Err(cause) => {
                 tracing::warn!(event = LOG_READ_CONNECTION_UNAVAILABLE, %cause);
-                self.read(work)
+                self.read_latest(work)
             }
         }
     }
@@ -355,7 +372,7 @@ impl SqliteStore {
     /// # Errors
     /// `STO-601` if the database cannot be read.
     pub fn next_free_id(&self) -> Result<u64, CodedError> {
-        self.read(|conn| {
+        self.read_latest(|conn| {
             let highest: Option<i64> = conn.query_row(sql::MAX_ID, [], |row| row.get(0))?;
             highest.map_or(Ok(FIRST_ID), |id| {
                 Ok(codec::id_from(id)?.saturating_add(ID_STEP))
@@ -498,6 +515,28 @@ mod tests {
             .unwrap();
         assert_eq!(store.read_apart(probe_count).unwrap(), 1);
         assert_eq!(store.readers.lock().unwrap().len(), 1);
+        std::fs::remove_dir_all(folder).unwrap();
+    }
+
+    /// A scan stores its snapshot in one long write. A read in that time (the project list that
+    /// the browser asks for every moment) answers at once, with the state before the write.
+    #[test]
+    fn a_read_does_not_wait_for_a_write() {
+        use codeskimr_application::ports::ProjectCatalog;
+
+        let (store, folder) = file_store("during");
+        store
+            .write(|tx| Ok(tx.execute_batch("CREATE TABLE probe (x);")?))
+            .unwrap();
+        let during = store
+            .write(|tx| {
+                tx.execute("INSERT INTO probe VALUES (1)", [])?;
+                assert!(store.overviews().unwrap().is_empty());
+                store.read(probe_count)
+            })
+            .unwrap();
+        assert_eq!(during, 0);
+        assert_eq!(store.read(probe_count).unwrap(), 1);
         std::fs::remove_dir_all(folder).unwrap();
     }
 

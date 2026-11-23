@@ -375,17 +375,17 @@ impl ProjectRepository for SqliteStore {
     }
 
     fn latest_files(&self, id: ProjectId) -> Result<Vec<SourceFile>, CodedError> {
-        self.read(|conn| load_latest_files(conn, id))
+        self.read_latest(|conn| load_latest_files(conn, id))
             .map_err(CodedError::from)
     }
 
     fn latest_index(&self, id: ProjectId) -> Result<PreviousIndex, CodedError> {
-        self.read(|conn| load_latest_index(conn, id))
+        self.read_latest(|conn| load_latest_index(conn, id))
             .map_err(CodedError::from)
     }
 
     fn latest_state(&self, id: ProjectId) -> Result<PreviousState, CodedError> {
-        self.read(|conn| {
+        self.read_latest(|conn| {
             // One read transaction, so a snapshot written in between cannot split the parts.
             let tx = conn.unchecked_transaction()?;
             load_latest_state(&tx, id)
@@ -407,7 +407,7 @@ impl ProjectRepository for SqliteStore {
             StoredNames::OfFiles(files) => pending::Which::OfFiles(files),
             StoredNames::All => pending::Which::All,
         };
-        self.read(|conn| pending::load(conn, column_int(snapshot.get())?, &which))
+        self.read_latest(|conn| pending::load(conn, column_int(snapshot.get())?, &which))
             .map_err(CodedError::from)
     }
 
@@ -422,12 +422,12 @@ impl ProjectRepository for SqliteStore {
             StoredReferences::In(files) => references::Which::In(files),
             StoredReferences::All => references::Which::All,
         };
-        self.read(|conn| references::load(conn, column_int(snapshot.get())?, &which))
+        self.read_latest(|conn| references::load(conn, column_int(snapshot.get())?, &which))
             .map_err(CodedError::from)
     }
 
     fn verified_files(&self, snapshot: SnapshotId) -> Result<Vec<FileId>, CodedError> {
-        self.read(|conn| references::verified_files(conn, column_int(snapshot.get())?))
+        self.read_latest(|conn| references::verified_files(conn, column_int(snapshot.get())?))
             .map_err(CodedError::from)
     }
 
@@ -437,14 +437,14 @@ impl ProjectRepository for SqliteStore {
         files: &[FileId],
         without: &[SymbolId],
     ) -> Result<Vec<SymbolPair>, CodedError> {
-        self.read(|conn| {
+        self.read_latest(|conn| {
             references::reference_pairs(conn, column_int(snapshot.get())?, files, without)
         })
         .map_err(CodedError::from)
     }
 
     fn latest_naming_rules(&self, id: ProjectId) -> Result<Option<String>, CodedError> {
-        self.read(|conn| {
+        self.read_latest(|conn| {
             conn.query_row(
                 sql::SNAPSHOT_NAMING_LATEST,
                 params![column_int(id.get())?],
