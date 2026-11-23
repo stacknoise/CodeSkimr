@@ -6,6 +6,9 @@ import type { IconName } from "../shared/ui/Icon";
 /** Id of the element the UI is drawn into. */
 export const ROOT_ID = "root";
 
+/** Id of the loading page in `index.html`; the app removes it as soon as it starts. */
+export const BOOT_ID = "boot";
+
 /** The screens of the rail, top to bottom; the settings sit at the bottom (mock 13). */
 export interface Route {
   path: string;
