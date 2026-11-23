@@ -13,7 +13,8 @@ use codeskimr_application::level2::{LanguageReport, Level2Outcome, Skipped};
 use codeskimr_application::pipeline::Level2Run;
 use codeskimr_application::pipeline::{Job, JobResult, Queued, Scanner};
 use codeskimr_application::ports::{
-    FileAnalyzer, LanguageOutcome, PathsReport, ProjectRepository, ProjectToolCheck, ScanWarning,
+    CodeStatistics, FileAnalyzer, LanguageOutcome, PathsReport, ProjectRepository,
+    ProjectToolCheck, ScanWarning, StatisticsSetup,
 };
 use codeskimr_application::tools::ToolsView;
 use codeskimr_cli::{
@@ -27,7 +28,9 @@ use codeskimr_domain::{
 use codeskimr_storage::SqliteStore;
 
 use crate::config_files;
-use crate::consts::{LEVEL2_THREAD_NAME, LOG_TOOL_CHECK_FAILED};
+use crate::consts::{
+    LEVEL2_THREAD_NAME, LOG_STATISTICS_FAILED, LOG_TOOL_CHECK_FAILED, STATISTICS_THREAD_NAME,
+};
 use crate::cpu_time::{process_cpu_time, seconds_since};
 use crate::level2_runs::{Level2Runs, RunLimits, RunSlot};
 use crate::locations::Locations;
@@ -56,6 +59,7 @@ pub struct Session {
     scanner: Scanner,
     analyzer: Arc<dyn FileAnalyzer>,
     tools: Arc<dyn ProjectToolCheck>,
+    statistics: Arc<dyn CodeStatistics>,
     principal: Principal,
     project: Project,
     config: Config,
@@ -157,6 +161,31 @@ impl Session {
         self.run_job(job)
     }
 
+    /// Counts the numbers of the statistics screen for `snapshot` in a thread of their own, so
+    /// that they are there when the screen opens (ADR 0091). The scan does not wait for them; a
+    /// question that comes earlier waits for the same count. A failure is logged: the question
+    /// then counts them itself and reports the failure.
+    fn count_statistics(&self, snapshot: &Snapshot) {
+        let statistics = Arc::clone(&self.statistics);
+        let names = self.config.conventions.test_folders.clone();
+        let approximate = self.config.ui.approximate_languages.clone();
+        let id = snapshot.id;
+        let spawned = std::thread::Builder::new()
+            .name(STATISTICS_THREAD_NAME.to_owned())
+            .spawn(move || {
+                let setup = StatisticsSetup {
+                    test_names: &names,
+                    approximate: &approximate,
+                };
+                if let Err(error) = statistics.prepare(id, setup) {
+                    tracing::warn!(event = LOG_STATISTICS_FAILED, code = error.code().id());
+                }
+            });
+        if spawned.is_err() {
+            tracing::warn!(event = LOG_STATISTICS_FAILED);
+        }
+    }
+
     fn run_job(&self, job: Job<Queued>) -> Result<ScanSummary, CodedError> {
         self.run_ran(job).map(|ran| ran.summary)
     }
@@ -177,6 +206,7 @@ impl Session {
         let cancel = job.cancel_token();
         (run.on_token)(cancel.clone());
         let ran = self.run_ran(job)?;
+        self.count_statistics(&ran.snapshot);
         let level2 = if run.level2 {
             self.start_level2(
                 Level2Handoff {
@@ -262,6 +292,8 @@ impl Session {
                     cancel: &handoff.cancel,
                     origin: ScanOrigin::Browser,
                 });
+                // Level 2 replaced references, so the numbers are counted again (ADR 0091).
+                worker.count_statistics(&handoff.snapshot);
             });
         if spawned.is_ok() {
             return Level2Start::Started;
@@ -532,6 +564,7 @@ fn session(
         scanner,
         analyzer: analysis.analyzer,
         tools,
+        statistics: store.clone(),
         principal,
         project,
         config,

@@ -4,8 +4,7 @@
 mod common;
 
 use codeskimr_application::ports::{
-    CodeStatistics, Level2Replacement, ProjectRepository, SnapshotData, SnapshotStore, SymbolKey,
-    UsageIndex,
+    Level2Replacement, ProjectRepository, SnapshotData, SnapshotStore, SymbolKey, UsageIndex,
 };
 use codeskimr_domain::{
     Direction, FileId, MetricKind, Position, Reference, ScanMode, SnapshotId, Span, Symbol,
@@ -452,26 +451,42 @@ fn a_level_one_reference_that_starts_before_the_verified_one_is_answered_by_it()
 }
 
 #[test]
-fn a_replacement_drops_the_shared_facts_and_the_new_ones_count_the_new_usages() {
+fn a_replacement_counts_the_statistics_again_with_the_new_usages() {
+    use codeskimr_application::ports::{CodeStatistics, RankingRequest, StatisticsSetup};
+    use codeskimr_domain::{KindGroup, Ranking, RankingQuery, UsageOrder};
     let store = registered();
     let none: Vec<String> = Vec::new();
     let snapshot = SnapshotId::new(SNAPSHOT);
-    let usage_of = |facts: &[codeskimr_domain::SymbolFacts], id: u64| {
-        facts
+    let query = RankingQuery {
+        ranking: Ranking::MostUsed,
+        kinds: KindGroup::All,
+        language: None,
+        include_tests: true,
+        order: UsageOrder::All,
+    };
+    let usage_of = |id: u64| {
+        store
+            .ranked(&RankingRequest {
+                snapshot,
+                query: &query,
+                assessment: None,
+                limit: 100,
+                setup: StatisticsSetup {
+                    test_names: &none,
+                    approximate: &none,
+                },
+            })
+            .unwrap()
+            .rows
             .iter()
             .find(|fact| fact.id.get() == id)
-            .unwrap()
-            .usage
-            .total
+            .map_or(0, |fact| fact.usage.total)
     };
-    let before = store.shared_facts(snapshot, &none).unwrap();
-    assert_eq!((usage_of(&before, 83), usage_of(&before, 84)), (1, 0));
+    assert_eq!((usage_of(83), usage_of(84)), (1, 0));
     store
         .replace_level2(replacement(&[71], vec![verified(900, 71, 82, 84)]))
         .unwrap();
-    let after = store.shared_facts(snapshot, &none).unwrap();
-    assert!(!std::sync::Arc::ptr_eq(&before, &after));
-    assert_eq!((usage_of(&after, 83), usage_of(&after, 84)), (0, 1));
+    assert_eq!((usage_of(83), usage_of(84)), (0, 1));
 }
 
 #[test]

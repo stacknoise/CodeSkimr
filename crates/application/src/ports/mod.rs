@@ -69,7 +69,9 @@ pub use source::{
     DiscoveredFile, Excerpt, FetchedSource, FileDiscovery, SourceProvider, SourceText,
 };
 pub use states::{SameName, SymbolState, SymbolStates};
-pub use statistics::CodeStatistics;
+pub use statistics::{
+    CodeStatistics, RankedRows, RankingRequest, StatisticsSetup, StatisticsSummary, UnusedCounts,
+};
 pub use storage::{
     Level2Replacement, PreviousIndex, PreviousState, ProjectRemoval, ProjectRepository,
     ScanWarning, SnapshotData, SnapshotStore, StoredNames, StoredReferences,

@@ -1,6 +1,7 @@
 //! What the benchmarks of the store share: a stored snapshot with the size of a 100k-line project.
 
 use std::num::NonZeroU32;
+use std::process::ExitCode;
 
 use codeskimr_application::ports::{PendingReference, SnapshotData, SnapshotStore, SymbolHash};
 use codeskimr_domain::{
@@ -99,12 +100,13 @@ pub fn data(snapshot: u64, first_file: u64, content: Content) -> SnapshotData {
     }
 }
 
-/// A store that holds one snapshot with `symbols`, their content `hashes` and `references` in
-/// `FILES` files.
+/// A store that holds one snapshot with `symbols`, their content `hashes`, `references` and
+/// measured values in `FILES` files.
 pub fn store(
     symbols: Vec<Symbol>,
     references: Vec<Reference>,
     hashes: Vec<SymbolHash>,
+    metrics: Vec<codeskimr_domain::Metric>,
 ) -> Option<SqliteStore> {
     let content = Content {
         symbols,
@@ -114,6 +116,19 @@ pub fn store(
     };
     let store = SqliteStore::open_in_memory(NonZeroU32::MIN).ok()?;
     store.save_project(&project()?).ok()?;
-    store.persist(data(SNAPSHOT, 1, content)).ok()?;
+    let mut scan = data(SNAPSHOT, 1, content);
+    scan.metrics = metrics;
+    store.persist(scan).ok()?;
     Some(store)
+}
+
+/// Runs the queries of a benchmark with the command line of criterion and reports a failure of
+/// the set-up as the exit code.
+pub fn run(queries: impl FnOnce(&mut criterion::Criterion) -> Option<()>) -> ExitCode {
+    let mut criterion = criterion::Criterion::default().configure_from_args();
+    if queries(&mut criterion).is_none() {
+        return ExitCode::FAILURE;
+    }
+    criterion.final_summary();
+    ExitCode::SUCCESS
 }

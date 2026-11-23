@@ -24,6 +24,7 @@ mod pending;
 mod previous;
 mod projects;
 mod queries;
+mod ranking_rows;
 mod read_models;
 mod references;
 mod removal;
@@ -36,6 +37,7 @@ mod sql;
 mod states;
 mod statistics;
 mod store;
+mod symbol_statistics;
 mod tools;
 mod usages;
 

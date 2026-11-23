@@ -27,6 +27,16 @@ const [selected, setSelected] = createSignal<number | null>(null);
 const [failed, setFailed] = createSignal(false);
 /** Counts the loads, so that a slow answer for a view that is no longer shown is dropped. */
 let latest = 0;
+/** Stops the requests of the load before when a newer one starts, so that they do not hold one of
+ * the few connections of the browser while the server counts for a view nobody looks at. */
+let pending: AbortController | null = null;
+
+/** Stops the requests of the load before and returns the signal for the next load. */
+function supersede(): AbortSignal {
+  pending?.abort();
+  pending = new AbortController();
+  return pending.signal;
+}
 
 /** The view that is shown. */
 export const statsTab = tab;
@@ -90,18 +100,27 @@ function rankingInput(project: number, name: RankingName) {
   };
 }
 
-async function fetchOverview(project: number, mine: number): Promise<void> {
-  const answer = await runCommand<Overview>(COMMAND.overview, {
-    project,
-    include_tests: tests(),
-  });
+async function fetchOverview(project: number, mine: number, signal: AbortSignal): Promise<void> {
+  const answer = await runCommand<Overview>(
+    COMMAND.overview,
+    { project, include_tests: tests() },
+    signal,
+  );
   if (mine === latest) {
     setOverview(answer);
   }
 }
 
-async function fetchRanking(project: number, view: RankingName, mine: number): Promise<void> {
-  const answer = await runCommand<RankingAnswer>(COMMAND.ranking, rankingInput(project, view));
+async function fetchRanking(
+  project: number,
+  view: RankingName,
+  [mine, signal]: [number, AbortSignal],
+): Promise<void> {
+  const answer = await runCommand<RankingAnswer>(
+    COMMAND.ranking,
+    rankingInput(project, view),
+    signal,
+  );
   if (mine === latest) {
     const first = answer.rows[0]?.id ?? null;
     setRanking(answer);
@@ -111,17 +130,19 @@ async function fetchRanking(project: number, view: RankingName, mine: number): P
 
 /** The overview feeds the cards, the counter of the tab and the histogram, so every view loads it
  * next to its own ranking. */
-async function fetchView(project: number, view: Tab, mine: number): Promise<void> {
-  const ranked = view === TAB.overview ? Promise.resolve() : fetchRanking(project, view, mine);
-  await Promise.all([fetchOverview(project, mine), ranked]);
+async function fetchView(project: number, view: Tab, load: [number, AbortSignal]): Promise<void> {
+  const [mine, signal] = load;
+  const ranked = view === TAB.overview ? Promise.resolve() : fetchRanking(project, view, load);
+  await Promise.all([fetchOverview(project, mine, signal), ranked]);
 }
 
 /** Loads the view that is shown for a project. A failure is kept for the screen. Only the answers
  * of the newest load are kept, so a slow answer for an older filter, tab or project is dropped. */
 export async function loadStats(project: number): Promise<void> {
   const mine = ++latest;
+  const signal = supersede();
   try {
-    await fetchView(project, tab(), mine);
+    await fetchView(project, tab(), [mine, signal]);
     if (mine === latest) {
       setFailed(false);
     }
@@ -176,6 +197,8 @@ export function enterProject(project: number): void {
 /** Forgets everything; for tests and when the project changes. */
 export function resetStats(): void {
   latest += 1;
+  pending?.abort();
+  pending = null;
   shown = null;
   setTab(TAB.overview);
   setTests(false);

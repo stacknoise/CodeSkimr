@@ -69,10 +69,6 @@ pub struct SqliteStore {
     /// One lock per snapshot and kind of build: a second caller for the same build waits for the
     /// first and finds its result; callers for other snapshots do not wait.
     pub(crate) builds: Mutex<HashMap<(i64, Build), BuildGate>>,
-    /// The facts of the symbols for the statistics of the snapshots that were asked about last,
-    /// newest first, at most `KEPT_BUILDS`; each is marked with the test folders it was built for
-    /// and the `data_version` it was built at. A write through this store drops them.
-    pub(crate) facts: Mutex<Vec<KeptFacts>>,
     /// The references read by the last walks of usages and impact, so that the reads of one
     /// question to the screen (the walk, the direct usages, the impact) read them once. A walk
     /// is served from one of these if it asks for the same symbol and direction, no more steps
@@ -107,18 +103,9 @@ pub(crate) enum Build {
     Graph,
     /// The owning types of the symbols.
     Owners,
-    /// The facts for the statistics.
+    /// The numbers of the statistics.
     Facts,
 }
-
-/// What [`SqliteStore`] keeps for the statistics: the snapshot, the `data_version` the facts were
-/// built at, the names of the test folders, and the facts.
-pub(crate) type KeptFacts = (
-    SnapshotId,
-    i64,
-    Vec<String>,
-    Arc<Vec<codeskimr_domain::SymbolFacts>>,
-);
 
 /// What [`SqliteStore`] keeps of a walk: the snapshot, the `data_version` it was read at, the
 /// question it was read for, and the references it touched.
@@ -248,7 +235,6 @@ impl SqliteStore {
             graphs: Kept::new(),
             owners: Kept::new(),
             builds: Mutex::new(HashMap::new()),
-            facts: Mutex::new(Vec::new()),
             walks: Mutex::new(Vec::new()),
             writes: AtomicU64::new(0),
             readers: Mutex::new(Vec::new()),
@@ -281,10 +267,6 @@ impl SqliteStore {
         self.graphs.clear();
         self.owners.clear();
         self.walks
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .clear();
-        self.facts
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .clear();

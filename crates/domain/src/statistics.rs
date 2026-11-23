@@ -92,6 +92,16 @@ pub struct SymbolFacts {
     pub measures: Measures,
 }
 
+impl SymbolFacts {
+    /// Whether the symbol is used without a direct reference to it: a constructor runs when its
+    /// type is built, an overriding member when the overridden one is called. Only direct usages
+    /// are counted, so "no usage found" would be wrong for both.
+    #[must_use]
+    pub const fn is_indirect(&self) -> bool {
+        self.overrides || matches!(self.kind, SymbolKind::Constructor)
+    }
+}
+
 labeled_enum!(
     /// What a ranking sorts by.
     Ranking {
@@ -264,13 +274,6 @@ fn value_of(fact: &SymbolFacts, ranking: Ranking) -> Option<f64> {
     }
 }
 
-/// Whether the symbol is used without a direct reference to it: a constructor runs when its type
-/// is built, an overriding member when the overridden one is called. Only direct usages are
-/// counted, so "no usage found" would be wrong for both.
-fn reached_indirectly(fact: &SymbolFacts) -> bool {
-    fact.overrides || matches!(fact.kind, SymbolKind::Constructor)
-}
-
 fn belongs(fact: &SymbolFacts, query: &RankingQuery) -> bool {
     let wanted = query.kinds.holds(fact.kind)
         && (query.include_tests || !fact.test)
@@ -281,7 +284,7 @@ fn belongs(fact: &SymbolFacts, query: &RankingQuery) -> bool {
     wanted
         && match query.ranking {
             Ranking::MostUsed => fact.usage.total > 0,
-            Ranking::Unused => fact.usage.total == 0 && !reached_indirectly(fact),
+            Ranking::Unused => fact.usage.total == 0 && !fact.is_indirect(),
             Ranking::Complexity => fact.kind.is_callable() && fact.measures.complexity.is_some(),
             Ranking::Size | Ranking::Coupling => value_of(fact, query.ranking).is_some(),
         }
@@ -331,14 +334,23 @@ pub fn rank<'a>(facts: &'a [SymbolFacts], query: &RankingQuery, limit: usize) ->
 /// only with `include_tests`.
 #[must_use]
 pub fn complexity_histogram(facts: &[SymbolFacts], include_tests: bool) -> Vec<(u32, u32)> {
+    complexity_bars(
+        facts
+            .iter()
+            .filter(|fact| fact.kind.is_callable() && (include_tests || !fact.test))
+            .filter_map(|fact| fact.measures.complexity.map(|value| (value, 1))),
+    )
+}
+
+/// The bars of the complexity histogram from `(complexity, how many callables)` pairs, by rising
+/// complexity: values that round to the same whole number share a bar.
+#[must_use]
+pub fn complexity_bars(counted: impl IntoIterator<Item = (f64, u32)>) -> Vec<(u32, u32)> {
     let mut counts: BTreeMap<u32, u32> = BTreeMap::new();
-    for fact in facts {
-        if !fact.kind.is_callable() || (fact.test && !include_tests) {
-            continue;
-        }
-        if let Some(step) = fact.measures.complexity.and_then(whole) {
+    for (value, callables) in counted {
+        if let Some(step) = whole(value) {
             let count = counts.entry(step).or_default();
-            *count = count.saturating_add(1);
+            *count = count.saturating_add(callables);
         }
     }
     counts.into_iter().collect()

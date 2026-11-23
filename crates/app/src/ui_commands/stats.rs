@@ -11,11 +11,14 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::config::MetricThresholds;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{CodeIndex, CodeStatistics, ProjectRepository};
+use codeskimr_application::ports::{
+    CodeIndex, CodeStatistics, ProjectRepository, RankedRows, RankingRequest, StatisticsSetup,
+    UnusedCounts,
+};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_domain::{
     Assessment, KindGroup, LanguageId, Permission, ProjectId, Ranking, RankingQuery, Snapshot,
-    SymbolFacts, SymbolId, UsageOrder, UsageTally, Visibility, complexity_histogram, rank,
+    SymbolFacts, SymbolId, UsageOrder, Visibility,
 };
 use serde::{Deserialize, Serialize};
 
@@ -299,25 +302,39 @@ fn count(value: usize) -> u32 {
     u32::try_from(value).unwrap_or(u32::MAX)
 }
 
-/// The newest snapshot of a project with the shared facts of its symbols.
-type SnapshotFacts = (Snapshot, Arc<Vec<SymbolFacts>>);
-
 impl StatsPorts {
-    /// The newest snapshot of the project and the facts of its symbols, with test code marked;
-    /// `None` before the first scan. The facts are shared by all views and loaded once.
+    /// The newest snapshot of the project; `None` before the first scan.
     ///
     /// # Errors
     /// `PRJ-201` for an unknown project, a coded `STO` failure.
-    fn facts(&self, project: u64) -> Result<Option<SnapshotFacts>, CodedError> {
+    fn latest(&self, project: u64) -> Result<Option<Snapshot>, CodedError> {
         let id = ProjectId::new(project);
         self.projects.project(id)?;
-        let Some(snapshot) = self.index.latest_snapshot(id)? else {
-            return Ok(None);
-        };
-        let facts = self
-            .statistics
-            .shared_facts(snapshot.id, &self.test_names)?;
-        Ok(Some((snapshot, facts)))
+        self.index.latest_snapshot(id)
+    }
+
+    fn setup(&self) -> StatisticsSetup<'_> {
+        StatisticsSetup {
+            test_names: &self.test_names,
+            approximate: &self.approximate,
+        }
+    }
+
+    /// The first rows of a ranking of the snapshot, and how many rows it holds.
+    fn ranked(
+        &self,
+        snapshot: &Snapshot,
+        query: &RankingQuery,
+        assessment: Option<Assessment>,
+        limit: usize,
+    ) -> Result<RankedRows, CodedError> {
+        self.statistics.ranked(&RankingRequest {
+            snapshot: snapshot.id,
+            query,
+            assessment,
+            limit,
+            setup: self.setup(),
+        })
     }
 
     fn assess(&self, fact: &SymbolFacts) -> Assessment {
@@ -351,44 +368,17 @@ impl StatsPorts {
         }
     }
 
-    fn rows(&self, facts: &[&SymbolFacts]) -> Vec<RowOut> {
+    fn rows(&self, facts: &[SymbolFacts]) -> Vec<RowOut> {
         facts.iter().map(|fact| self.row(fact)).collect()
     }
+}
 
-    /// The symbols without usages per assessment. `shown` are the rows the ranking holds,
-    /// `with_tests` the same ranking with test code.
-    fn unused_out(&self, shown: &[&SymbolFacts], with_tests: usize) -> UnusedOut {
-        let of = |wanted: Assessment| {
-            count(
-                shown
-                    .iter()
-                    .filter(|fact| self.assess(fact) == wanted)
-                    .count(),
-            )
-        };
-        UnusedOut {
-            likely: of(Assessment::Likely),
-            public: of(Assessment::Public),
-            approximate: of(Assessment::Approximate),
-            tests_hidden: count(with_tests.saturating_sub(shown.len())),
-        }
-    }
-
-    /// The rows without usages, the very likely unused ones first, and their counts.
-    fn unused<'a>(
-        &self,
-        facts: &'a [SymbolFacts],
-        query: &RankingQuery,
-    ) -> (Vec<&'a SymbolFacts>, UnusedOut) {
-        let mut rows = rank(facts, query, usize::MAX).rows;
-        rows.sort_by_key(|fact| self.assess(fact));
-        let with_tests = RankingQuery {
-            include_tests: true,
-            ..query.clone()
-        };
-        let all = rank(facts, &with_tests, usize::MAX).total;
-        let counts = self.unused_out(&rows, all);
-        (rows, counts)
+fn unused_out(counts: UnusedCounts) -> UnusedOut {
+    UnusedOut {
+        likely: counts.likely,
+        public: counts.public,
+        approximate: counts.approximate,
+        tests_hidden: counts.tests_hidden,
     }
 }
 
@@ -421,22 +411,26 @@ pub struct StatsRanking {
 impl StatsRanking {
     fn unused_ranking(
         &self,
-        facts: &[SymbolFacts],
+        snapshot: &Snapshot,
         query: &RankingQuery,
         input: &RankingInput,
-    ) -> RankingOut {
-        let (mut rows, counts) = self.ports.unused(facts, query);
-        if let Some(wanted) = input.assessment.map(Assessment::from) {
-            rows.retain(|fact| self.ports.assess(fact) == wanted);
-        }
-        let total = count(rows.len());
-        rows.truncate(limit_of(input));
-        RankingOut {
+    ) -> Result<RankingOut, CodedError> {
+        let ports = &self.ports;
+        let counts = ports
+            .statistics
+            .unused_counts(snapshot.id, query, ports.setup())?;
+        let ranked = ports.ranked(
+            snapshot,
+            query,
+            input.assessment.map(Assessment::from),
+            limit_of(input),
+        )?;
+        Ok(RankingOut {
             snapshot: None,
-            rows: self.ports.rows(&rows),
-            total,
-            unused: Some(counts),
-        }
+            rows: ports.rows(&ranked.rows),
+            total: count(ranked.total),
+            unused: Some(unused_out(counts)),
+        })
     }
 }
 
@@ -457,13 +451,15 @@ impl Command for StatsRanking {
         access::require(request.principal, Permission::Read)?;
         let input = request.input;
         let query = query_of(&input)?;
-        let Some((snapshot, facts)) = self.ports.facts(input.project)? else {
+        let Some(snapshot) = self.ports.latest(input.project)? else {
             return Ok(RankingOut::default());
         };
         let mut out = if query.ranking == Ranking::Unused {
-            self.unused_ranking(&facts, &query, &input)
+            self.unused_ranking(&snapshot, &query, &input)?
         } else {
-            let ranked = rank(&facts, &query, limit_of(&input));
+            let ranked = self
+                .ports
+                .ranked(&snapshot, &query, None, limit_of(&input))?;
             RankingOut {
                 snapshot: None,
                 rows: self.ports.rows(&ranked.rows),
@@ -481,19 +477,10 @@ pub struct StatsOverview {
     pub(super) ports: Arc<StatsPorts>,
 }
 
-fn references_out(facts: &[SymbolFacts]) -> ReferencesOut {
-    let sum =
-        |part: fn(UsageTally) -> u32| facts.iter().map(|fact| u64::from(part(fact.usage))).sum();
-    ReferencesOut {
-        certain: sum(|tally| tally.certain),
-        probable: sum(UsageTally::probable),
-    }
-}
-
 impl StatsOverview {
-    fn complexity_out(&self, facts: &[SymbolFacts], include_tests: bool) -> ComplexityOut {
+    fn complexity_out(&self, histogram: Vec<(u32, u32)>) -> ComplexityOut {
         let limit = self.ports.thresholds.cyclomatic_medium_max;
-        let histogram: Vec<BarOut> = complexity_histogram(facts, include_tests)
+        let histogram: Vec<BarOut> = histogram
             .into_iter()
             .map(|(complexity, count)| BarOut { complexity, count })
             .collect();
@@ -508,19 +495,19 @@ impl StatsOverview {
         }
     }
 
-    fn top_out(&self, facts: &[SymbolFacts], unused: &[&SymbolFacts], tests: bool) -> TopOut {
+    fn top_out(&self, snapshot: &Snapshot, tests: bool) -> Result<TopOut, CodedError> {
         let ports = &self.ports;
         let top = usize::try_from(STATS_TOP).unwrap_or(usize::MAX);
-        let first = |ranking: Ranking, kinds: KindGroup| {
-            let query = query(ranking, kinds, tests);
-            ports.rows(&rank(facts, &query, top).rows)
+        let first = |ranking: Ranking, kinds: KindGroup| -> Result<Vec<RowOut>, CodedError> {
+            let found = ports.ranked(snapshot, &query(ranking, kinds, tests), None, top)?;
+            Ok(ports.rows(&found.rows))
         };
-        TopOut {
-            most_used: first(Ranking::MostUsed, KindGroup::Types),
-            unused: ports.rows(unused.get(..top.min(unused.len())).unwrap_or_default()),
-            complexity: first(Ranking::Complexity, KindGroup::Functions),
-            coupling: first(Ranking::Coupling, KindGroup::Types),
-        }
+        Ok(TopOut {
+            most_used: first(Ranking::MostUsed, KindGroup::Types)?,
+            unused: first(Ranking::Unused, KindGroup::All)?,
+            complexity: first(Ranking::Complexity, KindGroup::Functions)?,
+            coupling: first(Ranking::Coupling, KindGroup::Types)?,
+        })
     }
 }
 
@@ -551,24 +538,29 @@ impl Command for StatsOverview {
     fn execute(&self, request: Request<'_, Self>) -> Result<OverviewOut, CodedError> {
         access::require(request.principal, Permission::Read)?;
         let tests = request.input.include_tests;
-        let Some((snapshot, facts)) = self.ports.facts(request.input.project)? else {
+        let Some(snapshot) = self.ports.latest(request.input.project)? else {
             return Ok(OverviewOut::default());
         };
+        let ports = &self.ports;
         let all = query(Ranking::Unused, KindGroup::All, tests);
-        let (unused_rows, unused) = self.ports.unused(&facts, &all);
-        let ranked = facts
-            .iter()
-            .filter(|fact| KindGroup::All.holds(fact.kind) && (tests || !fact.test))
-            .count();
+        let unused = ports
+            .statistics
+            .unused_counts(snapshot.id, &all, ports.setup())?;
+        let sums = ports
+            .statistics
+            .summary(snapshot.id, tests, ports.setup())?;
         Ok(OverviewOut {
             snapshot: Some(snapshot.id.get()),
             files: snapshot.stats.files,
             symbols: snapshot.stats.symbols,
-            ranked: count(ranked),
-            references: references_out(&facts),
-            unused,
-            complexity: self.complexity_out(&facts, tests),
-            top: self.top_out(&facts, &unused_rows, tests),
+            ranked: sums.ranked,
+            references: ReferencesOut {
+                certain: sums.certain_references,
+                probable: sums.probable_references,
+            },
+            unused: unused_out(unused),
+            complexity: self.complexity_out(sums.histogram),
+            top: self.top_out(&snapshot, tests)?,
         })
     }
 }
