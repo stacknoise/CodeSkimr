@@ -2,122 +2,89 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use codeskimr_bench::compare::{Verdict, compare};
+use codeskimr_bench::compare::{Row, Verdict, compare};
 use codeskimr_bench::estimates::Medians;
 use codeskimr_bench::report::has_failure;
 
-fn medians(ns: f64) -> Medians {
-    BTreeMap::from([("g/b".to_owned(), ns)])
+const TOLERANCE: f64 = 10.0;
+const ID: &str = "g/b";
+
+fn medians(ns: Option<f64>) -> Medians {
+    ns.map(|ns| (ID.to_owned(), ns)).into_iter().collect()
+}
+
+/// Compares `new` with `base` (`None`: no measurement) under an optional budget in milliseconds
+/// and whether the slowdown is accepted on purpose.
+fn run(new: Option<f64>, base: Option<f64>, budget_ms: Option<f64>, accepted: bool) -> Vec<Row> {
+    let budgets: BTreeMap<String, f64> = budget_ms
+        .map(|ms| (ID.to_owned(), ms))
+        .into_iter()
+        .collect();
+    let accepted: BTreeSet<String> = accepted.then(|| ID.to_owned()).into_iter().collect();
+    compare(
+        &medians(new),
+        &medians(base),
+        (&budgets, &accepted),
+        TOLERANCE,
+    )
+}
+
+fn verdict(rows: &[Row]) -> Option<Verdict> {
+    rows.first().map(|row| row.verdict.clone())
 }
 
 #[test]
 fn within_tolerance_passes() {
-    let rows = compare(
-        &medians(1_090.0),
-        &medians(1_000.0),
-        (&BTreeMap::new(), &BTreeSet::new()),
-        10.0,
-    );
-    assert_eq!(rows.first().map(|r| r.verdict.clone()), Some(Verdict::Ok));
+    let rows = run(Some(1_090.0), Some(1_000.0), None, false);
+    assert_eq!(verdict(&rows), Some(Verdict::Ok));
     assert!(!has_failure(&rows));
 }
 
 #[test]
 fn regression_over_tolerance_fails() {
-    let rows = compare(
-        &medians(1_200.0),
-        &medians(1_000.0),
-        (&BTreeMap::new(), &BTreeSet::new()),
-        10.0,
-    );
-    assert!(matches!(
-        rows.first().map(|r| &r.verdict),
-        Some(Verdict::Regression(_))
-    ));
+    let rows = run(Some(1_200.0), Some(1_000.0), None, false);
+    assert!(matches!(verdict(&rows), Some(Verdict::Regression(_))));
     assert!(has_failure(&rows));
 }
 
 #[test]
 fn speedup_passes() {
-    let rows = compare(
-        &medians(500.0),
-        &medians(1_000.0),
-        (&BTreeMap::new(), &BTreeSet::new()),
-        10.0,
-    );
-    assert!(!has_failure(&rows));
+    assert!(!has_failure(&run(Some(500.0), Some(1_000.0), None, false)));
 }
 
 #[test]
 fn over_budget_fails_even_without_base() {
-    let budgets = BTreeMap::from([("g/b".to_owned(), 1.0)]);
-    let rows = compare(
-        &medians(2_000_000.0),
-        &Medians::new(),
-        (&budgets, &BTreeSet::new()),
-        10.0,
-    );
-    assert!(matches!(
-        rows.first().map(|r| &r.verdict),
-        Some(Verdict::OverBudget(_))
-    ));
+    let rows = run(Some(2_000_000.0), None, Some(1.0), false);
+    assert!(matches!(verdict(&rows), Some(Verdict::OverBudget(_))));
 }
 
 #[test]
 fn missing_base_is_not_a_failure() {
-    let rows = compare(
-        &medians(1_000.0),
-        &Medians::new(),
-        (&BTreeMap::new(), &BTreeSet::new()),
-        10.0,
-    );
-    assert_eq!(
-        rows.first().map(|r| r.verdict.clone()),
-        Some(Verdict::NewBench)
-    );
+    let rows = run(Some(1_000.0), None, None, false);
+    assert_eq!(verdict(&rows), Some(Verdict::NewBench));
     assert!(!has_failure(&rows));
 }
 
 #[test]
 fn benchmark_missing_in_change_is_reported_not_failed() {
-    let rows = compare(
-        &Medians::new(),
-        &medians(1_000.0),
-        (&BTreeMap::new(), &BTreeSet::new()),
-        10.0,
-    );
-    assert_eq!(
-        rows.first().map(|r| r.verdict.clone()),
-        Some(Verdict::Removed)
-    );
+    let rows = run(None, Some(1_000.0), None, false);
+    assert_eq!(verdict(&rows), Some(Verdict::Removed));
     assert!(!has_failure(&rows));
 }
 
 #[test]
 fn an_accepted_slowdown_passes_but_stays_visible() {
-    let accepted = BTreeSet::from(["g/b".to_owned()]);
-    let rows = compare(
-        &medians(2_000.0),
-        &medians(1_000.0),
-        (&BTreeMap::new(), &accepted),
-        10.0,
-    );
-    assert!(matches!(
-        rows.first().map(|r| &r.verdict),
-        Some(Verdict::Accepted(_))
-    ));
+    let rows = run(Some(2_000.0), Some(1_000.0), None, true);
+    assert!(matches!(verdict(&rows), Some(Verdict::Accepted(_))));
     assert!(!has_failure(&rows));
 }
 
 #[test]
 fn an_accepted_slowdown_still_has_to_keep_its_budget() {
-    let accepted = BTreeSet::from(["g/b".to_owned()]);
-    let budgets = BTreeMap::from([("g/b".to_owned(), 1.0)]);
-    let rows = compare(
-        &medians(2_000_000.0),
-        &medians(1_000.0),
-        (&budgets, &accepted),
-        10.0,
-    );
-    assert!(has_failure(&rows));
+    assert!(has_failure(&run(
+        Some(2_000_000.0),
+        Some(1_000.0),
+        Some(1.0),
+        true
+    )));
 }
