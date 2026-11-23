@@ -24,16 +24,11 @@ impl MemoryGauge for ProcessMemory {
     }
 }
 
-/// The limit that counts: `scan.max_memory_mb`, but at most the share of the installed memory
-/// that leaves the system room to work. Without a reading of the installed memory the configured
-/// value counts alone.
-pub fn effective_limit_mb(configured_mb: u32, installed_bytes: u64) -> u64 {
-    let configured = u64::from(configured_mb);
-    if installed_bytes == 0 {
-        return configured;
-    }
-    let share = installed_bytes / BYTES_PER_MB * MEMORY_RAM_SHARE_PERCENT / PERCENT_WHOLE;
-    configured.min(share)
+/// The share of the installed memory that leaves the system room to work, in megabytes; `None`
+/// without a reading of the installed memory.
+pub fn ram_ceiling_mb(installed_bytes: u64) -> Option<u64> {
+    (installed_bytes != 0)
+        .then(|| installed_bytes / BYTES_PER_MB * MEMORY_RAM_SHARE_PERCENT / PERCENT_WHOLE)
 }
 
 /// The memory limit of the scans of this program.
@@ -43,41 +38,28 @@ pub fn scan_limit(config: &Config) -> MemoryLimit {
         system.refresh_memory();
         system.total_memory()
     });
-    MemoryLimit::new(
+    let limit = MemoryLimit::new(
         Arc::new(ProcessMemory),
-        effective_limit_mb(config.scan.max_memory_mb, installed),
+        u64::from(config.scan.max_memory_mb),
         Duration::from_millis(MEMORY_CHECK_INTERVAL_MS),
-    )
+    );
+    ram_ceiling_mb(installed).map_or(limit.clone(), |ceiling| limit.with_ceiling(ceiling))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::effective_limit_mb;
+    use super::ram_ceiling_mb;
 
     const GB: u64 = 1_073_741_824;
 
     #[test]
-    fn the_configured_value_counts_on_a_large_machine() {
-        assert_eq!(effective_limit_mb(16384, 128 * GB), 16384);
+    fn seventy_percent_of_the_installed_memory_is_the_ceiling() {
+        assert_eq!(ram_ceiling_mb(8 * GB), Some(5734));
+        assert_eq!(ram_ceiling_mb(128 * GB), Some(91750));
     }
 
     #[test]
-    fn seventy_percent_of_a_small_machine_counts_when_it_is_lower() {
-        assert_eq!(effective_limit_mb(16384, 8 * GB), 5734);
-    }
-
-    #[test]
-    fn the_share_rounds_down_just_below_the_setting() {
-        assert_eq!(effective_limit_mb(5735, 8 * GB), 5734);
-    }
-
-    #[test]
-    fn a_tiny_setting_counts_as_it_is() {
-        assert_eq!(effective_limit_mb(1, 8 * GB), 1);
-    }
-
-    #[test]
-    fn an_unknown_amount_of_memory_leaves_the_configured_value() {
-        assert_eq!(effective_limit_mb(4096, 0), 4096);
+    fn an_unknown_amount_of_memory_gives_no_ceiling() {
+        assert_eq!(ram_ceiling_mb(0), None);
     }
 }

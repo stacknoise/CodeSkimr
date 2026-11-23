@@ -247,7 +247,7 @@ id = "PRJ-503"
 name = "scan_memory_limit"
 severity = "error"
 retryable = false
-description = "The scan held more memory than scan.max_memory_mb allows and was stopped before the machine ran out of memory; no snapshot was written (ADR 0087)."
+description = "The scan added more memory than scan.max_memory_mb allows, or the program passed 70 % of the installed memory, and the scan was stopped before the machine ran out of memory; no snapshot was written (ADR 0087)."
 since = "1.0.0"
 
 [[codes]]

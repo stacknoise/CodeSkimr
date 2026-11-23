@@ -240,8 +240,8 @@ pub struct Scan {
     /// Most symbols a place may reach through the bare name; more and level 1 gives the place up
     /// (`RES-304`, ADR 0084).
     pub max_candidates: u32,
-    /// Most memory a scan may hold, in megabytes; more and the scan is stopped (`PRJ-503`,
-    /// ADR 0087).
+    /// Most memory a scan may add to what the program held when it started, in megabytes; more
+    /// and the scan is stopped (`PRJ-503`, ADR 0087).
     pub max_memory_mb: u32,
     /// Most files a scan names when it left them out; the others are only counted.
     pub max_left_out_listed: u32,

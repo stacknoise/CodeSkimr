@@ -6,7 +6,7 @@
 //! only probable, so "all" is an upper bound (ADR 0033, ADR 0037). "No usage found" never means
 //! that a symbol is dead; every such row carries an assessment.
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use codeskimr_application::access;
 use codeskimr_application::config::MetricThresholds;
@@ -294,7 +294,16 @@ pub struct StatsPorts {
     pub(super) test_names: Vec<String>,
     /// `ui.approximate_languages`: languages whose usages are an approximation.
     pub(super) approximate: Vec<String>,
+    /// Held by a command from the load of the facts until its answer is built: the screen asks
+    /// for the overview and a ranking at once, and the facts of a large project are several
+    /// gigabytes each.
+    pub(super) loading: Mutex<()>,
 }
+
+/// The facts of the newest snapshot of a project, with the hold that keeps another command from
+/// loading its own copy. The caller binds the three parts to separate variables with the hold
+/// first: variables drop in reverse order, so the hold is released after the facts are gone.
+type Loaded<'a> = (MutexGuard<'a, ()>, Snapshot, Vec<SymbolFacts>);
 
 fn count(value: usize) -> u32 {
     u32::try_from(value).unwrap_or(u32::MAX)
@@ -306,15 +315,16 @@ impl StatsPorts {
     ///
     /// # Errors
     /// `PRJ-201` for an unknown project, a coded `STO` failure.
-    fn facts(&self, project: u64) -> Result<Option<(Snapshot, Vec<SymbolFacts>)>, CodedError> {
+    fn facts(&self, project: u64) -> Result<Option<Loaded<'_>>, CodedError> {
         let id = ProjectId::new(project);
         self.projects.project(id)?;
         let Some(snapshot) = self.index.latest_snapshot(id)? else {
             return Ok(None);
         };
+        let hold = self.loading.lock().unwrap_or_else(PoisonError::into_inner);
         let mut facts = self.statistics.symbol_facts(snapshot.id)?;
         mark_tests(&mut facts, &self.test_names);
-        Ok(Some((snapshot, facts)))
+        Ok(Some((hold, snapshot, facts)))
     }
 
     fn assess(&self, fact: &SymbolFacts) -> Assessment {
@@ -454,7 +464,7 @@ impl Command for StatsRanking {
         access::require(request.principal, Permission::Read)?;
         let input = request.input;
         let query = query_of(&input)?;
-        let Some((snapshot, facts)) = self.ports.facts(input.project)? else {
+        let Some((_hold, snapshot, facts)) = self.ports.facts(input.project)? else {
             return Ok(RankingOut::default());
         };
         let mut out = if query.ranking == Ranking::Unused {
@@ -548,7 +558,7 @@ impl Command for StatsOverview {
     fn execute(&self, request: Request<'_, Self>) -> Result<OverviewOut, CodedError> {
         access::require(request.principal, Permission::Read)?;
         let tests = request.input.include_tests;
-        let Some((snapshot, facts)) = self.ports.facts(request.input.project)? else {
+        let Some((_hold, snapshot, facts)) = self.ports.facts(request.input.project)? else {
             return Ok(OverviewOut::default());
         };
         let all = query(Ranking::Unused, KindGroup::All, tests);

@@ -27,6 +27,7 @@ mod layers;
 mod layers_tests;
 mod level2;
 mod level2_revoke;
+mod outline_warm;
 mod preferences;
 mod projects;
 mod projects_pick;
@@ -603,6 +604,7 @@ fn register_stats(
         thresholds: config.metrics.clone(),
         test_names: config.conventions.test_folders.clone(),
         approximate: config.ui.approximate_languages.clone(),
+        loading: Mutex::new(()),
     });
     add(
         registry,
@@ -640,7 +642,10 @@ fn explorer_ports(
     Arc::new(ExplorerPorts {
         projects: store.clone(),
         index: store.clone(),
-        outline: store.clone(),
+        outline: Arc::new(outline_warm::WarmingOutline::new(
+            store.clone(),
+            Arc::clone(store),
+        )),
         text: Arc::new(FolderText),
         highlighter: Arc::new(TreeSitterHighlighter::new(&locations.languages_dir)),
         thresholds,
