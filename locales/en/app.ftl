@@ -36,4 +36,4 @@ app-error-copied = Copied
 app-error-retry = Try again
 app-error-details = Details to copy
 
-loading-slow = Still loading. A large project needs a moment, because CodeSkimr builds the index of its usages first.
+loading-slow = Still loading. A large project needs a moment, because CodeSkimr builds an overview first.

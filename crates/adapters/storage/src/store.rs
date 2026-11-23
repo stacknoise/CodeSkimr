@@ -1,9 +1,10 @@
 //! The `SQLite` connection and the unit of work.
 
+use std::collections::HashMap;
 use std::fs;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
 use std::time::Duration;
 
 use codeskimr_application::error::CodedError;
@@ -67,16 +68,30 @@ pub struct SqliteStore {
     pub(crate) reverse: Mutex<Vec<KeptLookup>>,
     /// One lock per snapshot whose index is built: a second caller for the same snapshot waits
     /// for the first and finds its result; callers for other snapshots do not wait.
-    pub(crate) builds: Mutex<std::collections::HashMap<i64, Arc<Mutex<()>>>>,
-    /// The facts of the symbols for the statistics, marked with the test folders they were
-    /// built for; kept for the lookup they were built from and dropped with it.
-    pub(crate) facts: Mutex<Option<KeptFacts>>,
+    pub(crate) builds: Mutex<HashMap<(i64, Build), BuildGate>>,
+    /// The facts of the symbols for the statistics of the snapshots that were asked about last,
+    /// newest first, at most `KEPT_LOOKUPS`; each is marked with the test folders it was built
+    /// for and kept for the lookup it was built from. A write drops them with the lookups.
+    pub(crate) facts: Mutex<Vec<KeptFacts>>,
+}
+
+/// The lock of one build.
+pub(crate) type BuildGate = Arc<Mutex<()>>;
+
+/// What a build gate guards: the reverse index of a snapshot or the facts of its symbols.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum Build {
+    /// The reverse index (`SnapshotLookup`).
+    Index,
+    /// The facts for the statistics.
+    Facts,
 }
 
 /// What [`SqliteStore`] keeps for the statistics: the lookup the usage counts come from, the
 /// names of the test folders, and the facts.
 pub(crate) type KeptFacts = (
-    std::sync::Weak<crate::lookup::SnapshotLookup>,
+    SnapshotId,
+    Weak<crate::lookup::SnapshotLookup>,
     Vec<String>,
     Arc<Vec<codeskimr_domain::SymbolFacts>>,
 );
@@ -155,8 +170,8 @@ impl SqliteStore {
             file,
             retention,
             reverse: Mutex::new(Vec::new()),
-            builds: Mutex::new(std::collections::HashMap::new()),
-            facts: Mutex::new(None),
+            builds: Mutex::new(HashMap::new()),
+            facts: Mutex::new(Vec::new()),
         })
     }
 

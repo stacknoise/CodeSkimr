@@ -322,6 +322,35 @@ mod tests {
     }
 
     #[test]
+    fn a_third_snapshot_pushes_the_oldest_index_out() {
+        let store = calls();
+        store.save_project(&project(2, "/work/other", &[])).unwrap();
+        store.save_project(&project(3, "/work/third", &[])).unwrap();
+        store.persist(later_scan(2, 20)).unwrap();
+        store.persist(later_scan(3, 30)).unwrap();
+        store.warm(SNAPSHOT).unwrap();
+        store.warm(SnapshotId::new(20)).unwrap();
+        store.warm(SnapshotId::new(30)).unwrap();
+        assert_eq!(store.kept_snapshot(), Some(SnapshotId::new(30)));
+        // The oldest was dropped, so asking for it builds it again as the newest.
+        store.warm(SNAPSHOT).unwrap();
+        assert_eq!(store.kept_snapshot(), Some(SNAPSHOT));
+    }
+
+    #[test]
+    fn a_fresh_index_is_built_after_a_write_to_its_project() {
+        let store = calls();
+        let before = store
+            .usages(SNAPSHOT, &query(23, Direction::Incoming, 1), 10)
+            .unwrap();
+        store.persist(later_scan(1, 40)).unwrap();
+        let after = store
+            .usages(SNAPSHOT, &query(23, Direction::Incoming, 1), 10)
+            .unwrap();
+        assert_eq!(before.total, after.total);
+    }
+
+    #[test]
     fn a_verified_usage_beyond_the_limit_is_not_cut_away() {
         let symbols = vec![
             symbol(21, 11, SymbolKind::Method, "App.Used", None),

@@ -13,10 +13,11 @@ use codeskimr_domain::{
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, column_int, id_from, label_from};
+use crate::consts::KEPT_LOOKUPS;
 use crate::error::StorageResult;
 use crate::lookup::SnapshotLookup;
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::{Build, SqliteStore};
 
 /// The columns of `STATISTICS_SYMBOLS`, still raw.
 struct FactRow {
@@ -129,24 +130,53 @@ impl CodeStatistics for SqliteStore {
         test_names: &[String],
     ) -> Result<Arc<Vec<SymbolFacts>>, CodedError> {
         let lookup = self.lookup(snapshot)?;
-        // One load at a time: a second caller waits for the first and gets its result.
-        let mut kept = self.facts.lock().unwrap_or_else(PoisonError::into_inner);
-        if let Some((from, names, facts)) = kept.as_ref()
-            && names.as_slice() == test_names
-            && from
-                .upgrade()
-                .is_some_and(|held| Arc::ptr_eq(&held, &lookup))
-        {
-            return Ok(Arc::clone(facts));
+        if let Some(found) = self.kept_facts(snapshot, &lookup, test_names) {
+            return Ok(found);
+        }
+        // One load per snapshot at a time: a second caller waits for the first and gets its
+        // result; the facts of another snapshot do not wait.
+        let raw = column_int(snapshot.get())?;
+        let gate = self.build_gate(raw, Build::Facts);
+        let _loading = gate.lock().unwrap_or_else(PoisonError::into_inner);
+        if let Some(found) = self.kept_facts(snapshot, &lookup, test_names) {
+            return Ok(found);
         }
         let mut loaded = self.symbol_facts(snapshot)?;
         mark_tests(&mut loaded, test_names);
         let loaded = Arc::new(loaded);
-        *kept = Some((
-            Arc::downgrade(&lookup),
-            test_names.to_vec(),
-            Arc::clone(&loaded),
-        ));
+        let mut kept = self.facts.lock().unwrap_or_else(PoisonError::into_inner);
+        kept.retain(|(id, ..)| *id != snapshot);
+        kept.insert(
+            0,
+            (
+                snapshot,
+                Arc::downgrade(&lookup),
+                test_names.to_vec(),
+                Arc::clone(&loaded),
+            ),
+        );
+        kept.truncate(KEPT_LOOKUPS);
         Ok(loaded)
+    }
+}
+
+impl SqliteStore {
+    /// The kept facts of `snapshot` if they were built from `lookup` for these test folders.
+    fn kept_facts(
+        &self,
+        snapshot: SnapshotId,
+        lookup: &Arc<SnapshotLookup>,
+        test_names: &[String],
+    ) -> Option<Arc<Vec<SymbolFacts>>> {
+        let kept = self.facts.lock().unwrap_or_else(PoisonError::into_inner);
+        kept.iter()
+            .find(|(id, from, names, _)| {
+                *id == snapshot
+                    && names.as_slice() == test_names
+                    && from
+                        .upgrade()
+                        .is_some_and(|held| Arc::ptr_eq(&held, lookup))
+            })
+            .map(|(.., facts)| Arc::clone(facts))
     }
 }

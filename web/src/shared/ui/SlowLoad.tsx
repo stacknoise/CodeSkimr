@@ -23,7 +23,9 @@ export function SlowLoad(props: { waiting: () => boolean; class?: string | undef
   const slow = useSlow(props.waiting);
   return (
     <Show when={slow()}>
-      <NoticeBox class={props.class} text={t(I18N_KEYS.LOADING_SLOW)} />
+      <div role="status">
+        <NoticeBox class={props.class} text={t(I18N_KEYS.LOADING_SLOW)} />
+      </div>
     </Show>
   );
 }

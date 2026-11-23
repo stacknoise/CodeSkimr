@@ -6,7 +6,7 @@
 //! every write that touches it (`refresh_lookup`). The symbols and files that name the entries of
 //! an answer are loaded with it, so an answer is assembled in memory.
 
-use std::sync::{Arc, Mutex, PoisonError};
+use std::sync::{Arc, PoisonError};
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
@@ -20,14 +20,11 @@ use codeskimr_domain::{
 use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::codec::{Cols, column_int, id_from, label_from, small_from};
-use crate::consts::PRAGMA_DATA_VERSION;
+use crate::consts::{KEPT_LOOKUPS, PRAGMA_DATA_VERSION};
 use crate::error::{StorageError, StorageResult};
 use crate::lookup::SnapshotLookup;
 use crate::sql;
-use crate::store::SqliteStore;
-
-/// How many snapshots keep their index in memory at once.
-const KEPT_LOOKUPS: usize = 2;
+use crate::store::{Build, BuildGate, SqliteStore};
 
 impl SqliteStore {
     /// The reverse index of a snapshot, built on first use. A snapshot that is not stored (never
@@ -45,7 +42,7 @@ impl SqliteStore {
         if let Some(found) = self.kept(snapshot, version) {
             return Ok(found);
         }
-        let gate = self.build_gate(raw);
+        let gate = self.build_gate(raw, Build::Index);
         let _building = gate.lock().unwrap_or_else(PoisonError::into_inner);
         // Another caller may have built it while this one waited for the gate.
         if let Some(found) = self.kept(snapshot, version) {
@@ -78,9 +75,11 @@ impl SqliteStore {
     }
 
     /// The lock that serialises the builds of one snapshot.
-    fn build_gate(&self, snapshot: i64) -> Arc<Mutex<()>> {
+    pub(crate) fn build_gate(&self, snapshot: i64, what: Build) -> BuildGate {
         let mut gates = self.builds.lock().unwrap_or_else(PoisonError::into_inner);
-        Arc::clone(gates.entry(snapshot).or_default())
+        // A gate nobody holds is dropped, so the map does not grow with every snapshot.
+        gates.retain(|_, gate| Arc::strong_count(gate) > 1);
+        Arc::clone(gates.entry((snapshot, what)).or_default())
     }
 
     /// Builds the index of `snapshot` ahead of the first query, which would otherwise wait for it
@@ -125,12 +124,18 @@ impl SqliteStore {
         let Ok(raw) = column_int(snapshot.get()) else {
             return;
         };
+        // The gate first: a build that is still running for this snapshot has read the references
+        // before this write, so it is waited for, found in the list below and built again.
+        let gate = self.build_gate(raw, Build::Index);
+        let _building = gate.lock().unwrap_or_else(PoisonError::into_inner);
+        self.facts
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clear();
         let replaced = self.kept_of_project_of(raw);
         if replaced.is_empty() {
             return;
         }
-        let gate = self.build_gate(raw);
-        let _building = gate.lock().unwrap_or_else(PoisonError::into_inner);
         let loaded = self.read(data_version).and_then(|version| {
             self.read_apart(|conn| SnapshotLookup::load(conn, raw))
                 .map(|loaded| (Arc::new(loaded), version))
@@ -149,16 +154,19 @@ impl SqliteStore {
             let kept = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
             kept.iter().map(|(id, _, _)| *id).collect()
         };
-        let own = self.read(|conn| project_of(conn, raw)).ok().flatten();
-        ids.into_iter()
-            .filter(|id| {
-                let other = column_int(id.get())
-                    .and_then(|other| self.read(|conn| project_of(conn, other)))
-                    .ok()
-                    .flatten();
-                other.is_none() || other == own
-            })
-            .collect()
+        self.read(|conn| {
+            let own = project_of(conn, raw)?;
+            Ok(ids
+                .into_iter()
+                .filter(|id| {
+                    let other = column_int(id.get())
+                        .ok()
+                        .and_then(|other| project_of(conn, other).ok().flatten());
+                    other.is_none() || other == own
+                })
+                .collect())
+        })
+        .unwrap_or_default()
     }
 
     fn usage_page(

@@ -158,3 +158,6 @@ pub const STATE_INDEX_COUNT: i64 = 3;
 /// Log event: the extra read connection of a long read could not be opened; the read runs on the
 /// shared connection and holds up the other queries.
 pub const LOG_READ_CONNECTION_UNAVAILABLE: &str = "read_connection_unavailable";
+
+/// How many snapshots keep their index and their statistics facts in memory at once.
+pub const KEPT_LOOKUPS: usize = 2;
