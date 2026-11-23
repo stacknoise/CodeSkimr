@@ -35,3 +35,5 @@ export const HEADER_RETRY_AFTER = "Retry-After";
 export const SECONDS_ONLY = /^\d{1,6}$/;
 /** The longest wait of `Retry-After` that is believed, in seconds; anything above (or 0) is ignored. */
 export const RETRY_AFTER_MAX_SECONDS = 3600;
+/** How long a repeated question waits for its answer before it is given up and asked again, in milliseconds. */
+export const POLL_PATIENCE_MS = 30000;

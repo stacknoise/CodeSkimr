@@ -53,13 +53,17 @@ fn limit_growth(conn: &Connection, pages: NonZeroU32) -> rusqlite::Result<()> {
 }
 
 /// The `SQLite` database of one workspace. It implements the storage ports and offers the queries
-/// on the read models. Share it behind an `Arc`; one writer at a time, readers wait for it.
+/// on the read models. Share it behind an `Arc`. There is one writer at a time; a read does not wait for it, it sees
+/// the state before the write (only the reads a write is built on wait, see
+/// `SqliteStore::read_latest`).
 #[derive(Debug)]
 pub struct SqliteStore {
     conn: Mutex<Connection>,
     /// The database file, so that a long read can use a connection of its own and leave `conn`
     /// to the queries of the screens; `None` for an in-memory database.
     file: Option<PathBuf>,
+    /// How long a connection waits for a lock of the file before it reports "busy".
+    busy_timeout: Duration,
     retention: NonZeroU32,
     /// The namespace graphs of the snapshots that were asked about last (small).
     pub(crate) graphs: Kept<codeskimr_domain::NamespaceGraph>,
@@ -231,6 +235,7 @@ impl SqliteStore {
         Ok(Self {
             conn: Mutex::new(conn),
             file,
+            busy_timeout: options.busy_timeout,
             retention,
             graphs: Kept::new(),
             owners: Kept::new(),
@@ -259,9 +264,11 @@ impl SqliteStore {
         written == self.write_count()
     }
 
-    /// Drops what was built from the references: after a write of this store (a scan, or the
-    /// import of level 2) the references of a snapshot may have changed. The count goes up first,
-    /// so a build that is still running does not keep what it read before the write.
+    /// Drops what was built from the references: a write of this store (a scan, or the import of
+    /// level 2) may change the references of a snapshot. The write calls this before it commits,
+    /// while it still holds the shared connection: until it lets go nothing is looked up or kept
+    /// (see `version_if_free`), so no caller gets the state before the write after it. The count
+    /// goes up first, so a build that is still running does not keep what it read before.
     pub(crate) fn forget_builds(&self) {
         self.writes.fetch_add(1, Ordering::SeqCst);
         self.graphs.clear();
@@ -306,6 +313,19 @@ impl SqliteStore {
         work(&self.connection())
     }
 
+    /// What `work` reads on the shared connection if no one holds it right now, else `None`: for
+    /// what only that connection knows and what is not worth waiting for a write.
+    pub(crate) fn if_free<T>(
+        &self,
+        work: impl FnOnce(&Connection) -> StorageResult<T>,
+    ) -> StorageResult<Option<T>> {
+        match self.conn.try_lock() {
+            Ok(conn) => work(&conn).map(Some),
+            Err(TryLockError::Poisoned(conn)) => work(&conn.into_inner()).map(Some),
+            Err(TryLockError::WouldBlock) => Ok(None),
+        }
+    }
+
     /// Runs a long read on a read-only connection of its own, so that the other queries and the
     /// writers are not held up by it (the write-ahead log lets readers run side by side). The
     /// whole read is one read transaction, so it sees one consistent state even if a writer
@@ -324,15 +344,7 @@ impl SqliteStore {
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .pop();
-        let opened = idle.map_or_else(
-            || {
-                Connection::open_with_flags(
-                    file,
-                    OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-                )
-            },
-            Ok,
-        );
+        let opened = idle.map_or_else(|| self.open_reader(file), Ok);
         match opened {
             Ok(conn) => {
                 let value = in_read_transaction(&conn, work)?;
@@ -344,6 +356,19 @@ impl SqliteStore {
                 self.read_latest(work)
             }
         }
+    }
+
+    /// Opens a read-only connection that waits for a lock of the file as long as the shared one
+    /// and has its cache settings.
+    fn open_reader(&self, file: &Path) -> rusqlite::Result<Connection> {
+        let conn = Connection::open_with_flags(
+            file,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?;
+        conn.busy_timeout(self.busy_timeout)?;
+        conn.pragma_update(None, PRAGMA_CACHE_SIZE, CACHE_SIZE_KIB)?;
+        conn.pragma_update(None, PRAGMA_TEMP_STORE, TEMP_STORE_MEMORY)?;
+        Ok(conn)
     }
 
     /// Keeps a read-only connection for the next read apart, unless enough are kept already. A
@@ -515,28 +540,6 @@ mod tests {
             .unwrap();
         assert_eq!(store.read_apart(probe_count).unwrap(), 1);
         assert_eq!(store.readers.lock().unwrap().len(), 1);
-        std::fs::remove_dir_all(folder).unwrap();
-    }
-
-    /// A scan stores its snapshot in one long write. A read in that time (the project list that
-    /// the browser asks for every moment) answers at once, with the state before the write.
-    #[test]
-    fn a_read_does_not_wait_for_a_write() {
-        use codeskimr_application::ports::ProjectCatalog;
-
-        let (store, folder) = file_store("during");
-        store
-            .write(|tx| Ok(tx.execute_batch("CREATE TABLE probe (x);")?))
-            .unwrap();
-        let during = store
-            .write(|tx| {
-                tx.execute("INSERT INTO probe VALUES (1)", [])?;
-                assert!(store.overviews().unwrap().is_empty());
-                store.read(probe_count)
-            })
-            .unwrap();
-        assert_eq!(during, 0);
-        assert_eq!(store.read(probe_count).unwrap(), 1);
         std::fs::remove_dir_all(folder).unwrap();
     }
 

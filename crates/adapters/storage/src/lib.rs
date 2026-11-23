@@ -26,6 +26,8 @@ mod projects;
 mod queries;
 mod ranking_rows;
 mod read_models;
+#[cfg(test)]
+mod reads_during_write_tests;
 mod references;
 mod removal;
 mod replace;

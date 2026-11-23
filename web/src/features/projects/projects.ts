@@ -61,10 +61,11 @@ export function failed(error: unknown): Failure {
     : { code: null };
 }
 
-/** Reads the list again. A failure is kept for the screen; the old rows stay. */
-export async function refreshProjects(): Promise<void> {
+/** Reads the list again. A failure is kept for the screen; the old rows stay. A `signal` lets
+ * the caller give up waiting. */
+export async function refreshProjects(signal?: AbortSignal): Promise<void> {
   try {
-    const list = await runCommand<ProjectRow[]>(COMMAND.list);
+    const list = await runCommand<ProjectRow[]>(COMMAND.list, undefined, signal);
     setRows(list);
     keepRunningOnly(new Set(list.filter((row) => row.running).map((row) => row.id)));
     setListFailure(null);

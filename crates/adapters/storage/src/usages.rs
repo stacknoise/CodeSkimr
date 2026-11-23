@@ -31,6 +31,12 @@ impl SqliteStore {
         self.read_latest(data_version)
     }
 
+    /// The `data_version` if the shared connection is free; `None` while a write of this store
+    /// runs. What was built from the references is not looked up then: the write drops it anyway.
+    pub(crate) fn version_if_free(&self) -> StorageResult<Option<i64>> {
+        self.if_free(data_version)
+    }
+
     fn usage_page(
         &self,
         snapshot: SnapshotId,
@@ -68,12 +74,15 @@ impl SqliteStore {
     /// and kept.
     fn walked(&self, snapshot: SnapshotId, query: &UsageQuery) -> StorageResult<Arc<ReverseIndex>> {
         let raw = column_int(snapshot.get())?;
-        let version = self.data_version()?;
+        let read = || self.read_apart(|conn| answers::walked_references(conn, raw, query));
+        let Some(version) = self.version_if_free()? else {
+            return read().map(Arc::new);
+        };
         if let Some(found) = self.kept_walk(snapshot, version, query) {
             return Ok(found);
         }
         let written = self.write_count();
-        let index = Arc::new(self.read_apart(|conn| answers::walked_references(conn, raw, query))?);
+        let index = Arc::new(read()?);
         let mut kept = self.walks.lock().unwrap_or_else(PoisonError::into_inner);
         if self.unwritten_since(written) {
             kept.insert(0, (snapshot, version, *query, Arc::clone(&index)));
@@ -170,7 +179,11 @@ impl SqliteStore {
         build: impl FnOnce(&Connection, i64) -> StorageResult<T>,
     ) -> StorageResult<T> {
         let raw = column_int(snapshot.get())?;
-        let version = self.data_version()?;
+        let Some(version) = self.version_if_free()? else {
+            // A write of this store is running and drops what is kept: build without the kept
+            // ones instead of waiting for it.
+            return self.read_apart(|conn| build(conn, raw));
+        };
         if let Some(found) = kept.get(snapshot, version) {
             return Ok(found);
         }
