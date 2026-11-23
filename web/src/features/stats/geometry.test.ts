@@ -105,6 +105,10 @@ describe("classBars", () => {
     ]);
   });
 
+  it("counts a value below 1 in the first class", () => {
+    expect(classBars([{ complexity: 0, count: 4 }], 10)[0]?.count).toBe(4);
+  });
+
   it("starts a class at the limit of the project", () => {
     expect(classBars([], 25).find((bar) => bar.from === 26)?.over).toBe(true);
   });

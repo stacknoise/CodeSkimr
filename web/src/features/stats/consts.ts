@@ -152,7 +152,6 @@ export const HOTSPOTS = {
   axisTitle: 10,
   dot: 4.5,
   dotSelected: 7,
-  ticksX: 5,
   tickGap: 14,
   labelGap: 6,
   titleGap: 30,

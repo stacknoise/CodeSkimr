@@ -39,10 +39,13 @@ export function classBars(bars: readonly Bar[], limit: number): ClassBar[] {
     .filter((start) => start >= 1)
     .sort((a, b) => a - b);
   return starts.map((from, index) => {
+    // The first class also takes anything below 1, so no function is dropped from the count.
     const next = starts[index + 1];
     const to = next === undefined ? null : next - 1;
     const count = bars
-      .filter((bar) => bar.complexity >= from && (to === null || bar.complexity <= to))
+      .filter(
+        (bar) => (index === 0 || bar.complexity >= from) && (to === null || bar.complexity <= to),
+      )
       .reduce((sum, bar) => sum + bar.count, 0);
     return { from, to, count, over: from > limit, label: rangeLabel(from, to) };
   });
