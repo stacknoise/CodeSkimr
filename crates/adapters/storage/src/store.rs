@@ -63,7 +63,18 @@ pub struct SqliteStore {
     /// a scan from the browser or of `codeskimr scan` replaces the references of a snapshot
     /// through its own store.
     pub(crate) reverse: Mutex<Option<KeptLookup>>,
+    /// The facts of the symbols for the statistics, marked with the test folders they were
+    /// built for; kept for the lookup they were built from and dropped with it.
+    pub(crate) facts: Mutex<Option<KeptFacts>>,
 }
+
+/// What [`SqliteStore`] keeps for the statistics: the lookup the usage counts come from, the
+/// names of the test folders, and the facts.
+pub(crate) type KeptFacts = (
+    std::sync::Weak<crate::lookup::SnapshotLookup>,
+    Vec<String>,
+    Arc<Vec<codeskimr_domain::SymbolFacts>>,
+);
 
 /// What [`SqliteStore`] keeps of the reverse index: the snapshot, its lookup and the
 /// `data_version` of the database when it was built.
@@ -139,6 +150,7 @@ impl SqliteStore {
             file,
             retention,
             reverse: Mutex::new(None),
+            facts: Mutex::new(None),
         })
     }
 

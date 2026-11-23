@@ -2,12 +2,13 @@
 //! values (ADR 0081). The usage counts come from the reverse index that is kept in memory.
 
 use std::collections::HashMap;
+use std::sync::{Arc, PoisonError};
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::CodeStatistics;
 use codeskimr_domain::{
     FileId, LanguageId, Measures, MetricKind, QualifiedName, RelativePath, SnapshotId, SymbolFacts,
-    SymbolId, SymbolName, UsageTally,
+    SymbolId, SymbolName, UsageTally, mark_tests,
 };
 use rusqlite::{Connection, params};
 
@@ -117,6 +118,35 @@ impl CodeStatistics for SqliteStore {
     fn symbol_facts(&self, snapshot: SnapshotId) -> Result<Vec<SymbolFacts>, CodedError> {
         let lookup = self.lookup(snapshot)?;
         let raw = column_int(snapshot.get())?;
-        Ok(self.read(|conn| load_facts(conn, raw, &lookup))?)
+        // The load takes long for a large project: it runs on a connection of its own, so the
+        // other screens are not held up by it.
+        Ok(self.read_apart(|conn| load_facts(conn, raw, &lookup))?)
+    }
+
+    fn shared_facts(
+        &self,
+        snapshot: SnapshotId,
+        test_names: &[String],
+    ) -> Result<Arc<Vec<SymbolFacts>>, CodedError> {
+        let lookup = self.lookup(snapshot)?;
+        // One load at a time: a second caller waits for the first and gets its result.
+        let mut kept = self.facts.lock().unwrap_or_else(PoisonError::into_inner);
+        if let Some((from, names, facts)) = kept.as_ref()
+            && names.as_slice() == test_names
+            && from
+                .upgrade()
+                .is_some_and(|held| Arc::ptr_eq(&held, &lookup))
+        {
+            return Ok(Arc::clone(facts));
+        }
+        let mut loaded = self.symbol_facts(snapshot)?;
+        mark_tests(&mut loaded, test_names);
+        let loaded = Arc::new(loaded);
+        *kept = Some((
+            Arc::downgrade(&lookup),
+            test_names.to_vec(),
+            Arc::clone(&loaded),
+        ));
+        Ok(loaded)
     }
 }

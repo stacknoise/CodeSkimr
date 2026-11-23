@@ -604,7 +604,6 @@ fn register_stats(
         thresholds: config.metrics.clone(),
         test_names: config.conventions.test_folders.clone(),
         approximate: config.ui.approximate_languages.clone(),
-        loading: Mutex::new(()),
     });
     add(
         registry,
