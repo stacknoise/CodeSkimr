@@ -3,9 +3,12 @@ import type { Plugin } from "vite";
 
 const BACKSLASH = /\\/g;
 
-/** The path with forward slashes, the way Vite names modules. */
+const DRIVE_LETTER = /^[A-Za-z]:/;
+
+/** The path with forward slashes and a small drive letter, the way Vite names modules (Windows
+ * writes the letter in either case). */
 function normalizePath(path: string): string {
-  return path.replace(BACKSLASH, "/");
+  return path.replace(BACKSLASH, "/").replace(DRIVE_LETTER, (drive) => drive.toLowerCase());
 }
 
 /** Names the file that ends the script element in a bundle, and the one that opens a comment in
@@ -19,8 +22,11 @@ const COMMENT_START = /<!--/g;
  * there, and the swap silently did not happen: the page then called the server). */
 export function swaps(src: string): Map<string, string> {
   return new Map([
-    [normalizePath(resolve(src, "shared/api/commands.ts")), resolve(src, "export/commands.ts")],
-    [normalizePath(resolve(src, "app/router.ts")), resolve(src, "export/router.ts")],
+    [
+      normalizePath(resolve(src, "shared/api/commands.ts")),
+      normalizePath(resolve(src, "export/commands.ts")),
+    ],
+    [normalizePath(resolve(src, "app/router.ts")), normalizePath(resolve(src, "export/router.ts"))],
   ]);
 }
 
@@ -46,8 +52,8 @@ function swapModules(src: string): Plugin {
       }
       return swapped;
     },
-    buildEnd() {
-      if (done.size !== table.size) {
+    buildEnd(error) {
+      if (!error && done.size !== table.size) {
         this.error("the export build did not swap the call of the server and the router");
       }
     },

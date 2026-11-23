@@ -2,6 +2,7 @@
 // `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/export/.
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { expect, openScannedProject, shot, test } from "./fixtures";
 
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/export");
@@ -40,7 +41,7 @@ test("the downloaded page opens from disk and asks no server", async ({ page, ha
   const offline = await page.context().newPage();
   const requests: string[] = [];
   offline.on("request", (request) => requests.push(request.url()));
-  await offline.goto(`file://${saved}`);
+  await offline.goto(pathToFileURL(saved).href);
   await expect(offline.getByText("Basket").first()).toBeVisible();
   expect(requests.filter((url) => !url.startsWith("file:"))).toEqual([]);
   expect(requests.filter((url) => url.includes(SERVER_API))).toEqual([]);

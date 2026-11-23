@@ -21,5 +21,8 @@ describe("the modules the export swaps", () => {
     expect(swapFor(table, "/work/web/src/shared/api/commands.ts")).not.toBeNull();
     expect(swapFor(table, "\\work\\web\\src\\shared\\api\\commands.ts")).not.toBeNull();
     expect(swapFor(table, "/work/web/src/shared/api/client.ts")).toBeNull();
+    const windows = new Map([["c:/work/web/src/app/router.ts", "own"]]);
+    expect(swapFor(windows, "C:\\work\\web\\src\\app\\router.ts")).toBe("own");
+    expect(swapFor(windows, "c:/work/web/src/app/router.ts")).toBe("own");
   });
 });
