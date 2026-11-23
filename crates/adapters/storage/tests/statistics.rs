@@ -245,11 +245,43 @@ mod tests {
         )
     }
 
+    /// Two more projects with files of their own, so that the references of the first are read
+    /// through its files and not in one pass over the table.
+    fn next_to_larger_projects(
+        store: codeskimr_storage::SqliteStore,
+    ) -> codeskimr_storage::SqliteStore {
+        use codeskimr_application::ports::SnapshotStore;
+        use codeskimr_domain::{ProjectId, ScanMode};
+
+        use super::common::{data, file, header, project};
+
+        for (id, snapshot) in [(2, 20), (3, 30)] {
+            let folder = format!("/work/other{id}");
+            store.save_project(&project(id, &folder, &[])).unwrap();
+            let mut head = header(snapshot, ScanMode::Full);
+            head.project = ProjectId::new(id);
+            let mut scan = data(head);
+            scan.files = (1..=3)
+                .map(|at| file(snapshot, snapshot * 100 + at, &format!("src/f{at}.cs"), "h"))
+                .collect();
+            store.persist(scan).unwrap();
+        }
+        store
+    }
+
     #[test]
     fn every_ranking_equals_the_calculation_over_all_symbols() {
-        let store = varied();
+        rankings_equal_the_calculation(&varied());
+    }
+
+    #[test]
+    fn the_rankings_are_the_same_when_the_references_are_read_through_the_files() {
+        rankings_equal_the_calculation(&next_to_larger_projects(varied()));
+    }
+
+    fn rankings_equal_the_calculation(store: &codeskimr_storage::SqliteStore) {
         let names = vec!["tests".to_owned()];
-        let facts = marked(&store, &names);
+        let facts = marked(store, &names);
         assert!(facts.iter().any(|fact| fact.test) && facts.iter().any(|fact| !fact.test));
         for approximate in [Vec::new(), vec!["csharp".to_owned()]] {
             for query in queries() {
@@ -399,23 +431,7 @@ mod tests {
     /// files; the counts are the same as in a database of its own.
     #[test]
     fn the_usages_are_the_same_next_to_larger_projects() {
-        use codeskimr_application::ports::SnapshotStore;
-        use codeskimr_domain::{ProjectId, ScanMode};
-
-        use super::common::{data, file, header, project};
-
-        let store = store();
-        for (id, snapshot) in [(2, 20), (3, 30)] {
-            let folder = format!("/work/other{id}");
-            store.save_project(&project(id, &folder, &[])).unwrap();
-            let mut head = header(snapshot, ScanMode::Full);
-            head.project = ProjectId::new(id);
-            let mut scan = data(head);
-            scan.files = (1..=3)
-                .map(|at| file(snapshot, snapshot * 100 + at, &format!("src/f{at}.cs"), "h"))
-                .collect();
-            store.persist(scan).unwrap();
-        }
+        let store = next_to_larger_projects(store());
         let facts = store.symbol_facts(SNAPSHOT).unwrap();
         assert_eq!(usage_of_save(&facts), SAVE_USAGE);
         assert!(facts.iter().all(|fact| fact.test));
