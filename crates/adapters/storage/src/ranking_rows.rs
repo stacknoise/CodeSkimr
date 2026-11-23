@@ -6,7 +6,7 @@ use codeskimr_domain::{
     Assessment, KindGroup, LanguageId, Measures, QualifiedName, RelativePath, SnapshotId,
     SymbolFacts, SymbolId, SymbolName, UsageTally, Visibility,
 };
-use rusqlite::{Connection, ToSql};
+use rusqlite::{Connection, Statement, ToSql};
 
 use crate::codec::{Cols, column_int, id_from, id_list, label_from, small_from};
 use crate::consts::{
@@ -17,7 +17,6 @@ use crate::consts::{
 };
 use crate::error::StorageResult;
 use crate::sql;
-use crate::symbol_statistics::{bind, visibility_of};
 
 /// What a statement over `symbol_statistics` is asked: the values of its parameters.
 pub(crate) struct Filter {
@@ -252,4 +251,22 @@ pub(crate) fn facts_of(
                 .and_then(|id| found.remove(&SymbolId::new(id)))
         })
         .collect())
+}
+
+/// Binds the parameters of `statement` that it has; the others are left out.
+pub(crate) fn bind(
+    statement: &mut Statement<'_>,
+    values: &[(&str, &dyn ToSql)],
+) -> StorageResult<()> {
+    for (name, value) in values {
+        if let Some(index) = statement.parameter_index(name)? {
+            statement.raw_bind_parameter(index, value)?;
+        }
+    }
+    Ok(())
+}
+
+/// The visibility a label stands for, `None` for no visibility.
+pub(crate) fn visibility_of(label: Option<&str>) -> StorageResult<Option<Visibility>> {
+    label.map(label_from).transpose()
 }

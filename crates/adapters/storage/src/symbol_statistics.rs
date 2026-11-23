@@ -16,9 +16,9 @@ use codeskimr_domain::{
     Assessment, KindGroup, Ranking, RankingQuery, SnapshotId, SymbolFacts, UsageOrder, Visibility,
     complexity_bars, mark_tests,
 };
-use rusqlite::{Connection, Statement, ToSql, params};
+use rusqlite::{Connection, params};
 
-use crate::codec::{column_int, label_from};
+use crate::codec::column_int;
 use crate::consts::{COUNT_ATTEMPTS, NAME_SEPARATOR, PRAGMA_DATA_VERSION};
 use crate::error::StorageResult;
 use crate::ranking_rows::{Filter, facts_of, filter_of};
@@ -410,22 +410,4 @@ fn summary(
         probable_references: u64::try_from(probable).unwrap_or_default(),
         histogram: complexity_bars(filter.complexity(conn)?),
     })
-}
-
-/// Binds the parameters of `statement` that it has; the others are left out.
-pub(crate) fn bind(
-    statement: &mut Statement<'_>,
-    values: &[(&str, &dyn ToSql)],
-) -> StorageResult<()> {
-    for (name, value) in values {
-        if let Some(index) = statement.parameter_index(name)? {
-            statement.raw_bind_parameter(index, value)?;
-        }
-    }
-    Ok(())
-}
-
-/// The visibility a label stands for, `None` for no visibility.
-pub(crate) fn visibility_of(label: Option<&str>) -> StorageResult<Option<Visibility>> {
-    label.map(label_from).transpose()
 }
