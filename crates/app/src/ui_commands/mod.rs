@@ -27,7 +27,6 @@ mod layers;
 mod layers_tests;
 mod level2;
 mod level2_revoke;
-mod outline_warm;
 mod preferences;
 mod projects;
 mod projects_pick;
@@ -220,7 +219,7 @@ pub fn command_api_probing(
     run: (Option<Arc<dyn IndexRunner>>, RunningScans),
 ) -> Result<CommandApi, CodedError> {
     let config = crate::config_files::load(locations, global, None)?;
-    let catalog = crate::wiring::open_serving_store(locations, &config)?;
+    let catalog = crate::wiring::open_store(locations, &config)?;
     let window = Window {
         port: Arc::new(NoWindow),
         launch: codeskimr_application::level2::Launch::Copy,
@@ -641,10 +640,7 @@ fn explorer_ports(
     Arc::new(ExplorerPorts {
         projects: store.clone(),
         index: store.clone(),
-        outline: Arc::new(outline_warm::WarmingOutline::new(
-            store.clone(),
-            Arc::clone(store),
-        )),
+        outline: store.clone(),
         text: Arc::new(FolderText),
         highlighter: Arc::new(TreeSitterHighlighter::new(&locations.languages_dir)),
         thresholds,
@@ -673,6 +669,7 @@ pub(crate) fn export_command(
             graph: GraphLayers {
                 ports: graph_ports(store, config.graph.clone()),
             },
+            max_references: config.export.max_references,
         },
         locations.existing_dir(&config.ui.dir),
         crate::embedded_ui::FILES,

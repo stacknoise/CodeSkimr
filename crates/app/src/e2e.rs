@@ -22,7 +22,7 @@ use tokio::sync::oneshot;
 
 use crate::mcp_http_tests::locations;
 use crate::memory_keystore::Memory;
-use crate::open::{Plan, launch};
+use crate::open::{Plan, Ready, launch};
 use crate::serve::{Parts, serve_for_test, test_ui};
 use crate::ui_commands::command_api;
 
@@ -63,10 +63,13 @@ fn serve_requests(
             lifetime: CODE_LIFETIME,
             dir: folder.path().to_path_buf(),
             browser: false,
+            print_url: false,
         };
         thread::spawn(move || {
             let result = launch(&*store, &plan, |ready| {
-                say(&format!("E2E_LAUNCH_FILE={}", ready.path.display()));
+                if let Ready::File { path, .. } = ready {
+                    say(&format!("E2E_LAUNCH_FILE={}", path.display()));
+                }
             });
             result.unwrap();
         });

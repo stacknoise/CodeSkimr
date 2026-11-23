@@ -479,8 +479,6 @@ pub const CONSOLE_INPUT: &str = "CONIN$";
 #[cfg(windows)]
 pub const CONSOLE_OUTPUT: &str = "CONOUT$";
 
-/// Name of the thread that builds the usages index in the background.
-pub const WARM_THREAD_NAME: &str = "usages-warm-up";
 /// Pause between two looks at whether the runs have ended.
 pub const IDLE_POLL: Duration = Duration::from_millis(50);
 /// How long the end of the server waits for the runs it cancelled (ADR 0072).

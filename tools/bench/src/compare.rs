@@ -1,6 +1,6 @@
 //! Comparing medians against a base measurement and against the budgets.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::consts::{NS_PER_MS, ONE, PERCENT, ZERO};
 use crate::estimates::Medians;
@@ -12,6 +12,9 @@ pub enum Verdict {
     Ok,
     /// Slower than the base by more than the tolerance (change in percent).
     Regression(f64),
+    /// Slower than the base by more than the tolerance, but accepted on purpose in
+    /// `tools/bench/budgets.toml` (change in percent). The absolute budget still applies.
+    Accepted(f64),
     /// Above the absolute budget (budget in milliseconds).
     OverBudget(f64),
     /// No base measurement exists for this benchmark.
@@ -47,7 +50,7 @@ pub struct Row {
 pub fn compare(
     new: &Medians,
     base: &Medians,
-    budgets_ms: &BTreeMap<String, f64>,
+    (budgets_ms, accepted): (&BTreeMap<String, f64>, &BTreeSet<String>),
     tolerance_percent: f64,
 ) -> Vec<Row> {
     let mut rows: Vec<Row> = new
@@ -60,6 +63,10 @@ pub fn compare(
                 budgets_ms.get(id).copied(),
                 tolerance_percent,
             );
+            let verdict = match verdict {
+                Verdict::Regression(change) if accepted.contains(id) => Verdict::Accepted(change),
+                other => other,
+            };
             Row {
                 id: id.clone(),
                 new_ns: Some(new_ns),

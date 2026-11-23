@@ -85,6 +85,8 @@ export type ErrorCode =
   | "CLI-103"
   | "I18N-201"
   | "EXP-201"
+  | "EXP-501"
+  | "EXP-502"
   | "EXP-601"
   | "ANN-101"
   | "ANN-102"
@@ -203,6 +205,8 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "CLI-103": { id: "CLI-103", name: "secret_input_invalid", group: "CLI", class: "invalid_input", severity: "error", retryable: false, description: "No secret could be read from the terminal or standard input, or it was empty.", since: "0.1.0", deprecated: false, messageKey: "error-CLI-103" },
   "I18N-201": { id: "I18N-201", name: "message_key_missing", group: "I18N", class: "not_found", severity: "error", retryable: false, description: "A message key is missing for the active language (falls back to English).", since: "0.1.0", deprecated: false, messageKey: "error-I18N-201" },
   "EXP-201": { id: "EXP-201", name: "export_bundle_missing", group: "EXP", class: "not_found", severity: "error", retryable: false, description: "The built export page of the UI is missing or unusable.", since: "0.1.0", deprecated: false, messageKey: "error-EXP-201" },
+  "EXP-501": { id: "EXP-501", name: "export_running", group: "EXP", class: "limit", severity: "error", retryable: true, description: "An export of the same project is already running; try again when it has ended (ADR 0090).", since: "1.0.0", deprecated: false, messageKey: "error-EXP-501" },
+  "EXP-502": { id: "EXP-502", name: "export_too_large", group: "EXP", class: "limit", severity: "error", retryable: false, description: "The project has more references than export.max_references allows, so the export page would be too large for a browser (ADR 0090).", since: "1.0.0", deprecated: false, messageKey: "error-EXP-502" },
   "EXP-601": { id: "EXP-601", name: "export_write_failed", group: "EXP", class: "external", severity: "error", retryable: false, description: "The export file could not be written.", since: "0.1.0", deprecated: false, messageKey: "error-EXP-601" },
   "ANN-101": { id: "ANN-101", name: "annotation_target_not_found", group: "ANN", class: "invalid_input", severity: "error", retryable: false, description: "The symbol an annotation is meant for is not in the newest snapshot of the project.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-101" },
   "ANN-102": { id: "ANN-102", name: "annotation_text_too_long", group: "ANN", class: "invalid_input", severity: "error", retryable: false, description: "The text or the title of an annotation is longer than the configured limit.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-102" },

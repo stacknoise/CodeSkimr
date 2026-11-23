@@ -15,6 +15,8 @@ pub const COMMAND_SERVE: &str = "serve";
 pub const COMMAND_OPEN: &str = "open";
 /// Flag of `open` that keeps the browser from starting.
 pub const ARG_NO_BROWSER: &str = "no-browser";
+/// Flag of `open` that prints the address with the one-time code (ADR 0088).
+pub const ARG_PRINT_URL: &str = "print-url";
 
 /// Flag of the bare start that keeps the program in the console window.
 pub const ARG_CONSOLE: &str = "console";

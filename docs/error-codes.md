@@ -198,6 +198,8 @@ Owner: `codeskimr_application`
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
 | EXP-201 | `export_bundle_missing` | error | no | 0.1.0 | The built export page of the UI is missing or unusable. |
+| EXP-501 | `export_running` | error | yes | 1.0.0 | An export of the same project is already running; try again when it has ended (ADR 0090). |
+| EXP-502 | `export_too_large` | error | no | 1.0.0 | The project has more references than export.max_references allows, so the export page would be too large for a browser (ADR 0090). |
 | EXP-601 | `export_write_failed` | error | no | 0.1.0 | The export file could not be written. |
 
 ## ANN – Annotations and alerts (ADR 0068)
