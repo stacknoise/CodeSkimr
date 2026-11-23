@@ -335,7 +335,8 @@ impl UsagesQuery {
     ///
     /// # Errors
     /// - `AUTH-401` if the principal lacks `read`.
-    /// - `PRJ-201`, `MCP-203` and `API-301` as the query itself.
+    /// - `PRJ-201` and `MCP-203` as the query itself. The symbol is not looked up: an unknown one
+    ///   counts nothing, the export only asks for symbols it just read.
     pub fn direct_summary(
         &self,
         principal: Principal,
