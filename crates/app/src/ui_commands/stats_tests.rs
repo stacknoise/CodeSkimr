@@ -159,3 +159,40 @@ fn an_unknown_project_is_refused() {
         Err("PRJ-201")
     );
 }
+
+#[test]
+fn commands_that_run_at_once_answer_as_they_do_one_after_the_other() {
+    // The screen asks for the overview and a ranking together; the commands load the symbols one
+    // at a time (a copy of them is several gigabytes for a large project) and must not disturb
+    // each other.
+    let fixture = Fixture::installed(None);
+    let id = project(&fixture);
+    let rank = json!({ "ranking": "most_used", "kinds": "functions" });
+    let alone = (
+        fixture
+            .call("stats.overview", json!({ "project": id }))
+            .unwrap(),
+        ranking(&fixture, id, &rank),
+    );
+    std::thread::scope(|scope| {
+        let handles: Vec<_> = (0..4)
+            .map(|turn| {
+                let (fixture, rank) = (&fixture, &rank);
+                scope.spawn(move || {
+                    if turn % 2 == 0 {
+                        fixture
+                            .call("stats.overview", json!({ "project": id }))
+                            .unwrap()
+                    } else {
+                        ranking(fixture, id, rank)
+                    }
+                })
+            })
+            .collect();
+        for (turn, handle) in handles.into_iter().enumerate() {
+            let answer = handle.join().unwrap();
+            let expected = if turn % 2 == 0 { &alone.0 } else { &alone.1 };
+            assert_eq!(&answer, expected);
+        }
+    });
+}

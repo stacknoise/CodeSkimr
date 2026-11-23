@@ -67,3 +67,6 @@ export const BREAK_AFTER = /(?<=[._:])/;
 
 /** The ARIA role of a note that screen readers announce at once. */
 export const ALERT_ROLE = "alert";
+
+/** How long an answer may take before the screen says that it is still loading, in milliseconds. */
+export const SLOW_LOAD_DELAY_MS = 1000;

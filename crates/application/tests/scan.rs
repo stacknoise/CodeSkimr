@@ -498,6 +498,30 @@ impl MemoryGauge for FixedGauge {
     }
 }
 
+/// A gauge that reports `before` once, at the start of the watch, and `now` from then on.
+struct GrowingGauge {
+    reads: std::sync::atomic::AtomicU32,
+    before: u64,
+    now: u64,
+}
+
+impl GrowingGauge {
+    fn new(before: u64, now: u64) -> Self {
+        Self {
+            reads: std::sync::atomic::AtomicU32::new(0),
+            before,
+            now,
+        }
+    }
+}
+
+impl MemoryGauge for GrowingGauge {
+    fn used_mb(&self) -> Option<u64> {
+        let reads = self.reads.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        Some(if reads == 0 { self.before } else { self.now })
+    }
+}
+
 fn scanner(world: &Arc<World>, bus: &EventBus) -> Scanner {
     scanner_with(world, bus, None)
 }
@@ -2411,7 +2435,10 @@ fn memory_run(used_mb: u64, max_mb: u64) -> (JobResult, Arc<World>) {
         ..World::default()
     });
     let limit = MemoryLimit::new(
-        Arc::new(FixedGauge(used_mb)),
+        Arc::new(GrowingGauge::new(
+            used_mb.saturating_sub(max_mb + 1),
+            used_mb,
+        )),
         max_mb,
         std::time::Duration::from_millis(1),
     );

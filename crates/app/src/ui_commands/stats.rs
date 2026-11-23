@@ -15,8 +15,7 @@ use codeskimr_application::ports::{CodeIndex, CodeStatistics, ProjectRepository}
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_domain::{
     Assessment, KindGroup, LanguageId, Permission, ProjectId, Ranking, RankingQuery, Snapshot,
-    SymbolFacts, SymbolId, UsageOrder, UsageTally, Visibility, complexity_histogram, mark_tests,
-    rank,
+    SymbolFacts, SymbolId, UsageOrder, UsageTally, Visibility, complexity_histogram, rank,
 };
 use serde::{Deserialize, Serialize};
 
@@ -300,20 +299,24 @@ fn count(value: usize) -> u32 {
     u32::try_from(value).unwrap_or(u32::MAX)
 }
 
+/// The newest snapshot of a project with the shared facts of its symbols.
+type SnapshotFacts = (Snapshot, Arc<Vec<SymbolFacts>>);
+
 impl StatsPorts {
     /// The newest snapshot of the project and the facts of its symbols, with test code marked;
-    /// `None` before the first scan.
+    /// `None` before the first scan. The facts are shared by all views and loaded once.
     ///
     /// # Errors
     /// `PRJ-201` for an unknown project, a coded `STO` failure.
-    fn facts(&self, project: u64) -> Result<Option<(Snapshot, Vec<SymbolFacts>)>, CodedError> {
+    fn facts(&self, project: u64) -> Result<Option<SnapshotFacts>, CodedError> {
         let id = ProjectId::new(project);
         self.projects.project(id)?;
         let Some(snapshot) = self.index.latest_snapshot(id)? else {
             return Ok(None);
         };
-        let mut facts = self.statistics.symbol_facts(snapshot.id)?;
-        mark_tests(&mut facts, &self.test_names);
+        let facts = self
+            .statistics
+            .shared_facts(snapshot.id, &self.test_names)?;
         Ok(Some((snapshot, facts)))
     }
 

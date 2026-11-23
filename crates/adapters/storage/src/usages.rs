@@ -20,11 +20,11 @@ use codeskimr_domain::{
 use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::codec::{Cols, column_int, id_from, label_from, small_from};
-use crate::consts::PRAGMA_DATA_VERSION;
+use crate::consts::{KEPT_LOOKUPS, PRAGMA_DATA_VERSION};
 use crate::error::{StorageError, StorageResult};
 use crate::lookup::SnapshotLookup;
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::{Build, BuildGate, SqliteStore};
 
 impl SqliteStore {
     /// The reverse index of a snapshot, built on first use. A snapshot that is not stored (never
@@ -38,17 +38,48 @@ impl SqliteStore {
         if stored == 0 {
             return Ok(Arc::new(SnapshotLookup::default()));
         }
-        let mut cached = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
         let version = self.read(data_version)?;
-        if let Some((id, index, built_at)) = cached.as_ref()
-            && *id == snapshot
-            && *built_at == version
-        {
-            return Ok(Arc::clone(index));
+        if let Some(found) = self.kept(snapshot, version) {
+            return Ok(found);
+        }
+        let gate = self.build_gate(raw, Build::Index);
+        let _building = gate.lock().unwrap_or_else(PoisonError::into_inner);
+        // Another caller may have built it while this one waited for the gate.
+        if let Some(found) = self.kept(snapshot, version) {
+            return Ok(found);
         }
         let loaded = Arc::new(self.read_apart(|conn| SnapshotLookup::load(conn, raw))?);
-        *cached = Some((snapshot, Arc::clone(&loaded), version));
+        self.keep(snapshot, (&loaded, version));
         Ok(loaded)
+    }
+
+    /// The kept index of `snapshot` if it was built at `version`; it becomes the newest.
+    fn kept(&self, snapshot: SnapshotId, version: i64) -> Option<Arc<SnapshotLookup>> {
+        let mut kept = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
+        let at = kept
+            .iter()
+            .position(|(id, _, built_at)| *id == snapshot && *built_at == version)?;
+        let entry = kept.remove(at);
+        let found = Arc::clone(&entry.1);
+        kept.insert(0, entry);
+        Some(found)
+    }
+
+    /// Keeps the index of `snapshot` as the newest, instead of any older one of the same
+    /// snapshot; the oldest ones beyond `KEPT_LOOKUPS` go.
+    fn keep(&self, snapshot: SnapshotId, (loaded, version): (&Arc<SnapshotLookup>, i64)) {
+        let mut kept = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
+        kept.retain(|(id, _, _)| *id != snapshot);
+        kept.insert(0, (snapshot, Arc::clone(loaded), version));
+        kept.truncate(KEPT_LOOKUPS);
+    }
+
+    /// The lock that serialises the builds of one snapshot.
+    pub(crate) fn build_gate(&self, snapshot: i64, what: Build) -> BuildGate {
+        let mut gates = self.builds.lock().unwrap_or_else(PoisonError::into_inner);
+        // A gate nobody holds is dropped, so the map does not grow with every snapshot.
+        gates.retain(|_, gate| Arc::strong_count(gate) > 1);
+        Arc::clone(gates.entry((snapshot, what)).or_default())
     }
 
     /// Builds the index of `snapshot` ahead of the first query, which would otherwise wait for it
@@ -76,46 +107,68 @@ impl SqliteStore {
         }
     }
 
-    /// The snapshot whose index is kept in memory, if any.
+    /// The snapshot whose index was asked about last and is kept in memory, if any.
     #[must_use]
     pub fn kept_snapshot(&self) -> Option<SnapshotId> {
-        let cached = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
-        cached.as_ref().map(|(id, _, _)| *id)
+        let kept = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
+        kept.first().map(|(id, _, _)| *id)
     }
 
-    /// Replaces the kept index after a write: the references of the snapshot may have changed
-    /// (level 2 replaces them), or a newer snapshot of the same project has taken the place of
-    /// the one that was asked about. Only a store that has answered a query builds it again, so
-    /// that a scan nobody queries pays nothing, and the index of another project stays. Queries
-    /// of this store wait for the build, as they would for the load of the first query. A failure
-    /// drops the index, to be built by the next query.
+    /// Replaces the kept index of the project of `snapshot` after a write: the references of the
+    /// snapshot may have changed (level 2 replaces them), or a newer snapshot of the same project
+    /// has taken the place of the one that was asked about. Only a store that has answered a
+    /// query for that project builds it again, so that a scan nobody queries pays nothing, and
+    /// the index of another project stays. A failure drops the replaced indexes, to be built by
+    /// the next query.
     pub(crate) fn refresh_lookup(&self, snapshot: SnapshotId) {
-        let mut cached = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
-        let Some((kept, _, _)) = cached.as_ref() else {
+        let Ok(raw) = column_int(snapshot.get()) else {
             return;
         };
-        let (kept, raw) = (*kept, column_int(snapshot.get()));
-        let loaded = raw.and_then(|raw| {
-            let version = self.read(|conn| {
-                let version = data_version(conn)?;
-                let other = project_of(conn, column_int(kept.get())?)?;
-                if other.is_some() && other != project_of(conn, raw)? {
-                    return Ok(None);
-                }
-                Ok(Some(version))
-            })?;
-            version
-                .map(|version| {
-                    self.read_apart(|conn| SnapshotLookup::load(conn, raw))
-                        .map(|loaded| (loaded, version))
-                })
-                .transpose()
-        });
-        match loaded {
-            Ok(Some((loaded, version))) => *cached = Some((snapshot, Arc::new(loaded), version)),
-            Ok(None) => {}
-            Err(_) => *cached = None,
+        // The gate first: a build that is still running for this snapshot has read the references
+        // before this write, so it is waited for, found in the list below and built again.
+        let gate = self.build_gate(raw, Build::Index);
+        let _building = gate.lock().unwrap_or_else(PoisonError::into_inner);
+        self.facts
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clear();
+        let replaced = self.kept_of_project_of(raw);
+        if replaced.is_empty() {
+            return;
         }
+        let loaded = self.read(data_version).and_then(|version| {
+            self.read_apart(|conn| SnapshotLookup::load(conn, raw))
+                .map(|loaded| (Arc::new(loaded), version))
+        });
+        let mut kept = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
+        kept.retain(|(id, _, _)| !replaced.contains(id) && *id != snapshot);
+        if let Ok((loaded, version)) = loaded {
+            kept.insert(0, (snapshot, loaded, version));
+            kept.truncate(KEPT_LOOKUPS);
+        }
+    }
+
+    /// The kept snapshots that belong to the project of snapshot `raw`, or to no known project.
+    fn kept_of_project_of(&self, raw: i64) -> Vec<SnapshotId> {
+        let ids: Vec<SnapshotId> = {
+            let kept = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
+            kept.iter().map(|(id, _, _)| *id).collect()
+        };
+        let affected = self.read(|conn| {
+            let own = project_of(conn, raw)?;
+            Ok(ids
+                .iter()
+                .filter(|id| {
+                    let other = column_int(id.get())
+                        .ok()
+                        .and_then(|other| project_of(conn, other).ok().flatten());
+                    other.is_none() || other == own
+                })
+                .copied()
+                .collect())
+        });
+        // When the projects cannot be read, every kept index counts as affected and is built again.
+        affected.unwrap_or(ids)
     }
 
     fn usage_page(

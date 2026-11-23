@@ -1,9 +1,10 @@
 //! The `SQLite` connection and the unit of work.
 
+use std::collections::HashMap;
 use std::fs;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
 use std::time::Duration;
 
 use codeskimr_application::error::CodedError;
@@ -58,12 +59,42 @@ pub struct SqliteStore {
     /// to the queries of the screens; `None` for an in-memory database.
     file: Option<PathBuf>,
     retention: NonZeroU32,
-    /// The reverse index and the places of the snapshot that was asked about last. They are kept
-    /// only while no other connection has committed since (`data_version`): the level 2 import of
-    /// a scan from the browser or of `codeskimr scan` replaces the references of a snapshot
-    /// through its own store.
-    pub(crate) reverse: Mutex<Option<KeptLookup>>,
+    /// The reverse indexes and the places of the snapshots that were asked about last, the
+    /// newest first, at most `KEPT_LOOKUPS`: a small project that is opened next to a large one
+    /// does not push it out, and a build of one does not make the other wait. They are kept only
+    /// while no other connection has committed since (`data_version`): the level 2 import of a
+    /// scan from the browser or of `codeskimr scan` replaces the references of a snapshot through
+    /// its own store. The lock is held for a look into the list, never during a build.
+    pub(crate) reverse: Mutex<Vec<KeptLookup>>,
+    /// One lock per snapshot whose index is built: a second caller for the same snapshot waits
+    /// for the first and finds its result; callers for other snapshots do not wait.
+    pub(crate) builds: Mutex<HashMap<(i64, Build), BuildGate>>,
+    /// The facts of the symbols for the statistics of the snapshots that were asked about last,
+    /// newest first, at most `KEPT_LOOKUPS`; each is marked with the test folders it was built
+    /// for and kept for the lookup it was built from. A write drops them with the lookups.
+    pub(crate) facts: Mutex<Vec<KeptFacts>>,
 }
+
+/// The lock of one build.
+pub(crate) type BuildGate = Arc<Mutex<()>>;
+
+/// What a build gate guards: the reverse index of a snapshot or the facts of its symbols.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum Build {
+    /// The reverse index (`SnapshotLookup`).
+    Index,
+    /// The facts for the statistics.
+    Facts,
+}
+
+/// What [`SqliteStore`] keeps for the statistics: the lookup the usage counts come from, the
+/// names of the test folders, and the facts.
+pub(crate) type KeptFacts = (
+    SnapshotId,
+    Weak<crate::lookup::SnapshotLookup>,
+    Vec<String>,
+    Arc<Vec<codeskimr_domain::SymbolFacts>>,
+);
 
 /// What [`SqliteStore`] keeps of the reverse index: the snapshot, its lookup and the
 /// `data_version` of the database when it was built.
@@ -138,7 +169,9 @@ impl SqliteStore {
             conn: Mutex::new(conn),
             file,
             retention,
-            reverse: Mutex::new(None),
+            reverse: Mutex::new(Vec::new()),
+            builds: Mutex::new(HashMap::new()),
+            facts: Mutex::new(Vec::new()),
         })
     }
 

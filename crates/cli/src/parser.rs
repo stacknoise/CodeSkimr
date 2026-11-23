@@ -9,9 +9,9 @@ use clap::{Arg, ArgAction, ArgMatches, Command};
 use codeskimr_codes::i18n::{
     CLI_ABOUT, CLI_ARG_BRANCH, CLI_ARG_CONFIG, CLI_ARG_CONSOLE, CLI_ARG_DATA_DIR,
     CLI_ARG_EXPORT_PROJECT, CLI_ARG_HTML, CLI_ARG_JSON, CLI_ARG_LANGUAGES, CLI_ARG_NO_BROWSER,
-    CLI_ARG_PATHS, CLI_ARG_PROJECT, CLI_ARG_SCAN_CREDENTIAL, CLI_ARG_SET, CLI_ARG_SOURCE,
-    CLI_ARG_WATCH, CLI_CMD_CHECK, CLI_CMD_EXPORT, CLI_CMD_MCP, CLI_CMD_OPEN, CLI_CMD_SCAN,
-    CLI_CMD_SERVE,
+    CLI_ARG_PATHS, CLI_ARG_PRINT_URL, CLI_ARG_PROJECT, CLI_ARG_SCAN_CREDENTIAL, CLI_ARG_SET,
+    CLI_ARG_SOURCE, CLI_ARG_WATCH, CLI_CMD_CHECK, CLI_CMD_EXPORT, CLI_CMD_MCP, CLI_CMD_OPEN,
+    CLI_CMD_SCAN, CLI_CMD_SERVE,
 };
 use codeskimr_i18n::Messages;
 
@@ -22,11 +22,11 @@ use crate::args::{
 use crate::consent;
 use crate::consts::{
     ARG_BRANCH, ARG_CONFIG, ARG_CONSOLE, ARG_CREDENTIAL, ARG_DATA_DIR, ARG_EXPORT_PROJECT,
-    ARG_HTML, ARG_JSON, ARG_LANGUAGES, ARG_NO_BROWSER, ARG_PATHS, ARG_PROJECT, ARG_SET, ARG_SOURCE,
-    ARG_WATCH, BINARY_NAME, COMMAND_ALERTS, COMMAND_ANNOTATIONS, COMMAND_CHECK, COMMAND_CREDENTIAL,
-    COMMAND_EXPORT, COMMAND_LEVEL2, COMMAND_MCP, COMMAND_OPEN, COMMAND_SCAN, COMMAND_SERVE,
-    OVERRIDE_SEPARATOR, VALUE_BRANCH, VALUE_DIR, VALUE_EXPORT_PROJECT, VALUE_FILE, VALUE_ID,
-    VALUE_OVERRIDE, VALUE_PATH, VALUE_SOURCE, VERSION,
+    ARG_HTML, ARG_JSON, ARG_LANGUAGES, ARG_NO_BROWSER, ARG_PATHS, ARG_PRINT_URL, ARG_PROJECT,
+    ARG_SET, ARG_SOURCE, ARG_WATCH, BINARY_NAME, COMMAND_ALERTS, COMMAND_ANNOTATIONS,
+    COMMAND_CHECK, COMMAND_CREDENTIAL, COMMAND_EXPORT, COMMAND_LEVEL2, COMMAND_MCP, COMMAND_OPEN,
+    COMMAND_SCAN, COMMAND_SERVE, OVERRIDE_SEPARATOR, VALUE_BRANCH, VALUE_DIR, VALUE_EXPORT_PROJECT,
+    VALUE_FILE, VALUE_ID, VALUE_OVERRIDE, VALUE_PATH, VALUE_SOURCE, VERSION,
 };
 use crate::credential;
 use crate::error::CliError;
@@ -82,13 +82,25 @@ fn definition(messages: &Messages, language: &str) -> Result<Command, CliError> 
                 .arg(path_arg(ARG_PROJECT, VALUE_DIR, say(CLI_ARG_PROJECT)?)),
         )
         .subcommand(Command::new(COMMAND_SERVE).about(say(CLI_CMD_SERVE)?))
-        .subcommand(
-            Command::new(COMMAND_OPEN).about(say(CLI_CMD_OPEN)?).arg(
-                Arg::new(ARG_NO_BROWSER)
-                    .long(ARG_NO_BROWSER)
-                    .action(ArgAction::SetTrue)
-                    .help(say(CLI_ARG_NO_BROWSER)?),
-            ),
+        .subcommand(open_command(messages, language)?))
+}
+
+fn open_command(messages: &Messages, language: &str) -> Result<Command, CliError> {
+    let say = |key: &str| text(messages, language, key);
+    Ok(Command::new(COMMAND_OPEN)
+        .about(say(CLI_CMD_OPEN)?)
+        .arg(
+            Arg::new(ARG_NO_BROWSER)
+                .long(ARG_NO_BROWSER)
+                .action(ArgAction::SetTrue)
+                .help(say(CLI_ARG_NO_BROWSER)?),
+        )
+        .arg(
+            Arg::new(ARG_PRINT_URL)
+                .long(ARG_PRINT_URL)
+                .action(ArgAction::SetTrue)
+                .requires(ARG_NO_BROWSER)
+                .help(say(CLI_ARG_PRINT_URL)?),
         ))
 }
 
@@ -201,6 +213,7 @@ fn invocation(matches: &ArgMatches) -> Result<Invocation, CliError> {
         Some((COMMAND_CHECK, check)) => Action::Check(check_args(check)),
         Some((COMMAND_OPEN, open)) => Action::Open(OpenArgs {
             no_browser: open.get_flag(ARG_NO_BROWSER),
+            print_url: open.get_flag(ARG_PRINT_URL),
         }),
         Some((COMMAND_EXPORT, export)) => Action::Export(export_args(export)),
         None => Action::Start(StartArgs {

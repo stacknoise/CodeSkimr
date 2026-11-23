@@ -85,4 +85,35 @@ mod tests {
         let facts = store().symbol_facts(SNAPSHOT).unwrap();
         assert!(facts.iter().all(|fact| fact.test));
     }
+
+    #[test]
+    fn the_shared_facts_are_loaded_once_and_marked_with_the_test_folders() {
+        let store = store();
+        let none: Vec<String> = Vec::new();
+        let first = store.shared_facts(SNAPSHOT, &none).unwrap();
+        let again = store.shared_facts(SNAPSHOT, &none).unwrap();
+        assert!(std::sync::Arc::ptr_eq(&first, &again));
+        assert_eq!(first.len(), 3);
+        // Other test folders ask for their own marking, never a copy marked for different ones.
+        let named = vec!["app".to_owned()];
+        let other = store.shared_facts(SNAPSHOT, &named).unwrap();
+        assert!(!std::sync::Arc::ptr_eq(&first, &other));
+    }
+
+    #[test]
+    fn callers_at_the_same_time_share_one_load() {
+        let store = store();
+        let none: Vec<String> = Vec::new();
+        let loaded: Vec<_> = std::thread::scope(|scope| {
+            let runs: Vec<_> = (0..4)
+                .map(|_| scope.spawn(|| store.shared_facts(SNAPSHOT, &none).unwrap()))
+                .collect();
+            runs.into_iter().map(|run| run.join().unwrap()).collect()
+        });
+        assert!(
+            loaded
+                .iter()
+                .all(|facts| std::sync::Arc::ptr_eq(facts, &loaded[0]))
+        );
+    }
 }

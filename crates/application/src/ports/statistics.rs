@@ -13,4 +13,17 @@ pub trait CodeStatistics: Send + Sync {
     /// # Errors
     /// A coded failure of the `STO` group.
     fn symbol_facts(&self, snapshot: SnapshotId) -> Result<Vec<SymbolFacts>, CodedError>;
+
+    /// The same symbols, with test code marked (by the files and by `test_names`, the names of
+    /// folders and modules that hold tests), shared: they are loaded once and kept until the
+    /// usages of the snapshot change, so every statistics view reads the same copy. A second
+    /// caller that comes while they load waits for them.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn shared_facts(
+        &self,
+        snapshot: SnapshotId,
+        test_names: &[String],
+    ) -> Result<std::sync::Arc<Vec<SymbolFacts>>, CodedError>;
 }

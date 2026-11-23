@@ -2,20 +2,22 @@
 //! values (ADR 0081). The usage counts come from the reverse index that is kept in memory.
 
 use std::collections::HashMap;
+use std::sync::{Arc, PoisonError};
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::CodeStatistics;
 use codeskimr_domain::{
     FileId, LanguageId, Measures, MetricKind, QualifiedName, RelativePath, SnapshotId, SymbolFacts,
-    SymbolId, SymbolName, UsageTally,
+    SymbolId, SymbolName, UsageTally, mark_tests,
 };
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, column_int, id_from, label_from};
+use crate::consts::KEPT_LOOKUPS;
 use crate::error::StorageResult;
 use crate::lookup::SnapshotLookup;
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::{Build, SqliteStore};
 
 /// The columns of `STATISTICS_SYMBOLS`, still raw.
 struct FactRow {
@@ -117,6 +119,64 @@ impl CodeStatistics for SqliteStore {
     fn symbol_facts(&self, snapshot: SnapshotId) -> Result<Vec<SymbolFacts>, CodedError> {
         let lookup = self.lookup(snapshot)?;
         let raw = column_int(snapshot.get())?;
-        Ok(self.read(|conn| load_facts(conn, raw, &lookup))?)
+        // The load takes long for a large project: it runs on a connection of its own, so the
+        // other screens are not held up by it.
+        Ok(self.read_apart(|conn| load_facts(conn, raw, &lookup))?)
+    }
+
+    fn shared_facts(
+        &self,
+        snapshot: SnapshotId,
+        test_names: &[String],
+    ) -> Result<Arc<Vec<SymbolFacts>>, CodedError> {
+        let lookup = self.lookup(snapshot)?;
+        if let Some(found) = self.kept_facts(snapshot, &lookup, test_names) {
+            return Ok(found);
+        }
+        // One load per snapshot at a time: a second caller waits for the first and gets its
+        // result; the facts of another snapshot do not wait.
+        let raw = column_int(snapshot.get())?;
+        let gate = self.build_gate(raw, Build::Facts);
+        let _loading = gate.lock().unwrap_or_else(PoisonError::into_inner);
+        if let Some(found) = self.kept_facts(snapshot, &lookup, test_names) {
+            return Ok(found);
+        }
+        let mut loaded = self.symbol_facts(snapshot)?;
+        mark_tests(&mut loaded, test_names);
+        let loaded = Arc::new(loaded);
+        let mut kept = self.facts.lock().unwrap_or_else(PoisonError::into_inner);
+        kept.retain(|(id, ..)| *id != snapshot);
+        kept.insert(
+            0,
+            (
+                snapshot,
+                Arc::downgrade(&lookup),
+                test_names.to_vec(),
+                Arc::clone(&loaded),
+            ),
+        );
+        kept.truncate(KEPT_LOOKUPS);
+        Ok(loaded)
+    }
+}
+
+impl SqliteStore {
+    /// The kept facts of `snapshot` if they were built from `lookup` for these test folders.
+    fn kept_facts(
+        &self,
+        snapshot: SnapshotId,
+        lookup: &Arc<SnapshotLookup>,
+        test_names: &[String],
+    ) -> Option<Arc<Vec<SymbolFacts>>> {
+        let kept = self.facts.lock().unwrap_or_else(PoisonError::into_inner);
+        kept.iter()
+            .find(|(id, from, names, _)| {
+                *id == snapshot
+                    && names.as_slice() == test_names
+                    && from
+                        .upgrade()
+                        .is_some_and(|held| Arc::ptr_eq(&held, lookup))
+            })
+            .map(|(.., facts)| Arc::clone(facts))
     }
 }
