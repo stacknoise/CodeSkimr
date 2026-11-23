@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { safeInScript } from "../../vite.export";
+import { safeInScript, swapFor, swaps } from "../../vite.export";
 
 describe("code that goes into the page", () => {
   it("cannot end the script element or open a comment", () => {
@@ -11,5 +11,15 @@ describe("code that goes into the page", () => {
   it("keeps the meaning of a string", () => {
     const safe = safeInScript('x="</script>"');
     expect(eval(safe.replace("x=", "(") + ")")).toBe("</script>");
+  });
+});
+
+describe("the modules the export swaps", () => {
+  it("are found by an id with backslashes too, as Windows writes it", () => {
+    const table = swaps("/work/web/src");
+    expect([...table.keys()].every((key) => !key.includes("\\"))).toBe(true);
+    expect(swapFor(table, "/work/web/src/shared/api/commands.ts")).not.toBeNull();
+    expect(swapFor(table, "\\work\\web\\src\\shared\\api\\commands.ts")).not.toBeNull();
+    expect(swapFor(table, "/work/web/src/shared/api/client.ts")).toBeNull();
   });
 });

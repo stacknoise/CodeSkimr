@@ -6,6 +6,7 @@ import { expect, openScannedProject, shot, test } from "./fixtures";
 
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/export");
 const THEMES = ["hell", "petrol", "dunkel"];
+const SERVER_API = "/api/v1/";
 const SECRET_BODY = "return a + b;";
 const SOURCE = `namespace Shop;\n\npublic class Basket\n{\n    public int Total(int a, int b) { ${SECRET_BODY} }\n}\n`;
 
@@ -27,8 +28,23 @@ for (const theme of THEMES) {
     const html = readFileSync((await file.path()) ?? "", "utf8");
     expect(html).toContain("Basket");
     expect(html).not.toContain(SECRET_BODY);
+    expect(html).not.toContain(SERVER_API);
   });
 }
+
+test("the downloaded page opens from disk and asks no server", async ({ page, harness }) => {
+  await openScannedProject(page, harness, "exportoffline", SOURCE);
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export HTML" }).click();
+  const saved = (await (await download).path()) ?? "";
+  const offline = await page.context().newPage();
+  const requests: string[] = [];
+  offline.on("request", (request) => requests.push(request.url()));
+  await offline.goto(`file://${saved}`);
+  await expect(offline.getByText("Basket").first()).toBeVisible();
+  expect(requests.filter((url) => !url.startsWith("file:"))).toEqual([]);
+  expect(requests.filter((url) => url.includes(SERVER_API))).toEqual([]);
+});
 
 test("the quick search offers the export", async ({ page, harness }) => {
   await openScannedProject(page, harness, "exportsearch", SOURCE);

@@ -1,22 +1,37 @@
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
 
+const BACKSLASH = /\\/g;
+
+/** The path with forward slashes, the way Vite names modules. */
+function normalizePath(path: string): string {
+  return path.replace(BACKSLASH, "/");
+}
+
 /** Names the file that ends the script element in a bundle, and the one that opens a comment in
  * it: neither may stand in the page as it is. */
 const SCRIPT_END = /<\/(script)/gi;
 const COMMENT_START = /<!--/g;
 
 /** The modules of the app that the export swaps for its own: the call of the server and the
- * router. The screens import them as usual and do not know the difference. */
-function swaps(src: string): Map<string, string> {
+ * router. The screens import them as usual and do not know the difference. The paths use forward
+ * slashes, because the ids of Vite do, on Windows too (a path from `resolve` has backslashes
+ * there, and the swap silently did not happen: the page then called the server). */
+export function swaps(src: string): Map<string, string> {
   return new Map([
-    [resolve(src, "shared/api/commands.ts"), resolve(src, "export/commands.ts")],
-    [resolve(src, "app/router.ts"), resolve(src, "export/router.ts")],
+    [normalizePath(resolve(src, "shared/api/commands.ts")), resolve(src, "export/commands.ts")],
+    [normalizePath(resolve(src, "app/router.ts")), resolve(src, "export/router.ts")],
   ]);
+}
+
+/** Looks up the swap of a resolved module id. */
+export function swapFor(table: Map<string, string>, id: string): string | null {
+  return table.get(normalizePath(id)) ?? null;
 }
 
 function swapModules(src: string): Plugin {
   const table = swaps(src);
+  const done = new Set<string>();
   return {
     name: "codeskimr-export-swap",
     enforce: "pre",
@@ -25,7 +40,16 @@ function swapModules(src: string): Plugin {
         return null;
       }
       const found = await this.resolve(source, importer, { ...options, skipSelf: true });
-      return found ? (table.get(found.id) ?? null) : null;
+      const swapped = found ? swapFor(table, found.id) : null;
+      if (swapped !== null) {
+        done.add(swapped);
+      }
+      return swapped;
+    },
+    buildEnd() {
+      if (done.size !== table.size) {
+        this.error("the export build did not swap the call of the server and the router");
+      }
     },
   };
 }
