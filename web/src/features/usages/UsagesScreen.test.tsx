@@ -59,6 +59,27 @@ describe("UsagesScreen", () => {
     expect(await screen.findByText("No symbol chosen")).toBeTruthy();
   });
 
+  it("forgets a symbol chosen in another project while the screen was closed", async () => {
+    const view = shown();
+    await screen.findByRole("heading", { name: "Cart.Total" });
+    view.unmount();
+    openProject(2);
+    render(() => <UsagesScreen />);
+    expect(await screen.findByText("No symbol chosen")).toBeTruthy();
+    expect(focusSymbol()).toBeNull();
+  });
+
+  it("does not show the answer of another project while the new one is read", async () => {
+    const view = shown();
+    await screen.findByRole("heading", { name: "Cart.Total" });
+    view.unmount();
+    openProject(2);
+    fetchMock.mockImplementation(() => new Promise<Response>(() => undefined));
+    showUsages(77);
+    render(() => <UsagesScreen />);
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Cart.Total" })).toBeNull());
+  });
+
   it("widens the side panel and keeps the width for the next visit", async () => {
     shown();
     await screen.findByRole("heading", { name: "Cart.Total" });

@@ -1,6 +1,7 @@
 import { createSignal } from "solid-js";
 import { USAGES_ROUTE } from "../../app/consts";
 import { navigate } from "../../app/router";
+import { activeProject } from "../project/active";
 
 /** A type, or a member of it. */
 export interface TypeFocus {
@@ -19,6 +20,7 @@ export type Focus = TypeFocus | RowFocus;
 
 const [pending, setPending] = createSignal<Focus | null>(null);
 const [usagesSymbol, setUsagesSymbol] = createSignal<number | null>(null);
+const [usagesProject, setUsagesProject] = createSignal<number | null>(null);
 const [usagesOrigin, setUsagesOrigin] = createSignal<number | null>(null);
 const [usagesBack, setUsagesBack] = createSignal<TypeFocus | null>(null);
 
@@ -29,7 +31,13 @@ export const requestFocus = setPending;
 /** The symbol the usages screen shows, `null` until one is chosen. */
 export const focusSymbol = usagesSymbol;
 /** Sets or forgets the symbol of the usages screen without leaving the current screen. */
-export const setFocusSymbol = setUsagesSymbol;
+export function setFocusSymbol(symbol: number | null): void {
+  setUsagesProject(symbol === null ? null : activeProject());
+  setUsagesSymbol(symbol);
+}
+/** The project that was open when the symbol of the usages screen was chosen: a symbol chosen in
+ * another project is not shown. */
+export const focusProject = usagesProject;
 
 /** The symbol the user left the explorer from to reach the usages screen; the way back leads to
  * it, however far the user moved through the graph meanwhile. `null` until one is chosen. */
@@ -48,11 +56,11 @@ export function clearOrigin(): void {
 export function showUsages(symbol: number, back: TypeFocus | null = null): void {
   setUsagesOrigin(symbol);
   setUsagesBack(back);
-  setUsagesSymbol(symbol);
+  setFocusSymbol(symbol);
   navigate(USAGES_ROUTE.path);
 }
 
 /** Moves the usages screen to another symbol, from a card of the graph; the way back stays. */
 export function moveUsages(symbol: number): void {
-  setUsagesSymbol(symbol);
+  setFocusSymbol(symbol);
 }

@@ -13,10 +13,11 @@ use codeskimr_domain::SnapshotId;
 use rusqlite::{Connection, ErrorCode, OpenFlags, Transaction, TransactionBehavior};
 
 use crate::consts::{
-    BUSY_TIMEOUT_MS, CACHE_SIZE_KIB, FIRST_ID, ID_STEP, JOURNAL_MODE_WAL, KEPT_BUILDS,
-    LOG_READ_CONNECTION_UNAVAILABLE, PRAGMA_CACHE_SIZE, PRAGMA_FOREIGN_KEYS, PRAGMA_JOURNAL_MODE,
-    PRAGMA_MAX_PAGE_COUNT, PRAGMA_ON, PRAGMA_PAGE_COUNT, PRAGMA_SYNCHRONOUS, PRAGMA_TEMP_STORE,
-    SYNCHRONOUS_NORMAL, TEMP_STORE_MEMORY, WAL_SWITCH_ATTEMPTS, WAL_SWITCH_PAUSE_MS,
+    BUSY_TIMEOUT_MS, CACHE_SIZE_KIB, FIRST_ID, ID_STEP, IDLE_READERS, JOURNAL_MODE_WAL,
+    KEPT_BUILDS, LOG_READ_CONNECTION_UNAVAILABLE, PRAGMA_CACHE_SIZE, PRAGMA_FOREIGN_KEYS,
+    PRAGMA_JOURNAL_MODE, PRAGMA_MAX_PAGE_COUNT, PRAGMA_ON, PRAGMA_PAGE_COUNT, PRAGMA_SYNCHRONOUS,
+    PRAGMA_TEMP_STORE, SYNCHRONOUS_NORMAL, TEMP_STORE_MEMORY, WAL_SWITCH_ATTEMPTS,
+    WAL_SWITCH_PAUSE_MS,
 };
 use crate::error::StorageResult;
 use crate::sql;
@@ -80,6 +81,20 @@ pub struct SqliteStore {
     /// Counts the writes of this store that may have changed references, so that a build that
     /// was running during one does not keep what it read before it.
     pub(crate) writes: AtomicU64,
+    /// Read-only connections that are not in use, kept so that a read apart does not open the
+    /// file every time; at most `IDLE_READERS`.
+    readers: Mutex<Vec<Connection>>,
+}
+
+/// Runs `work` as one read transaction on `conn`.
+fn in_read_transaction<T>(
+    conn: &Connection,
+    work: impl FnOnce(&Connection) -> StorageResult<T>,
+) -> StorageResult<T> {
+    let tx = conn.unchecked_transaction()?;
+    let value = work(&tx)?;
+    tx.commit()?;
+    Ok(value)
 }
 
 /// The lock of one build.
@@ -236,6 +251,7 @@ impl SqliteStore {
             facts: Mutex::new(Vec::new()),
             walks: Mutex::new(Vec::new()),
             writes: AtomicU64::new(0),
+            readers: Mutex::new(Vec::new()),
         })
     }
 
@@ -304,21 +320,39 @@ impl SqliteStore {
         let Some(file) = self.file.as_deref() else {
             return self.read(work);
         };
-        let opened = Connection::open_with_flags(
-            file,
-            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        let idle = self
+            .readers
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .pop();
+        let opened = idle.map_or_else(
+            || {
+                Connection::open_with_flags(
+                    file,
+                    OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+                )
+            },
+            Ok,
         );
         match opened {
             Ok(conn) => {
-                let tx = conn.unchecked_transaction()?;
-                let value = work(&tx)?;
-                tx.commit()?;
+                let value = in_read_transaction(&conn, work)?;
+                self.keep_reader(conn);
                 Ok(value)
             }
             Err(cause) => {
                 tracing::warn!(event = LOG_READ_CONNECTION_UNAVAILABLE, %cause);
                 self.read(work)
             }
+        }
+    }
+
+    /// Keeps a read-only connection for the next read apart, unless enough are kept already. A
+    /// connection whose read failed is not kept.
+    fn keep_reader(&self, conn: Connection) {
+        let mut idle = self.readers.lock().unwrap_or_else(PoisonError::into_inner);
+        if idle.len() < IDLE_READERS {
+            idle.push(conn);
         }
     }
 

@@ -164,3 +164,6 @@ pub const KEPT_BUILDS: usize = 2;
 /// How many walks of usages and impact keep their references in memory at once: the reads of one
 /// question to the screen (both directions, the direct usages, the impact).
 pub const KEPT_WALKS: usize = 4;
+
+/// How many read-only connections stay open between the reads that run apart.
+pub const IDLE_READERS: usize = 4;
