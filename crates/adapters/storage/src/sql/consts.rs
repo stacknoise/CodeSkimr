@@ -63,15 +63,24 @@ pub const REFERENCE_TALLY_ROWS: &str = "SELECT file_id, from_symbol, to_symbol, 
     verified FROM symbol_references WHERE first_snapshot <= ?1";
 /// The references of a snapshot that point at some symbols, in the column order of
 /// `REFERENCES_OF_SNAPSHOT`: snapshot, JSON list of symbol ids. Read through the index on the
-/// target; the view keeps the references whose file and target the snapshot holds.
-pub const REFERENCES_INTO: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
-    start_column, end_line, end_column, kind, confidence, verified FROM snapshot_references \
-    WHERE snapshot_id = ?1 AND to_symbol IN (SELECT value FROM json_each(?2))";
+/// target; only the file of a reference is looked up, which is what the view `snapshot_references`
+/// does besides looking up the target as well.
+pub const REFERENCES_INTO: &str = "SELECT r.id, r.from_symbol, r.to_symbol, r.file_id, \
+    r.start_line, r.start_column, r.end_line, r.end_column, r.kind, r.confidence, r.verified \
+    FROM symbol_references r CROSS JOIN files f ON f.snapshot_id = ?1 AND f.id = r.file_id \
+    WHERE r.first_snapshot <= ?1 AND r.to_symbol IN (SELECT value FROM json_each(?2))";
+/// Whether a snapshot holds a symbol: snapshot, symbol. The walk into a symbol checks its start
+/// once and then trusts the symbols it reaches through references of the snapshot's own files.
+pub const SYMBOL_IN_SNAPSHOT: &str =
+    "SELECT COUNT(*) FROM symbols WHERE snapshot_id = ?1 AND id = ?2";
 /// The references of a snapshot that start in some symbols, in the column order of
 /// `REFERENCES_OF_SNAPSHOT`: snapshot, JSON list of symbol ids.
-pub const REFERENCES_OUT_OF: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
-    start_column, end_line, end_column, kind, confidence, verified FROM snapshot_references \
-    WHERE snapshot_id = ?1 AND from_symbol IN (SELECT value FROM json_each(?2))";
+pub const REFERENCES_OUT_OF: &str = "SELECT r.id, r.from_symbol, r.to_symbol, r.file_id, \
+    r.start_line, r.start_column, r.end_line, r.end_column, r.kind, r.confidence, r.verified \
+    FROM symbol_references r CROSS JOIN files f ON f.snapshot_id = ?1 AND f.id = r.file_id \
+    CROSS JOIN symbol_rows t ON t.id = r.to_symbol \
+    CROSS JOIN files tf ON tf.snapshot_id = ?1 AND tf.id = t.file_id \
+    WHERE r.first_snapshot <= ?1 AND r.from_symbol IN (SELECT value FROM json_each(?2))";
 /// Start and target of the references of a snapshot that touch some symbols at either end:
 /// snapshot, JSON list of symbol ids.
 pub const REFERENCE_ENDS_TOUCHING: &str = "SELECT from_symbol, to_symbol FROM snapshot_references \
@@ -89,9 +98,9 @@ pub const SYMBOL_PARENTS: &str = "SELECT s.id, s.qualified_name, s.kind, s.paren
 /// The symbols of a snapshot named in a list, as result lines with their file paths: snapshot,
 /// JSON list of symbol ids; the columns of `SYMBOL_LABELS`.
 pub const SYMBOL_LABELS_OF: &str = "SELECT s.id, s.qualified_name, s.kind, s.parent_id, \
-    s.visibility, f.path FROM symbols s \
-    JOIN files f ON f.snapshot_id = s.snapshot_id AND f.id = s.file_id \
-    WHERE s.snapshot_id = ?1 AND s.id IN (SELECT value FROM json_each(?2))";
+    s.visibility, f.path FROM symbol_rows s \
+    CROSS JOIN files f ON f.snapshot_id = ?1 AND f.id = s.file_id \
+    WHERE s.id IN (SELECT value FROM json_each(?2))";
 /// The files of a snapshot named in a list: snapshot, JSON list of file ids.
 pub const FILE_PATHS_OF: &str = "SELECT id, path FROM files WHERE snapshot_id = ?1 \
     AND id IN (SELECT value FROM json_each(?2))";

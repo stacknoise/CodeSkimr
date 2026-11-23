@@ -207,6 +207,21 @@ mod tests {
     }
 
     #[test]
+    fn the_members_of_a_type_are_the_type_and_what_it_owns() {
+        let names = [
+            (1, SymbolKind::Namespace, "App"),
+            (2, SymbolKind::Class, "App.Cart"),
+            (3, SymbolKind::Method, "App.Cart.Total"),
+            (4, SymbolKind::Class, "App.View"),
+            (5, SymbolKind::Method, "App.View.Draw"),
+        ];
+        let qualified = qualified_names(&names);
+        let members = type_members(id(2), triples(&names, &qualified));
+        assert_eq!(members, Some(vec![id(2), id(3)]));
+        assert_eq!(type_members(id(1), triples(&names, &qualified)), None);
+    }
+
+    #[test]
     fn something_that_is_not_a_type_has_no_neighbours() {
         let app = name("App");
         let symbols = [(id(1), SymbolKind::Namespace, &app, None)];

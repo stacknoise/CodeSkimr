@@ -17,7 +17,7 @@ use codeskimr_domain::{
 };
 use rusqlite::{Connection, params};
 
-use crate::codec::{Cols, id_from, id_list, label_from};
+use crate::codec::{Cols, column_int, id_from, id_list, label_from};
 use crate::error::{StorageError, StorageResult};
 use crate::references::load_around;
 use crate::sql;
@@ -111,6 +111,9 @@ fn walked_references(
     snapshot: i64,
     query: &UsageQuery,
 ) -> StorageResult<ReverseIndex> {
+    if query.direction == Direction::Incoming && !holds_symbol(conn, snapshot, query.symbol)? {
+        return Ok(ReverseIndex::default());
+    }
     let mut seen = HashSet::from([query.symbol]);
     let mut frontier = vec![query.symbol];
     let mut all = Vec::new();
@@ -130,6 +133,16 @@ fn walked_references(
     Ok(ReverseIndex::new(all))
 }
 
+/// Whether the snapshot holds `symbol`; the references into a symbol of another snapshot do not
+/// count.
+fn holds_symbol(conn: &Connection, snapshot: i64, symbol: SymbolId) -> StorageResult<bool> {
+    let raw = column_int(symbol.get())?;
+    let found: i64 = conn
+        .prepare_cached(sql::SYMBOL_IN_SNAPSHOT)?
+        .query_row(params![snapshot, raw], |row| row.get(0))?;
+    Ok(found.is_positive())
+}
+
 const fn far_end(reference: &Reference, direction: Direction) -> SymbolId {
     match direction {
         Direction::Incoming => reference.from,
@@ -137,7 +150,7 @@ const fn far_end(reference: &Reference, direction: Direction) -> SymbolId {
     }
 }
 
-fn dangling<'a, T>(found: &'a HashMap<u64, T>, id: u64) -> StorageResult<&'a T> {
+fn dangling<T>(found: &HashMap<u64, T>, id: u64) -> StorageResult<&T> {
     found.get(&id).ok_or(StorageError::DanglingReference)
 }
 
