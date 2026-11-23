@@ -64,3 +64,11 @@ fn missing_tolerance_is_reported() -> TestResult {
     );
     Ok(())
 }
+
+#[test]
+fn reads_the_accepted_slowdowns() -> TestResult {
+    let mapping = "[benchmarks]\n\"g/b\" = \"usages_query_ms\"\n[accepted]\n\"g/b\" = \"ADR 1\"\n";
+    let limits = load(&root("cfg_accepted", CONFIG, mapping)?)?;
+    assert!(limits.accepted.contains("g/b"));
+    Ok(())
+}

@@ -1,12 +1,14 @@
 //! Budgets and tolerance from `config/default.toml` and the benchmark mapping.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
 
 use toml::Table;
 
-use crate::consts::{BENCHMARKS_KEY, BUDGET_MAP_PATH, BUDGETS_TABLE, CONFIG_PATH, TOLERANCE_KEY};
+use crate::consts::{
+    ACCEPTED_KEY, BENCHMARKS_KEY, BUDGET_MAP_PATH, BUDGETS_TABLE, CONFIG_PATH, TOLERANCE_KEY,
+};
 use crate::error::BenchError;
 
 /// The tolerance and the budget per benchmark id, in milliseconds.
@@ -16,6 +18,9 @@ pub struct Limits {
     pub tolerance_percent: f64,
     /// Budget in milliseconds per benchmark id.
     pub budgets_ms: BTreeMap<String, f64>,
+    /// Benchmarks whose slowdown against the base is accepted on purpose (see an ADR); the
+    /// absolute budget still applies to them.
+    pub accepted: BTreeSet<String>,
 }
 
 fn read_table(path: &Path) -> Result<Table, BenchError> {
@@ -45,7 +50,16 @@ pub fn load(root: &Path) -> Result<Limits, BenchError> {
     Ok(Limits {
         tolerance_percent,
         budgets_ms: map_budgets(&mapping, budgets)?,
+        accepted: accepted_ids(&mapping),
     })
+}
+
+fn accepted_ids(mapping: &Table) -> BTreeSet<String> {
+    mapping
+        .get(ACCEPTED_KEY)
+        .and_then(toml::Value::as_table)
+        .map(|table| table.keys().cloned().collect())
+        .unwrap_or_default()
 }
 
 fn map_budgets(mapping: &Table, budgets: &Table) -> Result<BTreeMap<String, f64>, BenchError> {
