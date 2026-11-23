@@ -139,14 +139,14 @@ mod tests {
         }
     }
 
-    #[test]
-    fn usages_equal_the_walk_over_all_references_of_the_snapshot() {
+    /// Asks every question in the order of `depths` and compares it with the walk in memory.
+    fn usages_match(depths: &[u32]) {
         let store = two_projects();
         for snapshot in [10, 20, 30] {
             let index = ReverseIndex::new(visible(snapshot));
             for symbol in SYMBOLS {
                 for direction in [Direction::Incoming, Direction::Outgoing] {
-                    for depth in 1..=3 {
+                    for &depth in depths {
                         for include_tests in [true, false] {
                             let asked = query(symbol, direction, depth, include_tests);
                             let page = store
@@ -172,8 +172,31 @@ mod tests {
     }
 
     #[test]
-    fn impact_equals_the_walk_over_all_references_of_the_snapshot() {
+    fn usages_equal_the_walk_over_all_references_of_the_snapshot() {
+        usages_match(&[1, 2, 3]);
+    }
+
+    #[test]
+    fn usages_served_from_a_deeper_kept_walk_equal_the_walk_too() {
+        usages_match(&[3, 2, 1]);
+    }
+
+    #[test]
+    fn impact_after_a_deeper_walk_equals_the_walk_over_all_references_of_the_snapshot() {
         let store = two_projects();
+        for symbol in SYMBOLS {
+            let deep = query(symbol, Direction::Incoming, 3, true);
+            store.usages(SnapshotId::new(20), &deep, LIMIT).unwrap();
+        }
+        impact_matches(&store);
+    }
+
+    #[test]
+    fn impact_equals_the_walk_over_all_references_of_the_snapshot() {
+        impact_matches(&two_projects());
+    }
+
+    fn impact_matches(store: &SqliteStore) {
         for snapshot in [10, 20, 30] {
             let index = ReverseIndex::new(visible(snapshot));
             for symbol in SYMBOLS {
