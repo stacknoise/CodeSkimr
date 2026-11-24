@@ -337,7 +337,7 @@ describe("ProjectsScreen", () => {
     expect(screen.getByRole("button", { name: "Cancel" })).toBeVisible();
   });
 
-  it("keeps the answers locked while the project is removed and the list is read again", async () => {
+  it("locks the row and says so while the project is removed and the list is read again", async () => {
     let finish: (value: Response) => void = () => undefined;
     fetchMock.mockImplementation((path: string) =>
       path.endsWith("projects.remove")
@@ -348,8 +348,21 @@ describe("ProjectsScreen", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Remove project shop" }));
     fireEvent.click(screen.getByRole("button", { name: "Remove for good" }));
     await refreshProjects();
-    expect(screen.getByRole("button", { name: "Remove for good" })).toBeDisabled();
+    expect(screen.getByText("Removing …")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove for good" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Rename shop" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Scan shop again" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open shop" })).toBeDisabled();
     finish(answer({ project: 1 }));
+    await waitFor(() => expect(screen.queryByText("Removing …")).not.toBeInTheDocument());
+  });
+
+  it("shows a removal that the server reports, not a running scan", async () => {
+    serve({ "projects.list": () => answer([{ ...ROW, running: false, removing: true }]) });
+    render(() => <ProjectsScreen />);
+    expect(await screen.findByText("Removing …")).toBeInTheDocument();
+    expect(screen.queryByText("scan running")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove project shop" })).not.toBeInTheDocument();
   });
 
   it("closes the question when the screen is left", async () => {

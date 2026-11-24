@@ -15,6 +15,8 @@ pub const PROJECT_UPSERT: &str = "INSERT INTO projects (id, name, source_kind, l
 pub const PROJECT_EXISTS: &str = "SELECT COUNT(*) FROM projects WHERE id = ?1";
 /// Removes a project; layers, consent, tool reports and annotations follow by cascade: id.
 pub const PROJECT_DELETE: &str = "DELETE FROM projects WHERE id = ?1";
+/// The ids of the files of a snapshot, in order: snapshot.
+pub const SNAPSHOT_FILE_IDS: &str = "SELECT id FROM files WHERE snapshot_id = ?1 ORDER BY id";
 /// All snapshots of a project: project id.
 pub const SNAPSHOTS_OF_PROJECT: &str = "SELECT id FROM snapshots WHERE project_id = ?1";
 /// Removes the layers of a project (their namespaces go with them): project id.
@@ -179,25 +181,26 @@ pub const READ_MODELS_DELETE: &[&str] = &[
 ];
 /// The shared rows only the snapshot ?1 contains, children before parents. They belong to the
 /// files that no other snapshot has: the references standing in such a file or pointing into one,
-/// and the fingerprints, metrics and symbols of such a file. Run before the files are deleted.
+/// and the fingerprints, metrics and symbols of such a file. Run before the files are deleted. Takes
+/// the snapshot, the lowest and the highest file id to work on, so a removal can go in slices.
 pub const SHARED_ROWS_DELETE: &[&str] = &[
     "DELETE FROM pending_references WHERE file_id IN \
-        (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND f.id BETWEEN ?2 AND ?3 AND NOT EXISTS \
         (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1))",
     "DELETE FROM symbol_references WHERE file_id IN \
-        (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND f.id BETWEEN ?2 AND ?3 AND NOT EXISTS \
         (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1))",
     "DELETE FROM symbol_references WHERE to_symbol IN (SELECT s.id FROM symbol_rows s \
-        WHERE s.file_id IN (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        WHERE s.file_id IN (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND f.id BETWEEN ?2 AND ?3 AND NOT EXISTS \
         (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1)))",
     "DELETE FROM fingerprints WHERE symbol_id IN (SELECT s.id FROM symbol_rows s \
-        WHERE s.file_id IN (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        WHERE s.file_id IN (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND f.id BETWEEN ?2 AND ?3 AND NOT EXISTS \
         (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1)))",
     "DELETE FROM metric_rows WHERE symbol_id IN (SELECT s.id FROM symbol_rows s \
-        WHERE s.file_id IN (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        WHERE s.file_id IN (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND f.id BETWEEN ?2 AND ?3 AND NOT EXISTS \
         (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1)))",
     "DELETE FROM symbol_rows WHERE file_id IN \
-        (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND f.id BETWEEN ?2 AND ?3 AND NOT EXISTS \
         (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1))",
 ];
 

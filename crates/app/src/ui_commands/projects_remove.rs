@@ -60,6 +60,7 @@ impl Command for RemoveProject {
         let project = self.projects.project(id)?;
         // The scan lock is held until the project is gone, so no scan can start in between.
         let _scanning = self.context.running.start(id)?;
+        let _removing = self.context.running.mark_removing(id);
         self.removal.remove_project(id)?;
         self.forget_clone(id, &project.source);
         Ok(Removed { project: id.get() })

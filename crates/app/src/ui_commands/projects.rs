@@ -111,8 +111,10 @@ pub struct ProjectRow {
     pub left_out: Vec<LeftOutRow>,
     /// How many more files it left out than `left_out` names.
     pub left_out_more: u64,
-    /// Whether a scan of the project is running right now.
+    /// Whether a scan of the project is running right now (never while it is removed).
     pub running: bool,
+    /// Whether the project is being removed right now; its data goes in many short steps.
+    pub removing: bool,
     /// What the last check of the tools found; `None` if the project was never checked.
     pub tools: Option<ToolsView>,
     /// What the newest scan says about itself: level, channel and what level 2 did per language;
@@ -171,7 +173,7 @@ fn left_out_more(overview: &ProjectOverview) -> u64 {
 
 fn project_row(
     overview: &ProjectOverview,
-    running: bool,
+    (running, removing): (bool, bool),
     (tools, report): (Option<ToolsView>, Option<ReportView>),
     context: &Context,
 ) -> ProjectRow {
@@ -203,7 +205,8 @@ fn project_row(
         warnings: overview.warnings.iter().map(warning_row).collect(),
         left_out: overview.left_out.iter().map(left_out_row).collect(),
         left_out_more: left_out_more(overview),
-        running,
+        running: running && !removing,
+        removing,
         tools,
         report,
     }
@@ -239,7 +242,10 @@ impl Command for ListProjects {
                 let id = overview.project.id;
                 project_row(
                     overview,
-                    self.context.running.is_running(id),
+                    (
+                        self.context.running.is_running(id),
+                        self.context.running.is_removing(id),
+                    ),
                     (
                         self.stored_tools(id),
                         ReportView::stored(self.reports.as_ref(), id),
