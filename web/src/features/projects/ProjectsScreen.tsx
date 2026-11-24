@@ -19,6 +19,7 @@ import {
   rescanProject,
 } from "./projects";
 import { ProjectTable } from "./ProjectTable";
+import { closeRemoveQuestion } from "./RemoveAction";
 import { ScanPanel } from "./ScanPanel";
 import { ToolsPanel } from "./ToolsPanel";
 import { useDropSource } from "./useDropSource";
@@ -139,6 +140,7 @@ export function ProjectsScreen() {
   const drop = useDropSource(setSource, () => input?.focus());
   const selection = useSelection(projects, activeProject());
   onMount(() => void refreshProjects());
+  onCleanup(closeRemoveQuestion);
   // An open name edit does not wait for the next visit.
   onCleanup(cancelRename);
   useToolsCheck(selection.selected);

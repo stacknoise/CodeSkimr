@@ -1,10 +1,11 @@
 import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { activeProject, openProject } from "../../shared/project/active";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { currentPath } from "../../app/router";
 import { ProjectsScreen } from "./ProjectsScreen";
+import { closeRemoveQuestion } from "./RemoveAction";
 import {
   addProject,
   cancelRename,
@@ -33,6 +34,7 @@ const ROW: ProjectRow = {
 };
 
 useServerSession();
+beforeEach(closeRemoveQuestion);
 afterEach(cancelRename);
 
 describe("ProjectsScreen", () => {
@@ -319,6 +321,44 @@ describe("ProjectsScreen", () => {
     expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith("projects.remove"))).toBe(
       false,
     );
+  });
+
+  it("keeps the removal question open while the list is read again during a scan", async () => {
+    let files = 3;
+    serve({
+      "projects.list": () => answer([{ ...ROW, scan: { ...ROW.scan!, files: files++ } }]),
+    });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove project shop" }));
+    expect(screen.getByRole("button", { name: "Remove for good" })).toBeVisible();
+    await refreshProjects();
+    await refreshProjects();
+    expect(screen.getByRole("button", { name: "Remove for good" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeVisible();
+  });
+
+  it("keeps the answers locked while the project is removed and the list is read again", async () => {
+    let finish: (value: Response) => void = () => undefined;
+    fetchMock.mockImplementation((path: string) =>
+      path.endsWith("projects.remove")
+        ? new Promise<Response>((resolve) => (finish = resolve))
+        : Promise.resolve(answer([{ ...ROW }])),
+    );
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove project shop" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove for good" }));
+    await refreshProjects();
+    expect(screen.getByRole("button", { name: "Remove for good" })).toBeDisabled();
+    finish(answer({ project: 1 }));
+  });
+
+  it("closes the question when the screen is left", async () => {
+    serve({ "projects.list": () => answer([ROW]) });
+    const view = render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove project shop" }));
+    view.unmount();
+    render(() => <ProjectsScreen />);
+    expect(await screen.findByRole("button", { name: "Remove project shop" })).toBeVisible();
   });
 
   it("removes a project after the confirmation, reads the list again and closes it", async () => {
