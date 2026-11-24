@@ -7,7 +7,7 @@ use codeskimr_domain::{Confidence, FileId, ReferenceKind, Symbol, SymbolId, Symb
 use super::consts::NAME_JOINER;
 use super::context::Context;
 use super::kinds::{
-    OVERRIDABLE, TYPES, candidates, is_contract, is_overridable, is_type, reported,
+    OVERRIDABLE, TYPES, VALUES, candidates, is_contract, is_overridable, is_type, reported,
 };
 use crate::ports::{PendingReference, Receiver};
 
@@ -173,8 +173,9 @@ impl<'a> Context<'a> {
         }
     }
 
-    /// A receiver name that is a project type gives that type. One that no project symbol bears
-    /// is an outside type or variable: its members are not project symbols. Any other name may be
+    /// A receiver name that is a project type gives that type. One that is no project type and no
+    /// value in reach is an outside type (`File.Exists`) or an outside variable: its members are
+    /// not project symbols. A value of the project that the scope reaches, or a namespace, may be
     /// a variable of unknown type, which tells nothing.
     fn named_receiver_types(
         &self,
@@ -185,7 +186,26 @@ impl<'a> Context<'a> {
         if !types.is_empty() {
             return Some(types);
         }
-        self.table.named(name).is_empty().then(Vec::new)
+        let named = self.table.named(name);
+        let is_qualifier = named
+            .iter()
+            .any(|symbol| matches!(symbol.kind, SymbolKind::Namespace | SymbolKind::Module));
+        (!is_qualifier && !self.is_value_in_reach(occurrence, &named)).then(Vec::new)
+    }
+
+    /// Whether one of the symbols is a value (field, property, ...) that the scopes of the
+    /// occurrence reach. A value of the same name in an unrelated type is not one: the name then
+    /// stands for something outside the project.
+    fn is_value_in_reach(&self, occurrence: &PendingReference, named: &[&'a Symbol]) -> bool {
+        let values: Vec<&'a Symbol> = named
+            .iter()
+            .copied()
+            .filter(|symbol| VALUES.contains(&symbol.kind))
+            .collect();
+        !values.is_empty()
+            && !self
+                .in_scope(occurrence.from, occurrence.file, &values)
+                .global
     }
 
     fn enclosing_type(&self, from: SymbolId) -> Option<SymbolId> {

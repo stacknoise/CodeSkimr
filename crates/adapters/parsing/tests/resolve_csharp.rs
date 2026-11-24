@@ -282,4 +282,24 @@ mod tests {
         assert!(unknown.contains(&(50, Confidence::Probable)));
         assert!(unknown.iter().all(|(_, c)| *c != Confidence::Certain));
     }
+
+    #[test]
+    fn calls_on_framework_types_are_no_usages_of_a_same_named_project_method() {
+        // `File.Exists`, `Directory.Exists` and `List.IndexOf` on a field, a parameter and a local
+        // name a type outside the project: none reaches `Store.Exists` or `Store.IndexOf`.
+        let exists = receiver_usages_in("framework.cs", "Store.Exists");
+        assert_eq!(lines(&exists), [23, 24, 25]);
+        let index = receiver_usages_in("framework.cs", "Store.IndexOf");
+        assert!(index.is_empty(), "{index:?}");
+    }
+
+    #[test]
+    fn a_receiver_of_unknown_inferred_type_keeps_the_fallback_unchecked() {
+        let interface = receiver_usages_in("framework.cs", "IStore.Exists");
+        assert_eq!(lines(&interface), [23]);
+        let own = receiver_usages_in("framework.cs", "Store.Exists");
+        // `Own(Store s)` is typed; `var x = Make(); x.Exists(..)` keeps the name as unchecked.
+        assert!(own.contains(&(24, Confidence::Certain)));
+        assert!(own.contains(&(25, Confidence::Probable)));
+    }
 }

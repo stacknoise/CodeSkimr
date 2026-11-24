@@ -20,7 +20,7 @@ const CALLABLES: &[SymbolKind] = &[
     SymbolKind::Constructor,
 ];
 /// Kinds that hold a value.
-const VALUES: &[SymbolKind] = &[
+pub const VALUES: &[SymbolKind] = &[
     SymbolKind::Property,
     SymbolKind::Field,
     SymbolKind::Constant,
