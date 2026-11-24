@@ -17,6 +17,8 @@ tier = "full"
 extensions = ["cs"]
 separator = "."
 file_in_names = false
+# The grammar cannot parse `a?.B = x` (C# 14): the question mark is blanked out before parsing (ADR 0094).
+blank_null_conditional_assignment = true
 comment_nodes = ["comment"]
 manifest_files = [
     "*.csproj",
