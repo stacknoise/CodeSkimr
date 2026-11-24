@@ -1,4 +1,4 @@
-import { createEffect, createSignal, on, onMount, Show, untrack } from "solid-js";
+import { createEffect, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { EXPLORER_ROUTE } from "../../app/consts";
@@ -18,6 +18,7 @@ import {
   rescanProject,
 } from "./projects";
 import { ProjectTable } from "./ProjectTable";
+import { closeRemoveQuestion } from "./RemoveAction";
 import { ScanPanel } from "./ScanPanel";
 import { ToolsPanel } from "./ToolsPanel";
 import { useDropSource } from "./useDropSource";
@@ -138,6 +139,7 @@ export function ProjectsScreen() {
   const drop = useDropSource(setSource, () => input?.focus());
   const selection = useSelection(projects, activeProject());
   onMount(() => void refreshProjects());
+  onCleanup(closeRemoveQuestion);
   useToolsCheck(selection.selected);
   useLevel2States(selection.selected);
   const selectedRow = () => projects().find((row) => row.id === selection.selected());

@@ -230,6 +230,30 @@ describe("ProjectsScreen", () => {
     expect(screen.getByRole("button", { name: "Cancel" })).toBeVisible();
   });
 
+  it("keeps the answers locked while the project is removed and the list is read again", async () => {
+    let finish: (value: Response) => void = () => undefined;
+    fetchMock.mockImplementation((path: string) =>
+      path.endsWith("projects.remove")
+        ? new Promise<Response>((resolve) => (finish = resolve))
+        : Promise.resolve(answer([{ ...ROW }])),
+    );
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove project shop" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove for good" }));
+    await refreshProjects();
+    expect(screen.getByRole("button", { name: "Remove for good" })).toBeDisabled();
+    finish(answer({ project: 1 }));
+  });
+
+  it("closes the question when the screen is left", async () => {
+    serve({ "projects.list": () => answer([ROW]) });
+    const view = render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove project shop" }));
+    view.unmount();
+    render(() => <ProjectsScreen />);
+    expect(await screen.findByRole("button", { name: "Remove project shop" })).toBeVisible();
+  });
+
   it("removes a project after the confirmation, reads the list again and closes it", async () => {
     let removed = false;
     serve({

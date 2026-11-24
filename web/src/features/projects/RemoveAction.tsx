@@ -55,6 +55,8 @@ function Confirm(props: { name: string; busy: boolean; onYes: () => void; onNo: 
 /** The project whose question is open. It lives outside the row: while a scan runs, the list is
  * read again and the row is built anew, which must not close the question. */
 const [askingFor, setAskingFor] = createSignal<number | null>(null);
+/** The projects that are being removed; also outside the row, for the same reason. */
+const [removing, setRemoving] = createSignal<ReadonlySet<number>>(new Set());
 
 /** Closes the open question, if there is one. */
 export function closeRemoveQuestion(): void {
@@ -69,13 +71,21 @@ export function RemoveAction(props: {
   onRemove: () => Promise<boolean>;
 }) {
   const asking = () => askingFor() === props.id;
-  const setAsking = (open: boolean) => setAskingFor(open ? props.id : null);
-  const [busy, setBusy] = createSignal(false);
+  const busy = () => removing().has(props.id);
   const remove = async () => {
-    setBusy(true);
-    await props.onRemove();
-    setBusy(false);
-    setAsking(false);
+    const id = props.id;
+    setRemoving((previous) => new Set(previous).add(id));
+    try {
+      await props.onRemove();
+    } finally {
+      setRemoving((previous) => {
+        const next = new Set(previous);
+        next.delete(id);
+        return next;
+      });
+      // Only the own question: the user may have opened the one of another project meanwhile.
+      setAskingFor((open) => (open === id ? null : open));
+    }
   };
   return (
     <Show
@@ -84,7 +94,7 @@ export function RemoveAction(props: {
         <RowButton
           label={t(I18N_KEYS.PROJECTS_REMOVE, { name: props.name })}
           text={t(I18N_KEYS.PROJECTS_REMOVE_BUTTON)}
-          onClick={() => setAsking(true)}
+          onClick={() => setAskingFor(props.id)}
         />
       }
     >
@@ -92,7 +102,7 @@ export function RemoveAction(props: {
         name={props.name}
         busy={busy()}
         onYes={() => void remove()}
-        onNo={() => setAsking(false)}
+        onNo={() => closeRemoveQuestion()}
       />
     </Show>
   );
