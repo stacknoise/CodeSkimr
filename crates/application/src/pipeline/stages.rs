@@ -423,6 +423,8 @@ impl Stage for AnalyzeStage {
         }
         self.settle_left_out(&mut out, &mut files)?;
         let for_good = skipped_for_good(&out.run.paths_report.left_out, &files);
+        let carried = out.run.skipped.iter().map(still_left_out);
+        out.run.paths_report.left_out.extend(carried);
         out.run.skipped.extend(for_good);
         Ok(out)
     }
@@ -478,20 +480,32 @@ fn skipped(file: &DiscoveredFile, code: ErrorCode) -> Outcome {
 /// hash and language the scan found them with. A file whose failure may pass is not among them:
 /// the next scan tries it again.
 fn skipped_for_good(left_out: &[LeftOut], files: &[DiscoveredFile]) -> Vec<SkippedFile> {
-    let for_good: HashSet<&RelativePath> = left_out
+    let for_good: HashMap<&RelativePath, ErrorCode> = left_out
         .iter()
         .filter(|left| !LeftOut::MAY_PASS.contains(&left.code))
-        .map(|left| &left.path)
+        .map(|left| (&left.path, left.code))
         .collect();
     files
         .iter()
-        .filter(|file| for_good.contains(&file.path))
-        .map(|file| SkippedFile {
-            path: file.path.clone(),
-            language: file.language.clone(),
-            content_hash: file.content_hash.clone(),
+        .filter_map(|file| {
+            Some(SkippedFile {
+                path: file.path.clone(),
+                language: file.language.clone(),
+                content_hash: file.content_hash.clone(),
+                code: *for_good.get(&file.path)?,
+            })
         })
         .collect()
+}
+
+/// The entry of the list of left-out files for a file that an earlier scan left out for good and
+/// this scan did not look at: the snapshot goes on naming it.
+fn still_left_out(file: &SkippedFile) -> LeftOut {
+    LeftOut {
+        path: file.path.clone(),
+        code: file.code,
+        kept: false,
+    }
 }
 
 /// The failure for a worker that panicked.
@@ -1023,14 +1037,27 @@ impl PersistStage {
             .store
             .confirm(&scan)?
             .ok_or_else(|| CodedError::new(ErrorCode::TransactionConflict))?;
+        let mut paths = input.run.paths_report;
+        paths.left_out_more =
+            left_out_count(&confirmed.warnings).saturating_sub(count_u64(&confirmed.left_out));
+        paths.left_out = confirmed.left_out;
         Ok(Persisted {
             snapshot: confirmed.snapshot,
             root: input.run.root,
             warnings: confirmed.warnings,
-            paths: listed(input.run.paths_report, self.max_left_out_listed),
+            paths,
             unchanged: true,
         })
     }
+}
+
+/// How many files the scan behind `warnings` left out in all.
+fn left_out_count(warnings: &[ScanWarning]) -> u64 {
+    warnings
+        .iter()
+        .filter(|warning| LeftOut::CODES.contains(&warning.code))
+        .map(|warning| warning.count)
+        .sum()
 }
 
 /// The snapshot row of a run: who it belongs to and how many files, symbols and references it holds.

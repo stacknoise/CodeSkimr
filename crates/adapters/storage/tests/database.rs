@@ -111,6 +111,7 @@ fn add_notes_of_the_scan(scan: &mut SnapshotData, base: u64) {
         path: RelativePath::new("old.txt").unwrap(),
         language: LanguageId::new("csharp").unwrap(),
         content_hash: codeskimr_domain::ContentHash::new("h").unwrap(),
+        code: codeskimr_codes::ErrorCode::FileEncodingUnsupported,
     }];
 }
 

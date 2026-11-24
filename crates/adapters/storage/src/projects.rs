@@ -5,6 +5,7 @@ use codeskimr_application::ports::{
     PendingReference, PreviousIndex, PreviousState, ProjectRepository, SkippedFile, StoredNames,
     StoredReferences,
 };
+use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
     BranchName, ContentHash, CredentialId, FileId, FolderPath, GitUrl, LanguageId, Layer,
     LayerName, Loc, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
@@ -376,7 +377,8 @@ fn load_latest_state_with(
     })
 }
 
-/// The files the scan of `snapshot` left out for good.
+/// The files the scan of `snapshot` left out for good. A row with a code that this version does
+/// not know any more is left out: the next scan then looks at the file again.
 fn load_skipped(conn: &Connection, snapshot: i64) -> StorageResult<Vec<SkippedFile>> {
     let mut statement = conn.prepare_cached(sql::SKIPPED_FILES)?;
     let rows = statement.query_map(params![snapshot], |row| {
@@ -385,15 +387,20 @@ fn load_skipped(conn: &Connection, snapshot: i64) -> StorageResult<Vec<SkippedFi
             cols.take::<String>()?,
             cols.take::<String>()?,
             cols.take::<String>()?,
+            cols.take::<String>()?,
         ))
     })?;
     let mut skipped = Vec::new();
     for row in rows {
-        let (path, language, hash) = row?;
+        let (path, language, hash, id) = row?;
+        let Some(code) = ErrorCode::ALL.iter().copied().find(|code| code.id() == id) else {
+            continue;
+        };
         skipped.push(SkippedFile {
             path: RelativePath::new(path)?,
             language: LanguageId::new(language)?,
             content_hash: ContentHash::new(hash)?,
+            code,
         });
     }
     Ok(skipped)

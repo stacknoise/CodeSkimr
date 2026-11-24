@@ -45,6 +45,8 @@ pub struct SkippedFile {
     pub language: LanguageId,
     /// The hash of its content.
     pub content_hash: ContentHash,
+    /// Why it was left out.
+    pub code: ErrorCode,
 }
 
 impl LeftOut {

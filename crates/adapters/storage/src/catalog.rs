@@ -99,7 +99,7 @@ pub(crate) fn warnings(conn: &Connection, snapshot: SnapshotId) -> StorageResult
 
 /// The files the scan that wrote `snapshot` left out by name. A path or a code that this version
 /// does not know any more is left out.
-fn left_out(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<LeftOut>> {
+pub(crate) fn left_out(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<LeftOut>> {
     let rows = rows_of_snapshot(conn, sql::LEFT_OUT, snapshot, |cols| {
         Ok((
             cols.take::<String>()?,

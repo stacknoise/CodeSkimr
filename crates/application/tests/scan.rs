@@ -498,6 +498,7 @@ impl SnapshotStore for World {
             .unwrap_or_else(PoisonError::into_inner)
             .push(scan.snapshot);
         Ok(Some(Confirmed {
+            left_out: self.previous.skipped.iter().map(still_named).collect(),
             snapshot: Snapshot {
                 id: scan.snapshot,
                 project: scan.project,
@@ -1264,12 +1265,22 @@ fn a_file_with_another_hash_is_a_change_whatever_discovery_marked() -> Result<()
     Ok(())
 }
 
+/// What the list of left-out files of a snapshot says of a file its scan left out for good.
+fn still_named(file: &SkippedFile) -> LeftOut {
+    LeftOut {
+        path: file.path.clone(),
+        code: file.code,
+        kept: false,
+    }
+}
+
 /// A file as a scan that left it out for good recorded it.
 fn skipped_file(path: &str, hash: &str) -> Result<SkippedFile, CodedError> {
     Ok(SkippedFile {
         path: model(RelativePath::new(path))?,
         language: model(LanguageId::new("rust"))?,
         content_hash: model(ContentHash::new(hash))?,
+        code: ErrorCode::FileEncodingUnsupported,
     })
 }
 
@@ -1293,9 +1304,10 @@ fn after_a_skipped_file(hash: &str, found: &[&'static str]) -> Result<Arc<World>
 fn a_file_left_out_for_good_that_looks_the_same_is_no_change() -> Result<(), CodedError> {
     let world = after_a_skipped_file("h", &["d.rs"])?;
     let (result, _) = run(&world, ScanMode::Incremental);
-    assert!(matches!(result, JobResult::Finished(_)));
     assert_eq!(calls_of(&world.confirmed), 1);
     assert_eq!(world.persisted_count(), 0, "no snapshot is written");
+    let named = ("d.rs".to_owned(), ErrorCode::FileEncodingUnsupported, false);
+    assert_eq!(left_out(&result), [named], "the scan still names the file");
     Ok(())
 }
 
@@ -1350,10 +1362,13 @@ fn a_scan_of_some_paths_keeps_the_left_out_files_it_does_not_look_at() -> Result
     let job = Job::new(ProjectId::new(7), ScanMode::Incremental).with_paths(&paths);
     let result = scanner(&world, &EventBus::new()).run(&Principal::local_owner(), job);
     assert!(matches!(result, JobResult::Finished(_)));
-    assert_eq!(
-        world.last_persisted()?.skipped,
-        [skipped_file("d.rs", "h")?]
-    );
+    let stored = world.last_persisted()?;
+    assert_eq!(stored.skipped, [skipped_file("d.rs", "h")?]);
+    // The snapshot goes on naming and counting the file, or the scan after it would confirm a
+    // snapshot that says nothing of it.
+    assert_eq!(stored.left_out, [still_named(&stored.skipped[0])]);
+    let code = ErrorCode::FileEncodingUnsupported;
+    assert!(stored.warnings.contains(&ScanWarning { code, count: 1 }));
     Ok(())
 }
 

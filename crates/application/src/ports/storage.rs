@@ -159,6 +159,8 @@ pub struct Confirmed {
     pub snapshot: Snapshot,
     /// The warnings of the scan that wrote the snapshot, which still hold.
     pub warnings: Vec<ScanWarning>,
+    /// The files that scan left out by name, which still are.
+    pub left_out: Vec<LeftOut>,
 }
 
 /// What level 2 stores for some files of a snapshot: the symbols it creates (ADR 0055) and the

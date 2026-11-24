@@ -145,6 +145,7 @@ fn the_files_a_scan_left_out_for_good_are_read_with_the_newest_snapshot_only() {
         path: RelativePath::new("old.cs").unwrap(),
         language: LanguageId::new("csharp").unwrap(),
         content_hash: ContentHash::new("h").unwrap(),
+        code: ErrorCode::FileEncodingUnsupported,
     }];
     let mut scan = first_scan(10);
     scan.skipped.clone_from(&skipped);

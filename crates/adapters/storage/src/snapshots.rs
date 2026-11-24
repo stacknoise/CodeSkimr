@@ -11,7 +11,7 @@ use codeskimr_domain::{
 };
 use rusqlite::{Connection, params};
 
-use crate::catalog::warnings;
+use crate::catalog::{left_out, warnings};
 use crate::codec::column_int;
 use crate::consts::{
     BULK_FINGERPRINTS_MIN, BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR,
@@ -75,6 +75,7 @@ fn confirm(conn: &Connection, scan: &Confirmation) -> StorageResult<Option<Confi
     )?;
     Ok(Some(Confirmed {
         warnings: warnings(conn, latest.id)?,
+        left_out: left_out(conn, latest.id)?,
         snapshot: Snapshot {
             created: scan.at,
             commit: scan.commit.clone(),
@@ -302,7 +303,8 @@ fn insert_skipped(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
             snapshot,
             file.path.as_str(),
             file.language.as_str(),
-            file.content_hash.as_str()
+            file.content_hash.as_str(),
+            file.code.id()
         ])?;
     }
     Ok(())
