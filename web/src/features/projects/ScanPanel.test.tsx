@@ -102,6 +102,13 @@ describe("the scan buttons", () => {
     expect(rescanBody()).toEqual({ project: 4, level2: false });
   });
 
+  it("scans every file again on request", async () => {
+    const panel = await selected();
+    fireEvent.click(within(panel).getByRole("button", { name: "Full scan" }));
+    await rescanAsked();
+    expect(rescanBody()).toEqual({ project: 4, full: true });
+  });
+
   it.each([
     ["not_confirmed", /not confirmed for this project/],
     ["busy", /another stage 2 run is going on/],
@@ -157,7 +164,7 @@ describe("focus and announcements", () => {
 
   it("puts the focus on the switch when a scan button goes away under it", async () => {
     const panel = await selected();
-    for (const name of ["Scan again", "Stage 1 only"]) {
+    for (const name of ["Scan again", "Stage 1 only", "Full scan"]) {
       const button = within(panel).getByRole("button", { name });
       button.focus();
       fireEvent.click(button);
