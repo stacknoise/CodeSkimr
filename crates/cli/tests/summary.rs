@@ -82,7 +82,7 @@ mod cases {
             seconds,
         };
         ScanSummary {
-            stages: vec![stage("discover", 15.25), stage("resolve", 120.0)],
+            stages: vec![stage("discover", 15.254_321), stage("resolve", 120.0)],
             ..summary(Vec::new())
         }
     }

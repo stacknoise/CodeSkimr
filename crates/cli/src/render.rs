@@ -423,6 +423,14 @@ pub fn scan_json(summary: &ScanSummary) -> Result<String, serde_json::Error> {
         seconds: rounded(summary.seconds),
         cpu_seconds: rounded(summary.cpu_seconds),
         pack_load_seconds: rounded(summary.pack_load_seconds),
+        stages: summary
+            .stages
+            .iter()
+            .map(|line| StageLine {
+                seconds: rounded(line.seconds),
+                ..line.clone()
+            })
+            .collect(),
         ..summary.clone()
     })
 }

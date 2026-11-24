@@ -1,6 +1,7 @@
 //! `codeskimr scan`: registers the source as a project and runs one full scan. The [`Session`] is
 //! what watch mode scans again and again.
 
+use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -8,7 +9,7 @@ use codeskimr_application::access;
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::events::{Event, EventBus, Subscription};
+use codeskimr_application::events::{Event, EventBus};
 use codeskimr_application::level2::{LanguageReport, Level2Outcome, Skipped};
 use codeskimr_application::pipeline::Level2Run;
 use codeskimr_application::pipeline::{Job, JobResult, Queued, Scanner};
@@ -332,7 +333,7 @@ impl Session {
                     seconds,
                     cpu_seconds: seconds_since(cpu_start),
                     pack_load_seconds: loading.as_secs_f64(),
-                    stages: stage_lines(&progress),
+                    stages: stage_lines(progress.try_iter(), self.project.id),
                     level2: job.level2().iter().map(level2_line).collect(),
                     warnings: job.warnings().iter().map(warning_line).collect(),
                     left_out: left_out_view(job.paths_report()),
@@ -350,24 +351,25 @@ impl Session {
     }
 }
 
-/// The time each stage of the scan took: the last report of each stage carries its whole time.
-fn stage_lines(progress: &Subscription) -> Vec<StageLine> {
-    let mut last: Vec<Option<u64>> = vec![None; StageKind::ALL.len()];
-    for event in progress.try_iter() {
+/// The time each stage of the scan of `project` took, in the order the stages run: the last report
+/// of a stage carries its whole time. The bus carries the scans of every project, so the reports
+/// of others are left out; a stage that did not report is left out too.
+pub(crate) fn stage_lines(
+    events: impl IntoIterator<Item = Event>,
+    project: ProjectId,
+) -> Vec<StageLine> {
+    let mut last: BTreeMap<StageKind, u64> = BTreeMap::new();
+    for event in events {
         if let Event::ScanProgressed(report) = event
-            && let Some(slot) = last.get_mut(report.stage as usize)
+            && report.project == project
         {
-            *slot = Some(report.elapsed_ms);
+            last.insert(report.stage, report.elapsed_ms);
         }
     }
-    StageKind::ALL
-        .iter()
-        .zip(last)
-        .filter_map(|(stage, millis)| {
-            Some(StageLine {
-                stage: stage.label().to_owned(),
-                seconds: Duration::from_millis(millis?).as_secs_f64(),
-            })
+    last.into_iter()
+        .map(|(stage, millis)| StageLine {
+            stage: stage.label().to_owned(),
+            seconds: Duration::from_millis(millis).as_secs_f64(),
         })
         .collect()
 }
@@ -633,6 +635,58 @@ fn with_layers(
 /// so concurrent scans of different sources never share an id).
 fn register(store: &SqliteStore, spec: SourceSpec) -> Result<Project, CodedError> {
     store.register_project(spec.name, spec.source)
+}
+
+#[cfg(test)]
+mod stage_time_tests {
+    use codeskimr_application::events::{Event, ScanProgressed};
+    use codeskimr_application::stage::StageKind;
+    use codeskimr_domain::ProjectId;
+
+    use super::stage_lines;
+
+    fn report(project: u64, stage: StageKind, elapsed_ms: u64) -> Event {
+        Event::ScanProgressed(ScanProgressed {
+            project: ProjectId::new(project),
+            stage,
+            done: 1,
+            total: 1,
+            elapsed_ms,
+        })
+    }
+
+    fn seen(lines: &[codeskimr_cli::StageLine]) -> Vec<(&str, f64)> {
+        lines
+            .iter()
+            .map(|line| (line.stage.as_str(), line.seconds))
+            .collect()
+    }
+
+    #[test]
+    fn the_last_report_of_a_stage_gives_its_time_in_the_order_of_the_stages() {
+        let events = [
+            report(1, StageKind::Persist, 4000),
+            report(1, StageKind::Discover, 100),
+            report(1, StageKind::Discover, 1500),
+            report(1, StageKind::Analyze, 250),
+        ];
+        let lines = stage_lines(events, ProjectId::new(1));
+        assert_eq!(
+            seen(&lines),
+            [("discover", 1.5), ("analyze", 0.25), ("persist", 4.0)]
+        );
+    }
+
+    #[test]
+    fn the_reports_of_another_project_and_other_events_are_left_out() {
+        let events = [
+            report(2, StageKind::Resolve, 9000),
+            report(1, StageKind::Measure, 70),
+        ];
+        let lines = stage_lines(events, ProjectId::new(1));
+        assert_eq!(seen(&lines), [("measure", 0.07)]);
+        assert!(stage_lines([], ProjectId::new(1)).is_empty());
+    }
 }
 
 #[cfg(test)]
