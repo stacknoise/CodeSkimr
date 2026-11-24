@@ -44,8 +44,9 @@ test.describe("the project list", () => {
     await expect(page.getByRole("button", { name: `Open ${name}` })).toBeVisible();
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("r");
-    // Starting a scan shows the scan screen; its header says what kind of scan runs.
-    await expect(page.getByText(/· incremental/)).toBeVisible({ timeout: SCAN_MS });
+    // Starting a scan shows the scan screen; its header says what kind of scan runs. A scan
+    // without changes is over at once (ADR 0093), and then the list of recent scans says it too.
+    await expect(page.getByText(/· incremental/).first()).toBeVisible({ timeout: SCAN_MS });
   });
 
   test("a relative path is refused in words", async ({ page, harness }) => {
