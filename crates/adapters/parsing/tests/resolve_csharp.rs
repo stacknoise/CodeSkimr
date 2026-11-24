@@ -313,4 +313,50 @@ mod tests {
         // `File` of `Strangers` is declared in the file with its type: the call reaches `Options`.
         assert!(!kept.iter().any(|(line, _)| *line == 48), "{kept:?}");
     }
+
+    #[test]
+    fn calls_and_members_behind_a_negation_or_an_await_are_usages() {
+        // Issue #705: `if (!await _field.Method())` lists the call, like the forms around it.
+        let line_of = |name: &str| {
+            receiver_usages_in("negation.cs", name)
+                .iter()
+                .map(|(line, _)| *line)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(line_of("IGate.Negated"), [23]);
+        assert_eq!(line_of("IGate.Awaited"), [24]);
+        assert_eq!(line_of("IGate.Plain"), [25]);
+        assert_eq!(line_of("IGate.Grouped"), [26]);
+        assert_eq!(line_of("IGate.Chained"), [27]);
+        assert_eq!(line_of("IGate.Safe"), [28]);
+        assert_eq!(line_of("IGate.Mixed"), [29]);
+        assert_eq!(line_of("IGate.Primary"), [36]);
+        assert_eq!(line_of("IFlag.Ready"), [30, 31]);
+        assert_eq!(line_of("Printer.TryShowAsync"), [43, 44]);
+        // Calls in a constructor lambda, a property, an event handler, a local function and a
+        // static initializer, and a call of an own method without receiver in another `partial` part.
+        let lines = |name| {
+            receiver_usages_in("froms.cs", name)
+                .iter()
+                .map(|(l, _)| *l)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(lines("ISave.Offer"), [7, 9, 10, 11, 12, 13]);
+        assert_eq!(lines("Model.Helper"), [15]);
+    }
+
+    #[test]
+    fn a_null_conditional_assignment_does_not_hide_the_calls_after_it() {
+        // Issue #705: the grammar cannot parse `a?.B = x`; the rest of the file was lost.
+        let lines = |name| {
+            receiver_usages_in("nullassign.cs", name)
+                .iter()
+                .map(|(line, _)| *line)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(lines("IRestore.Offer"), [19, 34]);
+        assert_eq!(lines("IRestore.Later"), [21]);
+        assert_eq!(lines("Step.IsSelected"), [12, 13, 14, 20, 30, 31]);
+        assert_eq!(lines("Step.Count"), [15, 20]);
+    }
 }

@@ -1,0 +1,546 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 29,
+      "operands": null,
+      "operators": null,
+      "symbol": "nullassign.cs"
+    },
+    {
+      "decisions": null,
+      "loc": 29,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IRestore"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IRestore.Offer"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IRestore.Later"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Step"
+    },
+    {
+      "decisions": null,
+      "loc": 16,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Shell"
+    },
+    {
+      "decisions": 0,
+      "loc": 8,
+      "operands": [
+        8,
+        13
+      ],
+      "operators": [
+        5,
+        11
+      ],
+      "symbol": "Demo.Shell.OnChanged"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        7,
+        7
+      ],
+      "symbol": "Demo.Shell.AfterAssign"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        4,
+        6
+      ],
+      "symbol": "Demo.Shell.Compare"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        7,
+        7
+      ],
+      "symbol": "Demo.Shell.Last"
+    },
+    {
+      "decisions": null,
+      "loc": 10,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Panel"
+    },
+    {
+      "decisions": 0,
+      "loc": 5,
+      "operands": [
+        5,
+        6
+      ],
+      "operators": [
+        2,
+        4
+      ],
+      "symbol": "Demo.Panel.OnChanged"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        7,
+        7
+      ],
+      "symbol": "Demo.Panel.AfterAssign"
+    }
+  ],
+  "loc": 29,
+  "references": [
+    {
+      "at": "2:28",
+      "from": "Demo.IRestore.Offer",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "2:48",
+      "from": "Demo.IRestore.Later",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "3:64",
+      "from": "Demo.Step.Next",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Step"
+    },
+    {
+      "at": "7:21",
+      "from": "Demo.Shell",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IRestore"
+    },
+    {
+      "at": "10:27",
+      "from": "Demo.Shell.OnChanged",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Step"
+    },
+    {
+      "at": "10:43",
+      "from": "Demo.Shell.OnChanged",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Step"
+    },
+    {
+      "at": "12:18",
+      "from": "Demo.Shell.OnChanged",
+      "kind": "write",
+      "receiver": "typed Step",
+      "target": "IsSelected"
+    },
+    {
+      "at": "13:18",
+      "from": "Demo.Shell.OnChanged",
+      "kind": "write",
+      "receiver": "typed Step",
+      "target": "IsSelected"
+    },
+    {
+      "at": "14:18",
+      "from": "Demo.Shell.OnChanged",
+      "kind": "read",
+      "receiver": "typed Step",
+      "target": "Next"
+    },
+    {
+      "at": "14:24",
+      "from": "Demo.Shell.OnChanged",
+      "kind": "write",
+      "receiver": "unknown",
+      "target": "IsSelected"
+    },
+    {
+      "at": "15:18",
+      "from": "Demo.Shell.OnChanged",
+      "kind": "write",
+      "receiver": "typed Step",
+      "target": "Count"
+    },
+    {
+      "at": "16:8",
+      "from": "Demo.Shell.OnChanged",
+      "kind": "read",
+      "receiver": null,
+      "target": "_slots"
+    },
+    {
+      "at": "19:17",
+      "from": "Demo.Shell.AfterAssign",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "19:49",
+      "from": "Demo.Shell.AfterAssign",
+      "kind": "read",
+      "receiver": null,
+      "target": "_restore"
+    },
+    {
+      "at": "19:58",
+      "from": "Demo.Shell.AfterAssign",
+      "kind": "call",
+      "receiver": "typed IRestore",
+      "target": "Offer"
+    },
+    {
+      "at": "20:24",
+      "from": "Demo.Shell.Compare",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Step"
+    },
+    {
+      "at": "20:45",
+      "from": "Demo.Shell.Compare",
+      "kind": "read",
+      "receiver": "typed Step",
+      "target": "Count"
+    },
+    {
+      "at": "20:62",
+      "from": "Demo.Shell.Compare",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "IsSelected"
+    },
+    {
+      "at": "21:17",
+      "from": "Demo.Shell.Last",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "21:42",
+      "from": "Demo.Shell.Last",
+      "kind": "read",
+      "receiver": null,
+      "target": "_restore"
+    },
+    {
+      "at": "21:51",
+      "from": "Demo.Shell.Last",
+      "kind": "call",
+      "receiver": "typed IRestore",
+      "target": "Later"
+    },
+    {
+      "at": "26:21",
+      "from": "Demo.Panel",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IRestore"
+    },
+    {
+      "at": "28:27",
+      "from": "Demo.Panel.OnChanged",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Step"
+    },
+    {
+      "at": "28:43",
+      "from": "Demo.Panel.OnChanged",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Step"
+    },
+    {
+      "at": "30:18",
+      "from": "Demo.Panel.OnChanged",
+      "kind": "write",
+      "receiver": "typed Step",
+      "target": "IsSelected"
+    },
+    {
+      "at": "31:18",
+      "from": "Demo.Panel.OnChanged",
+      "kind": "write",
+      "receiver": "typed Step",
+      "target": "IsSelected"
+    },
+    {
+      "at": "34:17",
+      "from": "Demo.Panel.AfterAssign",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "34:49",
+      "from": "Demo.Panel.AfterAssign",
+      "kind": "read",
+      "receiver": null,
+      "target": "_restore"
+    },
+    {
+      "at": "34:58",
+      "from": "Demo.Panel.AfterAssign",
+      "kind": "call",
+      "receiver": "typed IRestore",
+      "target": "Offer"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "nullassign.cs",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-36:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "Demo",
+      "parent": "nullassign.cs",
+      "signature": null,
+      "span": "0:0-36:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "Demo.IRestore",
+      "parent": "Demo",
+      "signature": null,
+      "span": "2:0-2:69",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.IRestore.Offer",
+      "parent": "Demo.IRestore",
+      "signature": "Task<bool> Offer();",
+      "span": "2:28-2:47",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.IRestore.Later",
+      "parent": "Demo.IRestore",
+      "signature": "Task<bool> Later();",
+      "span": "2:48-2:67",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Step",
+      "parent": "Demo",
+      "signature": null,
+      "span": "3:0-3:121",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Step.IsSelected",
+      "parent": "Demo.Step",
+      "signature": null,
+      "span": "3:20-3:56",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Step.Next",
+      "parent": "Demo.Step",
+      "signature": null,
+      "span": "3:57-3:88",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Step.Count",
+      "parent": "Demo.Step",
+      "signature": null,
+      "span": "3:89-3:119",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Shell",
+      "parent": "Demo",
+      "signature": null,
+      "span": "5:0-22:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Demo.Shell._restore",
+      "parent": "Demo.Shell",
+      "signature": null,
+      "span": "7:30-7:38",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Demo.Shell._slots",
+      "parent": "Demo.Shell",
+      "signature": null,
+      "span": "8:28-8:34",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shell.OnChanged",
+      "parent": "Demo.Shell",
+      "signature": "partial void OnChanged(Step? oldValue, Step? newValue)",
+      "span": "10:4-17:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shell.AfterAssign",
+      "parent": "Demo.Shell",
+      "signature": "public async Task AfterAssign()",
+      "span": "19:4-19:80",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shell.Compare",
+      "parent": "Demo.Shell",
+      "signature": "public bool Compare(Step? s)",
+      "span": "20:4-20:83",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shell.Last",
+      "parent": "Demo.Shell",
+      "signature": "public async Task Last()",
+      "span": "21:4-21:73",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Panel",
+      "parent": "Demo",
+      "signature": null,
+      "span": "24:0-35:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Demo.Panel._restore",
+      "parent": "Demo.Panel",
+      "signature": null,
+      "span": "26:30-26:38",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Panel.OnChanged",
+      "parent": "Demo.Panel",
+      "signature": "partial void OnChanged(Step? oldValue, Step? newValue)",
+      "span": "28:4-32:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Panel.AfterAssign",
+      "parent": "Demo.Panel",
+      "signature": "public async Task AfterAssign()",
+      "span": "34:4-34:80",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

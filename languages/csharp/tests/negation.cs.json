@@ -1,0 +1,980 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 42,
+      "operands": null,
+      "operators": null,
+      "symbol": "negation.cs"
+    },
+    {
+      "decisions": null,
+      "loc": 42,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo"
+    },
+    {
+      "decisions": null,
+      "loc": 11,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IGate"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IGate.Negated"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IGate.Awaited"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IGate.Plain"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IGate.Grouped"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IGate.Chained"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IGate.Safe"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IGate.Primary"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IGate.Mixed"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IFlag"
+    },
+    {
+      "decisions": null,
+      "loc": 15,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Gatekeeper"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "Demo.Gatekeeper.Gatekeeper"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        7,
+        8
+      ],
+      "symbol": "Demo.Gatekeeper.NegatedAwait"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        5,
+        6
+      ],
+      "symbol": "Demo.Gatekeeper.PlainAwait"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        5,
+        5
+      ],
+      "operators": [
+        6,
+        8
+      ],
+      "symbol": "Demo.Gatekeeper.NegatedCall"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        7,
+        8
+      ],
+      "symbol": "Demo.Gatekeeper.GroupedAwait"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        6,
+        6
+      ],
+      "operators": [
+        7,
+        10
+      ],
+      "symbol": "Demo.Gatekeeper.ChainedAwait"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        7,
+        8
+      ],
+      "symbol": "Demo.Gatekeeper.SafeAwait"
+    },
+    {
+      "decisions": 2,
+      "loc": 1,
+      "operands": [
+        5,
+        5
+      ],
+      "operators": [
+        9,
+        9
+      ],
+      "symbol": "Demo.Gatekeeper.MixedAwait"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        5,
+        5
+      ],
+      "symbol": "Demo.Gatekeeper.NegatedMember"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        4,
+        4
+      ],
+      "symbol": "Demo.Gatekeeper.NegatedAccess"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.PrimaryGatekeeper"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        7,
+        8
+      ],
+      "symbol": "Demo.PrimaryGatekeeper.Run"
+    },
+    {
+      "decisions": null,
+      "loc": 10,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Printer"
+    },
+    {
+      "decisions": 2,
+      "loc": 5,
+      "operands": [
+        4,
+        7
+      ],
+      "operators": [
+        6,
+        11
+      ],
+      "symbol": "Demo.Printer.PrintAsync"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Demo.Printer.TryShowAsync"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "Demo.Printer.OpenAsync"
+    }
+  ],
+  "loc": 42,
+  "references": [
+    {
+      "at": "4:4",
+      "from": "Demo.IGate.Negated",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "5:4",
+      "from": "Demo.IGate.Awaited",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "6:4",
+      "from": "Demo.IGate.Plain",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "7:4",
+      "from": "Demo.IGate.Grouped",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "8:4",
+      "from": "Demo.IGate.Chained",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "9:4",
+      "from": "Demo.IGate.Safe",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "10:4",
+      "from": "Demo.IGate.Primary",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "11:4",
+      "from": "Demo.IGate.Mixed",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "18:21",
+      "from": "Demo.Gatekeeper",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IGate"
+    },
+    {
+      "at": "19:21",
+      "from": "Demo.Gatekeeper",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IFlag"
+    },
+    {
+      "at": "21:22",
+      "from": "Demo.Gatekeeper.Gatekeeper",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IGate"
+    },
+    {
+      "at": "21:36",
+      "from": "Demo.Gatekeeper.Gatekeeper",
+      "kind": "write",
+      "receiver": null,
+      "target": "_gate"
+    },
+    {
+      "at": "23:17",
+      "from": "Demo.Gatekeeper.NegatedAwait",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "23:55",
+      "from": "Demo.Gatekeeper.NegatedAwait",
+      "kind": "read",
+      "receiver": null,
+      "target": "_gate"
+    },
+    {
+      "at": "23:61",
+      "from": "Demo.Gatekeeper.NegatedAwait",
+      "kind": "call",
+      "receiver": "typed IGate",
+      "target": "Negated"
+    },
+    {
+      "at": "24:17",
+      "from": "Demo.Gatekeeper.PlainAwait",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "24:52",
+      "from": "Demo.Gatekeeper.PlainAwait",
+      "kind": "read",
+      "receiver": null,
+      "target": "_gate"
+    },
+    {
+      "at": "24:58",
+      "from": "Demo.Gatekeeper.PlainAwait",
+      "kind": "call",
+      "receiver": "typed IGate",
+      "target": "Awaited"
+    },
+    {
+      "at": "25:17",
+      "from": "Demo.Gatekeeper.NegatedCall",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "25:48",
+      "from": "Demo.Gatekeeper.NegatedCall",
+      "kind": "read",
+      "receiver": null,
+      "target": "_gate"
+    },
+    {
+      "at": "25:54",
+      "from": "Demo.Gatekeeper.NegatedCall",
+      "kind": "call",
+      "receiver": "typed IGate",
+      "target": "Plain"
+    },
+    {
+      "at": "25:62",
+      "from": "Demo.Gatekeeper.NegatedCall",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "Result"
+    },
+    {
+      "at": "26:17",
+      "from": "Demo.Gatekeeper.GroupedAwait",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "26:56",
+      "from": "Demo.Gatekeeper.GroupedAwait",
+      "kind": "read",
+      "receiver": null,
+      "target": "_gate"
+    },
+    {
+      "at": "26:62",
+      "from": "Demo.Gatekeeper.GroupedAwait",
+      "kind": "call",
+      "receiver": "typed IGate",
+      "target": "Grouped"
+    },
+    {
+      "at": "27:17",
+      "from": "Demo.Gatekeeper.ChainedAwait",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "27:55",
+      "from": "Demo.Gatekeeper.ChainedAwait",
+      "kind": "read",
+      "receiver": null,
+      "target": "_gate"
+    },
+    {
+      "at": "27:61",
+      "from": "Demo.Gatekeeper.ChainedAwait",
+      "kind": "call",
+      "receiver": "typed IGate",
+      "target": "Chained"
+    },
+    {
+      "at": "27:71",
+      "from": "Demo.Gatekeeper.ChainedAwait",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "ConfigureAwait"
+    },
+    {
+      "at": "28:17",
+      "from": "Demo.Gatekeeper.SafeAwait",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "28:52",
+      "from": "Demo.Gatekeeper.SafeAwait",
+      "kind": "read",
+      "receiver": null,
+      "target": "_gate"
+    },
+    {
+      "at": "28:59",
+      "from": "Demo.Gatekeeper.SafeAwait",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "Safe"
+    },
+    {
+      "at": "29:17",
+      "from": "Demo.Gatekeeper.MixedAwait",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "29:67",
+      "from": "Demo.Gatekeeper.MixedAwait",
+      "kind": "read",
+      "receiver": null,
+      "target": "_gate"
+    },
+    {
+      "at": "29:73",
+      "from": "Demo.Gatekeeper.MixedAwait",
+      "kind": "call",
+      "receiver": "typed IGate",
+      "target": "Mixed"
+    },
+    {
+      "at": "30:42",
+      "from": "Demo.Gatekeeper.NegatedMember",
+      "kind": "read",
+      "receiver": null,
+      "target": "_flag"
+    },
+    {
+      "at": "30:49",
+      "from": "Demo.Gatekeeper.NegatedMember",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "Ready"
+    },
+    {
+      "at": "31:42",
+      "from": "Demo.Gatekeeper.NegatedAccess",
+      "kind": "read",
+      "receiver": null,
+      "target": "_flag"
+    },
+    {
+      "at": "31:48",
+      "from": "Demo.Gatekeeper.NegatedAccess",
+      "kind": "read",
+      "receiver": "typed IFlag",
+      "target": "Ready"
+    },
+    {
+      "at": "34:31",
+      "from": "Demo.PrimaryGatekeeper",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IGate"
+    },
+    {
+      "at": "36:17",
+      "from": "Demo.PrimaryGatekeeper.Run",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "36:51",
+      "from": "Demo.PrimaryGatekeeper.Run",
+      "kind": "call",
+      "receiver": "typed IGate",
+      "target": "Primary"
+    },
+    {
+      "at": "41:17",
+      "from": "Demo.Printer.PrintAsync",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "43:19",
+      "from": "Demo.Printer.PrintAsync",
+      "kind": "call",
+      "receiver": null,
+      "target": "TryShowAsync"
+    },
+    {
+      "at": "43:47",
+      "from": "Demo.Printer.PrintAsync",
+      "kind": "call",
+      "receiver": null,
+      "target": "OpenAsync"
+    },
+    {
+      "at": "44:18",
+      "from": "Demo.Printer.PrintAsync",
+      "kind": "call",
+      "receiver": null,
+      "target": "TryShowAsync"
+    },
+    {
+      "at": "47:12",
+      "from": "Demo.Printer.TryShowAsync",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "47:52",
+      "from": "Demo.Printer.TryShowAsync",
+      "kind": "read",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "47:57",
+      "from": "Demo.Printer.TryShowAsync",
+      "kind": "call",
+      "receiver": "named Task",
+      "target": "FromResult"
+    },
+    {
+      "at": "48:12",
+      "from": "Demo.Printer.OpenAsync",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "48:56",
+      "from": "Demo.Printer.OpenAsync",
+      "kind": "read",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "48:61",
+      "from": "Demo.Printer.OpenAsync",
+      "kind": "read",
+      "receiver": "named Task",
+      "target": "CompletedTask"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "negation.cs",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-50:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "Demo",
+      "parent": "negation.cs",
+      "signature": null,
+      "span": "0:0-50:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "Demo.IGate",
+      "parent": "Demo",
+      "signature": null,
+      "span": "2:0-12:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.IGate.Negated",
+      "parent": "Demo.IGate",
+      "signature": "Task<bool> Negated();",
+      "span": "4:4-4:25",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.IGate.Awaited",
+      "parent": "Demo.IGate",
+      "signature": "Task<bool> Awaited();",
+      "span": "5:4-5:25",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.IGate.Plain",
+      "parent": "Demo.IGate",
+      "signature": "Task<bool> Plain();",
+      "span": "6:4-6:23",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.IGate.Grouped",
+      "parent": "Demo.IGate",
+      "signature": "Task<bool> Grouped();",
+      "span": "7:4-7:25",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.IGate.Chained",
+      "parent": "Demo.IGate",
+      "signature": "Task<bool> Chained();",
+      "span": "8:4-8:25",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.IGate.Safe",
+      "parent": "Demo.IGate",
+      "signature": "Task<bool> Safe();",
+      "span": "9:4-9:22",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.IGate.Primary",
+      "parent": "Demo.IGate",
+      "signature": "Task<bool> Primary();",
+      "span": "10:4-10:25",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.IGate.Mixed",
+      "parent": "Demo.IGate",
+      "signature": "Task<bool> Mixed();",
+      "span": "11:4-11:23",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "Demo.IFlag",
+      "parent": "Demo",
+      "signature": null,
+      "span": "14:0-14:46",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.IFlag.Ready",
+      "parent": "Demo.IFlag",
+      "signature": null,
+      "span": "14:25-14:44",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Gatekeeper",
+      "parent": "Demo",
+      "signature": null,
+      "span": "16:0-32:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Demo.Gatekeeper._gate",
+      "parent": "Demo.Gatekeeper",
+      "signature": null,
+      "span": "18:27-18:32",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Demo.Gatekeeper._flag",
+      "parent": "Demo.Gatekeeper",
+      "signature": null,
+      "span": "19:28-19:33",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "constructor",
+      "name": "Demo.Gatekeeper.Gatekeeper",
+      "parent": "Demo.Gatekeeper",
+      "signature": "public Gatekeeper(IGate gate)",
+      "span": "21:4-21:51",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Gatekeeper.NegatedAwait",
+      "parent": "Demo.Gatekeeper",
+      "signature": "public async Task<int> NegatedAwait()",
+      "span": "23:4-23:97",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Gatekeeper.PlainAwait",
+      "parent": "Demo.Gatekeeper",
+      "signature": "public async Task<int> PlainAwait()",
+      "span": "24:4-24:94",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Gatekeeper.NegatedCall",
+      "parent": "Demo.Gatekeeper",
+      "signature": "public async Task<int> NegatedCall()",
+      "span": "25:4-25:95",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Gatekeeper.GroupedAwait",
+      "parent": "Demo.Gatekeeper",
+      "signature": "public async Task<int> GroupedAwait()",
+      "span": "26:4-26:99",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Gatekeeper.ChainedAwait",
+      "parent": "Demo.Gatekeeper",
+      "signature": "public async Task<int> ChainedAwait()",
+      "span": "27:4-27:119",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Gatekeeper.SafeAwait",
+      "parent": "Demo.Gatekeeper",
+      "signature": "public async Task<int> SafeAwait()",
+      "span": "28:4-28:92",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Gatekeeper.MixedAwait",
+      "parent": "Demo.Gatekeeper",
+      "signature": "public async Task<int> MixedAwait(bool x)",
+      "span": "29:4-29:91",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Gatekeeper.NegatedMember",
+      "parent": "Demo.Gatekeeper",
+      "signature": "public bool NegatedMember()",
+      "span": "30:4-30:66",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Gatekeeper.NegatedAccess",
+      "parent": "Demo.Gatekeeper",
+      "signature": "public bool NegatedAccess()",
+      "span": "31:4-31:56",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.PrimaryGatekeeper",
+      "parent": "Demo",
+      "signature": null,
+      "span": "34:0-37:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.PrimaryGatekeeper.Run",
+      "parent": "Demo.PrimaryGatekeeper",
+      "signature": "public async Task<int> Run()",
+      "span": "36:4-36:87",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Printer",
+      "parent": "Demo",
+      "signature": null,
+      "span": "39:0-49:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Printer.PrintAsync",
+      "parent": "Demo.Printer",
+      "signature": "public async Task PrintAsync(string html, string name)",
+      "span": "41:4-45:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Printer.TryShowAsync",
+      "parent": "Demo.Printer",
+      "signature": "private Task<bool> TryShowAsync(string html)",
+      "span": "47:4-47:74",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Printer.OpenAsync",
+      "parent": "Demo.Printer",
+      "signature": "private Task OpenAsync(string html, string name)",
+      "span": "48:4-48:75",
+      "static": false,
+      "visibility": "private"
+    }
+  ]
+}

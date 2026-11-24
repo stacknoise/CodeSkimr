@@ -36,6 +36,8 @@ pub struct LanguagePack {
     pub(crate) file_in_names: bool,
     /// Whether a name without receiver inside a function can mean a member of its type (ADR 0053).
     pub(crate) bare_names_reach_members: bool,
+    /// Whether the question mark of a null-conditional assignment is blanked before parsing (ADR 0094).
+    pub(crate) blank_null_conditional_assignment: bool,
     pub(crate) comment_nodes: HashSet<String>,
     /// Node kinds whose start and end the content hash marks (blocks without delimiting tokens).
     pub(crate) block_nodes: HashSet<String>,
@@ -122,6 +124,7 @@ impl LanguagePack {
             separator: manifest.separator,
             file_in_names: manifest.file_in_names,
             bare_names_reach_members: manifest.bare_names_reach_members,
+            blank_null_conditional_assignment: manifest.blank_null_conditional_assignment,
             comment_nodes: manifest.comment_nodes.into_iter().collect(),
             block_nodes: manifest.block_nodes.into_iter().collect(),
             doc_prefixes: manifest.doc_prefixes,

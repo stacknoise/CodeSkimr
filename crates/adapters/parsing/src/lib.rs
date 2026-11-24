@@ -35,6 +35,7 @@ mod lines;
 mod location;
 mod manifest;
 mod metrics;
+mod null_conditional;
 mod pack;
 mod packs;
 mod references;

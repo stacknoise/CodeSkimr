@@ -128,6 +128,10 @@ pub struct PackManifest {
     /// receiver (Python: `self.count`), so the name there is a local or an outer name (ADR 0053).
     #[serde(default = "bare_names_default")]
     pub bare_names_reach_members: bool,
+    /// Whether the grammar cannot parse a null-conditional assignment (`a?.B = x`, C# 14) and the
+    /// question mark in front of the assigned member is blanked out before parsing (ADR 0094).
+    #[serde(default)]
+    pub blank_null_conditional_assignment: bool,
     /// Syntax node kinds that are comments.
     pub comment_nodes: Vec<String>,
     /// Syntax node kinds that are blocks without a token at their start and end (the indentation

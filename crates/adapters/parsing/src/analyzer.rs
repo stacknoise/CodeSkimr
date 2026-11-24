@@ -1,5 +1,6 @@
 //! The `FileAnalyzer` adapter: parses one file and extracts symbols and occurrences.
 
+use std::borrow::Cow;
 use std::fs;
 use std::ops::ControlFlow;
 use std::path::Path;
@@ -18,6 +19,7 @@ use crate::error::ParsingError;
 use crate::fingerprints::{self, FingerprintSettings};
 use crate::lines::classify;
 use crate::metrics;
+use crate::null_conditional;
 use crate::pack::LanguagePack;
 use crate::packs::LanguagePacks;
 use crate::references;
@@ -69,6 +71,7 @@ impl TreeSitterAnalyzer {
         let pack = self.packs.get(&request.file.language)?;
         let location = Path::new(request.root.as_str()).join(request.file.path.as_str());
         let source = decode(&fs::read(location).map_err(ParsingError::FileUnreadable)?)?;
+        let source = prepared(pack, &source);
         let tree = parse(pack, &source, self.parse_timeout)?;
         let root = tree.root_node();
         let file = request.ids.file();
@@ -132,8 +135,18 @@ impl SnippetFingerprinter for TreeSitterAnalyzer {
             .fingerprinting
             .ok_or_else(|| CodedError::new(ErrorCode::UnexpectedInternalError))?;
         let pack = self.packs.get(language).map_err(CodedError::caused_by)?;
-        let tree = parse(pack, source, self.parse_timeout).map_err(CodedError::caused_by)?;
+        let source = prepared(pack, source);
+        let tree = parse(pack, &source, self.parse_timeout).map_err(CodedError::caused_by)?;
         Ok(fingerprints::of_source(pack, tree.root_node(), settings))
+    }
+}
+
+/// The source as the grammar of the pack can parse it, in the same width (ADR 0094).
+fn prepared<'s>(pack: &LanguagePack, source: &'s str) -> Cow<'s, str> {
+    if pack.blank_null_conditional_assignment {
+        null_conditional::prepare(source)
+    } else {
+        Cow::Borrowed(source)
     }
 }
 

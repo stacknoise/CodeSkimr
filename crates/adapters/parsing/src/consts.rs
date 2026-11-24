@@ -300,3 +300,26 @@ pub const HIGHLIGHT_ATTRIBUTE: &str = "attribute";
 pub const HIGHLIGHT_LABEL: &str = "label";
 /// Capture of the object itself (`self`, `this`); it is coloured like a keyword.
 pub const HIGHLIGHT_VARIABLE_BUILTIN: &str = "variable.builtin";
+
+/// The question mark of a null-conditional access (ADR 0094).
+pub const NULL_CONDITIONAL_MARK: char = '?';
+/// What replaces that question mark: a space is as wide and means nothing.
+pub const BLANK: char = ' ';
+/// The dot of a member access.
+pub const MEMBER_DOT: char = '.';
+/// The bracket that opens an element access.
+pub const BRACKET_OPEN: char = '[';
+/// The bracket that closes an element access.
+pub const BRACKET_CLOSE: char = ']';
+/// The sign of an assignment.
+pub const ASSIGN_SIGN: char = '=';
+/// The null-coalescing assignment, which is an assignment sign of its own.
+pub const COALESCE_ASSIGN: &str = "??=";
+/// Signs that, in front of `=`, make a compound assignment.
+pub const ASSIGN_COMPOUND_SIGNS: &str = "+-*/%&|^";
+/// What may not follow the `=`: `==` is a comparison and `=>` a lambda arrow.
+pub const NON_ASSIGN_FOLLOWERS: &str = "=>";
+/// The character that may be part of a member name besides letters and digits.
+pub const NAME_JOINER: char = '_';
+/// The end of a statement, where the search for the closing bracket of `?[` stops.
+pub const STATEMENT_END: char = ';';

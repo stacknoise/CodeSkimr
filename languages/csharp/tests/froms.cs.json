@@ -1,0 +1,563 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 20,
+      "operands": null,
+      "operators": null,
+      "symbol": "froms.cs"
+    },
+    {
+      "decisions": null,
+      "loc": 20,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.ISave"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.ISave.Offer"
+    },
+    {
+      "decisions": null,
+      "loc": 13,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Model"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        4,
+        5
+      ],
+      "operators": [
+        9,
+        9
+      ],
+      "symbol": "Demo.Model.Model"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        7,
+        7
+      ],
+      "symbol": "Demo.Model.OnClick"
+    },
+    {
+      "decisions": 0,
+      "loc": 0,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Demo.Model.Local"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        6,
+        6
+      ],
+      "symbol": "Demo.Model.Local.Inner"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Model.Hook"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        5,
+        5
+      ],
+      "symbol": "Demo.Model.Free"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Model"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Demo.Model.Helper"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "Demo.Model.Hook"
+    }
+  ],
+  "loc": 20,
+  "references": [
+    {
+      "at": "2:25",
+      "from": "Demo.ISave.Offer",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "6:21",
+      "from": "Demo.Model",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "ISave"
+    },
+    {
+      "at": "7:17",
+      "from": "Demo.Model.Model",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "ISave"
+    },
+    {
+      "at": "7:31",
+      "from": "Demo.Model.Model",
+      "kind": "write",
+      "receiver": null,
+      "target": "_save"
+    },
+    {
+      "at": "7:45",
+      "from": "Demo.Model.Model",
+      "kind": "write",
+      "receiver": null,
+      "target": "Loaded"
+    },
+    {
+      "at": "7:84",
+      "from": "Demo.Model.Model",
+      "kind": "read",
+      "receiver": null,
+      "target": "_save"
+    },
+    {
+      "at": "7:90",
+      "from": "Demo.Model.Model",
+      "kind": "call",
+      "receiver": "typed ISave",
+      "target": "Offer"
+    },
+    {
+      "at": "8:17",
+      "from": "Demo.Model",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "EventHandler"
+    },
+    {
+      "at": "9:11",
+      "from": "Demo.Model.Cmd",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "ICommand"
+    },
+    {
+      "at": "9:31",
+      "from": "Demo.Model.Cmd",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Relay"
+    },
+    {
+      "at": "9:62",
+      "from": "Demo.Model.Cmd",
+      "kind": "read",
+      "receiver": null,
+      "target": "_save"
+    },
+    {
+      "at": "9:68",
+      "from": "Demo.Model.Cmd",
+      "kind": "call",
+      "receiver": "typed ISave",
+      "target": "Offer"
+    },
+    {
+      "at": "10:37",
+      "from": "Demo.Model.Prop",
+      "kind": "read",
+      "receiver": null,
+      "target": "_save"
+    },
+    {
+      "at": "10:43",
+      "from": "Demo.Model.Prop",
+      "kind": "call",
+      "receiver": "typed ISave",
+      "target": "Offer"
+    },
+    {
+      "at": "10:51",
+      "from": "Demo.Model.Prop",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "Result"
+    },
+    {
+      "at": "11:40",
+      "from": "Demo.Model.OnClick",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "EventArgs"
+    },
+    {
+      "at": "11:66",
+      "from": "Demo.Model.OnClick",
+      "kind": "read",
+      "receiver": null,
+      "target": "_save"
+    },
+    {
+      "at": "11:72",
+      "from": "Demo.Model.OnClick",
+      "kind": "call",
+      "receiver": "typed ISave",
+      "target": "Offer"
+    },
+    {
+      "at": "12:17",
+      "from": "Demo.Model.Local",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "12:38",
+      "from": "Demo.Model.Local.Inner",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "12:64",
+      "from": "Demo.Model.Local.Inner",
+      "kind": "read",
+      "receiver": null,
+      "target": "_save"
+    },
+    {
+      "at": "12:70",
+      "from": "Demo.Model.Local.Inner",
+      "kind": "call",
+      "receiver": "typed ISave",
+      "target": "Offer"
+    },
+    {
+      "at": "12:91",
+      "from": "Demo.Model.Local",
+      "kind": "call",
+      "receiver": null,
+      "target": "Inner"
+    },
+    {
+      "at": "13:18",
+      "from": "Demo.Model",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Func"
+    },
+    {
+      "at": "13:23",
+      "from": "Demo.Model",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "ISave"
+    },
+    {
+      "at": "13:30",
+      "from": "Demo.Model",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "13:69",
+      "from": "Demo.Model.Make",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "Offer"
+    },
+    {
+      "at": "15:17",
+      "from": "Demo.Model.Free",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "15:42",
+      "from": "Demo.Model.Free",
+      "kind": "call",
+      "receiver": null,
+      "target": "Helper"
+    },
+    {
+      "at": "19:12",
+      "from": "Demo.Model.Helper",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "19:35",
+      "from": "Demo.Model.Helper",
+      "kind": "read",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "19:40",
+      "from": "Demo.Model.Helper",
+      "kind": "call",
+      "receiver": "named Task",
+      "target": "FromResult"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "froms.cs",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-22:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "Demo",
+      "parent": "froms.cs",
+      "signature": null,
+      "span": "0:0-22:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "Demo.ISave",
+      "parent": "Demo",
+      "signature": null,
+      "span": "2:0-2:46",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.ISave.Offer",
+      "parent": "Demo.ISave",
+      "signature": "Task<bool> Offer();",
+      "span": "2:25-2:44",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Model",
+      "parent": "Demo",
+      "signature": null,
+      "span": "4:0-16:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Demo.Model._save",
+      "parent": "Demo.Model",
+      "signature": null,
+      "span": "6:27-6:32",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "constructor",
+      "name": "Demo.Model.Model",
+      "parent": "Demo.Model",
+      "signature": "public Model(ISave save)",
+      "span": "7:4-7:107",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "event",
+      "name": "Demo.Model.Loaded",
+      "parent": "Demo.Model",
+      "signature": null,
+      "span": "8:31-8:37",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Model.Cmd",
+      "parent": "Demo.Model",
+      "signature": null,
+      "span": "9:4-9:84",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Model.Prop",
+      "parent": "Demo.Model",
+      "signature": null,
+      "span": "10:4-10:62",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Model.OnClick",
+      "parent": "Demo.Model",
+      "signature": "public async void OnClick(object s, EventArgs e)",
+      "span": "11:4-11:94",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Model.Local",
+      "parent": "Demo.Model",
+      "signature": "public async Task Local()",
+      "span": "12:4-12:101",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "Demo.Model.Local.Inner",
+      "parent": "Demo.Model.Local",
+      "signature": "async Task Inner()",
+      "span": "12:32-12:84",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Demo.Model.Make",
+      "parent": "Demo.Model",
+      "signature": null,
+      "span": "13:42-13:76",
+      "static": true,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Model.Hook",
+      "parent": "Demo.Model",
+      "signature": "partial void Hook();",
+      "span": "14:4-14:24",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Model.Free",
+      "parent": "Demo.Model",
+      "signature": "public async Task Free()",
+      "span": "15:4-15:57",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Model",
+      "parent": "Demo",
+      "signature": null,
+      "span": "17:0-21:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Model.Helper",
+      "parent": "Demo.Model",
+      "signature": "private Task<bool> Helper()",
+      "span": "19:4-19:57",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Model.Hook",
+      "parent": "Demo.Model",
+      "signature": "partial void Hook()",
+      "span": "20:4-20:27",
+      "static": false,
+      "visibility": "private"
+    }
+  ]
+}

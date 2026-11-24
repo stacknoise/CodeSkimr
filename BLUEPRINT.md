@@ -364,6 +364,7 @@ languages/csharp/
 - visibility keywords and defaults
 - project manifest files (`*.csproj`, `package.json`, `pom.xml`, `go.mod`, `Cargo.toml`, `pyproject.toml` …)
 - test file patterns
+- source preparation before parsing where the grammar lacks a syntax (`blank_null_conditional_assignment`, C# 14, ADR 0094)
 - the tier (`full` | `basic`)
 
 ### 8.2 Tiers
