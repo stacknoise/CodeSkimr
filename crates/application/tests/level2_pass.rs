@@ -11,7 +11,7 @@ mod cases {
     use codeskimr_application::cancel::CancelToken;
     use codeskimr_application::config::{Config, ConfigLayer, LayerSource};
     use codeskimr_application::error::CodedError;
-    use codeskimr_application::ids::IdSequence;
+    use codeskimr_application::ids::ProjectIds;
     use codeskimr_application::level2::{
         LanguageReport, Level2Outcome, Level2Pass, Level2Result, Skipped, confirm,
     };
@@ -169,8 +169,8 @@ mod cases {
             Err(CodedError::new(ErrorCode::UnexpectedInternalError))
         }
 
-        fn next_free_id(&self) -> Result<u64, CodedError> {
-            Ok(1)
+        fn next_free_ids(&self, _project: ProjectId) -> Result<(u64, u64), CodedError> {
+            Ok((1000, 0))
         }
 
         fn confirm(
@@ -427,7 +427,7 @@ mod cases {
             discovery: world.clone(),
             projects: world.clone(),
             store: world.clone(),
-            ids: Arc::new(IdSequence::starting_at(1000)),
+            ids: Arc::new(ProjectIds::default()),
             max_file_bytes: 1 << 20,
             settings: switched_on(),
             indexers,

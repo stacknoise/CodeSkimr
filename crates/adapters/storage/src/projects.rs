@@ -23,7 +23,7 @@ use crate::previous::{latest_snapshot_id, load_latest_index, load_symbols};
 use crate::read_models;
 use crate::references;
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 
 /// A source as stored: kind, location, branch and the name of the credential (never its secret).
 struct SourceColumns {
@@ -77,7 +77,7 @@ impl SourceColumns {
     }
 }
 
-impl SqliteStore {
+impl ProjectDb {
     /// Registers a project, or updates the name, source and layers of a known id.
     ///
     /// # Errors
@@ -457,7 +457,7 @@ fn load_latest_files(conn: &Connection, project: ProjectId) -> StorageResult<Vec
     Ok(files)
 }
 
-impl ProjectRepository for SqliteStore {
+impl ProjectRepository for ProjectDb {
     fn project_for_removal(&self, id: ProjectId) -> Result<Project, CodedError> {
         self.read(|conn| load_project_any(conn, id))
             .map_err(CodedError::from)

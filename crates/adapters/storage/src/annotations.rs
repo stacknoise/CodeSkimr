@@ -17,7 +17,7 @@ use crate::codec::{Cols, column_int, id_from, label_from};
 use crate::consts::{NAME_SEPARATOR, NO_ANNOTATION};
 use crate::error::{StorageError, StorageResult};
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 use crate::{alerts, baselines};
 
 /// One row of `annotation`, as the columns hold it.
@@ -377,7 +377,7 @@ fn refresh(conn: &Connection, project: ProjectId, snapshot: SnapshotId) -> Stora
     u64::try_from(lost + found).map_err(|_| StorageError::OutOfRange)
 }
 
-impl AnnotationStore for SqliteStore {
+impl AnnotationStore for ProjectDb {
     fn create_annotation(&self, creation: &AnnotationCreation) -> Result<Annotation, CodedError> {
         self.write(|tx| insert(tx, creation))
             .map_err(CodedError::from)

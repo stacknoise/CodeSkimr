@@ -15,7 +15,7 @@ use codeskimr_domain::{
 };
 
 use crate::snapshots::write_snapshot;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 
 /// Long enough for an answer that does not wait, far too short to sit out a test that hangs.
 const ANSWER_IN: Duration = Duration::from_secs(10);
@@ -64,10 +64,10 @@ fn scan() -> SnapshotData {
     }
 }
 
-fn file_store(name: &str) -> (SqliteStore, PathBuf) {
+fn file_store(name: &str) -> (ProjectDb, PathBuf) {
     let folder =
         std::env::temp_dir().join(format!("codeskimr-during-{}-{name}", std::process::id()));
-    let store = SqliteStore::open(
+    let store = ProjectDb::open(
         &folder.join("workspace.db"),
         NonZeroU32::new(KEPT_SNAPSHOTS).unwrap(),
     )
@@ -79,7 +79,7 @@ fn file_store(name: &str) -> (SqliteStore, PathBuf) {
 /// What `ask` answers while a write that stores the scan is held open, if it answers within
 /// `patience`, and what it answers once the write is through, if it had not answered before.
 fn asked_during_the_write<T: Send>(
-    store: &SqliteStore,
+    store: &ProjectDb,
     ask: impl FnOnce() -> T + Send,
     patience: Duration,
 ) -> (Option<T>, Option<T>) {

@@ -55,9 +55,9 @@ fn limit_growth(conn: &Connection, pages: NonZeroU32) -> rusqlite::Result<()> {
 /// The `SQLite` database of one workspace. It implements the storage ports and offers the queries
 /// on the read models. Share it behind an `Arc`. There is one writer at a time; a read does not wait for it, it sees
 /// the state before the write (only the reads a write is built on wait, see
-/// `SqliteStore::read_latest`).
+/// `ProjectDb::read_latest`).
 #[derive(Debug)]
-pub struct SqliteStore {
+pub struct ProjectDb {
     conn: Mutex<Connection>,
     /// The database file, so that a long read can use a connection of its own and leave `conn`
     /// to the queries of the screens; `None` for an in-memory database.
@@ -130,7 +130,7 @@ pub(crate) enum Build {
     Facts,
 }
 
-/// What [`SqliteStore`] keeps of a walk: the snapshot, the `data_version` it was read at, the
+/// What [`ProjectDb`] keeps of a walk: the snapshot, the `data_version` it was read at, the
 /// question it was read for, and the references it touched.
 pub(crate) type KeptWalk = (
     SnapshotId,
@@ -139,7 +139,7 @@ pub(crate) type KeptWalk = (
     Arc<codeskimr_domain::ReverseIndex>,
 );
 
-/// What [`SqliteStore`] keeps of a build that costs a pass over a snapshot: for the snapshots that
+/// What [`ProjectDb`] keeps of a build that costs a pass over a snapshot: for the snapshots that
 /// were asked about last, newest first, at most `KEPT_BUILDS`, the value and the `data_version` it
 /// was built at. A value is kept only while no other connection has committed since: the level 2
 /// import of a scan from the browser or of `codeskimr scan` replaces the references of a snapshot
@@ -186,7 +186,7 @@ impl<T: Clone> Kept<T> {
     }
 }
 
-impl SqliteStore {
+impl ProjectDb {
     /// Opens the database file, creating it and its folder if needed, and applies the migrations.
     /// `retention` is the number of snapshots kept per project (`snapshots.retention_count`).
     ///
@@ -196,7 +196,7 @@ impl SqliteStore {
         Self::open_with(path, retention, StoreOptions::default())
     }
 
-    /// Like [`SqliteStore::open`], with other connection settings than the defaults.
+    /// Like [`ProjectDb::open`], with other connection settings than the defaults.
     ///
     /// # Errors
     /// `STO-301` if a migration fails, `STO-501` if the disk is full, otherwise `STO-601`.
@@ -455,14 +455,14 @@ fn enable_wal(conn: &Connection) -> rusqlite::Result<()> {
 mod tests {
     use std::num::NonZeroU32;
 
-    use super::SqliteStore;
+    use super::ProjectDb;
     use crate::sql;
 
-    fn file_store(name: &str) -> (SqliteStore, std::path::PathBuf) {
+    fn file_store(name: &str) -> (ProjectDb, std::path::PathBuf) {
         let folder =
             std::env::temp_dir().join(format!("codeskimr-apart-{}-{name}", std::process::id()));
         let path = folder.join("workspace.db");
-        let store = SqliteStore::open(&path, NonZeroU32::new(3).unwrap()).unwrap();
+        let store = ProjectDb::open(&path, NonZeroU32::new(3).unwrap()).unwrap();
         (store, folder)
     }
 
@@ -517,7 +517,7 @@ mod tests {
         sql::REFERENCE_PAIRS,
     ];
 
-    fn plan(store: &SqliteStore, statement: &str) -> String {
+    fn plan(store: &ProjectDb, statement: &str) -> String {
         store
             .read(|conn| {
                 let mut explained = conn.prepare(&format!("EXPLAIN QUERY PLAN {statement}"))?;
@@ -536,7 +536,7 @@ mod tests {
     /// makes a small project wait for the references of the largest one in the database.
     #[test]
     fn the_references_of_a_snapshot_are_read_through_its_files_not_the_whole_table() {
-        let store = SqliteStore::open_in_memory(NonZeroU32::new(3).unwrap()).unwrap();
+        let store = ProjectDb::open_in_memory(NonZeroU32::new(3).unwrap()).unwrap();
         for statement in OF_ONE_SNAPSHOT {
             let narrowed = format!("{statement}{}", sql::IN_FILES_OF_SNAPSHOT);
             let plan = plan(&store, &narrowed);
@@ -552,7 +552,7 @@ mod tests {
     /// largest one.
     #[test]
     fn the_symbols_of_a_snapshot_are_read_through_its_files_or_their_parent() {
-        let store = SqliteStore::open_in_memory(NonZeroU32::new(3).unwrap()).unwrap();
+        let store = ProjectDb::open_in_memory(NonZeroU32::new(3).unwrap()).unwrap();
         let of_one_snapshot = [
             sql::OUTLINE_OF_KINDS,
             sql::ANNOTATION_TARGET_EXISTS,
@@ -598,7 +598,7 @@ mod tests {
         std::fs::remove_dir_all(folder).unwrap();
     }
 
-    fn nested(store: &SqliteStore, depth: usize) {
+    fn nested(store: &ProjectDb, depth: usize) {
         if depth > 0 {
             store
                 .read_apart(|_| {

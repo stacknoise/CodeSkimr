@@ -33,9 +33,9 @@ use crate::projects::load_layers;
 use crate::read_models;
 use crate::similarity;
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 
-impl SnapshotStore for SqliteStore {
+impl SnapshotStore for ProjectDb {
     fn persist(&self, data: SnapshotData) -> Result<Snapshot, CodedError> {
         self.write(|tx| {
             let stored = write_snapshot(tx, &data, self.retention().get())?;

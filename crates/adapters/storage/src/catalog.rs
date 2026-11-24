@@ -15,7 +15,7 @@ use crate::error::StorageResult;
 use crate::headers::latest_snapshot;
 use crate::projects::{load_project, load_project_any};
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 
 fn project_ids(conn: &Connection) -> StorageResult<Vec<ProjectId>> {
     let mut statement = conn.prepare_cached(sql::PROJECT_IDS)?;
@@ -154,7 +154,7 @@ fn languages_of(conn: &Connection, id: ProjectId) -> StorageResult<Vec<LanguageS
         .map_or_else(|| Ok(Vec::new()), |snapshot| languages(conn, snapshot.id))
 }
 
-impl ProjectCatalog for SqliteStore {
+impl ProjectCatalog for ProjectDb {
     fn languages(&self, project: ProjectId) -> Result<Vec<LanguageShare>, CodedError> {
         self.read(|conn| languages_of(conn, project))
             .map_err(CodedError::from)

@@ -21,16 +21,16 @@ use crate::consts::{
 use crate::error::StorageError;
 use crate::snapshots::{delete_shared_rows, delete_snapshot};
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 
-impl ProjectRemoval for SqliteStore {
+impl ProjectRemoval for ProjectDb {
     fn remove_project(&self, id: ProjectId) -> Result<(), CodedError> {
         self.remove_in_slices(column_int(id.get()).map_err(CodedError::from)?)
             .map_err(CodedError::from)
     }
 }
 
-impl SqliteStore {
+impl ProjectDb {
     fn remove_in_slices(&self, project: i64) -> Result<(), StorageError> {
         let snapshots = self.write(|tx| {
             let known: i64 =
@@ -92,7 +92,7 @@ impl SqliteStore {
     }
 }
 
-impl SqliteStore {
+impl ProjectDb {
     /// Deletes the rows of a snapshot that `delete` names, a part of them per write, until none is
     /// left, with a pause after each part so that other writers get their turn.
     fn delete_in_parts(&self, snapshot: i64, delete: &str) -> Result<(), StorageError> {

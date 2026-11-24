@@ -8,7 +8,7 @@ use rusqlite::{Connection, OptionalExtension, Transaction, params};
 use crate::codec::{Cols, column_int, label_from, ordinals};
 use crate::error::StorageResult;
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 
 fn insert(tx: &Transaction<'_>, project: ProjectId, report: &ToolReport) -> StorageResult<()> {
     let id = column_int(project.get())?;
@@ -93,7 +93,7 @@ fn load(conn: &Connection, project: ProjectId) -> StorageResult<Option<ToolRepor
     }))
 }
 
-impl ToolReportStore for SqliteStore {
+impl ToolReportStore for ProjectDb {
     fn replace(&self, project: ProjectId, report: &ToolReport) -> Result<(), CodedError> {
         self.write(|tx| insert(tx, project, report))
             .map_err(CodedError::from)
