@@ -190,7 +190,7 @@ impl<'a> Context<'a> {
         let is_qualifier = named
             .iter()
             .any(|symbol| matches!(symbol.kind, SymbolKind::Namespace | SymbolKind::Module));
-        (!is_qualifier && !self.is_value_in_reach(occurrence, &named)).then(Vec::new)
+        (!is_qualifier && !self.is_value_in_reach(occurrence, named)).then(Vec::new)
     }
 
     /// Whether one of the symbols is a value (field, property, ...) that the scopes of the
