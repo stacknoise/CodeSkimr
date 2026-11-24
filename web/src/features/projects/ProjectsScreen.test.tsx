@@ -93,6 +93,21 @@ describe("ProjectsScreen", () => {
     expect(screen.getByText("present")).toBeInTheDocument();
   });
 
+  it("says that the database file cannot be read, with its path", async () => {
+    serve({
+      "projects.list": () =>
+        answer([
+          {
+            ...ROW,
+            database: { path: "/data/projects/9.db", size_bytes: 512, state: "unreadable" },
+          },
+        ]),
+    });
+    render(() => <ProjectsScreen />);
+    expect(await screen.findByText("/data/projects/9.db")).toBeInTheDocument();
+    expect(screen.getByText("File not readable")).toBeInTheDocument();
+  });
+
   it("says that the database is not known yet while the server sends no field", async () => {
     serve({ "projects.list": () => answer([ROW]) });
     render(() => <ProjectsScreen />);

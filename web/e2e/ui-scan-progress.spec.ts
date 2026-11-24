@@ -64,9 +64,9 @@ for (const theme of THEMES) {
       await selectScannedProject(page, harness, name, SOURCE);
       held.armed = true;
       await page.getByRole("button", { name: "Scan again" }).first().click();
-      await expect(page.getByRole("link", { name: "Scans and performance" })).toHaveAttribute(
-        "aria-current",
-        "page",
+      await expect(page.getByRole("tab", { name: "Scan" })).toHaveAttribute(
+        "aria-selected",
+        "true",
       );
       await expect(page.getByRole("heading", { name: "Scan starting" })).toBeVisible();
       await expect.poll(() => held.stream !== null && held.ids.has(name)).toBe(true);

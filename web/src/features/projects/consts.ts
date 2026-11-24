@@ -274,7 +274,12 @@ export const SIZE_STEP = 1024;
 /** Decimals of a size from megabytes up. */
 export const SIZE_DECIMALS = 1;
 /** The state of a project database as the server names it. */
-export const DB_STATE = { ok: "ok", missing: "missing", removing: "removing" } as const;
+export const DB_STATE = {
+  ok: "ok",
+  missing: "missing",
+  removing: "removing",
+  unreadable: "unreadable",
+} as const;
 
 /** Icon of the button that removes a project. */
 export const REMOVE_ICON = "trash";

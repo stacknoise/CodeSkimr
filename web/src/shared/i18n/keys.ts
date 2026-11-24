@@ -846,6 +846,7 @@ export const I18N_KEYS = {
   PROJECTS_DB_STATE_OK: "projects-db-state-ok",
   PROJECTS_DB_STATE_MISSING: "projects-db-state-missing",
   PROJECTS_DB_STATE_REMOVING: "projects-db-state-removing",
+  PROJECTS_DB_STATE_UNREADABLE: "projects-db-state-unreadable",
   PROJECTS_DB_SIZE: "projects-db-size",
   PROJECTS_DB_UNAVAILABLE: "projects-db-unavailable",
   PROJECTS_DB_COPY: "projects-db-copy",

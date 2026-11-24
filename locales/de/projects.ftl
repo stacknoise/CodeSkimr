@@ -211,6 +211,7 @@ projects-card-left-out = { $count } ausgelassen
 projects-db-state-ok = vorhanden
 projects-db-state-missing = fehlt
 projects-db-state-removing = wird entfernt
+projects-db-state-unreadable = Datei nicht lesbar
 projects-db-size = Größe { $size }
 projects-db-unavailable = Noch nicht verfügbar.
 projects-db-copy = Pfad kopieren

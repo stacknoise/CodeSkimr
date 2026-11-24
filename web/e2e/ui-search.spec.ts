@@ -1,5 +1,5 @@
 // Runs after ui-explorer.spec.ts and before ui.spec.ts: the worker shares one server.
-import { addScannedProject, expect, test, watchPolicy } from "./fixtures";
+import { addScannedProject, expect, openInExplorer, test, watchPolicy } from "./fixtures";
 
 const SOURCE =
   "namespace Shop;\n\npublic class Basket\n{\n    public int Total(int a, int b) { return a + b; }\n}\n";
@@ -8,7 +8,7 @@ test.describe("the quick search", () => {
   test("Ctrl+K finds a type and Enter opens it in the explorer", async ({ page, harness }) => {
     const violations = await watchPolicy(page);
     await addScannedProject(page, harness, "shop", SOURCE);
-    await page.getByRole("button", { name: "Open shop" }).click();
+    await openInExplorer(page);
     await expect(page.getByRole("tree")).toBeVisible();
 
     await page.keyboard.press("Control+k");
@@ -27,7 +27,7 @@ test.describe("the quick search", () => {
     harness,
   }) => {
     await addScannedProject(page, harness, "shopfiles", SOURCE);
-    await page.getByRole("button", { name: "Open shopfiles" }).click();
+    await openInExplorer(page);
     await expect(page.getByRole("tree")).toBeVisible();
 
     await page.keyboard.press("Control+k");

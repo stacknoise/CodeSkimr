@@ -14,6 +14,7 @@ type Database = NonNullable<ProjectRow["database"]>;
 const LOOK: Record<Database["state"], { text: MessageKey; tone: PillTone }> = {
   [DB_STATE.ok]: { text: I18N_KEYS.PROJECTS_DB_STATE_OK, tone: TONE.good },
   [DB_STATE.missing]: { text: I18N_KEYS.PROJECTS_DB_STATE_MISSING, tone: TONE.bad },
+  [DB_STATE.unreadable]: { text: I18N_KEYS.PROJECTS_DB_STATE_UNREADABLE, tone: TONE.bad },
   [DB_STATE.removing]: { text: I18N_KEYS.PROJECTS_DB_STATE_REMOVING, tone: TONE.warn },
 };
 
