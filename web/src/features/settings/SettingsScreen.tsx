@@ -10,7 +10,7 @@ import { CredentialsPanel } from "./CredentialsPanel";
 import { IndexersPanel } from "./IndexersPanel";
 import { ThemeCard } from "./ThemeCard";
 import { LANGUAGES } from "../../shared/i18n/consts";
-import { LAYERS_ROUTE } from "../../app/consts";
+import { CODES_ROUTE, LAYERS_ROUTE } from "../../app/consts";
 import { navigate } from "../../app/router";
 
 /** The theme cards and the follow-system switch. */
@@ -85,6 +85,19 @@ function LayersPanel() {
   );
 }
 
+/** The way to the list of the error codes. */
+function CodesPanel() {
+  return (
+    <section class={`${styles.panel} ${styles.narrow}`}>
+      <h2>{t(I18N_KEYS.SETTINGS_CODES_TITLE)}</h2>
+      <p class={styles.note}>{t(I18N_KEYS.SETTINGS_CODES_NOTE)}</p>
+      <button type="button" class={styles.field} onClick={() => navigate(CODES_ROUTE.path)}>
+        {t(I18N_KEYS.SETTINGS_CODES_ACTION)}
+      </button>
+    </section>
+  );
+}
+
 /** The read-only editor link settings. */
 function EditorPanel(props: { config: UiConfig }) {
   return (
@@ -114,6 +127,7 @@ export function SettingsScreen() {
       <LayersPanel />
       <IndexersPanel />
       <CredentialsPanel />
+      <CodesPanel />
       <Show when={uiConfig()}>{(config) => <EditorPanel config={config()} />}</Show>
     </>
   );
