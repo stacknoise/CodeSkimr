@@ -148,6 +148,9 @@ pub const SNAPSHOT_PRUNE: &str = "DELETE FROM snapshots WHERE id = ?1";
 /// The snapshots of a project that are older than the newest ones: project id, number to keep.
 pub const SNAPSHOTS_EXPIRED: &str = "SELECT id FROM snapshots WHERE project_id = ?1 AND id NOT IN \
     (SELECT id FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT ?2)";
+/// How many snapshots of a project fall out of the retention: project id, snapshots to keep.
+pub const SNAPSHOTS_EXPIRED_COUNT: &str = "SELECT COUNT(*) FROM snapshots WHERE project_id = ?1 AND id NOT IN \
+    (SELECT id FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT ?2)";
 /// What a snapshot owns alone, children before parents: each takes the snapshot id. Deleting them
 /// one table at a time is much faster than the cascade of the foreign keys, which looks up the
 /// children of every single row (issue #108). References and fingerprints are shared and are

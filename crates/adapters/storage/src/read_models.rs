@@ -6,7 +6,7 @@
 use std::collections::BTreeMap;
 
 use codeskimr_domain::{
-    Confidence, Layer, MetricKind, ProjectId, ReferenceKind, SnapshotId, SymbolKind,
+    Confidence, Layer, MetricKind, ProjectId, Reference, ReferenceKind, SnapshotId, SymbolKind,
 };
 use rusqlite::{Connection, params};
 
@@ -21,12 +21,36 @@ use crate::sql;
 /// Fills `search_index`, `usage_counts`, `type_summary` and `layer_graph` of a snapshot. Returns
 /// how many references of kind `test` the snapshot holds, which the usage counts leave out.
 pub fn rebuild(conn: &Connection, snapshot: SnapshotId, layers: &[Layer]) -> StorageResult<u64> {
+    rebuild_from(conn, snapshot, layers, None)
+}
+
+/// Like `rebuild`, for a full scan whose references are at hand: the usage counts are counted
+/// from them and the table is not read again. They must be exactly the references the snapshot
+/// holds.
+pub fn rebuild_loaded(
+    conn: &Connection,
+    snapshot: SnapshotId,
+    layers: &[Layer],
+    references: &[Reference],
+) -> StorageResult<u64> {
+    rebuild_from(conn, snapshot, layers, Some(references))
+}
+
+fn rebuild_from(
+    conn: &Connection,
+    snapshot: SnapshotId,
+    layers: &[Layer],
+    loaded: Option<&[Reference]>,
+) -> StorageResult<u64> {
     let id = column_int(snapshot.get())?;
     conn.execute(
         sql::SEARCH_REBUILD,
         params![id, SymbolKind::Parameter.label()],
     )?;
-    let tests = rebuild_usages(conn, id)?;
+    let tests = match loaded {
+        Some(references) => rebuild_usages_loaded(conn, id, references)?,
+        None => rebuild_usages(conn, id)?,
+    };
     for kind in TYPE_KINDS.iter().copied() {
         conn.execute(
             sql::TYPE_SUMMARY_REBUILD,
@@ -70,11 +94,49 @@ fn rebuild_usages(conn: &Connection, snapshot: i64) -> StorageResult<u64> {
             *counts.entry(target).or_default() += 1;
         }
     }
+    insert_usages(conn, snapshot, counts)?;
+    Ok(tests)
+}
+
+/// Fills `usage_counts` like `rebuild_usages`, from the references of a full scan that are in
+/// memory instead of reading the table again.
+fn rebuild_usages_loaded(
+    conn: &Connection,
+    snapshot: i64,
+    references: &[Reference],
+) -> StorageResult<u64> {
+    let files = id_set(conn, sql::FILE_IDS, snapshot)?;
+    let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
+    let mut counts: BTreeMap<i64, i64> = BTreeMap::new();
+    let mut tests = u64::default();
+    for reference in references {
+        let (file, target) = (
+            column_int(reference.file.get())?,
+            column_int(reference.to.get())?,
+        );
+        if !(files.contains(&file) && symbols.contains(&target)) {
+            continue;
+        }
+        if reference.kind == ReferenceKind::Test {
+            tests += 1;
+        } else {
+            *counts.entry(target).or_default() += 1;
+        }
+    }
+    insert_usages(conn, snapshot, counts)?;
+    Ok(tests)
+}
+
+fn insert_usages(
+    conn: &Connection,
+    snapshot: i64,
+    counts: BTreeMap<i64, i64>,
+) -> StorageResult<()> {
     let mut insert = conn.prepare_cached(sql::USAGE_INSERT)?;
     for (symbol, usages) in counts {
         insert.execute(params![snapshot, symbol, usages])?;
     }
-    Ok(tests)
+    Ok(())
 }
 
 /// Index of the layer a qualified name belongs to: the first layer with a namespace that equals

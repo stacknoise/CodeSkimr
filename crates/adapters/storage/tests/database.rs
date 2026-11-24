@@ -721,6 +721,29 @@ fn a_bulk_load_of_references_keeps_the_indexes_totals_and_usage_counts() {
 }
 
 #[test]
+fn a_large_full_scan_removes_the_expired_snapshots_before_it_loads() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(1)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    let count = 25_000;
+    for (snapshot, base) in [(10, 100), (20, 200), (30, 300)] {
+        let stored = store
+            .persist(scan_with_references(snapshot, base, count))
+            .unwrap();
+        assert_eq!(u64::from(stored.stats.references), count);
+        let id = codeskimr_domain::SnapshotId::new(snapshot);
+        assert_eq!(
+            u64::from(store.usage_count(id, SymbolId::new(base + 2)).unwrap()),
+            count
+        );
+    }
+    let conn = Connection::open(&db.0).unwrap();
+    assert_eq!(rows_of(&conn, "snapshots"), 1);
+    assert_eq!(rows_of(&conn, "symbol_references"), 25_000);
+    assert_eq!(reference_indexes(&conn).len(), 4);
+}
+
+#[test]
 fn symbols_that_level_two_created_are_pruned_with_their_file() {
     use codeskimr_application::ports::Level2Replacement;
     use codeskimr_domain::{FileId, SnapshotId, SymbolOrigin};
