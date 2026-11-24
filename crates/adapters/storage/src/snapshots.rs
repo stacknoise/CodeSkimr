@@ -18,8 +18,9 @@ use crate::catalog::{left_out, warnings};
 use crate::codec::column_int;
 use crate::consts::{
     BULK_FINGERPRINTS_MIN, BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR, LOG_PERSIST_STEP,
-    PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON, STEP_DETAILS, STEP_FACTS, STEP_HEADER, STEP_INTEGRITY,
-    STEP_PRUNE, STEP_PRUNE_BEFORE, STEP_READ_MODELS, STEP_REFERENCE_INDEXES,
+    PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON, STEP_DETAILS, STEP_FACTS, STEP_FINGERPRINTS, STEP_HEADER,
+    STEP_INTEGRITY, STEP_PRUNE, STEP_PRUNE_BEFORE, STEP_READ_MODELS, STEP_REFERENCE_INDEXES,
+    STEP_REFERENCES,
 };
 use crate::error::{StorageError, StorageResult};
 use crate::headers::{
@@ -222,22 +223,30 @@ fn insert_facts(
         insert_symbol(conn, symbol, hashes.get(&symbol.id).copied())?;
     }
     let bulk = indexes_dropped || bulk_load_starts(conn, data.references.len())?;
-    let mut references = conn.prepare_cached(sql::REFERENCE_INSERT)?;
-    for reference in &data.references {
-        insert_reference(&mut references, snapshot, reference)?;
-    }
+    timed(STEP_REFERENCES, || insert_references(conn, data, snapshot))?;
     if bulk {
         timed(STEP_REFERENCE_INDEXES, || create_reference_indexes(conn))?;
     }
     for metric in &data.metrics {
         insert_metric(conn, snapshot, metric)?;
     }
-    insert_fingerprints(conn, &data.fingerprints)?;
+    timed(STEP_FINGERPRINTS, || {
+        insert_fingerprints(conn, &data.fingerprints)
+    })?;
     pending::insert_all(conn, &data.pending)?;
     pending::mark_stored(conn, snapshot)?;
     let mut dropped = conn.prepare_cached(sql::REFERENCE_DELETE)?;
     for id in &data.dropped_references {
         dropped.execute(params![column_int(id.get())?])?;
+    }
+    Ok(())
+}
+
+/// Inserts the references of the snapshot.
+fn insert_references(conn: &Connection, data: &SnapshotData, snapshot: i64) -> StorageResult<()> {
+    let mut references = conn.prepare_cached(sql::REFERENCE_INSERT)?;
+    for reference in &data.references {
+        insert_reference(&mut references, snapshot, reference)?;
     }
     Ok(())
 }

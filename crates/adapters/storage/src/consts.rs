@@ -244,3 +244,7 @@ pub const STEP_READ_MODELS: &str = "read_models";
 pub const STEP_PRUNE: &str = "prune";
 /// Step: build the reference indexes after a bulk load.
 pub const STEP_REFERENCE_INDEXES: &str = "reference_indexes";
+/// Step: insert the references of a snapshot.
+pub const STEP_REFERENCES: &str = "references";
+/// Step: insert the fingerprints, with the index by hash.
+pub const STEP_FINGERPRINTS: &str = "fingerprints";
