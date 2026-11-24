@@ -1,6 +1,6 @@
 # Hand test of 1.0.0-rc.6 on Windows (M1 to M6)
 
-Run by the product owner on 2026-11-24 on his Windows laptop with the downloaded program file of the release draft `1.0.0-rc.6` (no checkout, no cargo). The task list covered only what the CI cannot show: the private C# reference (ADR 0017), a private Git repository, the dialogs of the system and the look of the screens. Results were reported in the project chat. The detailed list of the usage sample was judged by Claude against the source of the private project; no name, path or absolute count of that project is recorded here, only rates and orders of magnitude (ADR 0017, ADR 0011).
+Run by the product owner on 2026-11-24 on his Windows laptop with the downloaded program file of the release draft `1.0.0-rc.6` (no checkout, no cargo). The task list covered only what the CI cannot show: the private C# reference (ADR 0017), a private Git repository, the dialogs of the system and the look of the screens. Results were reported in the project chat. The detailed list of the usage sample was judged by Claude against the source of the private project; no name, path or absolute count of that project is recorded here, only rates and verdicts (ADR 0017, ADR 0011).
 
 This page adds to the reports `m1-m2.md`, `m3.md`, `m4.md`, `m5.md` and `m6.md`; it does not replace them. Acceptance itself stays the product owner's decision.
 
@@ -11,7 +11,7 @@ Legend: ✅ passed · ◐ passed with a named limit or finding · ⏭ voluntary,
 | Task | Milestone | Result | Evidence |
 |---|---|---|---|
 | Preparation: checksum of the download, version, `--help` | all | ✅ | Reported as passed. |
-| Private reference by script: counts, scan time, incremental scan, MCP tools | M1, M2 | ✅ | Three scans in fresh databases give the same counts. Full scan: about 2.1 s per 100k LOC when extrapolated, the same with and without the tests: over the budget of 1 s, the known limit of #410. Incremental scan after one appended line: about 0.1 s, within the budget of 300 ms. `tools/list` shows 13 tools; every query answers in well under 100 ms. |
+| Private reference by script: counts, scan time, incremental scan, MCP tools | M1, M2 | ✅ | Three scans in fresh databases give the same counts. Full scan: over the budget of 1 s per 100k LOC, with and without the tests, the known limit of #410. Incremental scan after one appended line: within the budget of 300 ms. `tools/list` shows 13 tools; every query is fast. |
 | An agent uses the MCP server | M2 | ✅ | Claude Code in the Claude desktop app searched symbols and listed the usages of a method through `codeskimr mcp --project`. See the notes for how the server had to be registered. |
 | Usage sample of 20 symbols | M2 criterion 4 | ◐ | Two runs with different symbols, see the next section. Every usage of the source was found in both runs; every hit marked `certain` is correct; wrong hits are all `uncertain`. Finding #685. |
 | Large public C# project for time | M1 | ⏭ | Not run; the limit is decided (#410). |
