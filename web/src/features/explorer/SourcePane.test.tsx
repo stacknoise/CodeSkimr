@@ -193,12 +193,12 @@ describe("the button to copy the code", () => {
     expect(await screen.findByRole("button", { name: "Copied" })).toBeTruthy();
   });
 
-  it("is not offered where the browser has no clipboard", async () => {
+  it("says so when the browser has no clipboard or refuses it", async () => {
     Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
     renderWith(() => answer(TYPE_SOURCE));
     await openOrder();
-    await screen.findByText("src/Order.cs");
-    expect(screen.queryByRole("button", { name: "Copy code" })).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "Copy code" }));
+    expect(await screen.findByRole("button", { name: "Not copied" })).toBeTruthy();
   });
 
   it("is not offered when there is no code", async () => {

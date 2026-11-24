@@ -89,3 +89,4 @@ explorer-uses-open = Verwendungen anzeigen
 explorer-source-excluded = Der Quelltext ist nicht Teil dieses Exports.
 explorer-source-copy = Code kopieren
 explorer-source-copied = Kopiert
+explorer-source-copy-failed = Nicht kopiert

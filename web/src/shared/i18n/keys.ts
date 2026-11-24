@@ -496,6 +496,7 @@ export const I18N_KEYS = {
   EXPLORER_SOURCE_EXCLUDED: "explorer-source-excluded",
   EXPLORER_SOURCE_COPY: "explorer-source-copy",
   EXPLORER_SOURCE_COPIED: "explorer-source-copied",
+  EXPLORER_SOURCE_COPY_FAILED: "explorer-source-copy-failed",
   EXPORT_BANNER: "export-banner",
   EXPORT_BANNER_COMMIT: "export-banner-commit",
   EXPORT_USAGES_STATE: "export-usages-state",
