@@ -7,7 +7,7 @@ import { showUsages } from "../../shared/navigation/navigation";
 import { COPY, ICON_SIZE_MEDIUM } from "../../shared/ui/consts";
 import { Icon, type IconName } from "../../shared/ui/Icon";
 import { createCopier } from "../../shared/ui/copier";
-import { COPY_ICON, LINE_BREAK, PILL_SEPARATOR } from "./consts";
+import { COPY_ICON, COPY_IDLE, NO_TEXT, LINE_BREAK, PILL_SEPARATOR } from "./consts";
 import { sourceWidth } from "./layout";
 import { lineRange } from "./format";
 import { type Segment, segments } from "./segments";
@@ -43,7 +43,7 @@ function colourOf(piece: Segment): string | undefined {
 
 /** The button "Copy code", the usual icon of two sheets. It turns into a tick for a moment when the
  * code is on the clipboard, and into a cross when it is not. The name and the tooltip say the same
- * in words. The code can always be selected by hand. */
+ * in words, and an invisible status tells a screen reader what happened. The code can always be selected by hand. */
 function CopyButton(props: { lines: string[] }) {
   const { state, copy } = createCopier();
   const label = () =>
@@ -52,17 +52,22 @@ function CopyButton(props: { lines: string[] }) {
       : state() === COPY.failed
         ? t(I18N_KEYS.EXPLORER_SOURCE_COPY_FAILED)
         : t(I18N_KEYS.EXPLORER_SOURCE_COPY);
-  const icon = (): IconName => COPY_ICON[state() ?? "idle"];
+  const icon = (): IconName => COPY_ICON[state() ?? COPY_IDLE];
   return (
-    <button
-      type="button"
-      class={styles.copy}
-      onClick={() => copy(props.lines.join(LINE_BREAK))}
-      aria-label={label()}
-      title={label()}
-    >
-      <Icon name={icon()} size={ICON_SIZE_MEDIUM} />
-    </button>
+    <>
+      <button
+        type="button"
+        class={styles.copy}
+        onClick={() => copy(props.lines.join(LINE_BREAK))}
+        aria-label={label()}
+        title={label()}
+      >
+        <Icon name={icon()} size={ICON_SIZE_MEDIUM} />
+      </button>
+      <span class={styles.srOnly} role="status">
+        {state() === null ? NO_TEXT : label()}
+      </span>
+    </>
   );
 }
 

@@ -10,6 +10,12 @@ export const COMMAND = {
 /** The icons of the button to copy: ready, done and failed. */
 export const COPY_ICON = { idle: "copy", copied: "check", failed: "cross" } as const;
 
+/** The key of `COPY_ICON` while nothing was tried lately. */
+export const COPY_IDLE = "idle";
+
+/** The text of a status that has nothing to say. */
+export const NO_TEXT = "";
+
 /** The line break of copied code. */
 export const LINE_BREAK = "\n";
 

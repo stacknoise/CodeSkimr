@@ -38,6 +38,16 @@
     cursor: pointer;
 }
 
+/* Only for screen readers: the text of the status stays out of the picture. */
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
 .copy:hover,
 .copy:focus-visible {
     color: var(--ink);
