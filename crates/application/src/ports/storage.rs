@@ -2,8 +2,8 @@
 
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
-    FileId, LanguageId, Metric, Project, ProjectId, Reference, ReferenceId, RelativePath, Snapshot,
-    SnapshotId, SourceFile, Symbol, SymbolId, SymbolPair,
+    CommitHash, FileId, LanguageId, Metric, Project, ProjectId, Reference, ReferenceId,
+    RelativePath, Snapshot, SnapshotId, SourceFile, Symbol, SymbolId, SymbolPair, Timestamp,
 };
 
 use super::{LeftOut, PendingReference, SymbolFingerprints, SymbolHash};
@@ -184,6 +184,25 @@ pub trait ProjectRepository: Send + Sync {
         })
     }
 
+    /// Like `latest_state`, but an adapter may leave the symbols out, which are the larger part:
+    /// the scan reads them with `snapshot_symbols` once it knows that something changed. The
+    /// default is `latest_state`, symbols included.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn latest_head(&self, id: ProjectId) -> Result<PreviousState, CodedError> {
+        self.latest_state(id)
+    }
+
+    /// The symbols of `snapshot` (one of `latest_head`). The default holds none, because the
+    /// default of `latest_head` already read them.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn snapshot_symbols(&self, _snapshot: SnapshotId) -> Result<Vec<Symbol>, CodedError> {
+        Ok(Vec::new())
+    }
+
     /// The references of `snapshot` (one of `latest_state`) that `which` asks for: those whose
     /// file and target the snapshot holds. The default holds none.
     ///
@@ -263,6 +282,18 @@ pub trait SnapshotStore: Send + Sync {
     /// `STO-901` if the snapshot is not the newest of its project or the data does not fit it;
     /// nothing is changed then.
     fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError>;
+
+    /// Records that a scan found every file of the newest snapshot of `project` unchanged: the
+    /// snapshot gets the creation time and commit of the scan and counts as incremental, and
+    /// nothing else is written. Returns it as stored, `None` if the project has no snapshot.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group; nothing is changed then.
+    fn confirm_latest(
+        &self,
+        project: ProjectId,
+        scanned: (Timestamp, Option<&CommitHash>),
+    ) -> Result<Option<Snapshot>, CodedError>;
 
     /// The first id that is higher than every stored id. The scanner moves its id sequence up to
     /// it when a scan starts, so ids that another process wrote in the meantime are not handed

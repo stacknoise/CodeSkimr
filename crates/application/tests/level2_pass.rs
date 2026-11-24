@@ -173,6 +173,14 @@ mod cases {
             Ok(1)
         }
 
+        fn confirm_latest(
+            &self,
+            _: ProjectId,
+            _: (Timestamp, Option<&codeskimr_domain::CommitHash>),
+        ) -> Result<Option<Snapshot>, CodedError> {
+            Ok(None)
+        }
+
         fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError> {
             self.replaced
                 .lock()

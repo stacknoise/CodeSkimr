@@ -8,6 +8,7 @@ use codeskimr_application::ports::{
 };
 use codeskimr_domain::{
     CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, SymbolId,
+    Timestamp,
 };
 use rusqlite::{Connection, params};
 
@@ -17,7 +18,9 @@ use crate::consts::{
     PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON,
 };
 use crate::error::{StorageError, StorageResult};
-use crate::headers::{insert_metric, insert_reference, insert_symbol, set_totals, totals};
+use crate::headers::{
+    insert_metric, insert_reference, insert_symbol, latest_snapshot, set_totals, totals,
+};
 use crate::integrity;
 use crate::pending;
 use crate::projects::load_layers;
@@ -45,9 +48,45 @@ impl SnapshotStore for SqliteStore {
         .map_err(CodedError::from)
     }
 
+    fn confirm_latest(
+        &self,
+        project: ProjectId,
+        (created, commit): (Timestamp, Option<&CommitHash>),
+    ) -> Result<Option<Snapshot>, CodedError> {
+        self.write(|tx| confirm_latest(tx, project, created, commit))
+            .map_err(CodedError::from)
+    }
+
     fn next_free_id(&self) -> Result<u64, CodedError> {
         Self::next_free_id(self)
     }
+}
+
+/// Marks the newest snapshot of `project` as the result of a scan that found nothing changed.
+fn confirm_latest(
+    conn: &Connection,
+    project: ProjectId,
+    created: Timestamp,
+    commit: Option<&CommitHash>,
+) -> StorageResult<Option<Snapshot>> {
+    let Some(latest) = latest_snapshot(conn, project)? else {
+        return Ok(None);
+    };
+    conn.execute(
+        sql::SNAPSHOT_CONFIRM,
+        params![
+            created.0,
+            commit.map(CommitHash::as_str),
+            ScanMode::Incremental.label(),
+            column_int(latest.id.get())?,
+        ],
+    )?;
+    Ok(Some(Snapshot {
+        created,
+        commit: commit.cloned(),
+        mode: ScanMode::Incremental,
+        ..latest
+    }))
 }
 
 pub(crate) fn write_snapshot(

@@ -249,7 +249,10 @@ impl Scanner {
             .pack_load_time()
             .saturating_sub(loading_before);
         self.created(&persisted.snapshot, loading);
-        self.check_alerts(&persisted.snapshot, trigger);
+        if !persisted.unchanged {
+            // Nothing changed, so the baselines of the critical symbols have nothing new to say.
+            self.check_alerts(&persisted.snapshot, trigger);
+        }
         let (snapshot, level2) = self.second_pass(
             principal,
             persisted.clone(),

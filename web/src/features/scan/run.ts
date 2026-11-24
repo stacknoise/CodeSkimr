@@ -1,5 +1,6 @@
 import {
   EVENT,
+  CHECK_STAGE,
   FILE_STAGE,
   MAX_RUNS,
   MIN_FILES_FOR_ESTIMATE,
@@ -132,6 +133,15 @@ function fileStage(run: Run): StageRun | undefined {
 export function files(run: Run): { done: number; total: number } | null {
   const stage = fileStage(run);
   return stage ? { done: stage.done, total: stage.total } : null;
+}
+
+/** The number of files a finished scan looked at when it had none to parse, because none changed;
+ * `null` for any other run. */
+export function checkedOnly(run: Run): number | null {
+  const found = run.stages[CHECK_STAGE];
+  const parsed = fileStage(run);
+  const none = parsed === undefined || parsed.total === 0;
+  return run.state === STATE.done && none && found !== undefined ? found.total : null;
 }
 
 /** Percent of the files that are done, at most 99 while the scan runs. 100 once the scan is done; 0

@@ -64,6 +64,10 @@ pub struct ScanRun {
     /// Time spent analysing (parse, symbols, metrics, fingerprints), summed over the files of each
     /// language in microseconds; set by the analyze stage, empty in an incremental scan.
     pub parse_micros: Vec<(LanguageId, u64)>,
+    /// Whether an incremental scan found every file as the newest snapshot has it: nothing is
+    /// analysed, resolved, measured or written, and the snapshot is confirmed as it is. Set by the
+    /// discover stage.
+    pub unchanged: bool,
 }
 
 /// Output of the discover stage.
@@ -183,6 +187,7 @@ impl Stage for FetchStage {
             commit: fetched.commit,
             naming_rules: String::new(),
             parse_micros: Vec::new(),
+            unchanged: false,
         })
         .inspect(|_| ctx.progress(1, 1))
     }
@@ -223,7 +228,7 @@ impl Stage for DiscoverStage {
 
     fn run(&self, run: ScanRun, ctx: &StageContext<'_>) -> Result<Discovered, Interruption> {
         let mut run = self.with_naming(run)?;
-        let state = self.projects.latest_state(run.project.id)?;
+        let mut state = self.projects.latest_head(run.project.id)?;
         if !state.names_stored {
             // The newest snapshot does not hold the names as written, so the references of its
             // files cannot be resolved again: a full scan writes them.
@@ -235,6 +240,19 @@ impl Stage for DiscoverStage {
         run.paths_report = report_paths(run.mode, &files, &state.files, &run.paths);
         if run.mode == ScanMode::Incremental {
             limit_to_paths(&mut files, &state.files, &run.paths);
+        }
+        if run.mode == ScanMode::Incremental && is_unchanged(&files, &state) {
+            run.unchanged = true;
+            let found = count(&files);
+            ctx.progress(found, found);
+            return Ok(Discovered {
+                run,
+                files,
+                carried: Carried::default(),
+            });
+        }
+        if let (true, Some(snapshot)) = (state.symbols.is_empty(), state.snapshot) {
+            state.symbols = self.projects.snapshot_symbols(snapshot)?;
         }
         let carried = if let (ScanMode::Incremental, Some(snapshot)) = (run.mode, state.snapshot) {
             let bases = self.projects.stored_names(snapshot, StoredNames::Bases)?;
@@ -250,6 +268,14 @@ impl Stage for DiscoverStage {
             carried,
         })
     }
+}
+
+/// Whether every file of the newest snapshot is still there with the same content and no other
+/// file came: a scan then has nothing to analyse, resolve or write.
+fn is_unchanged(files: &[DiscoveredFile], previous: &PreviousState) -> bool {
+    previous.snapshot.is_some()
+        && files.len() == previous.files.len()
+        && files.iter().all(|file| !file.changed)
 }
 
 /// What becomes of `paths`: those that name no file now and in the previous snapshot, and whether
@@ -319,6 +345,9 @@ impl Stage for AnalyzeStage {
             mut files,
             carried,
         } = input;
+        if run.unchanged {
+            return Ok(Analyzed::empty(run, carried));
+        }
         let full = run.mode == ScanMode::Full;
         let outcomes = {
             let due: Vec<&DiscoveredFile> =
@@ -632,6 +661,35 @@ impl Stage for ResolveStage {
     }
 
     fn run(&self, input: Analyzed, ctx: &StageContext<'_>) -> Result<Resolved, Interruption> {
+        if input.run.unchanged {
+            return Ok(Resolved::without_references(input));
+        }
+        self.resolve(input, ctx)
+    }
+}
+
+impl Resolved {
+    /// What the stage gives a scan that found nothing changed: no name is resolved again.
+    fn without_references(input: Analyzed) -> Self {
+        Self {
+            run: input.run,
+            files: input.files,
+            symbols: input.symbols,
+            references: Vec::new(),
+            pending: input.pending,
+            counts: input.counts,
+            fingerprints: input.fingerprints,
+            hashes: input.hashes,
+            carried: input.carried,
+            given_up: u64::MIN,
+        }
+    }
+}
+
+impl ResolveStage {
+    /// Resolves the names of the changed files and the names of unchanged files that the change
+    /// reaches.
+    fn resolve(&self, input: Analyzed, ctx: &StageContext<'_>) -> Result<Resolved, Interruption> {
         let Analyzed {
             run,
             files,
@@ -673,9 +731,7 @@ impl Stage for ResolveStage {
             given_up,
         })
     }
-}
 
-impl ResolveStage {
     /// Ids of the files among `files` that are test files of their language.
     fn test_files<'a>(&self, files: impl Iterator<Item = &'a SourceFile>) -> HashSet<FileId> {
         files
@@ -700,6 +756,10 @@ impl Stage for MeasureStage {
     }
 
     fn run(&self, input: Resolved, ctx: &StageContext<'_>) -> Result<Measured, Interruption> {
+        if input.run.unchanged {
+            // Nothing changed, so every stored value still holds.
+            return Ok(Measured::with(input, Vec::new()));
+        }
         let symbols: Vec<Symbol> = input
             .carried
             .symbols
@@ -720,7 +780,14 @@ impl Stage for MeasureStage {
             self.calculator
                 .measure(&symbols, &references, &input.carried.pairs, &input.counts)?;
         ctx.progress(total, total);
-        Ok(Measured {
+        Ok(Measured::with(input, metrics))
+    }
+}
+
+impl Measured {
+    /// What was resolved, with the measured values.
+    fn with(input: Resolved, metrics: Vec<Metric>) -> Self {
+        Self {
             run: input.run,
             files: input.files,
             symbols: input.symbols,
@@ -731,7 +798,7 @@ impl Stage for MeasureStage {
             hashes: input.hashes,
             carried: input.carried,
             given_up: input.given_up,
-        })
+        }
     }
 }
 
@@ -757,6 +824,9 @@ pub struct Persisted {
     pub warnings: Vec<ScanWarning>,
     /// What became of the paths of the scan.
     pub paths: PathsReport,
+    /// Whether the scan found nothing changed and wrote no snapshot: `snapshot` is the newest one
+    /// as it was, confirmed by this scan.
+    pub unchanged: bool,
 }
 
 /// Writes one log line per warning of the scan.
@@ -822,6 +892,9 @@ impl Stage for PersistStage {
     fn run(&self, input: Measured, ctx: &StageContext<'_>) -> Result<Persisted, Interruption> {
         ctx.progress(0, 1);
         let root = input.run.root.clone();
+        if input.run.unchanged {
+            return self.confirm(input, root).inspect(|_| ctx.progress(1, 1));
+        }
         let snapshot = snapshot_of(&input, self.clock.now());
         let ambiguous = input.carried.ambiguous_places(&input.references);
         let mut warnings = warnings_of(ambiguous, input.given_up);
@@ -852,6 +925,27 @@ impl Stage for PersistStage {
             root,
             warnings,
             paths,
+            unchanged: false,
+        })
+    }
+}
+
+impl PersistStage {
+    /// The end of a scan that found nothing changed: the newest snapshot stays as it is and gets
+    /// the time and commit of this scan.
+    fn confirm(&self, input: Measured, root: FolderPath) -> Result<Persisted, Interruption> {
+        let project = input.run.project.id;
+        let scanned = (self.clock.now(), input.run.commit.as_ref());
+        let snapshot = self
+            .store
+            .confirm_latest(project, scanned)?
+            .ok_or_else(internal_failure)?;
+        Ok(Persisted {
+            snapshot,
+            root,
+            warnings: Vec::new(),
+            paths: listed(input.run.paths_report, self.max_left_out_listed),
+            unchanged: true,
         })
     }
 }

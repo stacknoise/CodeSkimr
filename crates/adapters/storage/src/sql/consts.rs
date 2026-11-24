@@ -56,6 +56,11 @@ pub const LATEST_SNAPSHOT_ID: &str = "SELECT MAX(id) FROM snapshots WHERE projec
 pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files, \
     symbols, refs FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";
 
+/// Confirms a snapshot after a scan that found nothing changed: creation time, commit, mode (the
+/// label of an incremental scan), snapshot id.
+pub const SNAPSHOT_CONFIRM: &str =
+    "UPDATE snapshots SET created = ?1, commit_hash = ?2, mode = ?3 WHERE id = ?4";
+
 /// Every reference of a snapshot with the columns the usage counts need: snapshot, then file,
 /// start, target, kind, confidence and whether level 2 verified it. One pass over the table; the
 /// caller keeps the rows whose file and target the snapshot holds (ADR 0089). Read with `IN_FILES_OF_SNAPSHOT`

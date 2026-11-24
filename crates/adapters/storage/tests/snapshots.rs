@@ -6,7 +6,9 @@ mod common;
 use codeskimr_application::ports::{
     PreviousIndex, ProjectRepository, SnapshotData, SnapshotStore, SymbolKey,
 };
-use codeskimr_domain::{FileId, MetricKind, RelativePath, ScanMode, SnapshotId, SymbolKind};
+use codeskimr_domain::{
+    CommitHash, FileId, MetricKind, RelativePath, ScanMode, SnapshotId, SymbolKind, Timestamp,
+};
 use common::{
     PROJECT, code_of, data, file, header, metric, project, reference, registered_store, symbol,
 };
@@ -40,6 +42,46 @@ fn b_rewritten(name: &str, references: Vec<codeskimr_domain::Reference>) -> Snap
     scan.symbols = vec![symbol(42, 41, SymbolKind::Class, name, None)];
     scan.references = references;
     scan
+}
+
+#[test]
+fn confirming_the_newest_snapshot_changes_its_time_commit_and_mode_and_nothing_else() {
+    let store = registered_store();
+    let written = store.persist(first_scan(10)).unwrap();
+    let commit = CommitHash::new("abc123").unwrap();
+    let confirmed = store
+        .confirm_latest(PROJECT, (Timestamp(2_000), Some(&commit)))
+        .unwrap()
+        .expect("the project has a snapshot");
+    assert_eq!(confirmed.id, written.id, "no snapshot is added");
+    assert_eq!(confirmed.created, Timestamp(2_000));
+    assert_eq!(confirmed.commit, Some(commit));
+    assert_eq!(confirmed.mode, ScanMode::Incremental);
+    assert_eq!(confirmed.stats, written.stats);
+    assert_eq!(store.latest_snapshot(PROJECT).unwrap(), Some(confirmed));
+    assert_eq!(store.latest_state(PROJECT).unwrap().symbols.len(), 3);
+}
+
+#[test]
+fn a_project_without_a_snapshot_has_none_to_confirm() {
+    let store = registered_store();
+    let confirmed = store.confirm_latest(PROJECT, (Timestamp(2_000), None));
+    assert_eq!(confirmed.unwrap(), None);
+}
+
+#[test]
+fn the_head_of_the_newest_snapshot_leaves_the_symbols_to_a_second_read() {
+    let store = registered_store();
+    store.persist(first_scan(10)).unwrap();
+    let state = store.latest_state(PROJECT).unwrap();
+    let head = store.latest_head(PROJECT).unwrap();
+    assert!(head.symbols.is_empty());
+    assert_eq!(head.files, state.files);
+    assert_eq!(head.snapshot, state.snapshot);
+    assert_eq!(head.names_stored, state.names_stored);
+    assert_eq!(head.ambiguous_places, state.ambiguous_places);
+    let symbols = store.snapshot_symbols(SnapshotId::new(10)).unwrap();
+    assert_eq!(symbols, state.symbols);
 }
 
 #[test]

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyEvent,
+  checkedOnly,
   files,
   filesPerSecond,
   latestRun,
@@ -32,6 +33,28 @@ const created: WireEvent = { type: "snapshot_created", project: 1, snapshot: 5 }
 function fold(events: [WireEvent, number][]): Run[] {
   return events.reduce<Run[]>((runs, [event, now]) => applyEvent(runs, event, now), []);
 }
+
+describe("checkedOnly", () => {
+  it("tells how many files a finished scan checked when none had to be parsed", () => {
+    const [run] = fold([
+      [progress("discover", 40, 40), 1000],
+      [progress("analyze", 0, 0), 1100],
+      [created, 1200],
+    ]);
+    expect(checkedOnly(run!)).toBe(40);
+  });
+
+  it("is null while the scan runs and when files were parsed", () => {
+    const [running] = fold([[progress("discover", 40, 40), 1000]]);
+    expect(checkedOnly(running!)).toBeNull();
+    const [parsed] = fold([
+      [progress("discover", 40, 40), 1000],
+      [progress("analyze", 3, 3), 1100],
+      [created, 1200],
+    ]);
+    expect(checkedOnly(parsed!)).toBeNull();
+  });
+});
 
 describe("applyEvent", () => {
   it("keeps the time of loading language packs from the end event", () => {
