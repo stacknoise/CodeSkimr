@@ -11,6 +11,7 @@ import { projects, projectsLoaded, refreshProjects } from "../projects/projects"
 import { STATUS_DOT } from "../../app/consts";
 import { pollUnanswered } from "../../shared/api/poll";
 import { COUNT_SEPARATOR, LANGUAGE_LABELS, STATUS_POLL_MS } from "./consts";
+import { Performance } from "./Performance";
 import styles from "./StatusBar.module.css";
 import { refreshStatus, statusInfo } from "./status";
 
@@ -126,6 +127,7 @@ export function StatusBar() {
       <Counts />
       <ReferenceIndex />
       <Measurements />
+      <Performance />
       <LanguageSwitch />
     </footer>
   );

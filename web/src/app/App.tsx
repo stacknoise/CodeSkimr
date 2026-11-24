@@ -9,8 +9,8 @@ import { GraphScreen } from "../features/graph/GraphScreen";
 import { LayersScreen } from "../features/layers/LayersScreen";
 import { ExplorerScreen } from "../features/explorer/ExplorerScreen";
 import { listenToScans } from "../features/scan/events";
-import { ScanScreen } from "../features/scan/ScanScreen";
 import { StatsScreen } from "../features/stats/StatsScreen";
+import { showScan } from "../features/projects/page";
 import { ProjectsScreen } from "../features/projects/ProjectsScreen";
 import { QuickSearch } from "../features/search/QuickSearch";
 import { useSearchShortcut } from "../features/search/keys";
@@ -36,7 +36,7 @@ import {
   MAIN_ROUTES,
   PROJECT_PATHS,
   PROJECTS_ROUTE,
-  SCAN_ROUTE,
+  LEGACY_SCAN_PATH,
   SETTINGS_ROUTE,
   STATS_ROUTE,
   USAGES_ROUTE,
@@ -53,7 +53,6 @@ const SCREENS: ScreenTable = [
   [LAYERS_ROUTE.path, LayersScreen],
   [CODES_ROUTE.path, CodesScreen],
   [GRAPH_ROUTE.path, GraphScreen],
-  [SCAN_ROUTE.path, ScanScreen],
   [STATS_ROUTE.path, StatsScreen],
   [EXPLORER_ROUTE.path, ExplorerScreen],
   [ANNOTATIONS_ROUTE.path, BoardScreen],
@@ -63,6 +62,19 @@ const SCREENS: ScreenTable = [
 /** The screen of the current path. */
 function Screen() {
   return <Dynamic component={screenAt(SCREENS, currentPath(), ProjectsScreen)} />;
+}
+
+/** The old address of the scan screen shows the tab "Scan" of the open project. */
+function redirectLegacyScan() {
+  createEffect(() => {
+    if (currentPath() === LEGACY_SCAN_PATH) {
+      const project = activeProject();
+      if (project !== null) {
+        showScan(project);
+      }
+      navigate(PROJECTS_ROUTE.path);
+    }
+  });
 }
 
 /** Sends the user to the projects when a screen of a project is shown while none is open. */
@@ -88,6 +100,7 @@ function followProjectOnBell() {
 /** The frame of every screen: top bar, rail, main area and status bar (blueprint 15.2). */
 export function App() {
   useSearchShortcut(openSearch);
+  redirectLegacyScan();
   sendBackWithoutProject();
   createEffect(() => {
     if (sessionState().kind === KIND.connected) {

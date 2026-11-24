@@ -5,7 +5,7 @@
 // `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/level2-switch/.
 import path from "node:path";
 import type { Page, Route } from "@playwright/test";
-import { expect, selectScannedProject, shot, test } from "./fixtures";
+import { expect, selectExactCheck, shot, test, showTab } from "./fixtures";
 
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/level2-switch");
 const VIEWPORT = { width: 1440, height: 900 };
@@ -65,10 +65,10 @@ function newFake(state: Fake["state"] = "off"): Fake {
 
 async function openProject(
   page: Page,
-  harness: Parameters<typeof selectScannedProject>[1],
+  harness: Parameters<typeof selectExactCheck>[1],
   name: string,
 ) {
-  await selectScannedProject(page, harness, name, SOURCE);
+  await selectExactCheck(page, harness, name, SOURCE);
   return page.getByRole("switch", { name: `Level 2 for ${name}` });
 }
 

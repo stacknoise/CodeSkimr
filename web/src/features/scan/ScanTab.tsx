@@ -2,23 +2,18 @@ import { createMemo, onMount, Show } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import type { MessageKey } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
-import { measuredTimes } from "../../shared/api/timings";
-import { activeProject } from "../../shared/project/active";
 import { LEVEL2_STAGE, SCAN_MODE } from "../projects/consts";
 import { languageName, seconds } from "../projects/format";
+import { ScanButtons, ScanMessages } from "../projects/ScanPanel";
 import { level2RunOf } from "../projects/level2run";
-import { projectAdding, projects, refreshProjects, scanRequestedAt } from "../projects/projects";
+import { projectAdding, scanRequestedAt } from "../projects/projects";
 import type { ProjectRow } from "../projects/types";
-import { refreshStatus, statusInfo } from "../status/status";
+import { refreshStatus } from "../status/status";
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
-import { Budgets, type Measured } from "./Budgets";
-import { perFullScanUnit } from "./rate";
 import { cancelScan } from "./cancel";
 import {
   BRANCH_COMMIT_JOIN,
   CANCEL_KEY,
-  FULL_SCAN_BUDGET,
-  FULL_SCAN_LOC,
   IDLE,
   MS_PER_SECOND,
   SHORT_COMMIT_LENGTH,
@@ -29,10 +24,9 @@ import { Languages } from "./Languages";
 import { LeftOut } from "./LeftOut";
 import { Pipeline } from "./Pipeline";
 import { Progress } from "./Progress";
-import { Recent } from "./Recent";
 import { latestRun } from "./run";
-import type { BudgetTargets, Run } from "./types";
-import styles from "./ScanScreen.module.css";
+import type { Run } from "./types";
+import styles from "./ScanTab.module.css";
 
 const TITLE: Record<Run["state"] | typeof IDLE, MessageKey> = {
   running: I18N_KEYS.SCAN_STATE_RUNNING,
@@ -41,11 +35,6 @@ const TITLE: Record<Run["state"] | typeof IDLE, MessageKey> = {
   failed: I18N_KEYS.SCAN_STATE_FAILED,
   [IDLE]: I18N_KEYS.SCAN_STATE_IDLE,
 };
-
-/** The project the screen is about: the one the user opened. */
-function subjectId(): number | null {
-  return activeProject();
-}
 
 /** The mode a scan has: the first scan of a project is full, later ones are incremental. */
 function modeText(row: ProjectRow | undefined, run: Run | undefined): string {
@@ -76,29 +65,6 @@ function linesPerSecond(row: ProjectRow | undefined, run: Run | undefined): numb
   const took = duration(run);
   const full = row?.scan?.mode === SCAN_MODE.full;
   return run?.state === STATE.done && full && took !== null && took > 0 ? row.loc / took : null;
-}
-
-/** What this session measured of the budgets. */
-function measured(row: ProjectRow | undefined, run: Run | undefined): Measured {
-  const result: Measured = { ...measuredTimes() };
-  const start = statusInfo()?.startup_ms;
-  if (start != null) {
-    result.cold_start = start;
-  }
-  const took = duration(run);
-  if (run?.state === STATE.done && row?.scan?.mode === SCAN_MODE.incremental && took !== null) {
-    result.incremental_rescan = took * MS_PER_SECOND;
-  }
-  if (run?.state === STATE.done && row?.scan?.mode === SCAN_MODE.full && took !== null) {
-    result.full_scan_100k_loc = perFullScanUnit(took * MS_PER_SECOND, row.loc);
-  }
-  return result;
-}
-
-/** The budgets whose measured value says less than the target: the full scan budget is for
- * 100k lines, so the scan of a smaller project is shown but not rated. */
-function unrated(row: ProjectRow | undefined): Array<keyof BudgetTargets> {
-  return row !== undefined && row.loc < FULL_SCAN_LOC ? [FULL_SCAN_BUDGET] : [];
 }
 
 /** What the screen says while it has no report of a scan: that a scan was started and has told
@@ -144,23 +110,6 @@ function Indexer(props: { project: number }) {
   );
 }
 
-/** Whether the scan runs, and the way to cancel it (button and key). */
-function useCancel(run: () => Run | undefined) {
-  const running = () => run()?.state === STATE.running;
-  const cancel = () => {
-    const id = subjectId();
-    if (running() && id !== null) {
-      void cancelScan(id);
-    }
-  };
-  useKeydown((event) => {
-    if (event.key === CANCEL_KEY && !event.defaultPrevented && !isTyping(event.target)) {
-      cancel();
-    }
-  });
-  return { running, cancel };
-}
-
 /** What the scan is about: project, position, mode and how long it took. */
 function Meta(props: { project: ProjectRow; run: Run | undefined }) {
   return (
@@ -183,92 +132,67 @@ function Meta(props: { project: ProjectRow; run: Run | undefined }) {
   );
 }
 
-/** The head of the screen: title, meta line and the cancel button while a scan runs. */
-function Head(props: {
-  row: ProjectRow | undefined;
-  run: Run | undefined;
-  running: boolean;
-  starting: boolean;
-  onCancel: () => void;
-}) {
+/** The title and the meta line of the tab: how the scan stands and what it is about. */
+function Head(props: { row: ProjectRow; run: Run | undefined; starting: boolean }) {
   const title = () =>
     props.run === undefined && props.starting
       ? I18N_KEYS.SCAN_STATE_STARTING
       : TITLE[props.run?.state ?? IDLE];
   return (
     <div class={styles.head}>
-      <h1>{t(title())}</h1>
-      <Show when={props.row}>{(project) => <Meta project={project()} run={props.run} />}</Show>
-      <Show when={props.running}>
-        <button type="button" class={styles.cancel} onClick={props.onCancel}>
-          {t(I18N_KEYS.SCAN_ACTION_CANCEL)}{" "}
-          <kbd class={styles.kbd}>{t(I18N_KEYS.SCAN_CANCEL_KEY)}</kbd>
-        </button>
-      </Show>
+      <h2>{t(title())}</h2>
+      <Meta project={props.row} run={props.run} />
     </div>
   );
 }
 
-/** The project of the screen, its newest run, and what of it the screen shows: while a new scan
- * has told nothing, the run of the scan before it is not shown as if it were this one. */
-function useScan() {
-  const row = createMemo(() => projects().find((item) => item.id === subjectId()));
-  const run = createMemo(() => latestRun(scanRuns(), subjectId()));
-  const starting = () => isStarting(row(), run()) || (run() === undefined && projectAdding());
+/** The newest run of a project, and what of it is shown: while a new scan has told nothing, the
+ * run of the scan before it is not shown as if it were this one. */
+export function useScanOf(project: () => ProjectRow | undefined) {
+  const run = createMemo(() => latestRun(scanRuns(), project()?.id ?? null));
+  const starting = () => isStarting(project(), run()) || (run() === undefined && projectAdding());
   const shown = () => (starting() ? undefined : run());
-  return { row, run, starting, shown };
+  const running = () => shown()?.state === STATE.running;
+  return { run, starting, shown, running };
 }
 
-/** The budgets and the recent scans, beside the progress. */
-function Aside(props: { row: ProjectRow | undefined; run: Run | undefined }) {
-  return (
-    <aside class={styles.aside}>
-      <Budgets
-        targets={statusInfo()?.budgets ?? null}
-        measured={measured(props.row, props.run)}
-        unrated={unrated(props.row)}
-      />
-      <Recent rows={projects()} />
-    </aside>
-  );
-}
-
-/** Screen 5, scan and performance (blueprint B.5, mock `Scan.dc.html`): the progress of a scan as
- * the event stream reports it, the pipeline stages, the languages of the project, the time
- * budgets and the recent scans. */
-export function ScanScreen() {
-  onMount(() => {
-    void refreshProjects();
-    void refreshStatus();
+/** Cancels the scan of a project on the key Esc, when no input or question is open (they take
+ * the key first). */
+export function useCancelKey(
+  project: () => number | null,
+  running: () => boolean,
+  free: () => boolean,
+) {
+  useKeydown((event) => {
+    const id = project();
+    const plain = event.key === CANCEL_KEY && !event.defaultPrevented && !isTyping(event.target);
+    if (plain && running() && free() && id !== null) {
+      void cancelScan(id);
+    }
   });
-  const { row, run, starting, shown } = useScan();
-  const { running, cancel } = useCancel(run);
+}
+
+/** The tab "Scan" of the project page (blueprint B.5, mock 23): the progress of a scan as the event
+ * stream reports it, the steps, the languages of the project and the files left out. */
+export function ScanTab(props: { row: ProjectRow }) {
+  onMount(() => void refreshStatus());
+  const { starting, shown } = useScanOf(() => props.row);
   return (
-    <section class={styles.screen}>
-      <div class={styles.main}>
-        <Head
-          row={row()}
-          run={shown()}
-          running={running()}
-          starting={starting()}
-          onCancel={cancel}
-        />
-        <Show
-          when={shown()}
-          fallback={<Idle hasProjects={projects().length > 0} starting={starting()} />}
-        >
-          {(current) => (
-            <Progress run={current()} linesPerSecond={linesPerSecond(row(), current())} />
-          )}
-        </Show>
-        <Show when={shown()}>{(current) => <Pipeline run={current()} />}</Show>
-        <Show when={subjectId()}>{(id) => <Indexer project={id()} />}</Show>
-        <Show when={(row()?.languages.length ?? 0) > 0}>
-          <Languages languages={row()?.languages ?? []} />
-        </Show>
-        <LeftOut row={row()} />
-      </div>
-      <Aside row={row()} run={run()} />
-    </section>
+    <div class={styles.main}>
+      <Head row={props.row} run={shown()} starting={starting()} />
+      <ScanButtons row={props.row} />
+      <ScanMessages row={props.row} />
+      <Show when={shown()} fallback={<Idle hasProjects={true} starting={starting()} />}>
+        {(current) => (
+          <Progress run={current()} linesPerSecond={linesPerSecond(props.row, current())} />
+        )}
+      </Show>
+      <Show when={shown()}>{(current) => <Pipeline run={current()} />}</Show>
+      <Indexer project={props.row.id} />
+      <Show when={props.row.languages.length > 0}>
+        <Languages languages={props.row.languages} />
+      </Show>
+      <LeftOut row={props.row} />
+    </div>
   );
 }

@@ -1,7 +1,16 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { expect, keepLaunchFile, leaveScanScreen, test, watchPolicy } from "./fixtures";
+import {
+  expect,
+  keepLaunchFile,
+  leaveScanScreen,
+  SCANNED_STATE,
+  showTab,
+  test,
+  watchPolicy,
+  openNewForm,
+} from "./fixtures";
 
 /** A scan in a debug build loads the language packs and takes a few seconds. */
 const SCAN_MS = 60_000;
@@ -26,6 +35,8 @@ test.describe("the project list", () => {
     await page.goto(`file://${copy}`);
     await expect(page.getByText("No projects yet")).toBeVisible();
 
+    await openNewForm(page);
+
     await page.getByLabel("New project").fill(folder);
     await page.getByRole("button", { name: "Add and scan" }).click();
     await leaveScanScreen(page, name);
@@ -34,8 +45,9 @@ test.describe("the project list", () => {
       timeout: SCAN_MS,
     });
     await expect(page.getByText(folder)).toBeVisible();
-    await expect(page.getByText("C# 100 %")).toBeVisible({ timeout: SCAN_MS });
-    await expect(page.getByText("current", { exact: true })).toBeVisible();
+    await showTab(page, "Overview");
+    await expect(page.getByRole("cell", { name: "100 %" })).toBeVisible({ timeout: SCAN_MS });
+    await expect(page.getByRole("img", { name: SCANNED_STATE })).toBeVisible();
     await expect(page.getByRole("main").getByText(/^1 project · 1 type/)).toBeVisible();
     expect(await violations()).toEqual([]);
 
@@ -44,14 +56,15 @@ test.describe("the project list", () => {
     await expect(page.getByRole("button", { name: `Open ${name}` })).toBeVisible();
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("r");
-    // Starting a scan shows the scan screen; its header says what kind of scan runs. A scan
-    // without changes is over at once (ADR 0093), and then the list of recent scans says it too.
+    // Starting a scan shows the tab "Scan"; its header says what kind of scan runs. A scan
+    // without changes is over at once (ADR 0093).
     await expect(page.getByText(/· incremental/).first()).toBeVisible({ timeout: SCAN_MS });
   });
 
   test("a relative path is refused in words", async ({ page, harness }) => {
     const { copy } = keepLaunchFile(await harness.launchFile());
     await page.goto(`file://${copy}`);
+    await openNewForm(page);
     await page.getByLabel("New project").fill("relative/folder");
     await page.getByRole("button", { name: "Add and scan" }).click();
     await expect(page.getByRole("alert")).toContainText("neither an existing folder");

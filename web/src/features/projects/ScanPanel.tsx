@@ -78,7 +78,7 @@ function Running(props: { row: ProjectRow }) {
 }
 
 /** Why stage 2 did not start after the last scan from this tab, or how its run ended. */
-function Messages(props: { row: ProjectRow }) {
+export function ScanMessages(props: { row: ProjectRow }) {
   const start = () => level2StartOf(props.row.id);
   const done = () => level2DoneOf(props.row.id);
   const reason = () => {
@@ -130,17 +130,15 @@ function Report(props: { row: ProjectRow }) {
   );
 }
 
-/** One scan button: starts the scan and keeps the focus on the project. */
-function ScanButton(props: { row: ProjectRow; label: string; hint?: string; scan: () => void }) {
+/** One scan button; while a scan runs it stays and is disabled, so the focus is not lost. */
+function ScanButton(props: { label: string; hint?: string; disabled: boolean; scan: () => void }) {
   return (
     <button
       type="button"
       class={styles.button}
       title={props.hint}
-      onClick={() => {
-        props.scan();
-        keepFocus(props.row.id);
-      }}
+      disabled={props.disabled}
+      onClick={props.scan}
     >
       {props.label}
     </button>
@@ -149,37 +147,37 @@ function ScanButton(props: { row: ProjectRow; label: string; hint?: string; scan
 
 /** The scan buttons: a scan of the changes that runs stage 2 where it is allowed, a quick one
  * without, and a full one that reads every file again. */
-function Buttons(props: { row: ProjectRow }) {
+export function ScanButtons(props: { row: ProjectRow }) {
   const busy = () => props.row.running || projectsScanning().has(props.row.id);
   const id = () => props.row.id;
   return (
-    <Show when={!busy()}>
+    <>
       <p class={styles.text}>{t(I18N_KEYS.PROJECTS_LEVEL2_BUILD_NOTE)}</p>
       <div class={styles.buttons}>
         <ScanButton
-          row={props.row}
           label={t(I18N_KEYS.PROJECTS_LEVEL2_RESCAN)}
+          disabled={busy()}
           scan={() => void rescanProject(id())}
         />
         <ScanButton
-          row={props.row}
           label={t(I18N_KEYS.PROJECTS_LEVEL2_STAGE1_ONLY)}
           hint={t(I18N_KEYS.PROJECTS_LEVEL2_STAGE1_ONLY_HINT)}
+          disabled={busy()}
           scan={() => void rescanProject(id(), false)}
         />
         <ScanButton
-          row={props.row}
           label={t(I18N_KEYS.PROJECTS_LEVEL2_FULL_RESCAN)}
           hint={t(I18N_KEYS.PROJECTS_LEVEL2_FULL_RESCAN_HINT)}
+          disabled={busy()}
           scan={() => void rescanProject(id(), true, true)}
         />
       </div>
-    </Show>
+    </>
   );
 }
 
-/** The scan section of the selected project: progress and cancel of stage 2, why it did not start,
- * the report of the last run and the scan buttons (ADR 0072, decision 10). */
+/** The scan section of the tab "Exact check": progress and cancel of stage 2, why it did not
+ * start and the report of the last run (ADR 0072, decision 10). */
 export function ScanPanel(props: { row: ProjectRow }) {
   return (
     <section
@@ -191,9 +189,7 @@ export function ScanPanel(props: { row: ProjectRow }) {
         <h2>{t(I18N_KEYS.PROJECTS_LEVEL2_SCAN_TITLE)}</h2>
       </header>
       <Running row={props.row} />
-      <Messages row={props.row} />
       <Report row={props.row} />
-      <Buttons row={props.row} />
     </section>
   );
 }

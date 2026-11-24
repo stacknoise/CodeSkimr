@@ -26,7 +26,7 @@ Binding UI reference for the web frontend (blueprint section 15). One file per s
 | 20 | Statistics: overview, rankings, complexity (ADR 0081); a plain page that renders in a browser, all three themes, with sample data from a scan of CodeSkimr | `Statistics.html` |
 | 21 | Error codes: list to look up with search, filters and explanation; reached from the settings; a plain page, all three themes, with sample data | `ErrorCodes.html` |
 | 22 | Settings: effective settings (values of the configuration with their origin, read-only; a plain page that renders in a browser, all three themes, with sample data; screenshots in `docs/screenshots/effective-settings/`) | `EffectiveSettings.html` |
-| 23 | Projects: list on the left and the project page with tabs on the right, tab "Scan" while a scan runs and after it, the targets of performance at the status bar, card "Database" (ADR 0096); a plain page that renders in a browser (`?v=uebersicht\|laeuft\|fertig\|leistung&t=hell\|petrol\|dunkel`), screenshots in `docs/screenshots/project-page/`. Replaces mocks 1 and 5, which stay as the former state | `ProjectPage.html` |
+| 23 | Projects: list on the left and the project page with tabs on the right, tab "Scan" while a scan runs and after it, the targets of performance at the status bar, card "Database" (ADR 0096); a plain page that renders in a browser (`?v=uebersicht\|laeuft\|fertig\|leistung\|dbfehler&t=hell\|petrol\|dunkel`), screenshots in `docs/screenshots/project-page/`. Replaces mocks 1 and 5, which stay as the former state | `ProjectPage.html` |
 
 Mocks 7 to 13 have a `theme` property (`hell`, `petrol`, `dunkel`; values in blueprint 15.3, ADR 0021). Mocks 1 to 6 are drawn in Hell. Screens 7 to 12 belong to the team edition (ADR 0019), screen 13 to 1.0.
 

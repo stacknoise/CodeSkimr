@@ -4,6 +4,7 @@ import { activeProject, openProject } from "../../shared/project/active";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { currentPath } from "../../app/router";
+import { projectTab, selectProject } from "./page";
 import { ProjectsScreen } from "./ProjectsScreen";
 import { closeRemoveQuestion } from "./RemoveAction";
 import {
@@ -34,7 +35,11 @@ const ROW: ProjectRow = {
 };
 
 useServerSession();
-beforeEach(closeRemoveQuestion);
+beforeEach(() => {
+  closeRemoveQuestion();
+  // The first project is chosen, as the screen does after a first visit.
+  selectProject(1);
+});
 afterEach(cancelRename);
 
 describe("ProjectsScreen", () => {
@@ -45,19 +50,21 @@ describe("ProjectsScreen", () => {
     expect(screen.getByLabelText("New project")).toBeInTheDocument();
   });
 
-  it("lists the projects with languages, counts and state", async () => {
+  it("lists the projects and shows the page of the selected one", async () => {
     serve({ "projects.list": () => answer([ROW]) });
     render(() => <ProjectsScreen />);
-    expect(await screen.findByText("shop")).toBeInTheDocument();
-    expect(screen.getByText("/work/shop")).toBeInTheDocument();
-    expect(screen.getByText("C# 92 % · xaml 8 %")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "shop" })).toBeInTheDocument();
+    expect(screen.getByText("Folder · /work/shop")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open shop" })).toHaveTextContent(/^shopC# · /);
     expect(screen.getByText("433")).toBeInTheDocument();
     expect(screen.getByText("41,208")).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "92 %" })).toBeInTheDocument();
     expect(screen.getByText("current")).toBeInTheDocument();
-    expect(screen.getByText(/^1 project · 433 types · Enter opens/)).toBeInTheDocument();
+    expect(screen.getByText(/^1 project · 433 types/)).toBeInTheDocument();
+    expect(screen.getByText(/Enter opens/)).toBeInTheDocument();
   });
 
-  it("shows a running scan and a project that was never scanned", async () => {
+  it("shows the state of a project by words, not only by the colour of its dot", async () => {
     serve({
       "projects.list": () =>
         answer([
@@ -66,8 +73,45 @@ describe("ProjectsScreen", () => {
         ]),
     });
     render(() => <ProjectsScreen />);
-    expect(await screen.findByText("scan running")).toBeInTheDocument();
-    expect(screen.getByText("not scanned")).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "scan running" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "not scanned" })).toBeInTheDocument();
+  });
+
+  it("shows the database of the project where the server tells it", async () => {
+    serve({
+      "projects.list": () =>
+        answer([
+          {
+            ...ROW,
+            database: { path: "/data/projects/1.db", size_bytes: 432_013_312, state: "ok" },
+          },
+        ]),
+    });
+    render(() => <ProjectsScreen />);
+    expect(await screen.findByText("/data/projects/1.db")).toBeInTheDocument();
+    expect(screen.getByText("Size 412 MB")).toBeInTheDocument();
+    expect(screen.getByText("present")).toBeInTheDocument();
+  });
+
+  it("says that the database file cannot be read, with its path", async () => {
+    serve({
+      "projects.list": () =>
+        answer([
+          {
+            ...ROW,
+            database: { path: "/data/projects/9.db", size_bytes: 512, state: "unreadable" },
+          },
+        ]),
+    });
+    render(() => <ProjectsScreen />);
+    expect(await screen.findByText("/data/projects/9.db")).toBeInTheDocument();
+    expect(screen.getByText("File not readable")).toBeInTheDocument();
+  });
+
+  it("says that the database is not known yet while the server sends no field", async () => {
+    serve({ "projects.list": () => answer([ROW]) });
+    render(() => <ProjectsScreen />);
+    expect(await screen.findByText("Not available yet.")).toBeInTheDocument();
   });
 
   it("adds a project and reads the list again", async () => {
@@ -91,10 +135,11 @@ describe("ProjectsScreen", () => {
     const field = await screen.findByPlaceholderText(/Paste a folder path/);
     fireEvent.input(field, { target: { value: " /work/shop " } });
     fireEvent.click(screen.getByRole("button", { name: "Add and scan" }));
-    expect(await screen.findByText("shop")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Open shop" })).toBeInTheDocument();
     const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith("projects.add"));
     expect(JSON.parse(call?.[1].body)).toEqual({ source: "/work/shop", branch: "main" });
-    await waitFor(() => expect((field as HTMLInputElement).value).toBe(""));
+    // The form closes once the project is there.
+    await waitFor(() => expect(field).not.toBeInTheDocument());
   });
 
   it("fills the display name from the source and sends it only when the user typed one", async () => {
@@ -155,7 +200,7 @@ describe("ProjectsScreen", () => {
       "Webshop",
     );
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(await screen.findByText("Webshop")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Webshop" })).toBeInTheDocument();
     const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith("projects.rename"));
     expect(JSON.parse(call?.[1].body)).toEqual({ project: 1, name: "Webshop" });
   });
@@ -271,16 +316,17 @@ describe("ProjectsScreen", () => {
     expect(JSON.parse(call?.[1].body)).toEqual({ project: 2 });
   });
 
-  it("shows the scan screen of the project when a scan is started", async () => {
+  it("shows the tab Scan of the project when a scan is started", async () => {
     serve({
       "projects.list": () => answer([ROW]),
       "projects.rescan": () => answer(rescanned(1)),
     });
     render(() => <ProjectsScreen />);
-    await screen.findByText("shop");
+    await screen.findByRole("button", { name: "Open shop" });
     fireEvent.keyDown(document, { key: "r" });
     await rescanAsked();
-    expect(currentPath()).toBe("/scan");
+    expect(currentPath()).toBe("/");
+    expect(projectTab()).toBe("scan");
     const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith("projects.rescan"));
     expect(activeProject()).toBe(JSON.parse(call?.[1].body).project);
   });
@@ -288,7 +334,7 @@ describe("ProjectsScreen", () => {
   it("ignores the report of a project that was known before when a new one is added", async () => {
     serve({ "projects.list": () => answer([ROW]) });
     render(() => <ProjectsScreen />);
-    await screen.findByText("shop");
+    await screen.findByRole("button", { name: "Open shop" });
     const before = currentPath();
     const adding = addProject("/work/new", "main");
     noteScanReport(ROW.id);
@@ -296,13 +342,14 @@ describe("ProjectsScreen", () => {
     await adding;
   });
 
-  it("shows the scan screen of a new project with its first report", async () => {
+  it("shows the tab Scan of a new project with its first report", async () => {
     serve({ "projects.list": () => answer([ROW]) });
     render(() => <ProjectsScreen />);
-    await screen.findByText("shop");
+    await screen.findByRole("button", { name: "Open shop" });
     const adding = addProject("/work/new", "main");
     noteScanReport(7);
-    expect(currentPath()).toBe("/scan");
+    expect(currentPath()).toBe("/");
+    expect(projectTab()).toBe("scan");
     expect(activeProject()).toBe(7);
     await adding;
   });
@@ -310,6 +357,7 @@ describe("ProjectsScreen", () => {
   it("leaves the keys alone while typing in a field", async () => {
     serve({ "projects.list": () => answer([ROW]) });
     render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "New" }));
     const field = await screen.findByPlaceholderText(/Paste a folder path/);
     fireEvent.keyDown(field, { key: "r" });
     expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith("projects.rescan"))).toBe(
@@ -320,7 +368,8 @@ describe("ProjectsScreen", () => {
   it("leaves Enter to a focused button instead of opening the project", async () => {
     serve({ "projects.list": () => answer([ROW]) });
     render(() => <ProjectsScreen />);
-    await screen.findByText("shop");
+    await screen.findByRole("button", { name: "Open shop" });
+    fireEvent.click(screen.getByRole("button", { name: "New" }));
     fireEvent.keyDown(document, { key: "ArrowDown" });
     const button = screen.getByRole("button", { name: "Add and scan" });
     const allowed = fireEvent.keyDown(button, { key: "Enter", cancelable: true });
@@ -331,7 +380,8 @@ describe("ProjectsScreen", () => {
     setLanguage("de");
     serve({ "projects.list": () => answer([ROW]) });
     render(() => <ProjectsScreen />);
-    expect(await screen.findByText(/^1 Projekt · 433 Typen · Enter öffnet/)).toBeInTheDocument();
+    expect(await screen.findByText(/^1 Projekt · 433 Typen/)).toBeInTheDocument();
+    expect(screen.getByText(/Enter öffnet/)).toBeInTheDocument();
     expect(screen.getByText("aktuell")).toBeInTheDocument();
     expect(screen.getByText("41.208")).toBeInTheDocument();
   });
@@ -373,13 +423,13 @@ describe("ProjectsScreen", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Remove project shop" }));
     fireEvent.click(screen.getByRole("button", { name: "Remove for good" }));
     await refreshProjects();
-    expect(screen.getByText("Removing …")).toBeInTheDocument();
+    expect(screen.getAllByText("Removing …").length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Remove for good" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Rename shop" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Scan shop again" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open shop" })).toBeDisabled();
     finish(answer({ project: 1 }));
-    await waitFor(() => expect(screen.queryByText("Removing …")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryAllByText("Removing …")).toHaveLength(0));
   });
 
   it("offers only the removal for a removal that was interrupted", async () => {
@@ -387,7 +437,7 @@ describe("ProjectsScreen", () => {
       "projects.list": () => answer([{ ...ROW, removing: true, interrupted: true }]),
     });
     render(() => <ProjectsScreen />);
-    expect(await screen.findByText("Removal interrupted")).toBeInTheDocument();
+    expect((await screen.findAllByText("Removal interrupted")).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Remove project shop" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Rename shop" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Scan shop again" })).not.toBeInTheDocument();
@@ -396,7 +446,7 @@ describe("ProjectsScreen", () => {
   it("shows a removal that the server reports, not a running scan", async () => {
     serve({ "projects.list": () => answer([{ ...ROW, running: false, removing: true }]) });
     render(() => <ProjectsScreen />);
-    expect(await screen.findByText("Removing …")).toBeInTheDocument();
+    expect((await screen.findAllByText("Removing …")).length).toBeGreaterThan(0);
     expect(screen.queryByText("scan running")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Remove project shop" })).not.toBeInTheDocument();
   });
@@ -437,6 +487,7 @@ describe("ProjectsScreen", () => {
     });
     openProject(1);
     render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Open other" }));
     fireEvent.click(await screen.findByRole("button", { name: "Remove project other" }));
     fireEvent.click(screen.getByRole("button", { name: "Remove for good" }));
     await waitFor(() =>

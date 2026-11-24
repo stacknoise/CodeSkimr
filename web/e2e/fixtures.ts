@@ -116,18 +116,60 @@ export async function watchPolicy(page: Page): Promise<() => Promise<string[]>> 
   return () => page.evaluate(() => (window as unknown as { __violations: string[] }).__violations);
 }
 
+/** The states a project has once its scan is over: current, or a tool is missing (the machine of
+ * a test has no indexer), or stage 2 failed. */
+export const SCANNED_STATE = /^(current|\d+ tools? missing|Exact check failed)$/;
+
 /** A scan in a debug build loads the language packs and takes a few seconds. */
 export const SCAN_MS = 60_000;
 
-/** Adding a project shows its scan screen once the stream reports the scan; this goes back to the
- * list of projects. A test whose stream is a stand-in sees no report and stays on the list. */
+/** Adding a project shows the tab "Scan" of its page once the stream reports the scan; the list
+ * names the project from then on. */
 export async function leaveScanScreen(page: Page, name: string): Promise<void> {
-  const heading = page.getByRole("heading", { name: /^Scan (starting|running|finished)/ });
-  const listed = page.getByRole("button", { name: `Open ${name}` });
-  await expect(heading.or(listed)).toBeVisible({ timeout: SCAN_MS });
-  if (await heading.isVisible()) {
-    await page.getByRole("link", { name: "Projects", exact: true }).click();
-  }
+  await expect(page.getByRole("button", { name: `Open ${name}` })).toBeVisible({
+    timeout: SCAN_MS,
+  });
+}
+
+/** Opens the form "New project": it is open on its own only while the list is empty. */
+export async function openNewForm(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "New", exact: true }).click();
+}
+
+/** Shows the explorer for the project whose page is shown. */
+export async function openInExplorer(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Open in explorer" }).click();
+}
+
+/** Shows a tab of the project page. */
+export async function showTab(page: Page, name: string | RegExp): Promise<void> {
+  await page.getByRole("tab", { name }).click();
+}
+
+/** Fills the form "New project" with the folder and sends it. */
+export async function submitFolder(page: Page, folder: string): Promise<void> {
+  await openNewForm(page);
+  await page.getByLabel("New project").fill(folder);
+  await page.getByRole("button", { name: "Add and scan" }).click();
+}
+
+/** Waits until the list names the project `name` with its finished scan; returns its row. */
+export async function listedProject(page: Page, name: string) {
+  await leaveScanScreen(page, name);
+  const open = page.getByRole("button", { name: `Open ${name}` });
+  await expect(open.getByRole("img", { name: SCANNED_STATE })).toBeVisible({ timeout: SCAN_MS });
+  return open;
+}
+
+/** Opens the exact check of a project that is added and selected; the tab is shown afterwards. */
+export async function selectExactCheck(
+  page: Page,
+  harness: Harness,
+  name: string,
+  source: string,
+): Promise<void> {
+  await selectScannedProject(page, harness, name, source);
+  await showTab(page, /Exact check/);
 }
 
 /** Opens the UI, adds a folder with one C# file as the project `name` and waits until its scan
@@ -143,19 +185,12 @@ export async function addScannedProject(
   writeFileSync(path.join(folder, `${name}.cs`), source);
   const { copy } = keepLaunchFile(await harness.launchFile());
   await page.goto(`file://${copy}`);
-  const add = page.getByRole("button", { name: "Add and scan" });
-  await page.getByLabel("New project").fill(folder);
-  await add.click();
-  await leaveScanScreen(page, name);
-  const open = page.getByRole("button", { name: `Open ${name}` });
-  await expect(open).toBeVisible({ timeout: SCAN_MS });
-  const row = page.getByRole("row", { name: new RegExp(name) });
-  await expect(row.getByText("current", { exact: true })).toBeVisible({ timeout: SCAN_MS });
-  return row;
+  await submitFolder(page, folder);
+  return listedProject(page, name);
 }
 
-/** Adds a scanned project like `addScannedProject` and selects its row in the project list, so that
- * the sections of the project (level 2, scan, tools) are shown below the list. */
+/** Adds a scanned project like `addScannedProject` and selects it in the project list, so that its
+ * page with the tabs (overview, scan, exact check, tools) is shown. */
 export async function selectScannedProject(
   page: Page,
   harness: Harness,
@@ -176,7 +211,7 @@ export async function openScannedProject(
 ) {
   const row = await addScannedProject(page, harness, name, source);
   await row.click({ position: { x: 4, y: 4 } });
-  await page.keyboard.press("Enter");
+  await openInExplorer(page);
   await expect(page.getByRole("tree")).toBeVisible();
 }
 
@@ -205,22 +240,15 @@ export async function addLayeredProject(page: Page, harness: Harness, name: stri
     const { copy } = keepLaunchFile(await harness.launchFile());
     await page.goto(`file://${copy}`);
   }
-  await page.getByLabel("New project").fill(folder);
-  await page.getByRole("button", { name: "Add and scan" }).click();
-  await leaveScanScreen(page, name);
-  const open = page.getByRole("button", { name: `Open ${name}` });
-  await expect(open).toBeVisible({ timeout: SCAN_MS });
-  await expect(
-    page.getByRole("row", { name: new RegExp(name) }).getByText("current", { exact: true }),
-  ).toBeVisible({ timeout: SCAN_MS });
-  return open;
+  await submitFolder(page, folder);
+  return listedProject(page, name);
 }
 
 /** From a project row: opens it in the explorer and selects the member `Add` of the type
  * `Calculator` in `namespace` (the project has no layers). */
 export async function selectAdd(page: Page, row: Locator, namespace: string): Promise<void> {
   await row.click({ position: { x: 4, y: 4 } });
-  await page.keyboard.press("Enter");
+  await openInExplorer(page);
   await page.getByText(namespace, { exact: true }).click();
   await page.getByText("Calculator", { exact: true }).click();
   await page.getByRole("button", { name: /Add/ }).first().click();

@@ -1,0 +1,22 @@
+.entry {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.entry:hover,
+.entry[aria-expanded="true"] {
+    color: var(--accent);
+}
+
+.popup {
+    position: fixed;
+    left: var(--space-16);
+    bottom: 36px;
+    width: min(440px, calc(100vw - 2 * var(--space-16)));
+    z-index: 20;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}

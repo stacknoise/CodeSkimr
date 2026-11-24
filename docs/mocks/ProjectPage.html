@@ -11,7 +11,7 @@
 .main{display:flex;flex:1;min-height:0}
 .rail{width:56px;flex:none;background:var(--surface);border-right:1px solid var(--line);padding:10px 8px;display:flex;flex-direction:column;gap:6px}
 .rail i{display:block;height:38px;border-radius:8px;background:var(--soft);opacity:.55}.rail i.on{background:var(--accentbg);opacity:1}
-.content{flex:1;min-width:0;padding:22px 28px;display:flex;flex-direction:column;gap:14px}
+.content{flex:1;min-width:0;padding:24px 32px;display:flex;flex-direction:column;gap:14px}
 .status{height:28px;flex:none;border-top:1px solid var(--line);background:var(--surface);display:flex;align-items:center;gap:18px;padding:0 16px;font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;color:var(--muted)}
 h1{margin:0;font:600 22px Inter,system-ui,sans-serif}h2{margin:0;font:600 15px Inter,system-ui,sans-serif}
 .head{display:flex;align-items:flex-end;gap:14px}.head .sub{color:var(--muted);padding-bottom:3px}.sp{flex:1}
@@ -64,7 +64,7 @@ tr.sel td{background:var(--accentbg)}tr.sel td:first-child{box-shadow:inset 3px 
 .board{position:relative}
 .mini{height:3px;border-radius:2px;background:var(--soft);margin-top:5px;overflow:hidden}.mini i{display:block;height:100%;background:var(--accent)}
 </style></head><body><div id="b" class="board"></div><script>
-const q=new URLSearchParams(location.search),pick=(k,list)=>list.find(x=>x===q.get(k))||list[0],v=pick("v",["uebersicht","laeuft","fertig","leistung"]),th=pick("t",["petrol","hell","dunkel"]);
+const q=new URLSearchParams(location.search),pick=(k,list)=>list.find(x=>x===q.get(k))||list[0],v=pick("v",["uebersicht","laeuft","fertig","leistung","dbfehler"]),th=pick("t",["petrol","hell","dunkel"]);
 const P=[
 {n:"webshop-backend",l:"C#",scan:"vor 12 Min.",st:"good"},
 {n:"kundenportal",l:"TypeScript",scan:"vor 2 Std.",st:"warn"},
@@ -95,7 +95,7 @@ ${tiles([["Typen","967"],["Zeilen","143.900"],["Dateien","2.310"],["Letzter Scan
 <div><span class="k">Sprachen</span><div style="margin:10px 0 6px">${bar([["Java",64],["Kotlin",36]])}</div>${langTable(LV,false)}</div>
 <div class="two"><div class="card" style="padding:12px 14px"><span class="k">Letzter Scan</span><p style="margin:6px 0 0;line-height:1.5">vollständig · 5,4 s · 2.310 Dateien<br><span class="muted">3 Dateien seitdem geändert · 2 ausgelassen</span></p></div>
 <div class="card" style="padding:12px 14px"><div class="row"><span class="k">Werkzeuge</span><span class="sp"></span><span class="pill good">alle vorhanden</span></div><p style="margin:6px 0 0;line-height:1.5">scip-java 0.10<br><span class="muted">zuletzt geprüft vor 1 Min.</span></p></div></div>
-<div class="card" style="padding:12px 14px"><div class="row"><span class="k">Datenbank</span><span class="sp"></span><span class="pill good">vorhanden</span></div><p style="margin:6px 0 0;line-height:1.5"><span class="mono">C:\\Users\\beispiel\\AppData\\Local\\CodeSkimr\\projects\\lagerverwaltung.db</span><br><span class="muted">Größe 412 MB · wird beim Entfernen des Projekts mit gelöscht</span></p></div>
+<div class="card" style="padding:12px 14px"><div class="row"><span class="k">Datenbank</span><span class="sp"></span><span class="pill ${v=="dbfehler"?"bad":"good"}">${v=="dbfehler"?"Datei nicht lesbar":"vorhanden"}</span></div><p style="margin:6px 0 0;line-height:1.5"><span class="mono">C:\\Users\\beispiel\\AppData\\Local\\CodeSkimr\\projects\\lagerverwaltung.db</span><br><span class="muted">Größe 412 MB · wird beim Entfernen des Projekts mit gelöscht</span></p></div>
 </div></div></div>`}
 function laeuft(){return list("abrechnung-core")+`<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px">
 ${head("abrechnung-core",'<span class="pill acc">Scan läuft</span>',"Ordner · D:\\Projekte\\abrechnung-core",'<span class="btn">Abbrechen <span class="mono muted">Esc</span></span><span class="btn pri">Im Explorer öffnen</span>')}
@@ -118,9 +118,9 @@ ${stage("","Quelle holen · Dateien finden","Git, .gitignore, Sprachen erkennen"
 const B=[["Programmstart","300","1.426","bad"],["Suche (Tastendruck)","10","7","good"],["Typ wechseln","16","11","good"],["Verwendungsabfrage","20","—",""],["Graph-Layout","50","38","good"],["Scan 100k Zeilen","1.000","—",""],["Scan nur Änderungen","300","212","good"]];
 function leistung(){return uebersicht()+`<div class="card pop"><div class="dsec row" style="border:0"><div style="flex:1"><h2>Leistungsziele</h2><div class="muted" style="font-size:12px;margin-top:2px">Gilt für die ganze App, gemessen in dieser Sitzung</div></div><span class="pill warn">1 von 7 verfehlt</span></div>
 ${B.map(b=>`<div class="brow"><span>${b[0]}</span><span class="mono muted">Ziel &lt; ${b[1]} ms</span><span class="mono" style="width:70px;text-align:right;font-weight:600;color:var(--${b[3]||"muted"})">${b[2]}${b[2]=="—"?"":" ms"}</span></div>`).join("")}</div>`}
-const VIEWS=new Map([["uebersicht",uebersicht],["laeuft",laeuft],["fertig",fertig],["leistung",leistung]]);
+const VIEWS=new Map([["uebersicht",uebersicht],["laeuft",laeuft],["fertig",fertig],["leistung",leistung],["dbfehler",uebersicht]]);
 const b=document.getElementById("b");b.classList.add(th);
 b.innerHTML=`<div class="top"><span class="logo">C</span><b style="font-size:14px">CodeSkimr</b><span class="search">Typ, Member oder Befehl …</span></div>
-<div class="main">${rail}<div class="content"><div style="display:flex;gap:14px;flex:1;min-height:0">${(VIEWS.has(v)?VIEWS.get(v):uebersicht)()}</div></div></div>
+<div class="main">${rail}<div class="content"><div style="display:flex;gap:16px;flex:1;min-height:0">${(VIEWS.has(v)?VIEWS.get(v):uebersicht)()}</div></div></div>
 <div class="status"><span style="color:var(--good)">● Verbunden</span><span>6 Projekte · 3.107 Typen</span><span ${v=="leistung"?'style="color:var(--accent);font-weight:700"':""}>Leistung: 1 Ziel verfehlt ▴</span><span>RAM 118 MB</span></div>`;
 </script></body></html>

@@ -1,9 +1,9 @@
-// Every column of every table can be widened and narrowed at the handle on its right edge.
+// Every column of the explorer and hit tables can be widened and narrowed at the handle on its right edge.
 // Runs after the other screens on purpose: the worker shares one server (see projects.spec.ts).
 // `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/columns/.
 import path from "node:path";
 import type { Page } from "@playwright/test";
-import { addScannedProject, expect, shot, test, type Harness } from "./fixtures";
+import { addScannedProject, expect, shot, test, type Harness, openInExplorer } from "./fixtures";
 
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/columns");
 const THEMES = ["hell", "petrol", "dunkel"];
@@ -42,16 +42,9 @@ for (const theme of THEMES) {
     await page.addInitScript((name) => localStorage.setItem("codeskimr.theme", name), theme);
     const row = await addScannedProject(page, harness as Harness, `columns${theme}`, SOURCE);
 
-    // The project list: the last column (status) has a handle too.
-    for (const name of ["Project", "Last scan", "Status"]) {
-      await expect(grip(page, name)).toBeVisible();
-    }
-    expect(await drag(page, "Project", 60)).toBeGreaterThan(40);
-    await shot(page, SHOTS, `projects-${theme}`, info);
-
     // The member table of the explorer.
-    await row.click({ position: { x: 4, y: 4 } });
-    await page.keyboard.press("Enter");
+    await row.click();
+    await openInExplorer(page);
     await page.getByText("Demo", { exact: true }).click();
     await page.getByText("Calculator", { exact: true }).click();
     await expect(page.getByText("Members 1")).toBeVisible();

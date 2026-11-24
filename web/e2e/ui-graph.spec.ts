@@ -2,7 +2,15 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { expect, keepLaunchFile, leaveScanScreen, SCAN_MS, test, watchPolicy } from "./fixtures";
+import {
+  expect,
+  keepLaunchFile,
+  listedProject,
+  submitFolder,
+  SCAN_MS,
+  test,
+  watchPolicy,
+} from "./fixtures";
 
 const LAYERS = `
 [[layers]]
@@ -28,15 +36,9 @@ test.describe("the dependency map", () => {
     writeFileSync(path.join(folder, "OrderView.cs"), UI);
     const { copy } = keepLaunchFile(await harness.launchFile());
     await page.goto(`file://${copy}`);
-    await page.getByLabel("New project").fill(folder);
-    await page.getByRole("button", { name: "Add and scan" }).click();
-    await leaveScanScreen(page, "layered");
-    await expect(page.getByRole("button", { name: "Open layered" })).toBeVisible({
-      timeout: SCAN_MS,
-    });
-    const row = page.getByRole("row", { name: /layered/ });
-    await expect(row.getByText("current", { exact: true })).toBeVisible({ timeout: SCAN_MS });
-    await page.getByRole("button", { name: "Open layered" }).click();
+    await submitFolder(page, folder);
+    const open = await listedProject(page, "layered");
+    await open.dblclick();
 
     await page.getByRole("link", { name: "Dependencies" }).click();
     await expect(page.getByRole("button", { name: "Domain" })).toBeVisible({ timeout: SCAN_MS });

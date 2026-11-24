@@ -1,4 +1,5 @@
 .status {
+    position: relative;
     height: 28px;
     flex: none;
     display: flex;

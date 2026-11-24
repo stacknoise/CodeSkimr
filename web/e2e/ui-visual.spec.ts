@@ -22,6 +22,7 @@ import {
   shot,
   test,
   type Harness,
+  openInExplorer,
 } from "./fixtures";
 
 const MOCKS = path.resolve(import.meta.dirname, "../../docs/mocks");
@@ -64,6 +65,29 @@ async function openMock(page: Page, name: string): Promise<Page> {
   await mock.addStyleTag({ content: "*,*::before,*::after{box-sizing:border-box}" });
   return mock;
 }
+
+/** The mock 23 (project page) in the view `view`; it is a plain page with its own class names. */
+async function openProjectMock(page: Page, view: string): Promise<Page> {
+  const mock = await page.context().newPage();
+  await mock.setViewportSize(VIEWPORT);
+  await mock.goto(`file://${MOCKS}/ProjectPage.html?v=${view}&t=hell`);
+  await mock.addStyleTag({ content: "*,*::before,*::after{box-sizing:border-box}" });
+  return mock;
+}
+
+/** The landmarks of the project page: the frame, the list on the left and the page on the right. */
+const PROJECT_PAGE: Landmark[] = [
+  { name: "top bar", mock: ".top", real: "header", only: ["x", "width", "height"] },
+  { name: "rail", mock: ".rail", real: "nav" },
+  { name: "status bar", mock: ".status", real: "footer", only: ["x", "width", "height"] },
+  { name: "list", mock: ".plist", real: "main nav", only: ["x", "width"] },
+  {
+    name: "page",
+    mock: ".content > div > div:nth-child(2)",
+    real: "main section[aria-label]",
+    only: ["x", "width"],
+  },
+];
 
 /** One thing to compare: a selector in the mock, the one in the real screen and what to compare. */
 interface Landmark {
@@ -150,7 +174,7 @@ const SOURCE = [
 async function openCalculator(page: Page, harness: Harness, name: string): Promise<void> {
   const row = await addScannedProject(page, harness, name, SOURCE);
   await row.click({ position: { x: 4, y: 4 } });
-  await page.keyboard.press("Enter");
+  await openInExplorer(page);
   await page.getByText("Vis", { exact: true }).click();
   await page.getByText("Calculator", { exact: true }).click();
   await expect(page.getByRole("heading", { name: "Calculator" })).toBeVisible();
@@ -191,13 +215,8 @@ for (const theme of THEMES) {
       await prepare(page, theme);
       const row = await addScannedProject(page, harness, `visprojects${theme}`, SOURCE);
       await expect(row).toBeVisible();
-      const mock = await openMock(page, "Main");
-      await compare(page, mock, [
-        ...SHELL,
-        { name: "screen", mock: "nav ~ main", real: "main" },
-        { name: "form", mock: "nav ~ main form", real: "main form", only: ["x", "width"] },
-        { name: "list", mock: "nav ~ main table", real: "main table", only: ["x", "width"] },
-      ]);
+      const mock = await openProjectMock(page, "uebersicht");
+      await compare(page, mock, PROJECT_PAGE);
       await shot(page, SHOTS, `projects-${theme}`, info);
     });
 
@@ -232,7 +251,7 @@ for (const theme of THEMES) {
       await prepare(page, theme);
       const row = await addScannedProject(page, harness, `vissearch${theme}`, MANY_MEMBERS);
       await row.click({ position: { x: 4, y: 4 } });
-      await page.keyboard.press("Enter");
+      await openInExplorer(page);
       await expect(page.getByRole("tree")).toBeVisible();
       await page.keyboard.press("Control+k");
       // With many hits the dialog is cut to 70 vh: the rows above the list keep their size.
@@ -283,25 +302,12 @@ for (const theme of THEMES) {
 
     test("Scan and performance (5)", async ({ page, harness }, info) => {
       await prepare(page, theme);
-      await openScannedProject(page, harness, `visscan${theme}`, SOURCE);
-      await page.getByRole("link", { name: "Scans and performance" }).click();
+      const row = await addScannedProject(page, harness, `visscan${theme}`, SOURCE);
+      await row.click();
+      await page.getByRole("tab", { name: "Scan" }).click();
       await expect(page.getByRole("heading", { name: "Scan finished" })).toBeVisible();
-      const mock = await openMock(page, "Scan");
-      await compare(page, mock, [
-        ...SHELL,
-        {
-          name: "progress column",
-          mock: "nav ~ main > div",
-          real: "main section > div",
-          only: ["x", "width"],
-        },
-        {
-          name: "side column",
-          mock: "nav ~ main > aside",
-          real: "main section > aside",
-          only: ["x", "width"],
-        },
-      ]);
+      const mock = await openProjectMock(page, "fertig");
+      await compare(page, mock, PROJECT_PAGE);
       await shot(page, SHOTS, `scan-${theme}`, info);
     });
 
@@ -349,7 +355,7 @@ for (const theme of THEMES) {
       await prepare(page, theme);
       const row = await addScannedProject(page, harness, `visalerts${theme}`, SOURCE);
       await row.click({ position: { x: 4, y: 4 } });
-      await page.keyboard.press("Enter");
+      await openInExplorer(page);
       await expect(page.getByRole("tree")).toBeVisible();
       await page.getByRole("button", { name: /^Alerts/ }).click();
       await expect(page.getByRole("dialog", { name: "Alerts" })).toBeVisible();

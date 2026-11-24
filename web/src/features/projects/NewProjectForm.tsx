@@ -109,18 +109,25 @@ function CredentialSelect(props: { value: string; onChange: (id: string) => void
   );
 }
 
+/** The failure of the last call, in words; the screen shows it also while the form is closed. */
+export function FailureNotice() {
+  return (
+    <Show when={projectsFailure()}>
+      {(failure) => (
+        <p class={cx(styles.message, styles.error)} role="alert">
+          {failureText(failure())}
+        </p>
+      )}
+    </Show>
+  );
+}
+
 /** The notice of the screen and the failure of the last call. */
 function Messages(props: { notice: string | null }) {
   return (
     <>
       <Show when={props.notice}>{(text) => <p class={styles.message}>{text()}</p>}</Show>
-      <Show when={projectsFailure()}>
-        {(failure) => (
-          <p class={cx(styles.message, styles.error)} role="alert">
-            {failureText(failure())}
-          </p>
-        )}
-      </Show>
+      <FailureNotice />
     </>
   );
 }

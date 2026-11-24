@@ -2,7 +2,9 @@ import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
+import { chooseProject, chooseTab, TAB_TOOLS } from "../../tests/pageTabs";
 import { rescanAsked, rescanned } from "../../tests/scanned";
+import { refreshProjects } from "./projects";
 import { ProjectsScreen } from "./ProjectsScreen";
 import type { ProjectRow, ToolsInfo } from "./types";
 
@@ -66,8 +68,23 @@ async function openWarning(): Promise<HTMLElement> {
     "projects.list": () => answer([{ ...ROW, tools: MISSING }]),
     "projects.tools": () => answer(MISSING),
   });
+  await refreshProjects();
   render(() => <ProjectsScreen />);
-  fireEvent.click(await screen.findByText("/work/shop"));
+  await chooseProject();
+  await chooseTab(TAB_TOOLS);
+  return screen.findByRole("status");
+}
+
+/** Shows the tab Tools of a project whose check says `info`; returns the warning. */
+async function openTools(row: ProjectRow, info: ToolsInfo): Promise<HTMLElement> {
+  serve({
+    "projects.list": () => answer([row]),
+    "projects.tools": () => answer(info),
+  });
+  await refreshProjects();
+  render(() => <ProjectsScreen />);
+  await chooseProject();
+  await chooseTab(TAB_TOOLS);
   return screen.findByRole("status");
 }
 
@@ -92,13 +109,7 @@ describe("the tools of a project", () => {
     };
     // Own project id: the screen keeps the tools it checked per project across tests.
     const row = { ...ROW, id: 8, location: "/work/newer", tools: tooNew };
-    serve({
-      "projects.list": () => answer([row]),
-      "projects.tools": () => answer(tooNew),
-    });
-    render(() => <ProjectsScreen />);
-    fireEvent.click(await screen.findByText("/work/newer"));
-    const warning = await screen.findByRole("status");
+    const warning = await openTools(row, tooNew);
     expect(warning).toHaveTextContent(
       "too new: 8.0.404 installed, more than the project allows (it names 9.0.100)",
     );
@@ -117,13 +128,7 @@ describe("the tools of a project", () => {
       ],
     };
     const row = { ...ROW, id: 9, location: "/work/crashed", tools: crashed };
-    serve({
-      "projects.list": () => answer([row]),
-      "projects.tools": () => answer(crashed),
-    });
-    render(() => <ProjectsScreen />);
-    fireEvent.click(await screen.findByText("/work/crashed"));
-    const warning = await screen.findByRole("status");
+    const warning = await openTools(row, crashed);
     expect(warning).toHaveTextContent(
       "found, but it does not start: SyntaxError: Invalid regular expression",
     );
@@ -141,13 +146,7 @@ describe("the tools of a project", () => {
       ],
     };
     const row = { ...ROW, id: 10, location: "/work/silent", tools: silent };
-    serve({
-      "projects.list": () => answer([row]),
-      "projects.tools": () => answer(silent),
-    });
-    render(() => <ProjectsScreen />);
-    fireEvent.click(await screen.findByText("/work/silent"));
-    const warning = await screen.findByRole("status");
+    const warning = await openTools(row, silent);
     expect(warning).toHaveTextContent("found, but it does not start");
     expect(warning).not.toHaveTextContent("does not start:");
   });
@@ -165,8 +164,10 @@ describe("the tools of a project", () => {
       "projects.list": () => answer([{ ...ROW, tools: null }]),
       "projects.tools": () => answer(MISSING),
     });
+    await refreshProjects();
     render(() => <ProjectsScreen />);
-    fireEvent.click(await screen.findByText("/work/shop"));
+    await chooseProject();
+    await chooseTab(TAB_TOOLS);
     await screen.findByRole("status");
     const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith("projects.tools"));
     expect(JSON.parse(call?.[1].body)).toEqual({ project: 1 });
@@ -178,8 +179,10 @@ describe("the tools of a project", () => {
       "projects.list": () => answer([{ ...ROW, tools: READY }]),
       "projects.tools": () => answer(READY),
     });
+    await refreshProjects();
     render(() => <ProjectsScreen />);
-    fireEvent.click(await screen.findByText("/work/shop"));
+    await chooseProject();
+    await chooseTab(TAB_TOOLS);
     expect(await screen.findByText("Level 2 can run for: Rust")).toBeInTheDocument();
     expect(screen.getByText("All tools are there.")).toBeInTheDocument();
     expect(screen.queryByRole("status")).toBeNull();
@@ -191,8 +194,10 @@ describe("the tools of a project", () => {
       "projects.tools": () =>
         answer({ checked_at: 1_800_000_200, languages: [], tools: [] } satisfies ToolsInfo),
     });
+    await refreshProjects();
     render(() => <ProjectsScreen />);
-    fireEvent.click(await screen.findByText("/go"));
+    await chooseProject("go-app");
+    await chooseTab(TAB_TOOLS);
     expect(await screen.findByText(/No language of this project has level 2/)).toBeInTheDocument();
   });
 
@@ -202,8 +207,10 @@ describe("the tools of a project", () => {
       "projects.list": () => answer([{ ...ROW, id: 7, location: "/work/seven", tools: MISSING }]),
       "projects.tools": () => (fail ? answer({ code: "API-201" }, 404) : answer(READY)),
     });
+    await refreshProjects();
     render(() => <ProjectsScreen />);
-    fireEvent.click(await screen.findByText("/work/seven"));
+    await chooseProject();
+    await chooseTab(TAB_TOOLS);
     expect(await screen.findByRole("status")).toHaveTextContent("scip-dotnet");
     const again = await screen.findByRole("button", { name: "Check again" });
     fail = false;
@@ -220,8 +227,10 @@ describe("the tools of a project", () => {
       "projects.list": () => answer([{ ...ROW, id: 9, location: "/work/nine", tools: MISSING }]),
       "projects.tools": () => answer({ ...MISSING, checked_at: later + TWO_MINUTES }),
     });
+    await refreshProjects();
     render(() => <ProjectsScreen />);
-    fireEvent.click(await screen.findByText("/work/nine"));
+    await chooseProject();
+    await chooseTab(TAB_TOOLS);
     expect(await screen.findByText(/Last checked: .*minutes ago/)).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("button", { name: "Check again" }));
     await waitFor(() => expect(screen.queryByText(/minutes ago/)).toBeNull());
@@ -234,12 +243,15 @@ describe("the tools of a project", () => {
       "projects.tools": () => answer(MISSING),
       "projects.rescan": () => answer(rescanned(1)),
     });
+    await refreshProjects();
     render(() => <ProjectsScreen />);
-    fireEvent.click(await screen.findByText("/work/shop"));
+    await chooseProject();
+    await chooseTab(TAB_TOOLS);
     await screen.findByRole("status");
     fireEvent.keyDown(document, { key: "r" });
     await rescanAsked();
-    await waitFor(() => expect(screen.getByText("2 tools missing")).toBeInTheDocument());
-    expect(screen.getByRole("status")).toHaveTextContent("scip-dotnet");
+    await waitFor(() => expect(screen.getAllByText("2 tools missing").length).toBeGreaterThan(0));
+    await chooseTab(TAB_TOOLS);
+    expect(await screen.findByRole("status")).toHaveTextContent("scip-dotnet");
   });
 });

@@ -4,6 +4,7 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { answer, fetchMock, useServerSession } from "../../tests/commands";
 import { resetLevel2 } from "./level2";
 import { ProjectsScreen } from "./ProjectsScreen";
+import { chooseProject, chooseTab, TAB_LEVEL2 } from "../../tests/pageTabs";
 import { projectRow } from "../../tests/projectRow";
 import type { ProjectRow } from "./types";
 
@@ -75,8 +76,9 @@ async function waitUntilTimedOut(
 async function theSwitch(): Promise<() => HTMLElement> {
   // The list is read again after the first render, which replaces the row: ask for the switch
   // each time instead of keeping an element that may be gone.
+  await chooseProject();
+  await chooseTab(TAB_LEVEL2);
   await screen.findByRole("switch", { name: /(Level 2|Stufe 2) (for|für) shop/ });
-  fireEvent.click(await screen.findByText("/work/shop"));
   return () => screen.getByRole("switch", { name: /(Level 2|Stufe 2) (for|für) shop/ });
 }
 
@@ -321,8 +323,10 @@ describe("the level 2 switch: switching off", () => {
   });
 });
 
+const TAB_SCAN_NAME = "Scan";
+
 describe("the level 2 switch: focus after the notice of a switch-off", () => {
-  it("puts the focus on the switch when Scan again leaves", async () => {
+  it("shows the tab Scan when Scan again is clicked in the notice", async () => {
     fake({ state: "on", confirmed: true, launch: "window" });
     const toggle = await loaded();
     fireEvent.click(toggle());
@@ -331,7 +335,10 @@ describe("the level 2 switch: focus after the notice of a switch-off", () => {
     const again = within(notice as HTMLElement).getByRole("button", { name: "Scan again" });
     fireEvent.click(again);
     expect(again).not.toBeInTheDocument();
-    expect(toggle()).toHaveFocus();
+    expect(await screen.findByRole("tab", { name: TAB_SCAN_NAME })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
   });
 });
 

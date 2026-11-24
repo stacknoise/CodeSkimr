@@ -27,7 +27,7 @@ Two tiers exist.
 - **Full tier:** C#, Java, Kotlin, Python, Rust, TypeScript, TSX and JavaScript. Types, members, signatures, documentation comments, visibility, metrics and references.
 - **Basic tier:** C, C++, Go, PHP and Ruby. Types, namespaces and functions with position and size, lines of code, complexity by decision points, and calls by name. No documentation comments and no visibility.
 
-The scan screen shows the tier of every language it found in a project.
+The tab "Scan" of a project shows the tier of every language it found in a project.
 
 ## Language of the program
 
