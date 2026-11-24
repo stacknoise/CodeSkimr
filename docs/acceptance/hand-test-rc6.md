@@ -13,7 +13,7 @@ Legend: ✅ passed · ◐ passed with a named limit or finding · ⏭ voluntary,
 | Preparation: checksum of the download, version, `--help` | all | ✅ | Reported as passed. |
 | Private reference by script: counts, scan time, incremental scan, MCP tools | M1, M2 | ✅ | Three scans in fresh databases give the same counts. Full scan: over the budget of 1 s per 100k LOC, with and without the tests, the known limit of #410. Incremental scan after one appended line: within the budget of 300 ms. `tools/list` shows 13 tools; every query is fast. |
 | An agent uses the MCP server | M2 | ✅ | Claude Code in the Claude desktop app searched symbols and listed the usages of a method through `codeskimr mcp --project`. See the notes for how the server had to be registered. |
-| Usage sample of 20 symbols | M2 criterion 4 | ◐ | Two runs with different symbols, see the next section. Every usage of the source was found in both runs; every hit marked `certain` is correct; wrong hits are all `uncertain`. Finding #685. |
+| Usage sample of 20 symbols | M2 criterion 4 | ◐ | Two runs with rc.6 on different symbols, see the next section: every usage of the source was found in both runs, every hit marked `certain` is correct, wrong hits are all `uncertain`; finding #685. Repeat run with rc.7: see the repeat run below (19 of 20 symbols complete, #685 fixed, new finding #705). |
 | Large public C# project for time | M1 | ⏭ | Not run; the limit is decided (#410). |
 | Start, tray and start file | M3, M6 | ✅ | `open --no-browser` prints the start file; `icacls` shows only the user on the file and on its folder; the file is gone after its time; "Quit" in the tray leaves no process. Covers the Windows side of #104 and #659. |
 | Folder dialog | M3, M6 | ◐ | The dialog opens in front, a chosen folder is scanned, a second click while the dialog is open is refused. After that refused click a third click opened a second dialog: #692, fixed with #693 and confirmed with rc.7, see the repeat run below. |
@@ -46,7 +46,8 @@ Proposed verdict: met with the named approximation. Completeness, which the prod
 
 | Issue | What | Decision |
 |---|---|---|
-| #685 | C#, level 1: calls of a library method listed as usages of a project method of the same name | before 1.0 |
+| #685 | C#, level 1: calls of a library method listed as usages of a project method of the same name | before 1.0; fixed with #689 and confirmed with rc.7 |
+| #705 | C#, level 1: a call inside `if (!await field.Method())` is not listed as a usage (the one missing usage of the rc.7 sample) | not a blocker for 1.0 |
 | #692 | Folder dialog: a refused click released the lock, the next click opened a second dialog | fixed with #693, confirmed with rc.7 |
 | #695 | Projects list shows a scanned project as never scanned while the console scans it | before 1.0 |
 | #694 | The UI does not show scans started in the console (state and progress) | after 1.0, with the job register of the panel "background processes" |
@@ -84,4 +85,4 @@ Run by the product owner on Windows with the same scripts and the program file o
 - The wrong hits belong to known classes: a member of the same name on another type when the receiver type is not known (a lambda parameter or the result of a call), `List.IndexOf` of a local list, and overloads that are not told apart.
 - One real usage is missing: a call of the form `if (!await field.Method())` in production code, while the mock set-ups of the same method in tests are found (#705, no blocker for 1.0).
 
-Proposed verdict for M2 criterion 4: met with the named approximation. Completeness is above 98 % and the rate of correct hits rose from 68 % (rc.6) to about 86 %.
+Proposed verdict for M2 criterion 4: met with the named approximation. Completeness is about 98 % (19 of 20 symbols complete; the 100 % of the rc.6 runs was not reached this time because of the one missing usage of #705), and the rate of correct hits rose from 68 % (rc.6) to about 86 %.
