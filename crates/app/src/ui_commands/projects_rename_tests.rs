@@ -136,7 +136,7 @@ fn a_chosen_name_at_adding_is_used_and_an_invalid_one_registers_nothing() {
     );
     assert_eq!(refused, Err("PRJ-102"));
     let list = fixture.call("projects.list", Value::Null).unwrap();
-    assert!(list.as_array().unwrap().is_empty());
+    assert_eq!(list, json!([]));
     let added = fixture
         .call(
             "projects.add",
