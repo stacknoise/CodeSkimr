@@ -104,6 +104,7 @@ Log-Failure $second
 
 Log '== 5. Export'
 $page = Join-Path $Out 'export.html'
+Remove-Item $page -ErrorAction SilentlyContinue
 $export = Run-App @('export', $Url, '--html', $page)
 Log ("Exit: $($export.Code), Seite vorhanden: $(Test-Path $page)")
 Log-Failure $export
@@ -130,6 +131,10 @@ Log '== 7. Ohne Login muss der Scan scheitern, nicht fragen'
 # Git Credential Manager) are switched off for the first run, so that only CodeSkimr's own login could open the
 # repository; without it the scan must fail. The global file holds an empty `helper =`, which resets the list of helpers
 # of the lower levels.
+# The project of the scans above remembers the name of its login, so a scan in the same data folder would log in
+# again. This step therefore uses a fresh data folder, in which the address is not known yet.
+$data = Join-Path $Out 'daten-ohne-login'
+if (Test-Path $data) { Remove-Item $data -Recurse -Force }
 $emptyConfig = Join-Path $Out 'leere-gitconfig'; Set-Content $emptyConfig "[credential]`n`thelper =`n"
 $noHelper = @{ GIT_CONFIG_NOSYSTEM = '1'; GIT_CONFIG_GLOBAL = $emptyConfig; GIT_TERMINAL_PROMPT = '0'; GCM_INTERACTIVE = 'never' }
 $none = Run-App @('scan', $Url, '--branch', $Branch, '--json') $noHelper
