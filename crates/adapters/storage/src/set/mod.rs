@@ -105,7 +105,7 @@ impl SqliteStore {
         self.registry.entries()
     }
 
-    /// Registers a project, or updates the name, source and layers of a known id.
+    /// Registers a project under its id, or updates the name, source and layers of a known id.
     ///
     /// # Errors
     /// `PRJ-301` if another project has the same source, otherwise a coded `STO` failure.
@@ -115,7 +115,10 @@ impl SqliteStore {
 
     fn saved(&self, project: &Project) -> StorageResult<()> {
         if self.registry.removing(project.id)?.is_none() {
-            return Err(StorageError::ProjectNotFound);
+            if self.registry.find(&project.source)?.is_some() {
+                return Err(StorageError::ProjectExists);
+            }
+            self.registry.register_as(project.id, &project.source)?;
         }
         self.db(project.id)?.stored(project)?;
         self.registry.set_source(project.id, &project.source)

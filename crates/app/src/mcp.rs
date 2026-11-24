@@ -7,7 +7,7 @@ use codeskimr_application::config::Config;
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
-use codeskimr_application::ports::{IndexRunner, ProjectScanner};
+use codeskimr_application::ports::{CodeIndex, IndexRunner, ProjectScanner};
 use codeskimr_cli::{GlobalOptions, McpArgs};
 use codeskimr_codes::ErrorCode;
 use codeskimr_i18n::Messages;

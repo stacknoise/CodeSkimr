@@ -15,7 +15,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 use super::consts::{
     CHECK_OK, HIGHEST_NUMBER_EVER, INSTALLATION_ID, INSTALLATION_INSERT, PRAGMA_APPLICATION_ID,
-    PROJECT_BY_SOURCE, PROJECT_DELETE, PROJECT_INSERT, PROJECT_MARK_REMOVING, PROJECT_NUMBERS,
+    PROJECT_BY_SOURCE, PROJECT_DELETE, PROJECT_INSERT, PROJECT_INSERT_AS, PROJECT_MARK_REMOVING, PROJECT_NUMBERS,
     PROJECT_REMOVING, PROJECT_SET_SOURCE, QUICK_CHECK, REGISTRY_SCHEMA,
 };
 use super::consts::APPLICATION_ID;
@@ -115,6 +115,25 @@ impl Registry {
             conn.execute(PROJECT_DELETE, params![column_int(project.get())?])?;
             Err(StorageError::OutOfRange)
         }
+    }
+
+    /// Registers `source` under a number the caller chose, for a project that is saved with its
+    /// id before the catalog knows it. A number that ids cannot carry is refused.
+    pub(crate) fn register_as(&self, project: ProjectId, source: &ProjectSource) -> StorageResult<()> {
+        if !is_project_number(project) {
+            return Err(StorageError::OutOfRange);
+        }
+        let columns = SourceColumns::of(source);
+        self.conn().execute(
+            PROJECT_INSERT_AS,
+            params![
+                column_int(project.get())?,
+                columns.kind,
+                columns.location,
+                columns.branch
+            ],
+        )?;
+        Ok(())
     }
 
     /// Every registered project, in the order of registration.

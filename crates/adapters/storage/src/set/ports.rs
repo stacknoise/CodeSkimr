@@ -9,6 +9,7 @@ use codeskimr_application::ports::*;
 use codeskimr_domain::*;
 
 use super::SqliteStore;
+use crate::error::StorageError;
 use crate::store::ProjectDb;
 
 impl SqliteStore {
@@ -215,7 +216,12 @@ impl AnnotationStore for SqliteStore {
     }
 
     fn list_annotations(&self, filter: &AnnotationFilter) -> Result<Vec<Annotation>, CodedError> {
-        AnnotationStore::list_annotations(&*self.of_project(filter.project)?, filter)
+        // A project that does not exist has no annotations, as before: callers answer "not found".
+        match self.db(filter.project) {
+            Ok(db) => AnnotationStore::list_annotations(&*db, filter),
+            Err(StorageError::ProjectNotFound) => Ok(Vec::new()),
+            Err(other) => Err(other.into()),
+        }
     }
 
     forward! { AnnotationStore via of_annotation:
@@ -233,7 +239,11 @@ impl AnnotationStore for SqliteStore {
     }
 
     fn list_alerts(&self, filter: &AlertFilter) -> Result<Vec<Alert>, CodedError> {
-        AnnotationStore::list_alerts(&*self.of_project(filter.project)?, filter)
+        match self.db(filter.project) {
+            Ok(db) => AnnotationStore::list_alerts(&*db, filter),
+            Err(StorageError::ProjectNotFound) => Ok(Vec::new()),
+            Err(other) => Err(other.into()),
+        }
     }
 
     fn dismiss_alert(&self, dismissal: &AlertDismissal) -> Result<Alert, CodedError> {

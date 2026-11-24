@@ -48,6 +48,9 @@ pub const INSTALLATION_ID: &str = "SELECT id FROM installation LIMIT 1";
 pub const INSTALLATION_INSERT: &str = "INSERT INTO installation (id) VALUES (?1)";
 /// Registers a project: kind, location, branch.
 pub const PROJECT_INSERT: &str = "INSERT INTO projects (kind, location, branch) VALUES (?1, ?2, ?3)";
+/// Registers a project under a given number: number, kind, location, branch.
+pub const PROJECT_INSERT_AS: &str =
+    "INSERT INTO projects (number, kind, location, branch) VALUES (?1, ?2, ?3, ?4)";
 /// The project of a source: kind, location, branch; its number and whether it is being removed.
 pub const PROJECT_BY_SOURCE: &str =
     "SELECT number, removing FROM projects WHERE kind = ?1 AND location = ?2 AND branch = ?3";
