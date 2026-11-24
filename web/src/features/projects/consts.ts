@@ -246,22 +246,40 @@ export const LEVEL2_ERROR = {
 /** Hours and minutes of a time of day. */
 export const CLOCK_OPTIONS: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
 
-/** The columns of the project table by id, with their head texts, and the key the widths are kept under. */
-export const PROJECT_TABLE_KEY = "projects";
-export const PROJECT_COLUMNS = [
-  { id: "project", label: I18N_KEYS.PROJECTS_COLUMN_PROJECT },
-  { id: "source", label: I18N_KEYS.PROJECTS_COLUMN_SOURCE },
-  { id: "languages", label: I18N_KEYS.PROJECTS_COLUMN_LANGUAGES },
-  { id: "types", label: I18N_KEYS.PROJECTS_COLUMN_TYPES },
-  { id: "loc", label: I18N_KEYS.PROJECTS_COLUMN_LOC },
-  { id: "lastScan", label: I18N_KEYS.PROJECTS_COLUMN_LAST_SCAN },
-  { id: "level2", label: I18N_KEYS.PROJECTS_LEVEL2_COLUMN },
-  { id: "status", label: I18N_KEYS.PROJECTS_COLUMN_STATUS },
-  { id: "actions", label: I18N_KEYS.PROJECTS_COLUMN_ACTIONS },
+/** The tabs of the project page, in the order they are shown (ADR 0096). */
+export const PROJECT_TAB = {
+  overview: "overview",
+  scan: "scan",
+  level2: "level2",
+  tools: "tools",
+} as const;
+/** One tab of the project page. */
+export type ProjectTab = (typeof PROJECT_TAB)[keyof typeof PROJECT_TAB];
+/** The tabs with their texts. */
+export const PROJECT_TABS = [
+  { id: PROJECT_TAB.overview, label: I18N_KEYS.PROJECTS_TAB_OVERVIEW },
+  { id: PROJECT_TAB.scan, label: I18N_KEYS.PROJECTS_TAB_SCAN },
+  { id: PROJECT_TAB.level2, label: I18N_KEYS.PROJECTS_TAB_LEVEL2 },
+  { id: PROJECT_TAB.tools, label: I18N_KEYS.PROJECTS_TAB_TOOLS },
 ] as const;
+/** Separates the parts of the source line of a project and of the list line. */
+export const PART_SEPARATOR = " · ";
+/** Length of a short commit id. */
+export const COMMIT_LENGTH = 7;
+/** Joins branch and commit in the source line. */
+export const AT_SIGN = " @ ";
+/** Units of a size in bytes, and the step between them. */
+export const SIZE_UNITS = ["B", "KB", "MB", "GB", "TB"] as const;
+export const SIZE_STEP = 1024;
+/** Decimals of a size from megabytes up. */
+export const SIZE_DECIMALS = 1;
+/** The state of a project database as the server names it. */
+export const DB_STATE = { ok: "ok", missing: "missing", removing: "removing" } as const;
 
 /** Icon of the button that removes a project. */
 export const REMOVE_ICON = "trash";
 /** Icon of the button that renames a project, and its size. */
 export const RENAME_ICON = "edit";
 export const RENAME_ICON_SIZE = 14;
+/** Index of "MB" in `SIZE_UNITS`. */
+export const MEGABYTE_UNIT = 2;
