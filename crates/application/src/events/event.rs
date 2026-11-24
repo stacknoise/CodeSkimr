@@ -65,7 +65,7 @@ pub struct ScanProgressed {
     pub elapsed_ms: u64,
 }
 
-/// A snapshot was persisted.
+/// A scan ended with a snapshot: a new one, or the newest one confirmed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SnapshotCreated {
     /// The new snapshot.
@@ -73,6 +73,9 @@ pub struct SnapshotCreated {
     /// Time that loading language packs took during the scan (ADR 0059). A screen that shows the
     /// duration of the scan leaves it out; zero if nothing was loaded.
     pub pack_load: std::time::Duration,
+    /// Whether the scan found no file changed and wrote nothing: the snapshot is the one the
+    /// project already had, confirmed by the scan (ADR 0093).
+    pub unchanged: bool,
 }
 
 /// File-system changes were detected.

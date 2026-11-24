@@ -19,6 +19,7 @@ use crate::consts::{
 use crate::error::{StorageError, StorageResult};
 use crate::pending;
 use crate::previous::{latest_snapshot_id, load_latest_index, load_symbols};
+use crate::read_models;
 use crate::references;
 use crate::sql;
 use crate::store::SqliteStore;
@@ -81,7 +82,13 @@ impl SqliteStore {
     /// # Errors
     /// `PRJ-301` if another project has the same source, otherwise a coded `STO` failure.
     pub fn save_project(&self, project: &Project) -> Result<(), CodedError> {
-        self.write(|tx| save(tx, project)).map_err(CodedError::from)
+        self.write(|tx| {
+            save(tx, project)?;
+            // The layer graph of the newest snapshot may have been built again.
+            self.forget_builds();
+            Ok(())
+        })
+        .map_err(CodedError::from)
     }
 
     /// The project registered for `source`, or a new one with the next free id, in one
@@ -171,9 +178,15 @@ fn save(conn: &Connection, project: &Project) -> StorageResult<()> {
             source.credential
         ],
     )?;
+    let before = load_layers(conn, project.id)?;
     conn.execute(sql::LAYERS_DELETE, params![id])?;
     for (position, layer) in ordinals().zip(&project.layers) {
         save_layer(conn, id, position, layer)?;
+    }
+    if before != project.layers {
+        // A scan that finds no file changed writes no snapshot (ADR 0093), so the layer graph of
+        // the newest one follows the layers here.
+        read_models::relayer(conn, project.id, &project.layers)?;
     }
     Ok(())
 }
@@ -335,6 +348,15 @@ fn file_from(row: &Row<'_>) -> rusqlite::Result<(i64, i64, String, String, Strin
 }
 
 fn load_latest_state(conn: &Connection, project: ProjectId) -> StorageResult<PreviousState> {
+    load_latest_state_with(conn, project, true)
+}
+
+/// The state of the newest snapshot, with its symbols if `symbols` is set.
+fn load_latest_state_with(
+    conn: &Connection,
+    project: ProjectId,
+    symbols: bool,
+) -> StorageResult<PreviousState> {
     let Some(snapshot) = latest_snapshot_id(conn, project)? else {
         return Ok(PreviousState::default());
     };
@@ -342,7 +364,11 @@ fn load_latest_state(conn: &Connection, project: ProjectId) -> StorageResult<Pre
         conn.query_row(sql::SNAPSHOT_AMBIGUOUS, params![snapshot], |row| row.get(0))?;
     Ok(PreviousState {
         files: load_latest_files(conn, project)?,
-        symbols: load_symbols(conn, snapshot)?,
+        symbols: if symbols {
+            load_symbols(conn, snapshot)?
+        } else {
+            Vec::new()
+        },
         snapshot: Some(SnapshotId::new(id_from(snapshot)?)),
         names_stored: pending::is_stored(conn, snapshot)?,
         ambiguous_places: ambiguous.map(id_from).transpose()?,
@@ -391,6 +417,22 @@ impl ProjectRepository for SqliteStore {
             load_latest_state(&tx, id)
         })
         .map_err(CodedError::from)
+    }
+
+    fn latest_head(&self, id: ProjectId) -> Result<PreviousState, CodedError> {
+        self.read_latest(|conn| {
+            let tx = conn.unchecked_transaction()?;
+            load_latest_state_with(&tx, id, false)
+        })
+        .map_err(CodedError::from)
+    }
+
+    fn snapshot_symbols(
+        &self,
+        snapshot: SnapshotId,
+    ) -> Result<Vec<codeskimr_domain::Symbol>, CodedError> {
+        self.read_latest(|conn| load_symbols(conn, column_int(snapshot.get())?))
+            .map_err(CodedError::from)
     }
 
     fn stored_names(

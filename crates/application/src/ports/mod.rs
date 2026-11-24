@@ -73,8 +73,8 @@ pub use statistics::{
     CodeStatistics, RankedRows, RankingRequest, StatisticsSetup, StatisticsSummary, UnusedCounts,
 };
 pub use storage::{
-    Level2Replacement, PreviousIndex, PreviousState, ProjectRemoval, ProjectRepository,
-    ScanWarning, SnapshotData, SnapshotStore, StoredNames, StoredReferences,
+    Confirmation, Confirmed, Level2Replacement, PreviousIndex, PreviousState, ProjectRemoval,
+    ProjectRepository, ScanWarning, SnapshotData, SnapshotStore, StoredNames, StoredReferences,
 };
 pub use tools::{
     ProjectToolCheck, RequirementReader, RequirementValue, ToolCatalog, ToolPlan, ToolReportStore,

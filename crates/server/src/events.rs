@@ -56,6 +56,8 @@ pub enum WireEvent {
         snapshot: u64,
         /// Milliseconds that loading language packs took during the scan.
         pack_load_ms: u64,
+        /// Whether the scan found no file changed and only confirmed the snapshot.
+        unchanged: bool,
     },
     /// Files changed on disk.
     FilesChanged {
@@ -169,6 +171,7 @@ impl WireEvent {
             project: created.snapshot.project.get(),
             snapshot: created.snapshot.id.get(),
             pack_load_ms: u64::try_from(created.pack_load.as_millis()).unwrap_or(u64::MAX),
+            unchanged: created.unchanged,
         }
     }
 

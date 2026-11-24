@@ -7,6 +7,8 @@ export const STAGES = ["fetch", "discover", "analyze", "resolve", "measure", "pe
 
 /** The stage whose units are files: its progress is the progress of the whole scan. */
 export const FILE_STAGE = "analyze";
+/** The stage that compares every file with the newest snapshot. */
+export const CHECK_STAGE = "discover";
 
 /** The kinds of events on the stream (`WireEvent` in crates/server/src/events.rs). */
 export const EVENT = {
