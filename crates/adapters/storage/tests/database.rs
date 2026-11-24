@@ -1051,3 +1051,27 @@ fn removing_a_large_project_at_once_with_shared_files_leaves_nothing() {
     assert_all_tables_empty(&conn);
     assert_eq!(reference_indexes(&conn).len(), 4);
 }
+
+#[test]
+fn removing_a_project_with_more_rows_than_one_part_leaves_nothing() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    store.persist(scan_with_every_table(10, 100)).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    // Two and a half parts of the big tables of the snapshot, so the loop needs three writes.
+    conn.execute(
+        "WITH RECURSIVE n(i) AS (SELECT 1000 UNION ALL SELECT i + 1 FROM n WHERE i < 26000) \
+         INSERT INTO usage_counts SELECT 10, i, 1 FROM n",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "WITH RECURSIVE n(i) AS (SELECT 1000 UNION ALL SELECT i + 1 FROM n WHERE i < 26000) \
+         INSERT INTO coupling_rows SELECT 10, i, 'ca', 1.0 FROM n",
+        [],
+    )
+    .unwrap();
+    store.remove_project(PROJECT).unwrap();
+    assert_all_tables_empty(&conn);
+}

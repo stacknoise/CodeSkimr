@@ -30,8 +30,13 @@ const [lastSeconds, setLastSeconds] = createSignal<ReadonlyMap<number, number>>(
  * the row: the list is read again while a scan runs and would drop the input of a row. */
 const [renaming, setRenaming] = createSignal<{ id: number; text: string } | null>(null);
 
+/** Whether the name is being saved: the store may be busy with a removal for a moment. */
+const [savingName, setSavingName] = createSignal(false);
+
 /** The name edit that is open, or `null`. */
 export const renamingProject = renaming;
+/** Whether the typed name is being saved. */
+export const renameSaving = savingName;
 /** Opens the name edit of a project with its current name. */
 export function startRename(id: number, current: string): void {
   setRenaming({ id, text: current });
@@ -54,10 +59,11 @@ export function cancelRenameOf(id: number): void {
  * whether it worked; a failure stays on the screen and the edit stays open. */
 export async function saveRename(): Promise<boolean> {
   const open = renaming();
-  if (open === null) {
+  if (open === null || savingName()) {
     return false;
   }
   setActionFailure(null);
+  setSavingName(true);
   try {
     await runCommand(COMMAND.rename, { project: open.id, name: open.text });
     setRenaming(null);
@@ -66,6 +72,7 @@ export async function saveRename(): Promise<boolean> {
     setActionFailure(failed(error));
     return false;
   } finally {
+    setSavingName(false);
     await refreshProjects();
   }
 }
