@@ -3,6 +3,7 @@ import { EXPLORER_ROUTE } from "../../app/consts";
 import { navigate } from "../../app/router";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { layerOpenAtKey } from "../../shared/keys/layers";
 import { openProject } from "../../shared/project/active";
 import { cx } from "../../shared/ui/cx";
 import { Icon } from "../../shared/ui/Icon";
@@ -209,7 +210,7 @@ export function ProjectPage(props: {
   useCancelKey(
     () => props.row.id,
     running,
-    () => renamingProject() === null && !removeQuestionOpen(),
+    () => renamingProject() === null && !removeQuestionOpen() && !layerOpenAtKey(),
   );
   // A scan that starts brings the page to its tab; the tab stays free afterwards.
   createEffect(

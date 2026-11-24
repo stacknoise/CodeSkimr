@@ -5,12 +5,11 @@ import path from "node:path";
 import {
   expect,
   keepLaunchFile,
-  leaveScanScreen,
+  listedProject,
+  submitFolder,
   SCAN_MS,
   test,
   watchPolicy,
-  openNewForm,
-  SCANNED_STATE,
 } from "./fixtures";
 
 const LAYERS = `
@@ -37,17 +36,9 @@ test.describe("the dependency map", () => {
     writeFileSync(path.join(folder, "OrderView.cs"), UI);
     const { copy } = keepLaunchFile(await harness.launchFile());
     await page.goto(`file://${copy}`);
-    await openNewForm(page);
-    await page.getByLabel("New project").fill(folder);
-    await page.getByRole("button", { name: "Add and scan" }).click();
-    await leaveScanScreen(page, "layered");
-    await expect(page.getByRole("button", { name: "Open layered" })).toBeVisible({
-      timeout: SCAN_MS,
-    });
-    await expect(
-      page.getByRole("button", { name: "Open layered" }).getByRole("img", { name: SCANNED_STATE }),
-    ).toBeVisible({ timeout: SCAN_MS });
-    await page.getByRole("button", { name: "Open layered" }).dblclick();
+    await submitFolder(page, folder);
+    const open = await listedProject(page, "layered");
+    await open.dblclick();
 
     await page.getByRole("link", { name: "Dependencies" }).click();
     await expect(page.getByRole("button", { name: "Domain" })).toBeVisible({ timeout: SCAN_MS });

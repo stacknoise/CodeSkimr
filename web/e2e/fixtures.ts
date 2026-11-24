@@ -146,6 +146,32 @@ export async function showTab(page: Page, name: string | RegExp): Promise<void> 
   await page.getByRole("tab", { name }).click();
 }
 
+/** Fills the form "New project" with the folder and sends it. */
+export async function submitFolder(page: Page, folder: string): Promise<void> {
+  await openNewForm(page);
+  await page.getByLabel("New project").fill(folder);
+  await page.getByRole("button", { name: "Add and scan" }).click();
+}
+
+/** Waits until the list names the project `name` with its finished scan; returns its row. */
+export async function listedProject(page: Page, name: string) {
+  await leaveScanScreen(page, name);
+  const open = page.getByRole("button", { name: `Open ${name}` });
+  await expect(open.getByRole("img", { name: SCANNED_STATE })).toBeVisible({ timeout: SCAN_MS });
+  return open;
+}
+
+/** Opens the exact check of a project that is added and selected; the tab is shown afterwards. */
+export async function selectExactCheck(
+  page: Page,
+  harness: Harness,
+  name: string,
+  source: string,
+): Promise<void> {
+  await selectScannedProject(page, harness, name, source);
+  await showTab(page, /Exact check/);
+}
+
 /** Opens the UI, adds a folder with one C# file as the project `name` and waits until its scan
  * is listed. Returns the row of the project. */
 export async function addScannedProject(
@@ -159,15 +185,8 @@ export async function addScannedProject(
   writeFileSync(path.join(folder, `${name}.cs`), source);
   const { copy } = keepLaunchFile(await harness.launchFile());
   await page.goto(`file://${copy}`);
-  const add = page.getByRole("button", { name: "Add and scan" });
-  await openNewForm(page);
-  await page.getByLabel("New project").fill(folder);
-  await add.click();
-  await leaveScanScreen(page, name);
-  const open = page.getByRole("button", { name: `Open ${name}` });
-  await expect(open).toBeVisible({ timeout: SCAN_MS });
-  await expect(open.getByRole("img", { name: SCANNED_STATE })).toBeVisible({ timeout: SCAN_MS });
-  return open;
+  await submitFolder(page, folder);
+  return listedProject(page, name);
 }
 
 /** Adds a scanned project like `addScannedProject` and selects it in the project list, so that its
@@ -221,14 +240,8 @@ export async function addLayeredProject(page: Page, harness: Harness, name: stri
     const { copy } = keepLaunchFile(await harness.launchFile());
     await page.goto(`file://${copy}`);
   }
-  await openNewForm(page);
-  await page.getByLabel("New project").fill(folder);
-  await page.getByRole("button", { name: "Add and scan" }).click();
-  await leaveScanScreen(page, name);
-  const open = page.getByRole("button", { name: `Open ${name}` });
-  await expect(open).toBeVisible({ timeout: SCAN_MS });
-  await expect(open.getByRole("img", { name: SCANNED_STATE })).toBeVisible({ timeout: SCAN_MS });
-  return open;
+  await submitFolder(page, folder);
+  return listedProject(page, name);
 }
 
 /** From a project row: opens it in the explorer and selects the member `Add` of the type

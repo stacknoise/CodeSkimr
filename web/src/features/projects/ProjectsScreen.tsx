@@ -1,6 +1,9 @@
 import { createEffect, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { useKeydown } from "../../shared/keys/keydown";
+import { useLayer } from "../../shared/keys/layers";
+import { CANCEL_KEY } from "../scan/consts";
 import { EXPLORER_ROUTE } from "../../app/consts";
 import { navigate } from "../../app/router";
 import { activeProject, closeProject, openProject } from "../../shared/project/active";
@@ -92,6 +95,12 @@ function useForm() {
     setOpen(true);
     queueMicrotask(() => input?.focus());
   };
+  useLayer(open);
+  useKeydown((event) => {
+    if (open() && event.key === CANCEL_KEY) {
+      setOpen(false);
+    }
+  });
   const drop = useDropSource(setSource, show);
   const onSource = (value: string) => {
     drop.clearNotice();

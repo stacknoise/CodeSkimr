@@ -2,6 +2,7 @@ import { createSignal, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
+import { useLayer } from "../../shared/keys/layers";
 import { Budgets } from "../scan/Budgets";
 import { CANCEL_KEY } from "../scan/consts";
 import { performance } from "../scan/performance";
@@ -13,6 +14,7 @@ import styles from "./Performance.module.css";
 export function Performance() {
   const [open, setOpen] = createSignal(false);
   const state = () => performance();
+  useLayer(open);
   useKeydown((event) => {
     if (open() && event.key === CANCEL_KEY && !isTyping(event.target)) {
       setOpen(false);

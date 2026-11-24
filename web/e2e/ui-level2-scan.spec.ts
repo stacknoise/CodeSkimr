@@ -6,7 +6,7 @@
 // docs/screenshots/level2-scan/.
 import path from "node:path";
 import type { Page, Route, WebSocketRoute } from "@playwright/test";
-import { expect, selectScannedProject, shot, test, showTab } from "./fixtures";
+import { expect, selectExactCheck, shot, test, showTab } from "./fixtures";
 
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/level2-scan");
 const VIEWPORT = { width: 1440, height: 900 };
@@ -85,11 +85,10 @@ async function serveScan(page: Page, withReport: boolean): Promise<Fake> {
 
 async function openProject(
   page: Page,
-  harness: Parameters<typeof selectScannedProject>[1],
+  harness: Parameters<typeof selectExactCheck>[1],
   name: string,
 ) {
-  await selectScannedProject(page, harness, name, SOURCE);
-  await showTab(page, /Exact check/);
+  await selectExactCheck(page, harness, name, SOURCE);
   return page.getByRole("region", { name: "Scan" });
 }
 

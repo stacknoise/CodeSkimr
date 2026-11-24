@@ -115,6 +115,13 @@ function openPerformance(): void {
   fireEvent.click(screen.getByRole("button", { name: /^(Performance|Leistung)/ }));
 }
 
+/** No call went out for the Esc that closed a layer; the next Esc cancels the scan. */
+async function cancelsOnlyOnSecondEsc(): Promise<void> {
+  expect(cancelCalls()).toEqual([]);
+  fireEvent.keyDown(document, { key: "Escape" });
+  await vi.waitFor(() => expect(cancelCalls()).toHaveLength(1));
+}
+
 /** The screen with a server that also answers `projects.cancel`. */
 async function shownWithCancel() {
   setLanguage("en");
@@ -282,6 +289,36 @@ describe("the tab Scan", () => {
     document.dispatchEvent(used);
     expect(cancelCalls()).toEqual([]);
     field.remove();
+    stop();
+  });
+
+  it("lets Esc close the performance window first and leaves the running scan alone", async () => {
+    const stop = await shownWithCancel();
+    FakeSocket.last?.send(RUNNING);
+    await screen.findByRole("button", { name: /Cancel/ });
+    openPerformance();
+    expect(screen.getByRole("button", { name: /^Performance/ })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.getByRole("button", { name: /^Performance/ })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await cancelsOnlyOnSecondEsc();
+    stop();
+  });
+
+  it("lets Esc close the form New project first and leaves the running scan alone", async () => {
+    const stop = await shownWithCancel();
+    FakeSocket.last?.send(RUNNING);
+    await screen.findByRole("button", { name: /Cancel/ });
+    fireEvent.click(screen.getByRole("button", { name: "New" }));
+    expect(screen.getByLabelText("New project")).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByLabelText("New project")).toBeNull();
+    await cancelsOnlyOnSecondEsc();
     stop();
   });
 

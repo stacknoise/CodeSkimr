@@ -75,6 +75,19 @@ async function openWarning(): Promise<HTMLElement> {
   return screen.findByRole("status");
 }
 
+/** Shows the tab Tools of a project whose check says `info`; returns the warning. */
+async function openTools(row: ProjectRow, info: ToolsInfo): Promise<HTMLElement> {
+  serve({
+    "projects.list": () => answer([row]),
+    "projects.tools": () => answer(info),
+  });
+  await refreshProjects();
+  render(() => <ProjectsScreen />);
+  await chooseProject();
+  await chooseTab(TAB_TOOLS);
+  return screen.findByRole("status");
+}
+
 describe("the tools of a project", () => {
   afterEach(() => vi.useRealTimers());
 
@@ -96,15 +109,7 @@ describe("the tools of a project", () => {
     };
     // Own project id: the screen keeps the tools it checked per project across tests.
     const row = { ...ROW, id: 8, location: "/work/newer", tools: tooNew };
-    serve({
-      "projects.list": () => answer([row]),
-      "projects.tools": () => answer(tooNew),
-    });
-    await refreshProjects();
-    render(() => <ProjectsScreen />);
-    await chooseProject();
-    await chooseTab(TAB_TOOLS);
-    const warning = await screen.findByRole("status");
+    const warning = await openTools(row, tooNew);
     expect(warning).toHaveTextContent(
       "too new: 8.0.404 installed, more than the project allows (it names 9.0.100)",
     );
@@ -123,15 +128,7 @@ describe("the tools of a project", () => {
       ],
     };
     const row = { ...ROW, id: 9, location: "/work/crashed", tools: crashed };
-    serve({
-      "projects.list": () => answer([row]),
-      "projects.tools": () => answer(crashed),
-    });
-    await refreshProjects();
-    render(() => <ProjectsScreen />);
-    await chooseProject();
-    await chooseTab(TAB_TOOLS);
-    const warning = await screen.findByRole("status");
+    const warning = await openTools(row, crashed);
     expect(warning).toHaveTextContent(
       "found, but it does not start: SyntaxError: Invalid regular expression",
     );
@@ -149,15 +146,7 @@ describe("the tools of a project", () => {
       ],
     };
     const row = { ...ROW, id: 10, location: "/work/silent", tools: silent };
-    serve({
-      "projects.list": () => answer([row]),
-      "projects.tools": () => answer(silent),
-    });
-    await refreshProjects();
-    render(() => <ProjectsScreen />);
-    await chooseProject();
-    await chooseTab(TAB_TOOLS);
-    const warning = await screen.findByRole("status");
+    const warning = await openTools(row, silent);
     expect(warning).toHaveTextContent("found, but it does not start");
     expect(warning).not.toHaveTextContent("does not start:");
   });
