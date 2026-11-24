@@ -1,5 +1,12 @@
 // Runs after projects.spec.ts on purpose: the worker shares one server, and the project list test expects it empty.
-import { addScannedProject, expect, keepLaunchFile, test, watchPolicy } from "./fixtures";
+import {
+  addScannedProject,
+  expect,
+  keepLaunchFile,
+  test,
+  watchPolicy,
+  openInExplorer,
+} from "./fixtures";
 
 const SOURCE =
   "namespace Demo;\n\npublic class Calculator\n{\n    public int Add(int a, int b) { return a + b; }\n}\n";
@@ -12,7 +19,7 @@ test.describe("the explorer", () => {
     const violations = await watchPolicy(page);
     const row = await addScannedProject(page, harness, "explorerdemo", SOURCE);
     await row.click({ position: { x: 4, y: 4 } });
-    await page.keyboard.press("Enter");
+    await openInExplorer(page);
     await expect(page.getByRole("tree")).toBeVisible();
     await page.getByText("Demo", { exact: true }).click();
     await page.getByText("Calculator", { exact: true }).click();
@@ -38,10 +45,8 @@ test.describe("the explorer", () => {
       "aria-disabled",
       "true",
     );
-    await expect(page.getByRole("link", { name: "Scans and performance" })).toHaveAttribute(
-      "aria-disabled",
-      "true",
-    );
+    // The scan screen is a tab of the projects page now, and has no button in the rail.
+    await expect(page.getByRole("link", { name: "Scans and performance" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
     await expect(page.getByRole("link", { name: "Projects" })).toHaveAttribute("title", "Projects");
   });

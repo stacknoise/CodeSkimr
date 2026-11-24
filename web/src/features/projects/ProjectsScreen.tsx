@@ -142,6 +142,7 @@ export function ProjectsScreen() {
           rows={projects()}
           selected={selection.selected()}
           onSelect={selection.setSelected}
+          onOpen={openInExplorer}
           onNew={form.show}
         />
         <p class={styles.hint}>{t(I18N_KEYS.PROJECTS_HINT_KEYS)}</p>

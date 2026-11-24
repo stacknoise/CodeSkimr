@@ -5,7 +5,7 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { expect, keepLaunchFile, SCAN_MS, shot, test } from "./fixtures";
+import { expect, keepLaunchFile, SCAN_MS, shot, test, openNewForm } from "./fixtures";
 
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/scan-left-out");
 const VIEWPORT = { width: 1440, height: 900 };
@@ -37,6 +37,7 @@ for (const theme of THEMES) {
       }
       const { copy } = keepLaunchFile(await harness.launchFile());
       await page.goto(`file://${copy}`);
+      await openNewForm(page);
       await page.getByLabel("New project").fill(folder);
       await page.getByRole("button", { name: "Add and scan" }).click();
       await expect(page.getByText("Files left out", { exact: true })).toBeVisible({

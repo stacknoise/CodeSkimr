@@ -9,6 +9,7 @@ import {
   test,
   watchPolicy,
   type Harness,
+  openInExplorer,
 } from "./fixtures";
 
 const SOURCE = [
@@ -36,7 +37,7 @@ const selected = (page: Page): Locator => tree(page).getByRole("treeitem", { sel
 async function openExplorer(page: Page, harness: Harness, name: string): Promise<void> {
   const row = await addScannedProject(page, harness, name, SOURCE);
   await row.click({ position: { x: 4, y: 4 } });
-  await page.keyboard.press("Enter");
+  await openInExplorer(page);
   await expect(tree(page)).toBeVisible();
 }
 

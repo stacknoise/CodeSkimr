@@ -47,7 +47,12 @@ function Mini(props: { row: ProjectRow }) {
 
 /** One project of the list: a dot for the state (with its words for a screen reader), the name and
  * one line. A project that is being removed cannot be chosen. */
-function Item(props: { row: ProjectRow; selected: boolean; onSelect: (id: number) => void }) {
+function Item(props: {
+  row: ProjectRow;
+  selected: boolean;
+  onSelect: (id: number) => void;
+  onOpen: (id: number) => void;
+}) {
   const state = () => stateOf(props.row, projectsScanning().has(props.row.id));
   return (
     <li>
@@ -58,6 +63,7 @@ function Item(props: { row: ProjectRow; selected: boolean; onSelect: (id: number
         aria-label={t(I18N_KEYS.PROJECTS_OPEN, { name: props.row.name })}
         disabled={removingNow(props.row)}
         onClick={() => props.onSelect(props.row.id)}
+        onDblClick={() => props.onOpen(props.row.id)}
       >
         <span
           class={cx(styles.dot, styles[state().tone])}
@@ -80,6 +86,8 @@ export interface ProjectListProps {
   rows: ProjectRow[];
   selected: number | null;
   onSelect: (id: number) => void;
+  /** A double click opens the project in the explorer. */
+  onOpen: (id: number) => void;
   onNew: () => void;
 }
 
@@ -127,7 +135,12 @@ export function ProjectList(props: ProjectListProps) {
       <ul class={styles.items}>
         <For each={shown()}>
           {(row) => (
-            <Item row={row} selected={props.selected === row.id} onSelect={props.onSelect} />
+            <Item
+              row={row}
+              selected={props.selected === row.id}
+              onSelect={props.onSelect}
+              onOpen={props.onOpen}
+            />
           )}
         </For>
       </ul>

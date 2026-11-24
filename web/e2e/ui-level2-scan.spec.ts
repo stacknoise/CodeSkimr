@@ -6,7 +6,7 @@
 // docs/screenshots/level2-scan/.
 import path from "node:path";
 import type { Page, Route, WebSocketRoute } from "@playwright/test";
-import { expect, selectScannedProject, shot, test } from "./fixtures";
+import { expect, selectScannedProject, shot, test, showTab } from "./fixtures";
 
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/level2-scan");
 const VIEWPORT = { width: 1440, height: 900 };
@@ -89,6 +89,7 @@ async function openProject(
   name: string,
 ) {
   await selectScannedProject(page, harness, name, SOURCE);
+  await showTab(page, /Exact check/);
   return page.getByRole("region", { name: "Scan" });
 }
 
@@ -104,10 +105,7 @@ test.afterEach(async ({ page }) => {
 });
 
 test.describe("the scan section (keyboard, ADR 0072)", () => {
-  test("shows the report, scans stage 1 only on request and returns the focus to the switch", async ({
-    page,
-    harness,
-  }) => {
+  test("shows the report and scans stage 1 only on request", async ({ page, harness }) => {
     const fake = await serveScan(page, true);
     const panel = await openProject(page, harness, "lvsreport");
     await expect(panel.getByText("C#: checked, 328 files, 3 changed since")).toBeVisible();
@@ -115,17 +113,17 @@ test.describe("the scan section (keyboard, ADR 0072)", () => {
       panel.getByText(/TypeScript: skipped, not started again because of the pause/),
     ).toBeVisible();
     await expect(panel.getByText("Java: failed (RES-501)")).toBeVisible();
-    const row = page.getByRole("row", { name: /lvsreport/ });
-    await expect(row.getByText("Stage 2 (browser)")).toBeVisible();
-    await expect(row.getByText("1 checked, 1 skipped, 1 failed")).toBeVisible();
+    await showTab(page, "Overview");
+    await expect(page.getByText(/Stage 2 \(browser\)/)).toBeVisible();
 
-    const only = panel.getByRole("button", { name: "Stage 1 only" });
+    await showTab(page, "Scan");
+    const only = page.getByRole("button", { name: "Stage 1 only" });
     await only.focus();
     await page.keyboard.press("Enter");
-    // Starting a scan shows the scan screen.
-    await expect(page.getByRole("link", { name: "Scans and performance" })).toHaveAttribute(
-      "aria-current",
-      "page",
+    // Starting a scan keeps the tab Scan, and the button stays where it is.
+    await expect(page.getByRole("tab", { name: "Scan", exact: true })).toHaveAttribute(
+      "aria-selected",
+      "true",
     );
     expect(fake.rescans.at(-1)).toMatchObject({ level2: false });
   });
@@ -164,8 +162,9 @@ test.describe("the scan section (keyboard, ADR 0072)", () => {
       skipped: 1,
       failed: 0,
     });
-    await expect(panel.getByText("Stage 2 ended: 0 checked, 1 skipped, 0 failed.")).toBeVisible();
     await expect(page.getByRole("switch", { name: "Level 2 for lvsrun" })).toBeFocused();
+    await showTab(page, "Scan");
+    await expect(page.getByText("Stage 2 ended: 0 checked, 1 skipped, 0 failed.")).toBeVisible();
   });
 
   for (const [reason, text] of [
@@ -177,12 +176,11 @@ test.describe("the scan section (keyboard, ADR 0072)", () => {
     test(`says in plain words why stage 2 did not start (${reason})`, async ({ page, harness }) => {
       const fake = await serveScan(page, false);
       fake.rescanLevel2 = { state: "not_started", reason };
-      const panel = await openProject(page, harness, `lvs${reason.replace("_", "")}`);
-      await panel.getByRole("button", { name: "Scan again" }).click();
-      // The scan screen opens; the message waits on the list.
-      await page.getByRole("link", { name: "Projects", exact: true }).click();
-      await expect(panel.getByText(text)).toBeVisible();
-      await expect(panel.getByText(/Stage 1 is stored/)).toBeVisible();
+      await openProject(page, harness, `lvs${reason.replace("_", "")}`);
+      await showTab(page, "Scan");
+      await page.getByRole("button", { name: "Scan again" }).click();
+      await expect(page.getByText(text)).toBeVisible();
+      await expect(page.getByText(/Stage 1 is stored/)).toBeVisible();
     });
   }
 });
