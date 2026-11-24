@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, within } from "@solidjs/testing-library";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { focusSymbol } from "../../shared/navigation/navigation";
 import { openProject } from "../../shared/project/active";
+import { useClipboard } from "../../tests/clipboard";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { openOrder, ORDER, OUTLINE } from "../../tests/explorer";
 import { forgetExplorer } from "./explorer";
@@ -169,5 +170,35 @@ describe("the colours of the syntax", () => {
     await openOrder();
     const code = await screen.findByText(/public class Order/);
     expect(code.className).not.toContain("keyword");
+  });
+});
+
+describe("the button to copy the code", () => {
+  const setClipboard = useClipboard();
+
+  it("puts the lines on the clipboard and says it was copied", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    setClipboard({ writeText });
+    renderWith(() => answer(TYPE_SOURCE));
+    await openOrder();
+    fireEvent.click(await screen.findByRole("button", { name: "Copy code" }));
+    expect(writeText).toHaveBeenCalledWith(TYPE_SOURCE.lines.join("\n"));
+    expect(await screen.findByRole("button", { name: "Copied" })).toBeTruthy();
+  });
+
+  it("says so when the browser has no clipboard or refuses it", async () => {
+    setClipboard(undefined);
+    renderWith(() => answer(TYPE_SOURCE));
+    await openOrder();
+    fireEvent.click(await screen.findByRole("button", { name: "Copy code" }));
+    expect(await screen.findByRole("button", { name: "Not copied" })).toBeTruthy();
+  });
+
+  it("is not offered when there is no code", async () => {
+    setClipboard({ writeText: vi.fn() });
+    renderWith(() => answer({ ...TYPE_SOURCE, lines: [] }));
+    await openOrder();
+    await screen.findByText("src/Order.cs");
+    expect(screen.queryByRole("button", { name: "Copy code" })).toBeNull();
   });
 });

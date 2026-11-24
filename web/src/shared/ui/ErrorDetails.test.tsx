@@ -1,21 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { useClipboard } from "../../tests/clipboard";
 import { NoticeBox } from "./NoticeBox";
 
-function setClipboard(value: unknown): void {
-  Object.defineProperty(navigator, "clipboard", { value, configurable: true });
-}
-
 describe("the details of an error note", () => {
-  const original = Object.getOwnPropertyDescriptor(navigator, "clipboard");
-
-  afterEach(() => {
-    if (original) {
-      Object.defineProperty(navigator, "clipboard", original);
-    } else {
-      Reflect.deleteProperty(navigator, "clipboard");
-    }
-  });
+  const setClipboard = useClipboard();
 
   it("shows the code and copies the code with the message", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
