@@ -1,0 +1,125 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Projekte: Liste und Projektseite</title><style>
+.hell{--bg:#F6F7F9;--surface:#FFFFFF;--line:#E3E6EB;--soft:#EEF0F3;--ink:#14171C;--ink2:#3A414C;--muted:#5B6370;--accent:#2457D6;--accentbg:#EAF0FD;--fg:#fff;--good:#15803D;--goodbg:#EAF7EF;--warn:#B45309;--warnbg:#FFF4E5;--bad:#B91C1C;--badbg:#FDF2F2;--c1:#2457D6;--c2:#7C3AED;--c3:#0F766E;--c4:#B45309;--c5:#BE185D}
+.petrol{--bg:#F4F6F8;--surface:#FFFFFF;--line:#DDE3EA;--soft:#E8EDF2;--ink:#1B2430;--ink2:#3A4656;--muted:#5D6B7C;--accent:#0C727B;--accentbg:#DFF1F2;--fg:#fff;--good:#1F7A45;--goodbg:#DDF3E5;--warn:#8A5A00;--warnbg:#FBECCB;--bad:#A82D2D;--badbg:#F9DCDC;--c1:#2457D6;--c2:#7C3AED;--c3:#0F766E;--c4:#B45309;--c5:#BE185D}
+.dunkel{--bg:#12171D;--surface:#1A212A;--line:#2C3643;--soft:#232C37;--ink:#E6EBF1;--ink2:#C5CED9;--muted:#97A4B4;--accent:#3BB6C1;--accentbg:#16363B;--fg:#06222A;--good:#5FD18B;--goodbg:#173826;--warn:#F0BD5A;--warnbg:#3A2D10;--bad:#FF8C8C;--badbg:#401B1B;--c1:#6E9BFF;--c2:#A78BFA;--c3:#2DD4BF;--c4:#F59E0B;--c5:#F472B6}
+*{box-sizing:border-box}html,body{margin:0}
+.board{width:1440px;height:900px;overflow:hidden;background:var(--bg);color:var(--ink);font:13px Inter,system-ui,sans-serif;display:flex;flex-direction:column}
+.mono{font-family:'JetBrains Mono','DejaVu Sans Mono',monospace;font-size:11.5px}
+.top{height:48px;flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.logo{width:24px;height:24px;border-radius:6px;background:var(--ink);color:var(--surface);display:grid;place-items:center;font-weight:700}
+.search{width:520px;border:1px solid var(--line);border-radius:8px;padding:6px 12px;color:var(--muted);background:var(--bg);margin-left:12px}
+.main{display:flex;flex:1;min-height:0}
+.rail{width:56px;flex:none;background:var(--surface);border-right:1px solid var(--line);padding:10px 8px;display:flex;flex-direction:column;gap:6px}
+.rail i{display:block;height:38px;border-radius:8px;background:var(--soft);opacity:.55}.rail i.on{background:var(--accentbg);opacity:1}
+.content{flex:1;min-width:0;padding:22px 28px;display:flex;flex-direction:column;gap:14px}
+.status{height:28px;flex:none;border-top:1px solid var(--line);background:var(--surface);display:flex;align-items:center;gap:18px;padding:0 16px;font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;color:var(--muted)}
+h1{margin:0;font:600 22px Inter,system-ui,sans-serif}h2{margin:0;font:600 15px Inter,system-ui,sans-serif}
+.head{display:flex;align-items:flex-end;gap:14px}.head .sub{color:var(--muted);padding-bottom:3px}.sp{flex:1}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.btn{font:13px Inter,system-ui,sans-serif;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:6px 12px;white-space:nowrap;display:inline-block}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--fg);font-weight:600}
+.btn.sm{font-size:12px;padding:4px 9px}
+.filter{border:1px solid var(--line);border-radius:6px;padding:6px 12px;color:var(--muted);background:var(--surface);width:220px}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;border-radius:9px;padding:2px 9px;white-space:nowrap}
+.good{background:var(--goodbg);color:var(--good)}.warn{background:var(--warnbg);color:var(--warn)}.bad{background:var(--badbg);color:var(--bad)}.n{background:var(--soft);color:var(--ink2)}.acc{background:var(--accentbg);color:var(--accent)}
+.muted{color:var(--muted)}.k{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.lb{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--soft);gap:1px}.lb i{display:block;height:100%}
+.leg{display:flex;gap:10px;flex-wrap:wrap;margin-top:5px;font-size:12px;color:var(--ink2)}.leg span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--c);margin-right:5px}
+.dots{color:var(--muted);font-weight:700;letter-spacing:1px;padding:0 6px}
+/* table (A) */
+table{width:100%;border-collapse:collapse}th{white-space:nowrap;text-align:left;font-size:12px;font-weight:600;color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--line)}
+td{padding:11px 14px;border-bottom:1px solid var(--soft);vertical-align:middle}tr:last-child td{border-bottom:0}
+tr.sel td{background:var(--accentbg)}tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.num{text-align:right;font-family:'JetBrains Mono','DejaVu Sans Mono',monospace;font-size:12px}
+.name{font-weight:600;font-size:13.5px}.path{color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:330px}
+/* detail */
+.detail{width:400px;flex:none;display:flex;flex-direction:column}
+.dsec{padding:14px 16px;border-top:1px solid var(--soft)}.dsec:first-child{border-top:0}
+.dsec p{margin:6px 0 0;color:var(--ink2);line-height:1.45}
+.row{display:flex;align-items:center;gap:8px}
+.note{border-radius:8px;padding:10px 12px;margin-top:8px;line-height:1.45}
+.sw{width:32px;height:18px;border-radius:9px;background:var(--accent);position:relative;flex:none}.sw::after{content:"";position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:7px;background:var(--surface)}
+.sw.off{background:var(--line)}.sw.off::after{right:auto;left:2px}
+.lang{display:flex;align-items:center;gap:8px;padding:5px 0}.lang b{width:86px;font-weight:600}.lang .sp{color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.tile{padding:12px 14px}.tile b{display:block;font:600 20px 'JetBrains Mono','DejaVu Sans Mono',monospace;margin-top:4px}
+/* list (B) */
+.plist{width:330px;flex:none;display:flex;flex-direction:column}
+.pi{padding:10px 14px;border-bottom:1px solid var(--soft);display:flex;gap:10px;align-items:center}.pi.sel{background:var(--accentbg);box-shadow:inset 3px 0 0 var(--accent)}
+.dot{width:9px;height:9px;border-radius:5px;flex:none;background:var(--muted)}.dot.good{background:var(--good)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}.dot.acc{background:var(--accent)}.dot.n{background:var(--line)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 12px}.tab{padding:10px 12px;border-bottom:2px solid transparent;color:var(--ink2)}.tab.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+/* cards (C) */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.pc{min-width:0;padding:14px 16px;display:flex;flex-direction:column;gap:10px}.pc.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.figs{display:flex;gap:18px;color:var(--muted);font-size:12px}.figs b{color:var(--ink);font-family:'JetBrains Mono','DejaVu Sans Mono',monospace;font-weight:600}
+
+.rail{align-items:center}.ri{width:40px;height:38px;border-radius:8px;display:grid;place-items:center;color:var(--ink2)}.ri.on{background:var(--accentbg);color:var(--accent)}
+.ri svg,.ic svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.pbar{height:6px;border-radius:3px;background:var(--soft);overflow:hidden}.pbar i{display:block;height:100%;background:var(--accent);border-radius:3px}.pbar.good i{background:var(--good)}
+.banner{padding:12px 16px;display:flex;align-items:center;gap:16px;border-color:var(--accent)}
+.stage{display:flex;align-items:center;gap:12px;padding:9px 16px;border-top:1px solid var(--soft)}.stage .nm{width:300px}.stage .nm small{display:block;color:var(--muted);font-size:12px;margin-top:1px}
+.ck{width:20px;height:20px;border-radius:10px;flex:none;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--goodbg);color:var(--good)}.ck.run{background:var(--accentbg);color:var(--accent)}.ck.wait{background:var(--soft);color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.pop{position:absolute;left:330px;bottom:36px;width:420px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.brow{display:flex;gap:10px;padding:8px 16px;border-top:1px solid var(--soft);align-items:center}.brow span:first-child{flex:1}
+.stl{color:var(--accent);text-decoration:underline}
+.board{position:relative}
+.mini{height:3px;border-radius:2px;background:var(--soft);margin-top:5px;overflow:hidden}.mini i{display:block;height:100%;background:var(--accent)}
+</style></head><body><div id="b" class="board"></div><script>
+const q=new URLSearchParams(location.search),v=q.get("v")||"uebersicht",th=q.get("t")||"petrol";
+const P=[
+{n:"webshop-backend",l:"C#",scan:"vor 12 Min.",st:"good"},
+{n:"kundenportal",l:"TypeScript",scan:"vor 2 Std.",st:"warn"},
+{n:"lagerverwaltung",l:"Java",scan:"gestern, 17:42",st:"bad"},
+{n:"abrechnung-core",l:"C#",scan:"Scan läuft · 62 %",st:"acc",run:62},
+{n:"docs-generator",l:"Python",scan:"vor 3 Tagen",st:"good"},
+{n:"mobile-app",l:"Kotlin",scan:"noch nie",st:"n"}];
+const I={folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',tree:'<path d="M6 4v16M6 8h6M6 14h9M6 20h5"/>',graph:'<circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M8 6h8M7 8l4 8M17 8l-4 8"/>',list:'<path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>',chart:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>'};
+const rail=`<div class="rail">${Object.keys(I).map((k,i)=>`<span class="ri ${i==0?"on":""}"><svg viewBox="0 0 24 24">${I[k]}</svg></span>`).join("")}</div>`;
+const bar=l=>`<div class="lb">${l.map((x,i)=>`<i style="width:${x[1]}%;background:var(--c${i+1})"></i>`).join("")}</div>`;
+const leg=l=>`<div class="leg">${l.map((x,i)=>`<span style="--c:var(--c${i+1})">${x[0]} ${x[1]} %</span>`).join("")}</div>`;
+const list=sel=>`<div class="card plist"><div class="dsec row"><h1 style="font-size:18px">Projekte</h1><span class="sp"></span><span class="btn pri sm">+ Neu</span></div>
+<div style="padding:0 14px 10px"><div class="filter" style="width:100%">Projekte filtern …</div></div>
+${P.map(p=>`<div class="pi ${p.n==sel?"sel":""}"><span class="dot ${p.st}"></span><div style="flex:1;min-width:0"><div class="name">${p.n}</div><div class="muted" style="font-size:12px;margin-top:2px">${p.l} · ${p.scan}</div>${p.run?`<div class="mini"><i style="width:${p.run}%"></i></div>`:""}</div></div>`).join("")}
+<div class="sp"></div><div class="dsec muted" style="font-size:12px">6 Projekte · 3.107 Typen</div></div>`;
+const head=(n,pill,path,btns)=>`<div class="row" style="gap:12px"><div style="flex:1;min-width:0"><div class="row"><h1>${n}</h1>${pill}</div><div class="path mono" style="max-width:none;margin-top:4px">${path}</div></div>${btns}<span class="dots">···</span></div>`;
+const tabs=on=>`<div class="tabs">${["Übersicht","Scan","Genaue Prüfung (Stufe 2)","Werkzeuge"].map(x=>`<span class="tab ${x==on?"on":""}">${x}</span>`).join("")}</div>`;
+const tiles=a=>`<div class="tiles">${a.map(x=>`<div class="card tile"><span class="k">${x[0]}</span><b ${x[2]?'style="font:600 15px Inter,system-ui;margin-top:8px"':""}>${x[1]}</b></div>`).join("")}</div>`;
+const stage=(s,nm,d,w,t)=>`<div class="stage"><span class="ck ${s}">${s=="wait"?"·":s=="run"?"…":"✓"}</span><div class="nm">${nm}<small>${d}</small></div><div class="pbar ${s==""?"good":""}" style="flex:1"><i style="width:${w}%"></i></div><span class="mono muted" style="width:70px;text-align:right">${t}</span></div>`;
+const langTable=(rows,pt)=>`<table><tr><th>Sprache</th><th>Anteil</th><th>Genauigkeit</th><th style="text-align:right">Dateien</th><th style="text-align:right">Zeilen</th><th style="text-align:right">Symbole</th>${pt?'<th style="text-align:right">Parsezeit</th>':""}</tr>
+${rows.map((r,i)=>`<tr><td><span class="leg" style="margin:0"><span style="--c:var(--c${i+1})"><b>${r[0]}</b></span></span></td><td class="num" style="text-align:left">${r[1]} %</td><td>${r[2]}</td><td class="num">${r[3]}</td><td class="num">${r[4]}</td><td class="num">${r[5]}</td>${pt?`<td class="num">${r[6]}</td>`:""}</tr>`).join("")}</table>`;
+const LV=[["Java",64,'<span class="pill bad">Stufe 2 fehlgeschlagen</span>',"1.480","92.100","14.230","3,9 s"],["Kotlin",36,'<span class="pill n">Näherung (Stufe 1)</span>',"830","51.800","7.910","1,5 s"]];
+function uebersicht(){return list("lagerverwaltung")+`<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px">
+${head("lagerverwaltung",'<span class="pill bad">Genaue Prüfung fehlgeschlagen</span>',"Git · git.beispiel.de/logistik/lagerverwaltung · develop @ e07c4a1",'<span class="btn">Neu scannen</span><span class="btn pri">Im Explorer öffnen</span>')}
+<div class="card" style="flex:1">${tabs("Übersicht")}<div class="dsec" style="border:0;display:flex;flex-direction:column;gap:14px">
+${tiles([["Typen","967"],["Zeilen","143.900"],["Dateien","2.310"],["Letzter Scan","gestern, 17:42",1]])}
+<div class="note bad" style="margin:0"><b>Genaue Prüfung für Java fehlgeschlagen</b> (RES-501) · gestern, 17:42<br>Das Build-Werkzeug des Projekts hat abgebrochen. Die Struktur ist vollständig, Verwendungen in Java sind nur angenähert. <span class="stl" style="color:inherit">Einzelheiten im Reiter „Genaue Prüfung"</span></div>
+<div><span class="k">Sprachen</span><div style="margin:10px 0 6px">${bar([["Java",64],["Kotlin",36]])}</div>${langTable(LV,false)}</div>
+<div class="two"><div class="card" style="padding:12px 14px"><span class="k">Letzter Scan</span><p style="margin:6px 0 0;line-height:1.5">vollständig · 5,4 s · 2.310 Dateien<br><span class="muted">3 Dateien seitdem geändert · 2 ausgelassen</span></p></div>
+<div class="card" style="padding:12px 14px"><div class="row"><span class="k">Werkzeuge</span><span class="sp"></span><span class="pill good">alle vorhanden</span></div><p style="margin:6px 0 0;line-height:1.5">scip-java 0.10<br><span class="muted">zuletzt geprüft vor 1 Min.</span></p></div></div>
+<div class="card" style="padding:12px 14px"><div class="row"><span class="k">Datenbank</span><span class="sp"></span><span class="pill good">vorhanden</span></div><p style="margin:6px 0 0;line-height:1.5"><span class="mono">C:\\Users\\beispiel\\AppData\\Local\\CodeSkimr\\projects\\lagerverwaltung.db</span><br><span class="muted">Größe 412 MB · wird beim Entfernen des Projekts mit gelöscht</span></p></div>
+</div></div></div>`}
+function laeuft(){return list("abrechnung-core")+`<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px">
+${head("abrechnung-core",'<span class="pill acc">Scan läuft</span>',"Ordner · D:\\Projekte\\abrechnung-core",'<span class="btn">Abbrechen <span class="mono muted">Esc</span></span><span class="btn pri">Im Explorer öffnen</span>')}
+<div class="card" style="flex:1">${tabs("Scan")}<div class="dsec" style="border:0;display:flex;flex-direction:column;gap:14px">
+<div><div class="row" style="align-items:baseline"><b style="font:600 28px 'JetBrains Mono','DejaVu Sans Mono',monospace">62 %</b><span class="muted">512 von 826 Dateien · noch ca. 2 s · nur Änderungen</span><span class="sp"></span><span class="muted">Die Oberfläche bleibt bedienbar, Ergebnisse erscheinen schrittweise.</span></div><div class="pbar" style="margin-top:10px;height:8px"><i style="width:62%"></i></div></div>
+${tiles([["Dateien/s","1.240"],["Zeilen/s","61.800"],["Kerne aktiv","8"],["Speicher","142 MB"]])}
+<div class="card"><div style="padding:10px 16px"><span class="k">Schritte</span></div>
+${stage("","Quelle holen","Quelle lokal verfügbar machen",100,"0,0 s")}${stage("","Dateien finden",".gitignore beachten, Sprachen erkennen",100,"0,1 s")}${stage("run","Parsen","512 / 826 Dateien",62,"läuft")}${stage("wait","Abhängigkeiten auflösen","Importe, Namensauflösung, Schichten",0,"wartet")}${stage("wait","Metriken","Zeilen, Komplexität, Wartbarkeit",0,"wartet")}${stage("wait","Speichern","Datenbank, Suchindex",0,"wartet")}${stage("wait","Genaue Prüfung (Stufe 2)","C# · startet nach dem Speichern",0,"wartet")}</div>
+</div></div></div>`}
+function fertig(){return list("lagerverwaltung")+`<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px">
+${head("lagerverwaltung",'<span class="pill bad">Genaue Prüfung fehlgeschlagen</span>',"Git · git.beispiel.de/logistik/lagerverwaltung · develop @ e07c4a1",'<span class="btn">Neu scannen</span><span class="btn pri">Im Explorer öffnen</span>')}
+<div class="card" style="flex:1">${tabs("Scan")}<div class="dsec" style="border:0;display:flex;flex-direction:column;gap:12px">
+<div class="row"><b style="font-size:15px">Letzter Scan: gestern, 17:42</b><span class="muted">vollständig · 5,4 s · 2.310 Dateien · 26.600 Zeilen/s</span><span class="sp"></span><span class="btn sm">Neu scannen</span><span class="btn sm">Nur schnell (Stufe 1)</span></div>
+<div class="card"><div style="padding:10px 16px"><span class="k">Schritte</span></div>
+${stage("","Quelle holen · Dateien finden","Git, .gitignore, Sprachen erkennen",100,"0,6 s")}${stage("","Parsen","2.310 / 2.310 Dateien",100,"3,1 s")}${stage("","Auflösen · Metriken · Speichern","Importe, Komplexität, Datenbank, Suchindex",100,"1,7 s")}
+<div class="stage"><span class="ck" style="background:var(--badbg);color:var(--bad)">!</span><div class="nm">Genaue Prüfung (Stufe 2)<small>Java fehlgeschlagen (RES-501)</small></div><div class="pbar" style="flex:1"><i style="width:40%;background:var(--bad)"></i></div><span class="mono muted" style="width:70px;text-align:right">41 s</span></div></div>
+<div><span class="k">Sprachen in diesem Scan</span>${langTable(LV,true)}</div>
+<div class="note warn" style="margin:0"><b>2 Dateien ausgelassen.</b> Sie konnten nicht analysiert werden, der Rest wurde gescannt.<div class="mono" style="margin-top:6px">src/legacy/Import_alt.java · fehlt im Ergebnis<br>src/gen/Tabellen.kt · Stand des vorigen Scans bleibt</div></div>
+</div></div></div>`}
+const B=[["Programmstart","300","1.426","bad"],["Suche (Tastendruck)","10","7","good"],["Typ wechseln","16","11","good"],["Verwendungsabfrage","20","—",""],["Graph-Layout","50","38","good"],["Scan 100k Zeilen","1.000","—",""],["Scan nur Änderungen","300","212","good"]];
+function leistung(){return uebersicht()+`<div class="card pop"><div class="dsec row" style="border:0"><div style="flex:1"><h2>Leistungsziele</h2><div class="muted" style="font-size:12px;margin-top:2px">Gilt für die ganze App, gemessen in dieser Sitzung</div></div><span class="pill warn">1 von 7 verfehlt</span></div>
+${B.map(b=>`<div class="brow"><span>${b[0]}</span><span class="mono muted">Ziel &lt; ${b[1]} ms</span><span class="mono" style="width:70px;text-align:right;font-weight:600;color:var(--${b[3]||"muted"})">${b[2]}${b[2]=="—"?"":" ms"}</span></div>`).join("")}</div>`}
+const b=document.getElementById("b");b.classList.add(th);
+b.innerHTML=`<div class="top"><span class="logo">C</span><b style="font-size:14px">CodeSkimr</b><span class="search">Typ, Member oder Befehl …</span></div>
+<div class="main">${rail}<div class="content"><div style="display:flex;gap:14px;flex:1;min-height:0">${{uebersicht,laeuft,fertig,leistung}[v]()}</div></div></div>
+<div class="status"><span style="color:var(--good)">● Verbunden</span><span>6 Projekte · 3.107 Typen</span><span ${v=="leistung"?'style="color:var(--accent);font-weight:700"':""}>Leistung: 1 Ziel verfehlt ▴</span><span>RAM 118 MB</span></div>`;
+</script></body></html>

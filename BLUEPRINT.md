@@ -1235,11 +1235,11 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-21 (`docs/error
 
 > Goal: **match the mocks as closely as possible** (section 15.1).
 
-### B.1 Projects (`Main.dc.html`)
+### B.1 Projects (`ProjectPage.html`, mock 23; ADR 0096)
 
-- **Inline "new project" form:** path or Git URL, branch, "Add & scan". Drag-and-drop of a folder onto the window does the same.
-- **Project table:** name with path or commit, source, language bar with percentages, types, LOC, last scan with duration (full / incremental), status pill (current · new commits · scan running).
-- **Keyboard hints:** `Enter` opens, `R` re-scans, `N` adds a new project.
+- **List on the left:** filter field and button "New" (`N`; the inline form opens from it, open at once with an empty list). Per project a state dot, the name, one line with main language and last scan, a thin progress bar while a scan runs. Folder drop onto the window and the folder dialog stay.
+- **Project page on the right:** name, one state pill, source line (path or Git URL, branch, commit), buttons "Scan again" (`R`) or "Cancel" (`Esc`) while a scan runs, "Open in explorer" (`Enter`), menu "···" with the rare actions.
+- **Tabs:** "Overview" (key figures, note on a failed stage 2, language table with accuracy in words, cards last scan, tools and database with path and size), "Scan" (see B.5), "Exact check (stage 2)", "Tools".
 
 ### B.2 Explorer (`Explorer.dc.html`)
 
@@ -1268,12 +1268,13 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-21 (`docs/error
 - **Preview pane** with doc and metrics, plus action keys (`Enter`, `Ctrl Enter`, `Alt Enter`, `Ctrl C`).
 - **Footer:** navigation keys and fuzzy-search hint.
 
-### B.5 Scan and performance (`Scan.dc.html`)
+### B.5 Scan and performance (tab "Scan" of the project page, mock 23; ADR 0096)
 
-- **Progress:** percentage, files, remaining time, throughput (files/s, lines/s), cores, memory.
-- **Pipeline stages** with state, detail, bar and duration.
-- **Language table** with tier (full / basic), files, symbols, parse time.
-- **Performance budgets** with target and measured value; recent scans (full / incremental).
+- **Progress:** percentage, files, remaining time, throughput (files/s, lines/s), cores, memory. The page jumps to the tab when a scan of the selected project starts.
+- **Steps** with state, detail, bar and duration; stage 2 is the last step of the same list.
+- **Language table** with accuracy, files, lines, symbols, parse time; the files left out as a note.
+- **Performance targets** with target and measured value: a window opened from the entry "Performance" of the status bar, valid for the whole app.
+- The former screen `Scan.dc.html` (mock 5) is replaced; `/scan` redirects to the projects screen.
 
 ### B.6 Usages (`Usages.dc.html`)
 
