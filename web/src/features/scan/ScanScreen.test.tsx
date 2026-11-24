@@ -122,7 +122,7 @@ describe("ScanScreen", () => {
     expect(screen.getByText("180 ms")).toBeInTheDocument();
     expect(screen.getByText("C#")).toBeInTheDocument();
     expect(screen.getByText("38,000")).toBeInTheDocument();
-    expect(screen.getByText("shop · full")).toBeInTheDocument();
+    expect(screen.getAllByText("shop · full")).toHaveLength(2);
     stop();
   });
 
@@ -212,9 +212,7 @@ describe("ScanScreen", () => {
       "status.info": () => answer(STATUS),
     });
     const stop = await shown();
-    expect(
-      await screen.findByText("shop · main @ e07c4a1 · full (first scan)"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("shop · main @ e07c4a1 · full")).toBeInTheDocument();
     const table = screen.getByRole("table");
     expect(within(table).getByText("Tier")).toBeInTheDocument();
     expect(within(table).getByText("Symbols")).toBeInTheDocument();
@@ -354,6 +352,29 @@ describe("ScanScreen", () => {
     FakeSocket.last?.send({ type: "snapshot_created", project: 1, snapshot: 6 });
     expect(await screen.findByText("Scan finished")).toBeInTheDocument();
     expect(screen.getAllByText("100 %")[0]).toBeInTheDocument();
+    stop();
+  });
+
+  it("calls the scan of a project that was never scanned the first one", async () => {
+    serve({
+      "projects.list": () => answer([{ ...ROW, scan: null }]),
+      "status.info": () => answer(STATUS),
+    });
+    setLanguage("en");
+    const stop = await shown();
+    FakeSocket.last?.send(RUNNING);
+    await screen.findByText("Scan running");
+    expect(document.body).toHaveTextContent("shop · full (first scan)");
+    stop();
+  });
+
+  it("calls the running scan of a project that was scanned before incremental", async () => {
+    setLanguage("en");
+    const stop = await shown();
+    FakeSocket.last?.send(RUNNING);
+    await screen.findByText("Scan running");
+    expect(document.body).toHaveTextContent("shop · incremental");
+    expect(screen.queryByText(/first scan/)).toBeNull();
     stop();
   });
 
