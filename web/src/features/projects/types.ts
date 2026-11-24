@@ -47,16 +47,16 @@ export interface ToolsInfo {
   tools: ToolInfo[];
 }
 
-/** A file the newest scan left out because it alone could not be analysed (ADR 0085). */
 /** The file that holds the data of a project (ADR 0095). */
 export interface ProjectDatabase {
   /** Absolute path of the project's database file. */
   path: string;
   /** Size of the file with its write-ahead log, in bytes; 0 if it is missing. */
   size_bytes: number;
-  state: "ok" | "missing" | "removing" | "unreadable";
+  state: (typeof DB_STATE)[keyof typeof DB_STATE];
 }
 
+/** A file the newest scan left out because it alone could not be analysed (ADR 0085). */
 export interface LeftOutFile {
   path: string;
   /** The registered code, for example `PRS-101`. */
@@ -79,7 +79,7 @@ export interface ProjectRow {
   languages: LanguageInfo[];
   running: boolean;
   /** Where the data of the project lies and how large it is (ADR 0095); absent in an export. */
-  database?: ProjectDatabase;
+  database?: ProjectDatabase | null;
   /** The project is being removed: its data goes in many short steps. */
   removing?: boolean;
   /** The removal stopped before it was done; asking for it again goes on. */
@@ -88,13 +88,6 @@ export interface ProjectRow {
   left_out?: LeftOutFile[];
   /** How many more files it left out than `left_out` names. */
   left_out_more?: number;
-  /** Where the database file of the project lies and how big it is (ADR 0095); absent until the
-   * server sends it. */
-  database?: {
-    path: string;
-    size_bytes: number;
-    state: (typeof DB_STATE)[keyof typeof DB_STATE];
-  } | null;
   /** The last check of the tools, `null` if the project was never checked (absent in an export,
    * which does not run on the machine of the reader). */
   tools?: ToolsInfo | null;
