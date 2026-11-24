@@ -18,6 +18,8 @@ mod detail;
 mod error;
 mod headers;
 mod integrity;
+#[cfg(test)]
+mod load_cache_tests;
 mod migrate;
 mod outline;
 mod pending;
