@@ -43,7 +43,7 @@ Option 2.
 - Removing a project takes the time of a file deletion, independent of its size.
 - Scans and removals of different projects run in parallel without a shared writer.
 - Blueprint 6.2 changes ("one database per workspace" becomes this decision) and `docs/storage.md` is rewritten for the two schemas; label `blueprint-change`.
-- A project file holds the user's notes, so it is no longer disposable: throwing it away loses them, and backing up a project means copying its file (with the WAL file, or after the program closed it). The catalog holds only the project list; a project file without it is left alone by the orphan rule below.
+- A project file holds the user's notes, so it is no longer disposable: throwing it away loses them, and backing up a project means copying its file (with the WAL file, or after the program closed it). The catalog holds only the project list; a project file without it is left alone by the orphan rule above.
 - Foreign keys across the two files do not exist; the router keeps them by the order of operations in the decision above.
 - Annotations and alerts live in the project file; a re-scan does not touch them (ADR 0068) and removing the project removes them with the file.
 - Total disk use can be a little higher (each file has its own free pages); the retention count applies per project as before.
