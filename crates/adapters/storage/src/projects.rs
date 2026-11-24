@@ -380,10 +380,11 @@ fn load_latest_state_with(
 fn load_skipped(conn: &Connection, snapshot: i64) -> StorageResult<Vec<SkippedFile>> {
     let mut statement = conn.prepare_cached(sql::SKIPPED_FILES)?;
     let rows = statement.query_map(params![snapshot], |row| {
+        let cols = Cols::new(row);
         Ok((
-            row.get::<_, String>(0)?,
-            row.get::<_, String>(1)?,
-            row.get::<_, String>(2)?,
+            cols.take::<String>()?,
+            cols.take::<String>()?,
+            cols.take::<String>()?,
         ))
     })?;
     let mut skipped = Vec::new();
