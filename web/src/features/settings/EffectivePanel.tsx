@@ -2,7 +2,7 @@ import { For, Show, createMemo, createSignal, onMount } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { createTableColumns } from "../../shared/table/columns";
-import { ColumnWidths, ResizableTh, RestHead } from "../../shared/table/ResizableHead";
+import { ColumnWidths, HeadRow } from "../../shared/table/ResizableHead";
 import { TONE } from "../../shared/ui/consts";
 import { Pill } from "../../shared/ui/Pill";
 import {
@@ -116,16 +116,7 @@ function Table(props: { settings: EffectiveSetting[] }) {
       <table class={styles.table} style={columns.style()}>
         <ColumnWidths columns={columns} />
         <thead>
-          <tr>
-            <For each={EFFECTIVE_COLUMNS}>
-              {(column) => (
-                <ResizableTh columns={columns} id={column.id} name={t(column.label)}>
-                  {t(column.label)}
-                </ResizableTh>
-              )}
-            </For>
-            <RestHead columns={columns} />
-          </tr>
+          <HeadRow columns={columns} heads={EFFECTIVE_COLUMNS} />
         </thead>
         <tbody>
           <Rows settings={props.settings} />

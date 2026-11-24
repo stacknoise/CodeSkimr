@@ -10,7 +10,7 @@ import { stateText } from "../projects/ToolsPanel";
 import type { ToolInfo } from "../projects/types";
 import { useNow } from "../projects/useNow";
 import { createTableColumns } from "../../shared/table/columns";
-import { ColumnWidths, ResizableTh, RestHead } from "../../shared/table/ResizableHead";
+import { ColumnWidths, HeadRow } from "../../shared/table/ResizableHead";
 import { INDEXER_COLUMNS, INDEXER_TABLE_KEY } from "./consts";
 import { checkIndexers, commandOf, indexers, indexersChecking, indexersFailed } from "./indexers";
 import { COPIED_MS, NO_VALUE } from "./consts";
@@ -151,16 +151,7 @@ function Table(props: { tools: ToolInfo[] }) {
       <table class={styles.table} style={columns.style()}>
         <ColumnWidths columns={columns} />
         <thead>
-          <tr>
-            <For each={INDEXER_COLUMNS}>
-              {(column) => (
-                <ResizableTh columns={columns} id={column.id} name={t(column.label)}>
-                  {t(column.label)}
-                </ResizableTh>
-              )}
-            </For>
-            <RestHead columns={columns} />
-          </tr>
+          <HeadRow columns={columns} heads={INDEXER_COLUMNS} />
         </thead>
         <tbody>
           <For each={props.tools}>{(tool) => <Row tool={tool} />}</For>

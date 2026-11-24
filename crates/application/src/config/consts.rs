@@ -251,3 +251,6 @@ pub const SECRET_KEY_WORDS: [&str; 9] = [
 
 /// Separator of the words inside a key name.
 pub const WORD_SEPARATOR: char = '_';
+
+/// Hyphen, which also separates the words of a key name.
+pub const HYPHEN: char = '-';

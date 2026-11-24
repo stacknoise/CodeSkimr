@@ -2,7 +2,7 @@
 
 use toml::{Table, Value};
 
-use super::consts::{KEY_SEPARATOR, NO_PREFIX, SECRET_KEY_WORDS, WORD_SEPARATOR};
+use super::consts::{HYPHEN, KEY_SEPARATOR, NO_PREFIX, SECRET_KEY_WORDS, WORD_SEPARATOR};
 use super::error::{ConfigError, LayerSource};
 use super::layer::ConfigLayer;
 use super::{Config, merge_layers, typed};
@@ -26,7 +26,7 @@ impl EffectiveSetting {
     pub fn is_secret_key(key: &str) -> bool {
         let lower = key.to_lowercase();
         lower
-            .split([KEY_SEPARATOR, WORD_SEPARATOR])
+            .split([KEY_SEPARATOR, WORD_SEPARATOR, HYPHEN])
             .any(|word| SECRET_KEY_WORDS.contains(&word))
     }
 }
@@ -153,6 +153,7 @@ mod tests {
         assert!(EffectiveSetting::is_secret_key("server.api_Token"));
         assert!(EffectiveSetting::is_secret_key("git.password"));
         assert!(EffectiveSetting::is_secret_key("git.ssh_key"));
+        assert!(EffectiveSetting::is_secret_key("git.api-token"));
         assert!(!EffectiveSetting::is_secret_key("scan.max_workers"));
         assert!(!EffectiveSetting::is_secret_key("similarity.min_tokens"));
         assert!(!EffectiveSetting::is_secret_key("keys.max_files"));
