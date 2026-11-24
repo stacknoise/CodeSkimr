@@ -16,7 +16,7 @@ use rusqlite::params;
 use crate::codec::column_int;
 use crate::consts::{
     BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR, BULK_REMOVAL_REFERENCES_MAX,
-    REMOVAL_FILES_PER_SLICE, REMOVAL_PAUSE_MIN_ROWS, REMOVAL_PAUSE_MS,
+    REMOVAL_FILES_PER_SLICE, REMOVAL_PAUSE_MIN_ROWS, REMOVAL_PAUSE_MS, REMOVAL_ROWS_PER_PART,
 };
 use crate::error::StorageError;
 use crate::snapshots::{delete_shared_rows, delete_snapshot};
@@ -74,6 +74,9 @@ impl SqliteStore {
                 pause();
             }
         }
+        for delete in sql::SNAPSHOT_PART_DELETE {
+            self.delete_in_parts(snapshot, delete)?;
+        }
         for delete in sql::SNAPSHOT_CONTENT_DELETE {
             let deleted =
                 self.write(|tx| Ok(tx.prepare_cached(delete)?.execute(params![snapshot])?))?;
@@ -86,6 +89,25 @@ impl SqliteStore {
             tx.execute(sql::SNAPSHOT_PRUNE, params![snapshot])?;
             Ok(())
         })
+    }
+}
+
+impl SqliteStore {
+    /// Deletes the rows of a snapshot that `delete` names, a part of them per write, until none is
+    /// left, with a pause after each part so that other writers get their turn.
+    fn delete_in_parts(&self, snapshot: i64, delete: &str) -> Result<(), StorageError> {
+        let last = i64::try_from(REMOVAL_ROWS_PER_PART - 1).unwrap_or(i64::MAX);
+        loop {
+            let deleted = self.write(|tx| {
+                Ok(tx
+                    .prepare_cached(delete)?
+                    .execute(params![snapshot, last])?)
+            })?;
+            if deleted == 0 {
+                return Ok(());
+            }
+            pause();
+        }
     }
 }
 

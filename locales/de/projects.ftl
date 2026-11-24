@@ -19,6 +19,7 @@ projects-rename = { $name } umbenennen
 projects-rename-button = Umbenennen
 projects-rename-field = Neuer Anzeigename für { $name }
 projects-rename-save = Speichern
+projects-rename-saving = Wird gespeichert …
 projects-rename-cancel = Abbrechen
 projects-add-and-scan = Hinzufügen & scannen
 projects-column-project = Projekt

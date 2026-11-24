@@ -663,6 +663,7 @@ export const I18N_KEYS = {
   PROJECTS_RENAME_BUTTON: "projects-rename-button",
   PROJECTS_RENAME_FIELD: "projects-rename-field",
   PROJECTS_RENAME_SAVE: "projects-rename-save",
+  PROJECTS_RENAME_SAVING: "projects-rename-saving",
   PROJECTS_RENAME_CANCEL: "projects-rename-cancel",
   PROJECTS_ADD_AND_SCAN: "projects-add-and-scan",
   PROJECTS_COLUMN_PROJECT: "projects-column-project",

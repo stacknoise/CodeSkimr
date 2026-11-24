@@ -160,6 +160,31 @@ describe("ProjectsScreen", () => {
     expect(JSON.parse(call?.[1].body)).toEqual({ project: 1, name: "Webshop" });
   });
 
+  it("shows that the name is being saved while the store is busy, and saves it once", async () => {
+    let release: () => void = () => undefined;
+    const busy = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let saves = 0;
+    fetchMock.mockImplementation(async (path: string) => {
+      if (String(path).endsWith("projects.rename")) {
+        saves += 1;
+        await busy;
+        return answer({ project: 1, name: "shop" });
+      }
+      return answer([ROW]);
+    });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Rename shop" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    const saving = await screen.findByRole("button", { name: "Saving …" });
+    expect(saving).toBeDisabled();
+    fireEvent.submit(saving.closest("form") as HTMLFormElement);
+    release();
+    await waitFor(() => expect(renamingProject()).toBeNull());
+    expect(saves).toBe(1);
+  });
+
   it("closes an open name edit when the screen is left", async () => {
     serve({ "projects.list": () => answer([ROW]) });
     const view = render(() => <ProjectsScreen />);
