@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    AlertTrigger, FolderPath, Permission, Principal, ProjectId, ProjectSource, ScanMode,
+    AlertTrigger, FolderPath, Permission, Principal, Project, ProjectId, ProjectSource, ScanMode,
     ScanOrigin, Snapshot,
 };
 
@@ -194,12 +194,8 @@ impl Scanner {
         if let Err(denied) = access::require(principal, Permission::Scan) {
             return JobResult::Failed(job.fail(denied.code()));
         }
-        let project = match self.projects.project(project_id) {
-            Ok(project) => project,
-            Err(cause) => return self.fail(job.fail(cause.code()), project_id),
-        };
-        let sequence = match self.catch_up(project_id) {
-            Ok(sequence) => sequence,
+        let (project, sequence) = match self.load(project_id) {
+            Ok(loaded) => loaded,
             Err(cause) => return self.fail(job.fail(cause.code()), project_id),
         };
         let pipeline = pipeline_of(&self.ports, &sequence);
@@ -228,6 +224,11 @@ impl Scanner {
             }
             Err(Halt::Failed(error)) => self.fail(job.fail(error.code()), project_id),
         }
+    }
+
+    /// The project of a job and the id sequence of its file, moved up to the file.
+    fn load(&self, project: ProjectId) -> Result<(Project, Arc<IdSequence>), CodedError> {
+        Ok((self.projects.project(project)?, self.catch_up(project)?))
     }
 
     /// Moves the id sequence above every stored id. Another process (a scan in the terminal while

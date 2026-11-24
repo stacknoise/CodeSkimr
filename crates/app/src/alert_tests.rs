@@ -260,8 +260,7 @@ fn full_scan_timing_out(
         &analysis,
         (store, &config, data),
         (EventBus::new(), &secrets()),
-    )
-    .unwrap();
+    );
     let job = Job::new(PROJECT, ScanMode::Full).without_level2();
     scanner.run(&principal::resolve(), job)
 }

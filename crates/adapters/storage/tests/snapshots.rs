@@ -295,7 +295,11 @@ fn the_scanner_reads_the_next_free_ids_through_the_snapshot_port() {
     store.persist(first_scan(10)).unwrap();
     let port: &dyn SnapshotStore = &store;
     // Files, symbols and references go on at 32; the next snapshot comes after snapshot 10.
-    assert_eq!(port.next_free_ids(codeskimr_domain::ProjectId::new(7)).unwrap(), (32, 11));
+    assert_eq!(
+        port.next_free_ids(codeskimr_domain::ProjectId::new(7))
+            .unwrap(),
+        (32, 11)
+    );
 }
 
 /// Incremental scan 40 that analyses only `c.cs` and adds the given references.

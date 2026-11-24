@@ -10,8 +10,9 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
 use super::SqliteStore;
 use super::consts::{
     APPLICATION_ID, FILE_IDENTITY, FILE_IDENTITY_INSERT, FILE_IDENTITY_SCHEMA, LOG_FILE_LEFT_ALONE,
-    LOG_OLD_DATABASE_IGNORED, LOG_ORPHAN_DELETED, LOG_REMOVAL_FINISHED, OLD_DATABASE_FILE, PRAGMA_APPLICATION_ID, PROJECT_FILE_EXTENSION,
-    PROJECTS_FOLDER, SEEDED_TABLES, SEQUENCE_SEED, SIDE_FILE_SUFFIXES,
+    LOG_OLD_DATABASE_IGNORED, LOG_ORPHAN_DELETED, LOG_REMOVAL_FINISHED, OLD_DATABASE_FILE,
+    PRAGMA_APPLICATION_ID, PROJECT_FILE_EXTENSION, PROJECTS_FOLDER, SEEDED_TABLES, SEQUENCE_SEED,
+    SIDE_FILE_SUFFIXES,
 };
 use crate::codec::column_int;
 use crate::error::StorageResult;
@@ -43,7 +44,9 @@ pub(super) fn side_files(path: &Path) -> Vec<PathBuf> {
 
 /// The project a file of the projects folder belongs to, by its name.
 fn project_of_file(path: &Path) -> Option<ProjectId> {
-    let extension_ok = path.extension().is_some_and(|ext| ext == PROJECT_FILE_EXTENSION);
+    let extension_ok = path
+        .extension()
+        .is_some_and(|ext| ext == PROJECT_FILE_EXTENSION);
     let number: u64 = path.file_stem()?.to_str()?.parse().ok()?;
     extension_ok.then(|| ProjectId::new(number))
 }
@@ -51,7 +54,7 @@ fn project_of_file(path: &Path) -> Option<ProjectId> {
 impl SqliteStore {
     /// Says once that the shared database of an earlier version lies next to the catalog and is
     /// no longer used (ADR 0095: nothing is migrated).
-    pub(super) fn note_old_database(&self, catalog: &Path) {
+    pub(super) fn note_old_database(catalog: &Path) {
         let old = catalog.with_file_name(OLD_DATABASE_FILE);
         if old.exists() {
             tracing::info!(event = LOG_OLD_DATABASE_IGNORED, file = %old.display());

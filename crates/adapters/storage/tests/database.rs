@@ -6,8 +6,7 @@ mod common;
 use std::num::NonZeroU32;
 
 use codeskimr_application::ports::{
-    PendingReference, ProjectRepository, Receiver, SnapshotData,
-    SnapshotStore, SymbolFingerprints,
+    PendingReference, ProjectRepository, Receiver, SnapshotData, SnapshotStore, SymbolFingerprints,
 };
 use codeskimr_domain::{
     FileId, Fingerprint, Fingerprints, LanguageId, MetricKind, QualifiedName, ReferenceKind,

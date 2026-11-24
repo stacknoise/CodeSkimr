@@ -13,12 +13,12 @@ use codeskimr_application::ids::is_project_number;
 use codeskimr_domain::ProjectId;
 use rusqlite::{Connection, OptionalExtension, params};
 
+use super::consts::APPLICATION_ID;
 use super::consts::{
     CHECK_OK, HIGHEST_NUMBER_EVER, INSTALLATION_ID, INSTALLATION_INSERT, PRAGMA_APPLICATION_ID,
-    PROJECT_BY_SOURCE, PROJECT_DELETE, PROJECT_INSERT, PROJECT_INSERT_AS, PROJECT_MARK_REMOVING, PROJECT_NUMBERS,
-    PROJECT_REMOVING, PROJECT_SET_SOURCE, QUICK_CHECK, REGISTRY_SCHEMA,
+    PROJECT_BY_SOURCE, PROJECT_DELETE, PROJECT_INSERT, PROJECT_INSERT_AS, PROJECT_MARK_REMOVING,
+    PROJECT_NUMBERS, PROJECT_REMOVING, PROJECT_SET_SOURCE, QUICK_CHECK, REGISTRY_SCHEMA,
 };
-use super::consts::APPLICATION_ID;
 use crate::codec::{column_int, id_from};
 use crate::consts::{BUSY_TIMEOUT_MS, JOURNAL_MODE_WAL, PRAGMA_JOURNAL_MODE};
 use crate::error::{StorageError, StorageResult};
@@ -63,13 +63,12 @@ impl Registry {
         let known: Option<String> = conn
             .query_row(INSTALLATION_ID, [], |row| row.get(0))
             .optional()?;
-        let installation = match known {
-            Some(id) => id,
-            None => {
-                let id = new_installation_id();
-                conn.execute(INSTALLATION_INSERT, params![id])?;
-                id
-            }
+        let installation = if let Some(id) = known {
+            id
+        } else {
+            let id = new_installation_id();
+            conn.execute(INSTALLATION_INSERT, params![id])?;
+            id
         };
         Ok(Self {
             conn: Mutex::new(conn),
@@ -97,7 +96,9 @@ impl Registry {
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .optional()?;
-        found.map(|(number, removing)| entry(number, removing)).transpose()
+        found
+            .map(|(number, removing)| entry(number, removing))
+            .transpose()
     }
 
     /// Registers `source` and returns its new number. A number that ids cannot carry is refused.
@@ -119,7 +120,11 @@ impl Registry {
 
     /// Registers `source` under a number the caller chose, for a project that is saved with its
     /// id before the catalog knows it. A number that ids cannot carry is refused.
-    pub(crate) fn register_as(&self, project: ProjectId, source: &ProjectSource) -> StorageResult<()> {
+    pub(crate) fn register_as(
+        &self,
+        project: ProjectId,
+        source: &ProjectSource,
+    ) -> StorageResult<()> {
         if !is_project_number(project) {
             return Err(StorageError::OutOfRange);
         }
@@ -140,7 +145,8 @@ impl Registry {
     pub(crate) fn entries(&self) -> StorageResult<Vec<Entry>> {
         let conn = self.conn();
         let mut statement = conn.prepare_cached(PROJECT_NUMBERS)?;
-        let rows = statement.query_map([], |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)))?;
+        let rows =
+            statement.query_map([], |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)))?;
         let mut all = Vec::new();
         for row in rows {
             let (number, removing) = row?;
@@ -153,9 +159,11 @@ impl Registry {
     pub(crate) fn removing(&self, project: ProjectId) -> StorageResult<Option<bool>> {
         let mark: Option<i64> = self
             .conn()
-            .query_row(PROJECT_REMOVING, params![column_int(project.get())?], |row| {
-                row.get(0)
-            })
+            .query_row(
+                PROJECT_REMOVING,
+                params![column_int(project.get())?],
+                |row| row.get(0),
+            )
             .optional()?;
         Ok(mark.map(|mark| mark != 0))
     }
@@ -168,7 +176,11 @@ impl Registry {
     }
 
     /// Gives `project` another source.
-    pub(crate) fn set_source(&self, project: ProjectId, source: &ProjectSource) -> StorageResult<()> {
+    pub(crate) fn set_source(
+        &self,
+        project: ProjectId,
+        source: &ProjectSource,
+    ) -> StorageResult<()> {
         let columns = SourceColumns::of(source);
         self.conn().execute(
             PROJECT_SET_SOURCE,

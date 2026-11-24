@@ -47,7 +47,8 @@ pub const INSTALLATION_ID: &str = "SELECT id FROM installation LIMIT 1";
 /// Writes the installation id.
 pub const INSTALLATION_INSERT: &str = "INSERT INTO installation (id) VALUES (?1)";
 /// Registers a project: kind, location, branch.
-pub const PROJECT_INSERT: &str = "INSERT INTO projects (kind, location, branch) VALUES (?1, ?2, ?3)";
+pub const PROJECT_INSERT: &str =
+    "INSERT INTO projects (kind, location, branch) VALUES (?1, ?2, ?3)";
 /// Registers a project under a given number: number, kind, location, branch.
 pub const PROJECT_INSERT_AS: &str =
     "INSERT INTO projects (number, kind, location, branch) VALUES (?1, ?2, ?3, ?4)";
@@ -78,7 +79,8 @@ pub const FILE_IDENTITY_SCHEMA: &str = "\
 /// The identity of a project file.
 pub const FILE_IDENTITY: &str = "SELECT installation, project FROM identity LIMIT 1";
 /// Writes the identity of a project file: installation, project.
-pub const FILE_IDENTITY_INSERT: &str = "INSERT INTO identity (installation, project) VALUES (?1, ?2)";
+pub const FILE_IDENTITY_INSERT: &str =
+    "INSERT INTO identity (installation, project) VALUES (?1, ?2)";
 /// Starts the counters of the annotations and alerts of a project at its number (ADR 0095), so
 /// that their ids name the project: name, first value.
 pub const SEQUENCE_SEED: &str = "INSERT INTO sqlite_sequence (name, seq) VALUES (?1, ?2)";

@@ -5,8 +5,7 @@
 mod common;
 
 use codeskimr_application::ports::{
-    LanguageLine, LanguageOutcome, LastScan, Level2Report, ReportWrite, ScanReport,
-    ScanReportStore,
+    LanguageLine, LanguageOutcome, LastScan, Level2Report, ReportWrite, ScanReport, ScanReportStore,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{LanguageId, ScanLevel, ScanOrigin, SkipReason, Timestamp};
@@ -171,4 +170,3 @@ fn a_report_of_an_unknown_project_is_refused() {
         .unwrap_err();
     assert_eq!(code_of(&error), "PRJ-201");
 }
-

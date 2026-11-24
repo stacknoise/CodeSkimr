@@ -63,7 +63,7 @@ impl SqliteStore {
             retention,
             options,
         };
-        store.note_old_database(catalog);
+        Self::note_old_database(catalog);
         store.finish_removals();
         store.clean_orphans();
         Ok(store)
@@ -161,9 +161,7 @@ impl SqliteStore {
             source,
             layers: Vec::new(),
         };
-        let created = self
-            .file(number)
-            .and_then(|db| db.stored(&project));
+        let created = self.file(number).and_then(|db| db.stored(&project));
         if let Err(cause) = created {
             // The project was never usable: take it out of the catalog again.
             self.forget_file(number);

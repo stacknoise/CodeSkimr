@@ -96,14 +96,12 @@ pub fn open_store(locations: &Locations, config: &Config) -> Result<Arc<SqliteSt
 /// already, so a caller that needs the analysis for something else too (the session reads the
 /// pack load time, the MCP server searches) loads the language packs once. Git logins read from
 /// `secrets`.
-///
-/// # Errors
-/// `STO` failures of the id lookup.
+#[must_use]
 pub fn scanner_over(
     analysis: &Analysis,
     (store, config, locations): (&Arc<SqliteStore>, &Config, &Locations),
     (events, secrets): (EventBus, &Arc<Secrets>),
-) -> Result<Scanner, CodedError> {
+) -> Scanner {
     let discovery = Arc::clone(&analysis.discovery);
     let analyzer = Arc::clone(&analysis.analyzer);
     let indexers = analysis.indexers.clone();
@@ -135,11 +133,11 @@ pub fn scanner_over(
         max_workers: config.scan.max_workers,
         max_left_out_listed: config.scan.max_left_out_listed,
     };
-    Ok(Scanner::new(ports, &ids, events.clone())
+    Scanner::new(ports, &ids, events.clone())
         .with_memory(crate::memory_limit::scan_limit(config))
         .with_level2(pass)
         .with_alerts(alert_step(store, events))
-        .with_reports(ReportStep::new(store.clone(), Arc::new(SystemClock))))
+        .with_reports(ReportStep::new(store.clone(), Arc::new(SystemClock)))
 }
 
 /// The source of a scan: the git cache, with the credentials of the remotes and the refresh of an

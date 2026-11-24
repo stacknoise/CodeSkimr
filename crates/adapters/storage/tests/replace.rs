@@ -181,11 +181,7 @@ fn only_the_newest_snapshot_may_be_changed() {
 
 /// The value of a coupling metric of a symbol in the newest snapshot, `None` if there is none.
 #[cfg(test)]
-fn coupling_of(
-    store: &codeskimr_storage::ProjectDb,
-    symbol: u64,
-    kind: MetricKind,
-) -> Option<f64> {
+fn coupling_of(store: &codeskimr_storage::ProjectDb, symbol: u64, kind: MetricKind) -> Option<f64> {
     let key = SymbolKey::Id(SymbolId::new(symbol));
     let detail = store
         .symbol_detail(SnapshotId::new(SNAPSHOT), &key)

@@ -185,7 +185,7 @@ fn build_ports(
     let analysis = build_analysis(config, locations)?;
     let checker = convention_checker(&analysis, config);
     let scanner: Arc<dyn ProjectScanner> = Arc::new(ExclusiveScans::new(
-        scanner_over(&analysis, (&store, config, locations), (events, secrets))?,
+        scanner_over(&analysis, (&store, config, locations), (events, secrets)),
         running,
     ));
     let snippets = analysis.snippets;

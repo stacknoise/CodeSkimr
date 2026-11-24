@@ -49,7 +49,11 @@ impl ProjectIds {
     /// files, symbols and references and `first_snapshot` for the snapshots (never below the
     /// first snapshot id of the project).
     #[must_use]
-    pub fn of(&self, project: ProjectId, (first_row, first_snapshot): (u64, u64)) -> Arc<IdSequence> {
+    pub fn of(
+        &self,
+        project: ProjectId,
+        (first_row, first_snapshot): (u64, u64),
+    ) -> Arc<IdSequence> {
         let mut all = self.all.lock().unwrap_or_else(PoisonError::into_inner);
         let ids = all
             .entry(project)
@@ -173,7 +177,10 @@ mod tests {
     fn a_snapshot_id_names_its_project_and_stays_exact_in_a_browser() {
         let project = ProjectId::new(MAX_PROJECT_NUMBER);
         let last = first_snapshot_of(project) + (1 << COUNTER_BITS) - 2;
-        assert_eq!(project_of_snapshot(SnapshotId::new(first_snapshot_of(project))), project);
+        assert_eq!(
+            project_of_snapshot(SnapshotId::new(first_snapshot_of(project))),
+            project
+        );
         assert_eq!(project_of_snapshot(SnapshotId::new(last)), project);
         assert!(last < (1 << 53));
         assert!(is_project_number(project));
