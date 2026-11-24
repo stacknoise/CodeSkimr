@@ -14,7 +14,7 @@ use codeskimr_domain::{
     Confidence, FileId, KindGroup, Metric, MetricKind, MetricValue, Ranking, RankingQuery,
     Reference, ReferenceId, ReferenceKind, SnapshotId, SymbolId, SymbolKind, UsageOrder,
 };
-use codeskimr_storage::SqliteStore;
+use codeskimr_storage::ProjectDb;
 use criterion::Criterion;
 
 mod common;
@@ -76,7 +76,7 @@ fn metrics(symbols: u64) -> Vec<Metric> {
     all
 }
 
-fn store() -> Option<SqliteStore> {
+fn store() -> Option<ProjectDb> {
     let factor = scale();
     let symbols = SYMBOLS * factor;
     let mut all = Vec::new();
@@ -109,7 +109,7 @@ fn query(ranking: Ranking, kinds: KindGroup) -> RankingQuery {
 
 /// The reads of one `stats.overview` call, in the order of the command. A failed read ends the
 /// benchmark.
-fn overview_reads(store: &SqliteStore) -> Option<()> {
+fn overview_reads(store: &ProjectDb) -> Option<()> {
     let snapshot = SnapshotId::new(SNAPSHOT);
     let names: Vec<String> = Vec::new();
     let setup = StatisticsSetup {

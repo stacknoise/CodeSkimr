@@ -10,7 +10,7 @@ mod tests {
         Confidence, Direction, Reference, ReferenceKind, ReverseIndex, SnapshotId, SymbolId,
         SymbolKind, UsageQuery,
     };
-    use codeskimr_storage::SqliteStore;
+    use codeskimr_storage::ProjectDb;
 
     use super::common::{reference, symbol, three_snapshots};
 
@@ -87,7 +87,7 @@ mod tests {
         ]
     }
 
-    fn two_projects() -> SqliteStore {
+    fn two_projects() -> ProjectDb {
         let symbols = |names: &[(u64, u64, &str)]| -> Vec<_> {
             names
                 .iter()
@@ -193,7 +193,7 @@ mod tests {
         impact_matches(&two_projects());
     }
 
-    fn impact_matches(store: &SqliteStore) {
+    fn impact_matches(store: &ProjectDb) {
         for snapshot in [10, 20, 30] {
             let index = ReverseIndex::new(visible(snapshot));
             for symbol in SYMBOLS {

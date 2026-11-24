@@ -219,7 +219,7 @@ impl ProjectDb {
             .map_err(CodedError::from)
     }
 
-    fn open_checked(
+    pub(crate) fn open_checked(
         path: &Path,
         retention: NonZeroU32,
         options: StoreOptions,
@@ -235,7 +235,7 @@ impl ProjectDb {
         )
     }
 
-    fn prepared(
+    pub(crate) fn prepared(
         mut conn: Connection,
         file: Option<PathBuf>,
         retention: NonZeroU32,
@@ -426,6 +426,24 @@ impl ProjectDb {
             highest.map_or(Ok(FIRST_ID), |id| {
                 Ok(codec::id_from(id)?.saturating_add(ID_STEP))
             })
+        })
+        .map_err(CodedError::from)
+    }
+
+    /// The first free id of the rows of a file (files, symbols, references) and the first free
+    /// snapshot id (ADR 0095).
+    ///
+    /// # Errors
+    /// `STO-601` if the database cannot be read.
+    pub fn next_free_ids(&self) -> Result<(u64, u64), CodedError> {
+        self.read_latest(|conn| {
+            let next = |query: &str| -> StorageResult<u64> {
+                let highest: Option<i64> = conn.query_row(query, [], |row| row.get(0))?;
+                highest.map_or(Ok(FIRST_ID), |id| {
+                    Ok(codec::id_from(id)?.saturating_add(ID_STEP))
+                })
+            };
+            Ok((next(sql::MAX_ROW_ID)?, next(sql::MAX_SNAPSHOT_ID)?))
         })
         .map_err(CodedError::from)
     }

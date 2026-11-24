@@ -121,6 +121,7 @@ fn overview(conn: &Connection, id: ProjectId) -> StorageResult<ProjectOverview> 
             warnings: Vec::new(),
             left_out: Vec::new(),
             removing: true,
+            database: None,
         });
     }
     let project = load_project(conn, id)?;
@@ -145,6 +146,7 @@ fn overview(conn: &Connection, id: ProjectId) -> StorageResult<ProjectOverview> 
         warnings,
         left_out,
         removing: false,
+        database: None,
     })
 }
 

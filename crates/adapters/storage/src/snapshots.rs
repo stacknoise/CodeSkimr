@@ -58,8 +58,8 @@ impl SnapshotStore for ProjectDb {
         self.write(|tx| confirm(tx, scan)).map_err(CodedError::from)
     }
 
-    fn next_free_id(&self) -> Result<u64, CodedError> {
-        Self::next_free_id(self)
+    fn next_free_ids(&self, _project: ProjectId) -> Result<(u64, u64), CodedError> {
+        Self::next_free_ids(self)
     }
 }
 

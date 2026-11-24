@@ -21,7 +21,14 @@ pub const fn first_snapshot_of(project: ProjectId) -> u64 {
 /// The project whose file holds the snapshot with `id`.
 #[must_use]
 pub const fn project_of_snapshot(id: SnapshotId) -> ProjectId {
-    ProjectId::new(id.get() >> COUNTER_BITS)
+    project_of_raw(id.get())
+}
+
+/// The project whose file holds the row with the raw id `id` of a snapshot, an annotation or an
+/// alert; their counters start above the project number.
+#[must_use]
+pub const fn project_of_raw(id: u64) -> ProjectId {
+    ProjectId::new(id >> COUNTER_BITS)
 }
 
 /// Whether `project` is a number that snapshot ids can carry.

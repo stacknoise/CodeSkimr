@@ -6,7 +6,7 @@ use std::hint::black_box;
 use std::process::ExitCode;
 
 use codeskimr_domain::SnapshotId;
-use codeskimr_storage::SqliteStore;
+use codeskimr_storage::ProjectDb;
 use criterion::Criterion;
 
 mod common;
@@ -35,7 +35,7 @@ fn name(id: u64) -> String {
     format!("{}{}_{id}", part(0), part(1))
 }
 
-fn store() -> Option<SqliteStore> {
+fn store() -> Option<ProjectDb> {
     common::store(
         (1..=SYMBOLS)
             .filter_map(|id| symbol(id, &name(id)))
@@ -47,7 +47,7 @@ fn store() -> Option<SqliteStore> {
 }
 
 /// One keystroke: the search for the first `typed` characters of the query.
-fn keystroke(store: &SqliteStore, typed: usize) -> Option<()> {
+fn keystroke(store: &ProjectDb, typed: usize) -> Option<()> {
     let query: String = TYPED.chars().take(typed).collect();
     black_box(
         store

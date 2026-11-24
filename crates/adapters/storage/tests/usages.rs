@@ -25,7 +25,7 @@ mod tests {
     }
 
     /// `Main` calls `Service.Run`, `Service.Run` calls `Repo.Save`, a test also calls `Repo.Save`.
-    fn calls() -> codeskimr_storage::SqliteStore {
+    fn calls() -> codeskimr_storage::ProjectDb {
         let symbols = vec![
             symbol(21, 11, SymbolKind::Method, "App.Main", None),
             symbol(22, 11, SymbolKind::Method, "App.Service.Run", None),
@@ -190,7 +190,7 @@ mod tests {
 
     /// `App.Service` contains `Run` and `Stop`; `Main` uses `Run`, `Run` calls `Repo.Save` twice
     /// and `Stop` once, a test calls `Run`, and `Run` and `Stop` call each other.
-    fn service() -> codeskimr_storage::SqliteStore {
+    fn service() -> codeskimr_storage::ProjectDb {
         let symbols = vec![
             symbol(20, 11, SymbolKind::Class, "App.Service", None),
             symbol(22, 11, SymbolKind::Method, "App.Service.Run", Some(20)),

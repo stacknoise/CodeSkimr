@@ -31,9 +31,9 @@ mod read_models;
 #[cfg(test)]
 mod reads_during_write_tests;
 mod references;
-mod removal;
 mod replace;
 mod reports;
+mod set;
 mod similarity;
 mod sites;
 mod snapshots;
@@ -47,4 +47,5 @@ mod usages;
 
 pub use codeskimr_application::ports::SearchHit;
 pub use queries::TypeSummary;
+pub use set::SqliteStore;
 pub use store::{ProjectDb, StoreOptions};

@@ -14,17 +14,17 @@ use codeskimr_domain::{
     SnapshotId, SnapshotStats, SourceFile, Span, Symbol, SymbolId, SymbolKind, SymbolName,
     Timestamp, Visibility,
 };
-use codeskimr_storage::SqliteStore;
+use codeskimr_storage::ProjectDb;
 
 pub const PROJECT: ProjectId = ProjectId::new(1);
 
-pub fn store(retention: u32) -> SqliteStore {
+pub fn store(retention: u32) -> ProjectDb {
     let keep = NonZeroU32::new(retention).expect("retention is positive");
-    SqliteStore::open_in_memory(keep).expect("in-memory database opens")
+    ProjectDb::open_in_memory(keep).expect("in-memory database opens")
 }
 
 /// A store with the retention 3 and the project 1 registered, as most tests start.
-pub fn registered_store() -> SqliteStore {
+pub fn registered_store() -> ProjectDb {
     let store = store(3);
     store.save_project(&project(1, "/work/app", &[])).unwrap();
     store
@@ -158,7 +158,7 @@ pub fn scanned(
     symbols: Vec<Symbol>,
     references: Vec<Reference>,
     metrics: Vec<Metric>,
-) -> SqliteStore {
+) -> ProjectDb {
     scanned_project(
         &project(1, "/work/app", layers),
         symbols,
@@ -172,7 +172,7 @@ pub fn scanned_project(
     symbols: Vec<Symbol>,
     references: Vec<Reference>,
     metrics: Vec<Metric>,
-) -> SqliteStore {
+) -> ProjectDb {
     use codeskimr_application::ports::SnapshotStore;
     let store = store(3);
     store.save_project(project).unwrap();
@@ -212,7 +212,7 @@ pub type Part = (Vec<Symbol>, Vec<Reference>);
 
 /// A store with two projects and three snapshots: a full scan of project 1 (files 11 and 12), an
 /// incremental one that carries them and adds file 13, and a full scan of project 2 (file 300).
-pub fn three_snapshots(first: Part, second: Part, other: Part) -> SqliteStore {
+pub fn three_snapshots(first: Part, second: Part, other: Part) -> ProjectDb {
     let store = store(5);
     store.save_project(&project(1, "/work/app", &[])).unwrap();
     store.save_project(&project(2, "/work/other", &[])).unwrap();
