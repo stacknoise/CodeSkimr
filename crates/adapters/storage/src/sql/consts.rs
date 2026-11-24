@@ -1,8 +1,15 @@
 //! SQL statements. Parameters are numbered; every statement documents what they are.
 
-/// A registered project by id: id.
-pub const PROJECT_BY_ID: &str =
+/// A registered project by id, unless its removal has begun: id.
+pub const PROJECT_BY_ID: &str = "SELECT name, source_kind, location, branch, credential FROM projects \
+    WHERE id = ?1 AND removing = 0";
+/// A registered project by id, also while it is being removed: id.
+pub const PROJECT_BY_ID_ANY: &str =
     "SELECT name, source_kind, location, branch, credential FROM projects WHERE id = ?1";
+/// Whether the removal of a project has begun: id.
+pub const PROJECT_REMOVING: &str = "SELECT removing FROM projects WHERE id = ?1";
+/// Marks a project as being removed: id.
+pub const PROJECT_REMOVING_SET: &str = "UPDATE projects SET removing = 1 WHERE id = ?1";
 /// Id of the project with the given source: kind, location, branch.
 pub const PROJECT_BY_SOURCE: &str =
     "SELECT id FROM projects WHERE source_kind = ?1 AND location = ?2 AND branch = ?3";
@@ -15,6 +22,8 @@ pub const PROJECT_UPSERT: &str = "INSERT INTO projects (id, name, source_kind, l
 pub const PROJECT_EXISTS: &str = "SELECT COUNT(*) FROM projects WHERE id = ?1";
 /// Removes a project; layers, consent, tool reports and annotations follow by cascade: id.
 pub const PROJECT_DELETE: &str = "DELETE FROM projects WHERE id = ?1";
+/// The ids of the files of a snapshot, in order: snapshot.
+pub const SNAPSHOT_FILE_IDS: &str = "SELECT id FROM files WHERE snapshot_id = ?1 ORDER BY id";
 /// All snapshots of a project: project id.
 pub const SNAPSHOTS_OF_PROJECT: &str = "SELECT id FROM snapshots WHERE project_id = ?1";
 /// Removes the layers of a project (their namespaces go with them): project id.
@@ -48,13 +57,13 @@ pub const MAX_PROJECT_ID: &str = "SELECT MAX(id) FROM projects";
 
 /// Files of the newest snapshot of a project: project id.
 pub const LATEST_FILES: &str = "SELECT snapshot_id, id, path, language, content_hash, loc \
-    FROM files WHERE snapshot_id = (SELECT MAX(id) FROM snapshots WHERE project_id = ?1) \
+    FROM files WHERE snapshot_id = (SELECT MAX(id) FROM snapshots WHERE project_id = ?1 AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1)) \
     ORDER BY path";
 /// Id of the newest snapshot of a project, null without one: project id.
-pub const LATEST_SNAPSHOT_ID: &str = "SELECT MAX(id) FROM snapshots WHERE project_id = ?1";
+pub const LATEST_SNAPSHOT_ID: &str = "SELECT MAX(id) FROM snapshots WHERE project_id = ?1 AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1)";
 /// The newest snapshot of a project: project id.
 pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files, \
-    symbols, refs FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";
+    symbols, refs FROM snapshots WHERE project_id = ?1 AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1) ORDER BY id DESC LIMIT 1";
 
 /// Confirms a snapshot after a scan that found nothing changed: creation time, commit, mode (the
 /// label of an incremental scan), snapshot id.
@@ -179,25 +188,26 @@ pub const READ_MODELS_DELETE: &[&str] = &[
 ];
 /// The shared rows only the snapshot ?1 contains, children before parents. They belong to the
 /// files that no other snapshot has: the references standing in such a file or pointing into one,
-/// and the fingerprints, metrics and symbols of such a file. Run before the files are deleted.
+/// and the fingerprints, metrics and symbols of such a file. Run before the files are deleted. Takes
+/// the snapshot, the lowest and the highest file id to work on, so a removal can go in slices.
 pub const SHARED_ROWS_DELETE: &[&str] = &[
     "DELETE FROM pending_references WHERE file_id IN \
-        (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND f.id BETWEEN ?2 AND ?3 AND NOT EXISTS \
         (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1))",
     "DELETE FROM symbol_references WHERE file_id IN \
-        (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND f.id BETWEEN ?2 AND ?3 AND NOT EXISTS \
         (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1))",
     "DELETE FROM symbol_references WHERE to_symbol IN (SELECT s.id FROM symbol_rows s \
-        WHERE s.file_id IN (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        WHERE s.file_id IN (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND f.id BETWEEN ?2 AND ?3 AND NOT EXISTS \
         (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1)))",
     "DELETE FROM fingerprints WHERE symbol_id IN (SELECT s.id FROM symbol_rows s \
-        WHERE s.file_id IN (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        WHERE s.file_id IN (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND f.id BETWEEN ?2 AND ?3 AND NOT EXISTS \
         (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1)))",
     "DELETE FROM metric_rows WHERE symbol_id IN (SELECT s.id FROM symbol_rows s \
-        WHERE s.file_id IN (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        WHERE s.file_id IN (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND f.id BETWEEN ?2 AND ?3 AND NOT EXISTS \
         (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1)))",
     "DELETE FROM symbol_rows WHERE file_id IN \
-        (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND f.id BETWEEN ?2 AND ?3 AND NOT EXISTS \
         (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1))",
 ];
 
@@ -508,8 +518,7 @@ pub const TOOL_FINDINGS: &str = "SELECT language, tool, role, state, found, requ
 pub const SNAPSHOT_NAMING_SET: &str = "UPDATE snapshots SET naming_rules = ?1 WHERE id = ?2";
 /// The naming rules of the newest snapshot of a project; no row without a snapshot, `NULL` for one
 /// from before the record existed.
-pub const SNAPSHOT_NAMING_LATEST: &str =
-    "SELECT naming_rules FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";
+pub const SNAPSHOT_NAMING_LATEST: &str = "SELECT naming_rules FROM snapshots WHERE project_id = ?1 AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1) ORDER BY id DESC LIMIT 1";
 
 /// Records the parse time of one language of a snapshot: snapshot, language, microseconds.
 pub const PARSE_TIME_INSERT: &str =
@@ -622,7 +631,7 @@ pub const REFERENCE_DELETE: &str = "DELETE FROM symbol_references WHERE id = ?1"
 
 /// Whether the newest snapshot of the project holds a symbol: project, kind, qualified name.
 pub const ANNOTATION_TARGET_EXISTS: &str = "SELECT COUNT(*) FROM symbols WHERE snapshot_id = \
-    (SELECT MAX(id) FROM snapshots WHERE project_id = ?1) AND +kind = ?2 AND qualified_name = ?3";
+    (SELECT MAX(id) FROM snapshots WHERE project_id = ?1 AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1)) AND +kind = ?2 AND qualified_name = ?3";
 /// The number of annotations of a kind on a symbol other than the given one: project, target kind,
 /// name, parameters, annotation kind, annotation id (0 for a new one).
 pub const ANNOTATION_KIND_COUNT: &str = "SELECT COUNT(*) FROM annotation WHERE project_id = ?1 \

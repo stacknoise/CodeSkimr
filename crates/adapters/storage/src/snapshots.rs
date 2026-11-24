@@ -156,13 +156,25 @@ fn prune(conn: &Connection, project: i64, keep: u32) -> StorageResult<()> {
 
 /// Deletes one snapshot with everything it owns, table by table (issue #108).
 pub(crate) fn delete_snapshot(conn: &Connection, snapshot: i64) -> StorageResult<()> {
-    for delete in sql::SHARED_ROWS_DELETE
-        .iter()
-        .chain(sql::SNAPSHOT_CONTENT_DELETE)
-    {
+    delete_shared_rows(conn, snapshot, i64::MIN, i64::MAX)?;
+    for delete in sql::SNAPSHOT_CONTENT_DELETE {
         conn.prepare_cached(delete)?.execute(params![snapshot])?;
     }
     conn.execute(sql::SNAPSHOT_PRUNE, params![snapshot])?;
+    Ok(())
+}
+
+/// Deletes the shared rows of the files of a snapshot whose ids lie from `lowest` to `highest`.
+pub(crate) fn delete_shared_rows(
+    conn: &Connection,
+    snapshot: i64,
+    lowest: i64,
+    highest: i64,
+) -> StorageResult<()> {
+    for delete in sql::SHARED_ROWS_DELETE {
+        conn.prepare_cached(delete)?
+            .execute(params![snapshot, lowest, highest])?;
+    }
     Ok(())
 }
 

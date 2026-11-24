@@ -3,7 +3,7 @@ import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { EXPLORER_ROUTE } from "../../app/consts";
 import { navigate } from "../../app/router";
-import { activeProject, openProject } from "../../shared/project/active";
+import { activeProject, closeProject, openProject } from "../../shared/project/active";
 import { count } from "./format";
 import { useProjectKeys } from "./keys";
 import { Level2Panel } from "./Level2Panel";
@@ -15,6 +15,7 @@ import {
   projectsLoaded,
   refreshProjects,
   cancelRename,
+  cancelRenameOf,
   removeProject,
   rescanProject,
 } from "./projects";
@@ -78,11 +79,13 @@ function Table(props: { selection: ReturnType<typeof useSelection> }) {
       }}
       onRescan={(id) => void rescanProject(id)}
       onRemove={async (id) => {
-        const removed = await removeProject(id);
-        if (removed && selection.selected() === id) {
+        // The project is closed and no longer selected before its data goes.
+        closeProject(id);
+        cancelRenameOf(id);
+        if (selection.selected() === id) {
           selection.setSelected(null);
         }
-        return removed;
+        return removeProject(id);
       }}
     />
   );

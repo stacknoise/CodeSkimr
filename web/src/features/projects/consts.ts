@@ -257,4 +257,11 @@ export const PROJECT_COLUMNS = [
   { id: "lastScan", label: I18N_KEYS.PROJECTS_COLUMN_LAST_SCAN },
   { id: "level2", label: I18N_KEYS.PROJECTS_LEVEL2_COLUMN },
   { id: "status", label: I18N_KEYS.PROJECTS_COLUMN_STATUS },
+  { id: "actions", label: I18N_KEYS.PROJECTS_COLUMN_ACTIONS },
 ] as const;
+
+/** Icon of the button that removes a project. */
+export const REMOVE_ICON = "trash";
+/** Icon of the button that renames a project, and its size. */
+export const RENAME_ICON = "edit";
+export const RENAME_ICON_SIZE = 14;
