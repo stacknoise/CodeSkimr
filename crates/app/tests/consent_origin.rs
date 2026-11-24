@@ -156,3 +156,18 @@ fn opening_the_window_is_no_way_to_a_consent() {
         );
     }
 }
+
+/// The router over the project files only forwards a finished grant: it never names the way to
+/// make one (ADR 0095).
+#[test]
+fn the_router_of_the_project_files_only_forwards_a_grant() {
+    let file = product::product_sources()
+        .into_iter()
+        .find(|file| file.ends_with("storage/src/set/ports.rs"))
+        .unwrap();
+    let code = squeezed(&fs::read_to_string(file).unwrap());
+    assert!(code.contains("store_consent"));
+    for name in ["level2::", "ConsentGrant::new", "ConsentWriter"] {
+        assert!(!code.contains(name), "{name}");
+    }
+}

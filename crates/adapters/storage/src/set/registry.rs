@@ -20,7 +20,7 @@ use super::consts::{
     PROJECT_MARK_REMOVING, PROJECT_NUMBERS, PROJECT_REMOVING, PROJECT_SET_SOURCE, PROJECT_SOURCE,
     QUICK_CHECK, REGISTRY_SCHEMA,
 };
-use crate::codec::{column_int, id_from};
+use crate::codec::{Cols, column_int, id_from};
 use crate::consts::{BUSY_TIMEOUT_MS, JOURNAL_MODE_WAL, NO_CREDENTIAL, PRAGMA_JOURNAL_MODE};
 use crate::error::{StorageError, StorageResult};
 use crate::projects::SourceColumns;
@@ -175,7 +175,8 @@ impl Registry {
         let (kind, location, branch): (String, String, String) = self
             .conn()
             .query_row(PROJECT_SOURCE, params![column_int(project.get())?], |row| {
-                Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+                let cols = Cols::new(row);
+                Ok((cols.take()?, cols.take()?, cols.take()?))
             })
             .optional()?
             .ok_or(StorageError::ProjectNotFound)?;

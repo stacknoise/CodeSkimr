@@ -143,7 +143,10 @@ impl SqliteStore {
             }
             let ours = intact
                 && project.get() <= highest
-                && has_identity(&path, self.registry.installation(), project);
+                && has_identity(&path, self.registry.installation(), project)
+                // Asked again right before the delete: a second process may have registered
+                // the project since the list above was read.
+                && self.registry.removing(project).is_ok_and(|row| row.is_none());
             if ours && delete_with_log(&path).is_ok() {
                 tracing::info!(event = LOG_ORPHAN_DELETED, project = project.get());
             } else {
