@@ -92,7 +92,7 @@ mod tests {
     #[test]
     fn without_layers_every_value_comes_from_the_defaults() {
         let all = Config::effective(&[]).unwrap();
-        assert!(!all.is_empty());
+        assert!(all.iter().any(|s| s.key == "server.port"));
         assert!(all.iter().all(|s| s.origin == LayerSource::Default));
         assert_eq!(find(&all, "server.port").value, "7421");
     }
