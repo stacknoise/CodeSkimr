@@ -16,7 +16,7 @@ Legend: ✅ passed · ◐ passed with a named limit or finding · ⏭ voluntary,
 | Usage sample of 20 symbols | M2 criterion 4 | ◐ | Two runs with different symbols, see the next section. Every usage of the source was found in both runs; every hit marked `certain` is correct; wrong hits are all `uncertain`. Finding #685. |
 | Large public C# project for time | M1 | ⏭ | Not run; the limit is decided (#410). |
 | Start, tray and start file | M3, M6 | ✅ | `open --no-browser` prints the start file; `icacls` shows only the user on the file and on its folder; the file is gone after its time; "Quit" in the tray leaves no process. Covers the Windows side of #104 and #659. |
-| Folder dialog | M3, M6 | ◐ | The dialog opens in front, a chosen folder is scanned, a second click while the dialog is open is refused. After that refused click a third click opened a second dialog: #692, fixed on `main` with #693 after rc.6 (to be confirmed with the next test version). |
+| Folder dialog | M3, M6 | ◐ | The dialog opens in front, a chosen folder is scanned, a second click while the dialog is open is refused. After that refused click a third click opened a second dialog: #692, fixed with #693 and confirmed with rc.7, see the repeat run below. |
 | Screens, keyboard, themes, language | M3 | ✅ | Reported as "looks good". |
 | Map, scan and usages on the private project | M4 | ✅ | F8 on the usages screen and Alt+click in the source pane work. |
 | Large project (VS Code checkout) while a console scan runs | M4 | ◐ | The UI stays usable during the scan, the statistics page loads in a few seconds, and the small project is fast afterwards. Findings: #695 (the projects list shows the project as never scanned while the console scans it; correct again after the scan) and #694 (the UI does not show a scan of the console at all). The full scan of this public project took 344 s for 16,717 files, of which the screen "Scans and performance" attributes 334 s to parsing TypeScript; reported to the scan-speed work, not a criterion of M4. |
@@ -47,7 +47,7 @@ Proposed verdict: met with the named approximation. Completeness, which the prod
 | Issue | What | Decision |
 |---|---|---|
 | #685 | C#, level 1: calls of a library method listed as usages of a project method of the same name | before 1.0 |
-| #692 | Folder dialog: a refused click released the lock, the next click opened a second dialog | fixed with #693 |
+| #692 | Folder dialog: a refused click released the lock, the next click opened a second dialog | fixed with #693, confirmed with rc.7 |
 | #695 | Projects list shows a scanned project as never scanned while the console scans it | before 1.0 |
 | #694 | The UI does not show scans started in the console (state and progress) | after 1.0, with the job register of the panel "background processes" |
 
@@ -57,3 +57,31 @@ Proposed verdict: met with the named approximation. Completeness, which the prod
 - `m6-private.ps1` ran its last step ("without a login the scan must fail") in the data folder of the earlier steps. A project remembers the name of its login (never the secret), so that scan logged in again and the step reported a failure that was none. The step now uses a fresh data folder. A stale export page of an earlier run is removed before the export.
 - The variants used in this hand test take the program file by a parameter instead of building it; they are kept outside the repository.
 - The product owner has no `claude` command line; the manual describes only `claude mcp add`. In the desktop app the server had to be entered under `mcpServers` in the user's `.claude.json`. The manual should describe that way too.
+
+## Repeat run with 1.0.0-rc.7 (2026-11-24)
+
+Run by the product owner on Windows with the same scripts and the program file of rc.7. Rates and verdicts only (ADR 0017).
+
+| Check | Result |
+|---|---|
+| Folder dialog, several clicks (#692) | ✅ No second dialog opens. |
+| Version display, error code list, display of the effective settings in the UI (ADR 0092) | ✅ Reported as fine. |
+| Counts of the three scans | Equal to each other. They differ from the baseline of the rc.6 run, as expected: the counted references changed between the two versions (#689). The run of rc.7 is the new baseline. |
+| Full scan | Over the budget of 1 s per 100k LOC as before, the known limit of #410. |
+| Incremental scan | Within the budget of 300 ms. |
+| MCP tools | 13, complete; every query is fast. |
+
+### Usage sample of rc.7 (M2 criterion 4)
+
+20 symbols, queried with `include_tests = true`, judged against the source.
+
+| Symbols complete | Symbols without a wrong hit | Recall | Precision |
+|---|---|---|---|
+| 19 of 20 | 17 of 20 | about 98 % | about 86 % |
+
+- Every hit marked `certain` is correct; every wrong hit is `uncertain`.
+- #685 is fixed: calls of a library method are no longer listed as usages of a project method of the same name.
+- The wrong hits belong to known classes: a member of the same name on another type when the receiver type is not known (a lambda parameter or the result of a call), `List.IndexOf` of a local list, and overloads that are not told apart.
+- One real usage is missing: a call of the form `if (!await field.Method())` in production code, while the mock set-ups of the same method in tests are found (#705, no blocker for 1.0).
+
+Proposed verdict for M2 criterion 4: met with the named approximation. Completeness is above 98 % and the rate of correct hits rose from 68 % (rc.6) to about 86 %.
