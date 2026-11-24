@@ -144,7 +144,8 @@ impl ProjectCatalog for SqliteStore {
     }
 
     fn overviews(&self) -> Result<Vec<ProjectOverview>, CodedError> {
-        self.read(|conn| {
+        // One read transaction, so that a scan committed meanwhile cannot split the list.
+        self.read_apart(|conn| {
             project_ids(conn)?
                 .into_iter()
                 .map(|id| overview(conn, id))
