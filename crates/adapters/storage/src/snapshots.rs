@@ -17,7 +17,8 @@ use rusqlite::{Connection, params};
 use crate::catalog::{left_out, warnings};
 use crate::codec::column_int;
 use crate::consts::{
-    BULK_FINGERPRINTS_MIN, BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR, LOG_PERSIST_STEP,
+    BULK_FINGERPRINTS_MIN, BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR, CACHE_SIZE_KIB,
+    LARGE_LOAD_REFERENCES_MIN, LOAD_CACHE_SIZE_KIB, LOG_PERSIST_STEP, PRAGMA_CACHE_SIZE,
     PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON, STEP_DETAILS, STEP_FACTS, STEP_FINGERPRINTS, STEP_HEADER,
     STEP_INTEGRITY, STEP_PRUNE, STEP_PRUNE_BEFORE, STEP_READ_MODELS, STEP_REFERENCE_INDEXES,
     STEP_REFERENCES,
@@ -102,6 +103,7 @@ pub(crate) fn write_snapshot(
         return Err(StorageError::ProjectNotFound);
     }
     conn.pragma_update(None, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON)?;
+    let _cache = LoadCache::raise(conn, data.references.len())?;
     timed(STEP_HEADER, || insert_header(conn, header))?;
     let pruned = timed(STEP_PRUNE_BEFORE, || prune_before_load(conn, data, keep))?;
     timed(STEP_FACTS, || insert_facts(conn, data, pruned))?;
@@ -113,6 +115,35 @@ pub(crate) fn write_snapshot(
         stats,
         ..header.clone()
     })
+}
+
+/// A larger page cache for the write of a large scan. The rows of a large scan land in three
+/// indexes of all the stored references; with the usual cache every insert reads and writes pages
+/// of the file. The cache is only a limit (pages are taken as they are used), and it goes back to
+/// the usual size when the guard is dropped.
+pub(crate) struct LoadCache<'a> {
+    /// The connection whose cache was raised, if it was.
+    raised: Option<&'a Connection>,
+}
+
+impl<'a> LoadCache<'a> {
+    /// Raises the cache of `conn` when `references` is a large load.
+    pub(crate) fn raise(conn: &'a Connection, references: usize) -> StorageResult<Self> {
+        if references < LARGE_LOAD_REFERENCES_MIN {
+            return Ok(Self { raised: None });
+        }
+        conn.pragma_update(None, PRAGMA_CACHE_SIZE, LOAD_CACHE_SIZE_KIB)?;
+        Ok(Self { raised: Some(conn) })
+    }
+}
+
+impl Drop for LoadCache<'_> {
+    fn drop(&mut self) {
+        if let Some(conn) = self.raised {
+            // Not being able to shrink the cache again costs memory, not correctness.
+            let _ = conn.pragma_update(None, PRAGMA_CACHE_SIZE, CACHE_SIZE_KIB);
+        }
+    }
 }
 
 /// Writes what belongs to the snapshot besides the facts: the naming rules, parse times,

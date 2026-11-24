@@ -255,3 +255,9 @@ pub const STEP_REFERENCE_INDEXES: &str = "reference_indexes";
 pub const STEP_REFERENCES: &str = "references";
 /// Step: insert the fingerprints, with the index by hash.
 pub const STEP_FINGERPRINTS: &str = "fingerprints";
+/// From this many references a scan is a large load, for which the write gets a larger page cache.
+pub const LARGE_LOAD_REFERENCES_MIN: usize = 500_000;
+/// Page cache of 2 GiB (a negative value is a size in KiB) while a large scan is written. On a
+/// test load of 6 million references into a database that held 18 million, 1 GiB and 2 GiB cut
+/// the write from 96 s to 56 s and 59 s.
+pub const LOAD_CACHE_SIZE_KIB: i64 = -2_097_152;
