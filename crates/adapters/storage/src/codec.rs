@@ -2,12 +2,12 @@
 
 use std::str::FromStr;
 
-use codeskimr_domain::{Position, Span};
+use codeskimr_domain::{Position, SnapshotId, Span};
 
 use std::cell::Cell;
 
-use rusqlite::Row;
 use rusqlite::types::FromSql;
+use rusqlite::{Connection, Row, params};
 
 use crate::consts::{
     COLUMN_STEP, FIRST_COLUMN, FIRST_POSITION, JSON_LIST_CLOSE, JSON_LIST_OPEN,
@@ -153,4 +153,18 @@ pub(crate) fn id_list(ids: impl Iterator<Item = u64>) -> StorageResult<String> {
         columns.push(column_int(id)?);
     }
     Ok(json_list(columns.into_iter()))
+}
+
+/// Runs a statement of one snapshot and reads every row with `read`.
+pub(crate) fn rows_of_snapshot<T>(
+    conn: &Connection,
+    statement: &str,
+    snapshot: SnapshotId,
+    read: impl Fn(&Cols<'_>) -> rusqlite::Result<T>,
+) -> StorageResult<Vec<T>> {
+    let mut prepared = conn.prepare_cached(statement)?;
+    let rows = prepared.query_map(params![column_int(snapshot.get())?], |row| {
+        read(&Cols::new(row))
+    })?;
+    Ok(rows.collect::<Result<Vec<_>, _>>()?)
 }

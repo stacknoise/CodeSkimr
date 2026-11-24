@@ -13,8 +13,7 @@ use codeskimr_domain::{
 };
 use rusqlite::{Connection, OptionalExtension, Row, params};
 
-use crate::catalog::rows_of_snapshot;
-use crate::codec::{Cols, column_int, id_from, ordinals, small_from};
+use crate::codec::{Cols, column_int, id_from, ordinals, rows_of_snapshot, small_from};
 use crate::consts::{
     FIRST_PROJECT_ID, ID_STEP, NO_BRANCH, NO_CREDENTIAL, SOURCE_FOLDER, SOURCE_GIT,
 };

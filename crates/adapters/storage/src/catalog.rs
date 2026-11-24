@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use codeskimr_domain::{LanguageId, ProjectId, RelativePath, SnapshotId};
 use rusqlite::{Connection, params};
 
-use crate::codec::{Cols, column_int, id_from, small_from};
+use crate::codec::{column_int, id_from, rows_of_snapshot, small_from};
 use crate::error::StorageResult;
 use crate::headers::latest_snapshot;
 use crate::projects::load_project;
@@ -25,20 +25,6 @@ fn project_ids(conn: &Connection) -> StorageResult<Vec<ProjectId>> {
         ids.push(ProjectId::new(id_from(row?)?));
     }
     Ok(ids)
-}
-
-/// Runs a statement of one snapshot and reads every row with `read`.
-pub(crate) fn rows_of_snapshot<T>(
-    conn: &Connection,
-    statement: &str,
-    snapshot: SnapshotId,
-    read: impl Fn(&Cols<'_>) -> rusqlite::Result<T>,
-) -> StorageResult<Vec<T>> {
-    let mut prepared = conn.prepare_cached(statement)?;
-    let rows = prepared.query_map(params![column_int(snapshot.get())?], |row| {
-        read(&Cols::new(row))
-    })?;
-    Ok(rows.collect::<Result<Vec<_>, _>>()?)
 }
 
 fn languages(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<LanguageShare>> {
