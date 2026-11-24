@@ -998,3 +998,29 @@ fn a_project_in_removal_has_no_snapshot_and_keeps_its_source() {
     assert_eq!(code_of(&refused), "PRJ-301");
     assert!(store.project_by_source(&source).unwrap().is_none());
 }
+
+#[test]
+fn removing_a_large_project_at_once_keeps_the_indexes_and_the_other_project() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    store.save_project(&project(2, "/work/other", &[])).unwrap();
+    persist_counted(&store, &[(10, 100)], 25_000);
+    let mut other = scan_with_every_table(30, 300);
+    other.snapshot.project = codeskimr_domain::ProjectId::new(2);
+    store.persist(other).unwrap();
+    store.remove_project(PROJECT).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    // Only the one reference of the other project is left, and the indexes are all there again.
+    assert_eq!(rows_of(&conn, "symbol_references"), 1);
+    assert_eq!(reference_indexes(&conn).len(), 4);
+    let fingerprint_index: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE name = 'fingerprints_by_hash'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(fingerprint_index, 1);
+    assert_eq!(rows_of(&conn, "fingerprints"), 1);
+}
