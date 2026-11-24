@@ -2,14 +2,14 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 32,
+      "loc": 42,
       "operands": null,
       "operators": null,
       "symbol": "negation.cs"
     },
     {
       "decisions": null,
-      "loc": 32,
+      "loc": 42,
       "operands": null,
       "operators": null,
       "symbol": "Demo"
@@ -240,9 +240,55 @@
         8
       ],
       "symbol": "Demo.PrimaryGatekeeper.Run"
+    },
+    {
+      "decisions": null,
+      "loc": 10,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Printer"
+    },
+    {
+      "decisions": 2,
+      "loc": 5,
+      "operands": [
+        4,
+        7
+      ],
+      "operators": [
+        6,
+        11
+      ],
+      "symbol": "Demo.Printer.PrintAsync"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Demo.Printer.TryShowAsync"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "Demo.Printer.OpenAsync"
     }
   ],
-  "loc": 32,
+  "loc": 42,
   "references": [
     {
       "at": "4:4",
@@ -537,6 +583,76 @@
       "kind": "call",
       "receiver": "typed IGate",
       "target": "Primary"
+    },
+    {
+      "at": "41:17",
+      "from": "Demo.Printer.PrintAsync",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "43:19",
+      "from": "Demo.Printer.PrintAsync",
+      "kind": "call",
+      "receiver": null,
+      "target": "TryShowAsync"
+    },
+    {
+      "at": "43:47",
+      "from": "Demo.Printer.PrintAsync",
+      "kind": "call",
+      "receiver": null,
+      "target": "OpenAsync"
+    },
+    {
+      "at": "44:18",
+      "from": "Demo.Printer.PrintAsync",
+      "kind": "call",
+      "receiver": null,
+      "target": "TryShowAsync"
+    },
+    {
+      "at": "47:12",
+      "from": "Demo.Printer.TryShowAsync",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "47:52",
+      "from": "Demo.Printer.TryShowAsync",
+      "kind": "read",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "47:57",
+      "from": "Demo.Printer.TryShowAsync",
+      "kind": "call",
+      "receiver": "named Task",
+      "target": "FromResult"
+    },
+    {
+      "at": "48:12",
+      "from": "Demo.Printer.OpenAsync",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "48:56",
+      "from": "Demo.Printer.OpenAsync",
+      "kind": "read",
+      "receiver": null,
+      "target": "Task"
+    },
+    {
+      "at": "48:61",
+      "from": "Demo.Printer.OpenAsync",
+      "kind": "read",
+      "receiver": "named Task",
+      "target": "CompletedTask"
     }
   ],
   "symbols": [
@@ -546,7 +662,7 @@
       "name": "negation.cs",
       "parent": null,
       "signature": null,
-      "span": "0:0-38:0",
+      "span": "0:0-50:0",
       "static": false,
       "visibility": null
     },
@@ -556,7 +672,7 @@
       "name": "Demo",
       "parent": "negation.cs",
       "signature": null,
-      "span": "0:0-38:0",
+      "span": "0:0-50:0",
       "static": false,
       "visibility": null
     },
@@ -819,6 +935,46 @@
       "span": "36:4-36:87",
       "static": false,
       "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Printer",
+      "parent": "Demo",
+      "signature": null,
+      "span": "39:0-49:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Printer.PrintAsync",
+      "parent": "Demo.Printer",
+      "signature": "public async Task PrintAsync(string html, string name)",
+      "span": "41:4-45:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Printer.TryShowAsync",
+      "parent": "Demo.Printer",
+      "signature": "private Task<bool> TryShowAsync(string html)",
+      "span": "47:4-47:74",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Printer.OpenAsync",
+      "parent": "Demo.Printer",
+      "signature": "private Task OpenAsync(string html, string name)",
+      "span": "48:4-48:75",
+      "static": false,
+      "visibility": "private"
     }
   ]
 }

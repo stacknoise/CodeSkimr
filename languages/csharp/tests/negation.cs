@@ -36,3 +36,15 @@ public class PrimaryGatekeeper(IGate gate)
 {
     public async Task<int> Run() { if (!await gate.Primary()) { return 1; } return 0; }
 }
+
+public class Printer
+{
+    public async Task PrintAsync(string html, string name)
+    {
+        if (!await TryShowAsync(html)) { await OpenAsync(html, name); }
+        if (await TryShowAsync(html)) { return; }
+    }
+
+    private Task<bool> TryShowAsync(string html) => Task.FromResult(true);
+    private Task OpenAsync(string html, string name) => Task.CompletedTask;
+}

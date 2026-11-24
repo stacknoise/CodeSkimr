@@ -332,5 +332,16 @@ mod tests {
         assert_eq!(line_of("IGate.Mixed"), [29]);
         assert_eq!(line_of("IGate.Primary"), [36]);
         assert_eq!(line_of("IFlag.Ready"), [30, 31]);
+        assert_eq!(line_of("Printer.TryShowAsync"), [43, 44]);
+        // Calls in a constructor lambda, a property, an event handler, a local function and a
+        // static initializer, and a call of an own method without receiver in another `partial` part.
+        let lines = |name| {
+            receiver_usages_in("froms.cs", name)
+                .iter()
+                .map(|(l, _)| *l)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(lines("ISave.Offer"), [7, 9, 10, 11, 12, 13]);
+        assert_eq!(lines("Model.Helper"), [15]);
     }
 }
