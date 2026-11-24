@@ -37,7 +37,7 @@ impl Drop for Open<'_> {
 impl SystemPicker {
     /// Takes the place for a dialog; `None` if a dialog is open already.
     fn claim(&self) -> Option<Open<'_>> {
-        (!self.open.swap(true, Ordering::AcqRel)).then_some(Open(&self.open))
+        (!self.open.swap(true, Ordering::AcqRel)).then(|| Open(&self.open))
     }
 }
 
@@ -75,6 +75,10 @@ mod tests {
         let first = picker.claim();
         assert!(first.is_some());
         assert!(picker.claim().is_none(), "the second click gets no dialog");
+        assert!(
+            picker.claim().is_none(),
+            "a refused click must not free the place for the third one"
+        );
         drop(first);
         assert!(
             picker.claim().is_some(),
