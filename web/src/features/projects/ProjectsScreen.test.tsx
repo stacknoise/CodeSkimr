@@ -5,7 +5,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { currentPath } from "../../app/router";
 import { ProjectsScreen } from "./ProjectsScreen";
-import { addProject, cancelRename, noteScanReport, refreshProjects } from "./projects";
+import {
+  addProject,
+  cancelRename,
+  noteScanReport,
+  refreshProjects,
+  renamingProject,
+} from "./projects";
 import { UNCHECKED, rescanAsked, rescanned } from "../../tests/scanned";
 import type { ProjectRow } from "./types";
 
@@ -150,6 +156,31 @@ describe("ProjectsScreen", () => {
     expect(await screen.findByText("Webshop")).toBeInTheDocument();
     const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith("projects.rename"));
     expect(JSON.parse(call?.[1].body)).toEqual({ project: 1, name: "Webshop" });
+  });
+
+  it("closes an open name edit when the screen is left", async () => {
+    serve({ "projects.list": () => answer([ROW]) });
+    const view = render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Rename shop" }));
+    expect(renamingProject()).not.toBeNull();
+    view.unmount();
+    expect(renamingProject()).toBeNull();
+  });
+
+  it("closes the name edit of a project that is removed", async () => {
+    let removed = false;
+    serve({
+      "projects.list": () => answer(removed ? [] : [ROW]),
+      "projects.remove": () => {
+        removed = true;
+        return answer({ project: 1 });
+      },
+    });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Rename shop" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove project shop" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove for good" }));
+    await waitFor(() => expect(renamingProject()).toBeNull());
   });
 
   it("shows why a name was refused and keeps the edit open", async () => {
