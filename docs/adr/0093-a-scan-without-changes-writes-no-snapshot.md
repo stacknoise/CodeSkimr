@@ -1,6 +1,6 @@
 # 0093 – A scan that finds nothing changed writes no snapshot
 
-Status: proposed (hand test of 1.0.0-rc.6 by Anton of 2026-11-24: an incremental scan of `microsoft/vscode` without any change took 56.8 s)
+Status: accepted (decision of Anton of 2026-11-24, card "Soll ein Scan ohne Änderung keinen neuen Stand mehr schreiben?": "Ja, bestehenden Stand bestätigen"; after the hand test of 1.0.0-rc.6 of the same day, in which an incremental scan of `microsoft/vscode` without any change took 56.8 s)
 
 ## Context
 
