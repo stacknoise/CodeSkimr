@@ -15,10 +15,11 @@ use rusqlite::params;
 
 use crate::codec::column_int;
 use crate::consts::{
-    BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR, REMOVAL_FILES_PER_SLICE, REMOVAL_PAUSE_MS,
+    BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR, BULK_REMOVAL_REFERENCES_MAX,
+    REMOVAL_FILES_PER_SLICE, REMOVAL_PAUSE_MIN_ROWS, REMOVAL_PAUSE_MS,
 };
 use crate::error::StorageError;
-use crate::snapshots::delete_shared_rows;
+use crate::snapshots::{delete_shared_rows, delete_snapshot};
 use crate::sql;
 use crate::store::SqliteStore;
 
@@ -31,7 +32,7 @@ impl ProjectRemoval for SqliteStore {
 
 impl SqliteStore {
     fn remove_in_slices(&self, project: i64) -> Result<(), StorageError> {
-        let (snapshots, bulk) = self.write(|tx| {
+        let snapshots = self.write(|tx| {
             let known: i64 =
                 tx.query_row(sql::PROJECT_EXISTS, params![project], |row| row.get(0))?;
             if known == 0 {
@@ -44,14 +45,14 @@ impl SqliteStore {
                 .prepare_cached(sql::SNAPSHOTS_OF_PROJECT)?
                 .query_map(params![project], |row| row.get::<_, i64>(0))?
                 .collect::<Result<Vec<_>, _>>()?;
-            let bulk = bulk_removal_starts(tx, project)?;
-            if bulk {
-                remove_shared_rows_at_once(tx, &snapshots)?;
+            if bulk_removal_starts(tx, project)? {
+                remove_snapshots_at_once(tx, &snapshots)?;
+                return Ok(Vec::new());
             }
-            Ok((snapshots, bulk))
+            Ok(snapshots)
         })?;
         for snapshot in snapshots {
-            self.remove_snapshot_in_slices(snapshot, bulk)?;
+            self.remove_snapshot_in_slices(snapshot)?;
         }
         self.write(|tx| {
             tx.execute(sql::PROJECT_DELETE, params![project])?;
@@ -60,22 +61,13 @@ impl SqliteStore {
     }
 
     /// Deletes one snapshot: the shared rows by slices of files, then table by table.
-    /// `shared_gone` says that the shared rows went already with the first write.
-    fn remove_snapshot_in_slices(
-        &self,
-        snapshot: i64,
-        shared_gone: bool,
-    ) -> Result<(), StorageError> {
-        let files = if shared_gone {
-            Vec::new()
-        } else {
-            self.write(|tx| {
-                Ok(tx
-                    .prepare_cached(sql::SNAPSHOT_FILE_IDS)?
-                    .query_map(params![snapshot], |row| row.get::<_, i64>(0))?
-                    .collect::<Result<Vec<_>, _>>()?)
-            })?
-        };
+    fn remove_snapshot_in_slices(&self, snapshot: i64) -> Result<(), StorageError> {
+        let files = self.write(|tx| {
+            Ok(tx
+                .prepare_cached(sql::SNAPSHOT_FILE_IDS)?
+                .query_map(params![snapshot], |row| row.get::<_, i64>(0))?
+                .collect::<Result<Vec<_>, _>>()?)
+        })?;
         for slice in files.chunks(REMOVAL_FILES_PER_SLICE) {
             if let (Some(first), Some(last)) = (slice.first(), slice.last()) {
                 self.write(|tx| delete_shared_rows(tx, snapshot, *first, *last))?;
@@ -86,7 +78,7 @@ impl SqliteStore {
             let deleted =
                 self.write(|tx| Ok(tx.prepare_cached(delete)?.execute(params![snapshot])?))?;
             // A table with few rows was a short write; nobody waited for it.
-            if deleted > REMOVAL_FILES_PER_SLICE {
+            if deleted > REMOVAL_PAUSE_MIN_ROWS {
                 pause();
             }
         }
@@ -113,7 +105,8 @@ fn bulk_removal_starts(conn: &rusqlite::Connection, project: i64) -> Result<bool
         row.get(0)
     })?;
     let own = usize::try_from(own).unwrap_or(usize::MAX);
-    if own < BULK_REFERENCES_MIN {
+    // A larger project would hold the store for longer than another process waits for it.
+    if !(BULK_REFERENCES_MIN..=BULK_REMOVAL_REFERENCES_MAX).contains(&own) {
         return Ok(false);
     }
     let all: i64 = conn.query_row(sql::REFERENCE_COUNT, [], |row| row.get(0))?;
@@ -123,9 +116,10 @@ fn bulk_removal_starts(conn: &rusqlite::Connection, project: i64) -> Result<bool
     Ok(own >= rest / BULK_REFERENCES_SHARE_DIVISOR)
 }
 
-/// Deletes the shared rows of all snapshots of the project in one go, between dropping and
-/// building again the indexes of the references and of the fingerprints.
-fn remove_shared_rows_at_once(
+/// Deletes the snapshots of the project one after the other, each with everything it owns, between
+/// dropping and building again the indexes of the references and of the fingerprints. A snapshot
+/// goes whole before the next, so that the rows the two shared go with the second.
+fn remove_snapshots_at_once(
     conn: &rusqlite::Connection,
     snapshots: &[i64],
 ) -> Result<(), StorageError> {
@@ -134,7 +128,7 @@ fn remove_shared_rows_at_once(
     }
     conn.execute(sql::FINGERPRINT_INDEX_DROP, [])?;
     for snapshot in snapshots {
-        delete_shared_rows(conn, *snapshot, i64::MIN, i64::MAX)?;
+        delete_snapshot(conn, *snapshot)?;
     }
     for create in sql::REFERENCE_INDEXES_CREATE {
         conn.execute(create, [])?;

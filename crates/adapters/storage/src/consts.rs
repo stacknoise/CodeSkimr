@@ -146,6 +146,12 @@ pub const BULK_REFERENCES_MIN: usize = 20_000;
 /// the stored ones, expressed as "one in N" (a load of half the table or more).
 pub const BULK_REFERENCES_SHARE_DIVISOR: usize = 2;
 
+/// A removal in one write is used up to this many references; the write takes about a second per
+/// million, and another process waits for the store `BUSY_TIMEOUT_MS`. Larger projects go in slices.
+pub const BULK_REMOVAL_REFERENCES_MAX: usize = 4_000_000;
+/// A removal write that deleted more rows than this is followed by a pause.
+pub const REMOVAL_PAUSE_MIN_ROWS: usize = 500;
+
 /// Files whose shared rows one write of a project removal deletes. A removal goes in slices so
 /// that other writes (a rename, a scan of another project) get their turn in between.
 pub const REMOVAL_FILES_PER_SLICE: usize = 500;
