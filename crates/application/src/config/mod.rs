@@ -6,6 +6,7 @@
 //! (composition root); this module only turns text into a validated [`Config`].
 
 mod consts;
+mod effective;
 mod error;
 mod layer;
 mod layer_file;
@@ -13,6 +14,7 @@ mod model;
 mod validate;
 
 pub use consts::PROJECT_CONFIG_FILE;
+pub use effective::EffectiveSetting;
 pub use error::{ConfigError, LayerSource, Violation};
 pub use layer::ConfigLayer;
 pub use layer_file::with_layers;
@@ -22,6 +24,8 @@ pub use model::{
 };
 
 use consts::NO_PREFIX;
+use std::collections::BTreeMap;
+
 use toml::{Table, Value};
 
 impl Config {
@@ -41,24 +45,44 @@ impl Config {
     /// - `ConfigError::UnknownKey` (CFG-103) if a layer sets a key that does not exist.
     /// - `ConfigError::WrongType` or `ConfigError::OutOfRange` (CFG-101) for invalid values.
     pub fn resolve(layers: &[ConfigLayer]) -> Result<Self, ConfigError> {
-        let defaults = parse_defaults()?;
-        let mut merged = defaults.clone();
-        for layer in layers {
-            let table = trusted_table(layer, &merged);
-            if let Some(key) = layer::find_unknown_key(&table, &defaults, NO_PREFIX) {
-                return Err(ConfigError::UnknownKey {
-                    source_layer: layer.source(),
-                    key,
-                });
-            }
-            layer::deep_merge(&mut merged, &table);
-        }
-        let config: Self = Value::Table(merged)
-            .try_into()
-            .map_err(|cause| ConfigError::WrongType { cause })?;
-        validate::validate(&config)?;
-        Ok(config)
+        let merged = merge_layers(layers)?;
+        typed(&merged.table)
     }
+}
+
+/// The result of laying the override chain over the defaults: the merged table and, for every
+/// key that a layer set, the layer that set it last.
+pub(super) struct Merged {
+    pub(super) table: Table,
+    pub(super) origins: BTreeMap<String, LayerSource>,
+}
+
+/// Applies `layers` in order on top of the defaults and notes where each value came from.
+fn merge_layers(layers: &[ConfigLayer]) -> Result<Merged, ConfigError> {
+    let defaults = parse_defaults()?;
+    let mut table = defaults.clone();
+    let mut origins = BTreeMap::new();
+    for layer in layers {
+        let wanted = trusted_table(layer, &table);
+        if let Some(key) = layer::find_unknown_key(&wanted, &defaults, NO_PREFIX) {
+            return Err(ConfigError::UnknownKey {
+                source_layer: layer.source(),
+                key,
+            });
+        }
+        layer::deep_merge(&mut table, &wanted);
+        layer::note_origins(&wanted, layer.source(), NO_PREFIX, &mut origins);
+    }
+    Ok(Merged { table, origins })
+}
+
+/// Turns a merged table into the typed, validated configuration.
+fn typed(table: &Table) -> Result<Config, ConfigError> {
+    let config: Config = Value::Table(table.clone())
+        .try_into()
+        .map_err(|cause| ConfigError::WrongType { cause })?;
+    validate::validate(&config)?;
+    Ok(config)
 }
 
 impl Config {

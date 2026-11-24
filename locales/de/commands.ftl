@@ -80,3 +80,5 @@ command-stats-overview-title = Statistik anzeigen
 command-stats-overview-description = Fasst den neuesten Scan eines Projekts zusammen: Verwendungen, Symbole ohne Verwendung, Komplexität und die ersten Zeilen jeder Rangliste.
 command-stats-ranking-title = Rangliste anzeigen
 command-stats-ranking-description = Ordnet die Symbole des neuesten Scans: die meistverwendeten, die ohne gefundene Verwendung, die komplexesten, die größten und die am stärksten gekoppelten.
+command-settings-effective-title = Wirksame Einstellungen anzeigen
+command-settings-effective-description = Zeigt jede Einstellung, wie sie jetzt gilt: ihren Wert und woher der Wert kommt (Standard, Konfigurationsdatei oder Kommandozeile). Geheime Werte werden nie gezeigt, und hier lässt sich nichts ändern.

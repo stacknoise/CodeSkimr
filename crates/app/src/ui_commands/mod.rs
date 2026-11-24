@@ -39,6 +39,9 @@ mod projects_remove_tests;
 mod projects_tests;
 mod rating;
 mod search;
+mod settings;
+#[cfg(test)]
+mod settings_tests;
 mod source;
 mod stats;
 #[cfg(test)]
@@ -104,6 +107,7 @@ use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
 use projects_pick::{FolderDialogInfo, PickFolder};
 use projects_remove::RemoveProject;
 use search::{SearchPorts, SearchQuery};
+use settings::EffectiveSettings;
 use source::ExplorerSource;
 use stats::{StatsOverview, StatsPorts, StatsRanking};
 use status::{BudgetTargets, StatusInfo};
@@ -271,7 +275,7 @@ pub fn command_api_over(
         &mut registry,
         &annotation_ports(catalog, config, &context.events)?,
     )?;
-    register_views(&mut registry, catalog, config, locations)?;
+    register_views(&mut registry, catalog, config, (global, locations))?;
     let desk = confirmation_desk(catalog, config, (global, locations), window);
     register_level2(&mut registry, catalog, &desk)?;
     let mut api = CommandApi::new(Arc::new(registry));
@@ -285,7 +289,7 @@ fn register_views(
     registry: &mut Registry,
     catalog: &Arc<SqliteStore>,
     config: &Config,
-    locations: &Locations,
+    (global, locations): (&GlobalOptions, &Locations),
 ) -> Result<(), CodedError> {
     register_search(registry, catalog)?;
     register_usages(registry, catalog, config.mcp.max_depth)?;
@@ -294,6 +298,7 @@ fn register_views(
     add(registry, status_info(config))?;
     register_explorer(registry, catalog, config.metrics.clone(), locations)?;
     register_preferences(registry, locations)?;
+    add(registry, effective_settings(locations, global)?)?;
     add(registry, export_command(catalog, config, locations))
 }
 
@@ -371,6 +376,16 @@ fn status_info(config: &Config) -> StatusInfo {
     }
 }
 
+/// The command that shows the settings in effect: read once from the same files and flags that the
+/// configuration of this run came from.
+fn effective_settings(
+    locations: &Locations,
+    global: &GlobalOptions,
+) -> Result<EffectiveSettings, CodedError> {
+    let layers = crate::config_files::layers(locations, global, None)?;
+    EffectiveSettings::new(&layers, locations, global)
+}
+
 /// The two commands that keep theme and language in the data folder.
 fn register_preferences(registry: &mut Registry, locations: &Locations) -> Result<(), CodedError> {
     let file = PreferencesFile::in_dir(&locations.data_dir);
@@ -413,6 +428,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<StatsRanking>()?;
     api.expose::<GetPreferences>()?;
     api.expose::<SetPreferences>()?;
+    api.expose::<EffectiveSettings>()?;
     api.expose::<HtmlExport>()?;
     expose_annotations(api)
 }

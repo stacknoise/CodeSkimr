@@ -1,4 +1,5 @@
 import { For, Show, type JSX } from "solid-js";
+import { t, type MessageKey } from "../i18n/i18n";
 import { ColumnGrip } from "./ColumnGrip";
 import type { TableColumns } from "./columns";
 import { COLUMN_ATTRIBUTE, PIXEL_UNIT } from "./consts";
@@ -52,5 +53,25 @@ export function RestHead(props: { columns: TableColumns }) {
     <Show when={props.columns.fixed()}>
       <th class={styles.rest} aria-hidden={true} />
     </Show>
+  );
+}
+
+/** The head row of a table with resizable columns: one cell per column with its label, then the
+ * cell that takes the rest of the width. */
+export function HeadRow(props: {
+  columns: TableColumns;
+  heads: readonly { id: string; label: MessageKey }[];
+}) {
+  return (
+    <tr>
+      <For each={props.heads}>
+        {(column) => (
+          <ResizableTh columns={props.columns} id={column.id} name={t(column.label)}>
+            {t(column.label)}
+          </ResizableTh>
+        )}
+      </For>
+      <RestHead columns={props.columns} />
+    </tr>
   );
 }

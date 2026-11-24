@@ -233,3 +233,24 @@ pub const BLOCK_SEPARATOR: &str = "\n\n";
 pub const LINE_END: char = '\n';
 /// Ends a line in a file written on Windows.
 pub const WINDOWS_LINE_END: &str = "\r\n";
+
+/// Words of a key name that mark a value as secret (a word is a part between `.` or `_`). Such a
+/// value is never shown by [`super::EffectiveSetting`]: the configuration holds no secret today,
+/// and this keeps one that is added later from reaching a screen.
+pub const SECRET_KEY_WORDS: [&str; 9] = [
+    "token",
+    "secret",
+    "password",
+    "passwd",
+    "credential",
+    "credentials",
+    "private",
+    "key",
+    "apikey",
+];
+
+/// Separator of the words inside a key name.
+pub const WORD_SEPARATOR: char = '_';
+
+/// Hyphen, which also separates the words of a key name.
+pub const HYPHEN: char = '-';

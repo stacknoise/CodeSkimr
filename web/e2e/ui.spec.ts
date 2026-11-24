@@ -70,7 +70,7 @@ test.describe("the content security policy", () => {
     const { copy } = keepLaunchFile(await harness.launchFile());
     await page.goto(`file://${copy}`);
     await page.getByRole("link", { name: "Settings" }).click();
-    await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Select" }).last().click();
     expect(await violations()).toEqual([]);
     expect(messages.filter((text) => /Content Security Policy/i.test(text))).toEqual([]);
@@ -143,7 +143,7 @@ test.describe("themes and language", () => {
     await page.getByRole("link", { name: "Settings" }).click();
     await page.getByRole("button", { name: "Select" }).last().click();
     await page.getByRole("combobox").selectOption("de");
-    await expect(page.getByRole("heading", { name: "Einstellungen" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Einstellungen", exact: true })).toBeVisible();
     // A second browser has its own empty localStorage and learns both choices from the server.
     const other = await (await browser.newContext()).newPage();
     await other.goto(`file://${keepLaunchFile(await harness.launchFile()).copy}`);
@@ -173,9 +173,11 @@ test.describe("themes and language", () => {
     const { copy } = keepLaunchFile(await harness.launchFile());
     await page.goto(`file://${copy}`);
     await page.getByRole("link", { name: "Settings" }).click();
-    await expect(page.getByText("vscode://file/{path}:{line}")).toBeVisible();
+    await expect(
+      page.getByRole("definition").filter({ hasText: "vscode://file/{path}:{line}" }),
+    ).toBeVisible();
     await page.getByRole("combobox").selectOption("de");
-    await expect(page.getByRole("heading", { name: "Einstellungen" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Einstellungen", exact: true })).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("lang", "de");
   });
 });

@@ -24,6 +24,19 @@ pub fn load(
     global: &GlobalOptions,
     project_dir: Option<&Path>,
 ) -> Result<Config, CodedError> {
+    Config::resolve(&layers(locations, global, project_dir)?).map_err(CodedError::caused_by)
+}
+
+/// The layers of the override chain in their order: user file, project file, command line.
+///
+/// # Errors
+/// - `CFG-102` if a named configuration file is missing or unreadable, or a file is not valid TOML,
+///   or a flag value is not a TOML value.
+pub fn layers(
+    locations: &Locations,
+    global: &GlobalOptions,
+    project_dir: Option<&Path>,
+) -> Result<Vec<ConfigLayer>, CodedError> {
     let mut layers = Vec::new();
     if let Some(user) = &locations.user_config {
         layers.extend(read_layer(LayerSource::User, &user.path, user.required)?);
@@ -37,7 +50,7 @@ pub fn load(
         .iter()
         .map(|(key, value)| (key.as_str(), value.as_str()));
     layers.push(ConfigLayer::from_overrides(pairs).map_err(CodedError::caused_by)?);
-    Config::resolve(&layers).map_err(CodedError::caused_by)
+    Ok(layers)
 }
 
 /// The layer of one file; `None` if the file does not exist and `required` is false.

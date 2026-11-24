@@ -80,3 +80,5 @@ command-stats-overview-title = Show statistics
 command-stats-overview-description = Summarises the newest scan of a project: usages, symbols without usages, complexity and the first rows of every ranking.
 command-stats-ranking-title = Show a ranking
 command-stats-ranking-description = Ranks the symbols of the newest scan: the most used, those without a usage found, the most complex, the largest and the most coupled.
+command-settings-effective-title = Show effective settings
+command-settings-effective-description = Shows every setting as it holds now: its value and where the value comes from (default, configuration file or command line). Secret values are never shown, and nothing can be changed here.
