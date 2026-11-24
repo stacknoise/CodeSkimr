@@ -814,6 +814,7 @@ export const I18N_KEYS = {
   SCAN_STATE_DONE: "scan-state-done",
   SCAN_STATE_CANCELLED: "scan-state-cancelled",
   SCAN_MODE_FULL: "scan-mode-full",
+  SCAN_MODE_FIRST: "scan-mode-first",
   SCAN_MODE_INCREMENTAL: "scan-mode-incremental",
   SCAN_PROGRESS: "scan-progress",
   SCAN_METRIC_FILES_PER_SECOND: "scan-metric-files-per-second",

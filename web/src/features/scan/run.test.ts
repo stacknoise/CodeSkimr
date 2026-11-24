@@ -6,6 +6,7 @@ import {
   filesPerSecond,
   latestRun,
   percent,
+  scanSeconds,
   secondsLeft,
   isUnmeasured,
   stagePercent,
@@ -216,5 +217,27 @@ describe("a report that arrives late", () => {
       [progress("resolve", 3, 9), 1],
     ])[0] as Run;
     expect(run.stages.resolve?.done).toBe(3);
+  });
+});
+
+describe("scanSeconds", () => {
+  const run: Run = {
+    project: 1,
+    startedAt: 1000,
+    endedAt: 13_500,
+    state: "done",
+    code: null,
+    stages: {},
+    packLoadMs: 500,
+    unchanged: false,
+  };
+
+  it("leaves out the pack loading", () => {
+    expect(scanSeconds(run)).toBe(12);
+  });
+
+  it("has no time while the run goes on or when there is none", () => {
+    expect(scanSeconds({ ...run, endedAt: null, state: "running" })).toBeNull();
+    expect(scanSeconds(undefined)).toBeNull();
   });
 });

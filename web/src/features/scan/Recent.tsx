@@ -1,10 +1,12 @@
-import { For } from "solid-js";
+import { For, Show } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { SCAN_MODE } from "../projects/consts";
-import { ago } from "../projects/format";
+import { ago, seconds } from "../projects/format";
 import type { ProjectRow } from "../projects/types";
-import { RECENT_LIMIT } from "./consts";
+import { RECENT_LIMIT, STATE } from "./consts";
+import { scanRuns } from "./events";
+import { latestRun, scanSeconds } from "./run";
 import styles from "./Recent.module.css";
 
 /** The projects that have a scan, the newest scan first. */
@@ -23,6 +25,16 @@ function modeText(row: ProjectRow): string {
   );
 }
 
+/** The time the newest scan of the project took, if this session saw it end: the stored scan does
+ * not keep it. */
+function tookText(row: ProjectRow): string | null {
+  const run = latestRun(scanRuns(), row.id);
+  const took = run?.state === STATE.done ? scanSeconds(run) : null;
+  return took === null
+    ? null
+    : t(I18N_KEYS.SCAN_STAGE_TIME, { seconds: seconds(took, currentLanguage()) });
+}
+
 /** The newest scan of each project and the note on unchanged files (mock 5, right column). */
 export function Recent(props: { rows: readonly ProjectRow[] }) {
   return (
@@ -37,6 +49,7 @@ export function Recent(props: { rows: readonly ProjectRow[] }) {
                 files: row.scan?.files ?? 0,
                 when: ago(row.scan?.created ?? 0, Date.now(), currentLanguage()),
               })}
+              <Show when={tookText(row)}>{(took) => <> · {took()}</>}</Show>
             </span>
           </div>
         )}

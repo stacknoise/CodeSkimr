@@ -122,7 +122,7 @@ describe("ScanScreen", () => {
     expect(screen.getByText("180 ms")).toBeInTheDocument();
     expect(screen.getByText("C#")).toBeInTheDocument();
     expect(screen.getByText("38,000")).toBeInTheDocument();
-    expect(screen.getByText("shop · full")).toBeInTheDocument();
+    expect(screen.getAllByText("shop · full")).toHaveLength(2);
     stop();
   });
 
@@ -212,9 +212,7 @@ describe("ScanScreen", () => {
       "status.info": () => answer(STATUS),
     });
     const stop = await shown();
-    expect(
-      await screen.findByText("shop · main @ e07c4a1 · full (first scan)"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("shop · main @ e07c4a1 · full")).toBeInTheDocument();
     const table = screen.getByRole("table");
     expect(within(table).getByText("Tier")).toBeInTheDocument();
     expect(within(table).getByText("Symbols")).toBeInTheDocument();

@@ -30,7 +30,7 @@ import { LeftOut } from "./LeftOut";
 import { Pipeline } from "./Pipeline";
 import { Progress } from "./Progress";
 import { Recent } from "./Recent";
-import { latestRun } from "./run";
+import { latestRun, scanSeconds } from "./run";
 import type { BudgetTargets, Run } from "./types";
 import styles from "./ScanScreen.module.css";
 
@@ -50,6 +50,9 @@ function subjectId(): number | null {
 /** The mode a scan has: the first scan of a project is full, later ones are incremental. */
 function modeText(row: ProjectRow | undefined, run: Run | undefined): string {
   const scanned = row?.scan != null;
+  if (run?.state === STATE.running && !scanned) {
+    return t(I18N_KEYS.SCAN_MODE_FIRST);
+  }
   const incremental =
     run?.state === STATE.running ? scanned : row?.scan?.mode === SCAN_MODE.incremental;
   return t(incremental ? I18N_KEYS.SCAN_MODE_INCREMENTAL : I18N_KEYS.SCAN_MODE_FULL);
@@ -62,15 +65,9 @@ export function positionText(row: ProjectRow): string | null {
   return parts.length === 0 ? null : parts.join(BRANCH_COMMIT_JOIN);
 }
 
-function duration(run: Run | undefined): number | null {
-  return run?.endedAt == null
-    ? null
-    : Math.max(run.endedAt - run.startedAt - run.packLoadMs, 0) / MS_PER_SECOND;
-}
-
 /** Lines per second of a finished full scan, else `null`. */
 function linesPerSecond(row: ProjectRow | undefined, run: Run | undefined): number | null {
-  const took = duration(run);
+  const took = scanSeconds(run);
   const full = row?.scan?.mode === SCAN_MODE.full;
   return run?.state === STATE.done && full && took !== null && took > 0 ? row.loc / took : null;
 }
@@ -82,7 +79,7 @@ function measured(row: ProjectRow | undefined, run: Run | undefined): Measured {
   if (start != null) {
     result.cold_start = start;
   }
-  const took = duration(run);
+  const took = scanSeconds(run);
   if (run?.state === STATE.done && row?.scan?.mode === SCAN_MODE.incremental && took !== null) {
     result.incremental_rescan = took * MS_PER_SECOND;
   }
@@ -165,7 +162,7 @@ function Meta(props: { project: ProjectRow; run: Run | undefined }) {
       {props.project.name} ·{" "}
       <Show when={positionText(props.project)}>{(place) => <>{place()} · </>}</Show>
       {modeText(props.project, props.run)}
-      <Show when={duration(props.run)}>
+      <Show when={scanSeconds(props.run)}>
         {(took) => (
           <>
             {" "}

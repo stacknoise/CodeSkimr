@@ -126,6 +126,13 @@ export function latestRun(runs: readonly Run[], project: number | null): Run | u
   return project === null ? undefined : runs[lastOf(runs, project)];
 }
 
+/** Seconds a finished run took, without the loading of language packs; `null` while it runs. */
+export function scanSeconds(run: Run | undefined): number | null {
+  return run?.endedAt == null
+    ? null
+    : Math.max(run.endedAt - run.startedAt - run.packLoadMs, 0) / MS_PER_SECOND;
+}
+
 /** The report of the stage that counts files. */
 function fileStage(run: Run): StageRun | undefined {
   return run.stages[FILE_STAGE];
