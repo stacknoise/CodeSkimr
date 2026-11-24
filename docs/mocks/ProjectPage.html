@@ -64,7 +64,7 @@ tr.sel td{background:var(--accentbg)}tr.sel td:first-child{box-shadow:inset 3px 
 .board{position:relative}
 .mini{height:3px;border-radius:2px;background:var(--soft);margin-top:5px;overflow:hidden}.mini i{display:block;height:100%;background:var(--accent)}
 </style></head><body><div id="b" class="board"></div><script>
-const q=new URLSearchParams(location.search),v=q.get("v")||"uebersicht",th=q.get("t")||"petrol";
+const q=new URLSearchParams(location.search),pick=(k,list)=>list.find(x=>x===q.get(k))||list[0],v=pick("v",["uebersicht","laeuft","fertig","leistung"]),th=pick("t",["petrol","hell","dunkel"]);
 const P=[
 {n:"webshop-backend",l:"C#",scan:"vor 12 Min.",st:"good"},
 {n:"kundenportal",l:"TypeScript",scan:"vor 2 Std.",st:"warn"},
