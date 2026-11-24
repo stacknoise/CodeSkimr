@@ -8,6 +8,7 @@ import { resetLevel2 } from "./level2";
 import { noteLevel2Finished, noteLevel2Progress, resetLevel2Runs } from "./level2run";
 import { refreshProjects } from "./projects";
 import { ProjectsScreen } from "./ProjectsScreen";
+import { chooseProject, chooseTab, TAB_LEVEL2, TAB_SCAN } from "../../tests/pageTabs";
 import { projectRow } from "../../tests/projectRow";
 import type { ProjectRow } from "./types";
 
@@ -44,8 +45,16 @@ async function selected(row: ProjectRow = ROW, rescan = () => answer(rescanned(r
   // The list is a module signal: a test must not start from the rows of the one before.
   await refreshProjects();
   render(() => <ProjectsScreen />);
-  fireEvent.click(await screen.findByText("/work/shop"));
+  await chooseProject();
+  await chooseTab(TAB_LEVEL2);
   return await screen.findByRole("region", { name: "Scan" });
+}
+
+/** The tab Scan of the project, with the scan buttons. */
+async function scanTab(row: ProjectRow = ROW, rescan = () => answer(rescanned(row.id))) {
+  await selected(row, rescan);
+  await chooseTab(TAB_SCAN);
+  return await screen.findByRole("tabpanel");
 }
 
 function rescanBody(): unknown {
@@ -54,17 +63,15 @@ function rescanBody(): unknown {
 }
 
 describe("the report of the last scan", () => {
-  it("says at which stage the last scan ran, who started it and what stage 2 did", async () => {
+  it("says at which stage the last scan ran and who started it, and what stage 2 did", async () => {
     const panel = await selected();
-    const row = screen.getByRole("row", { name: /shop/ });
-    expect(within(row).getByText("Stage 2 (browser)")).toBeInTheDocument();
-    expect(within(row).getByText("1 checked, 1 skipped, 1 failed")).toBeInTheDocument();
-    expect(within(row).getByText("3 files changed since")).toBeInTheDocument();
-    expect(within(row).getByText("Stage 2 failed (RES-501)")).toBeInTheDocument();
     expect(within(panel).getByText("C#: checked, 328 files, 3 changed since")).toBeInTheDocument();
     expect(within(panel).getByText(/TypeScript: skipped, a tool is missing/)).toBeInTheDocument();
     expect(within(panel).getByText("Java: failed (RES-501)")).toBeInTheDocument();
     expect(within(panel).getByText(/Results of an earlier run may remain/)).toBeInTheDocument();
+    await chooseTab(/Overview/);
+    expect(screen.getByText(/Stage 2 \(browser\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Exact check \(stage 2\) failed for Java \(RES-501\)/)).toBeVisible();
   });
 
   it("says the same in German", async () => {
@@ -81,14 +88,15 @@ describe("the report of the last scan", () => {
       level2: null,
     };
     const panel = await selected({ ...ROW, report: level1 });
-    expect(screen.getByText("Stage 1 (browser)")).toBeInTheDocument();
     expect(within(panel).getByText(/No stage 2 run is stored/)).toBeInTheDocument();
+    await chooseTab(/Overview/);
+    expect(screen.getByText(/Stage 1 \(browser\)/)).toBeInTheDocument();
   });
 });
 
 describe("the scan buttons", () => {
   it("scans with stage 2 by default and says that build tools run", async () => {
-    const panel = await selected();
+    const panel = await scanTab();
     expect(within(panel).getByText(/runs the build tools of the project/)).toBeVisible();
     fireEvent.click(within(panel).getByRole("button", { name: "Scan again" }));
     await rescanAsked();
@@ -96,14 +104,14 @@ describe("the scan buttons", () => {
   });
 
   it("scans stage 1 only on request", async () => {
-    const panel = await selected();
+    const panel = await scanTab();
     fireEvent.click(within(panel).getByRole("button", { name: "Stage 1 only" }));
     await rescanAsked();
     expect(rescanBody()).toEqual({ project: 4, level2: false });
   });
 
   it("scans every file again on request", async () => {
-    const panel = await selected();
+    const panel = await scanTab();
     fireEvent.click(within(panel).getByRole("button", { name: "Full scan" }));
     await rescanAsked();
     expect(rescanBody()).toEqual({ project: 4, full: true });
@@ -115,7 +123,7 @@ describe("the scan buttons", () => {
     ["paused", /there is a pause/],
     ["not_permitted", /may not run indexers here/],
   ])("explains why stage 2 did not start (%s)", async (reason, text) => {
-    const panel = await selected(ROW, () =>
+    const panel = await scanTab(ROW, () =>
       answer({ ...rescanned(4), level2: { state: "not_started", reason } }),
     );
     fireEvent.click(within(panel).getByRole("button", { name: "Scan again" }));
@@ -125,9 +133,11 @@ describe("the scan buttons", () => {
 });
 
 describe("stage 2 running", () => {
-  it("shows the language, hides the scan buttons and cancels", async () => {
-    const panel = await selected({ ...ROW, running: true });
-    expect(within(panel).queryByRole("button", { name: "Scan again" })).toBeNull();
+  it("shows the language, disables the scan buttons and cancels", async () => {
+    const buttons = await scanTab({ ...ROW, running: true });
+    expect(within(buttons).getByRole("button", { name: "Scan again" })).toBeDisabled();
+    await chooseTab(TAB_LEVEL2);
+    const panel = await screen.findByRole("region", { name: "Scan" });
     noteLevel2Progress(4, { language: "csharp", stage: "level2_running" });
     expect(await within(panel).findByText("Stage 2 running (C#)")).toBeVisible();
     expect(within(panel).getByText(/Cancelling keeps the result of stage 1/)).toBeVisible();
@@ -144,10 +154,9 @@ describe("stage 2 running", () => {
     noteLevel2Progress(4, { language: "csharp", stage: "level2_importing" });
     expect(await within(panel).findByText("Stage 2 importing results (C#)")).toBeVisible();
     noteLevel2Finished(4, { checked: 1, skipped: 1, failed: 0 });
-    expect(
-      await within(panel).findByText("Stage 2 ended: 1 checked, 1 skipped, 0 failed."),
-    ).toBeVisible();
     expect(within(panel).queryByText(/importing results/)).toBeNull();
+    await chooseTab(TAB_SCAN);
+    expect(await screen.findByText("Stage 2 ended: 1 checked, 1 skipped, 0 failed.")).toBeVisible();
   });
 
   it("drops a banner when the list no longer calls the project running", async () => {
@@ -162,23 +171,19 @@ describe("stage 2 running", () => {
 describe("focus and announcements", () => {
   const switchOf = () => screen.getByRole("switch", { name: /(Level 2|Stufe 2) (for|für) shop/ });
 
-  it("puts the focus on the switch when a scan button goes away under it", async () => {
-    const panel = await selected();
-    for (const name of ["Scan again", "Stage 1 only", "Full scan"]) {
-      const button = within(panel).getByRole("button", { name });
-      button.focus();
-      fireEvent.click(button);
-      expect(button).not.toBeInTheDocument();
-      expect(switchOf()).toHaveFocus();
-      await refreshProjects();
-      resetLevel2Runs();
-      await waitFor(() => expect(within(panel).queryByRole("button", { name })).not.toBeNull());
-    }
+  it("keeps the scan buttons in place, so the focus stays on the one that was pressed", async () => {
+    const panel = await scanTab();
+    const button = within(panel).getByRole("button", { name: "Scan again" });
+    button.focus();
+    fireEvent.click(button);
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveFocus();
   });
 
   it("leaves the focus alone where a person is typing elsewhere", async () => {
-    const panel = await selected();
-    const field = screen.getByPlaceholderText(/Paste a folder path/);
+    const panel = await scanTab();
+    fireEvent.click(screen.getByRole("button", { name: "New" }));
+    const field = await screen.findByPlaceholderText(/Paste a folder path/);
     field.focus();
     fireEvent.click(within(panel).getByRole("button", { name: "Scan again" }));
     expect(field).toHaveFocus();
@@ -197,7 +202,8 @@ describe("focus and announcements", () => {
     const panel = await selected({ ...ROW, running: true });
     noteLevel2Progress(4, { language: "csharp", stage: "level2_running" });
     await within(panel).findByRole("button", { name: "Cancel stage 2" });
-    const field = screen.getByPlaceholderText(/Paste a folder path/);
+    fireEvent.click(screen.getByRole("button", { name: "New" }));
+    const field = await screen.findByPlaceholderText(/Paste a folder path/);
     field.focus();
     noteLevel2Finished(4, { checked: 1, skipped: 0, failed: 0 });
     await waitFor(() =>

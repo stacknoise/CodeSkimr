@@ -113,3 +113,9 @@ settings-effective-group-snapshots = Schnappschüsse
 settings-effective-group-watcher = Dateibeobachtung
 settings-effective-group-annotations = Anmerkungen
 settings-effective-group-graph = Abhängigkeitskarte
+status-performance = Leistung
+status-performance-missed =
+    { $count ->
+        [one] Leistung: 1 Ziel verfehlt
+       *[other] Leistung: { $count } Ziele verfehlt
+    }

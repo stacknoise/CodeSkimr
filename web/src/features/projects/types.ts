@@ -1,5 +1,5 @@
 import type { ScanReport } from "../../shared/project/report";
-import type { SCAN_MODE, SOURCE_KIND, TOOL_STATE } from "./consts";
+import type { DB_STATE, SCAN_MODE, SOURCE_KIND, TOOL_STATE } from "./consts";
 
 /** The newest scan of a project. */
 export interface ScanInfo {
@@ -77,6 +77,13 @@ export interface ProjectRow {
   left_out?: LeftOutFile[];
   /** How many more files it left out than `left_out` names. */
   left_out_more?: number;
+  /** Where the database file of the project lies and how big it is (ADR 0095); absent until the
+   * server sends it. */
+  database?: {
+    path: string;
+    size_bytes: number;
+    state: (typeof DB_STATE)[keyof typeof DB_STATE];
+  } | null;
   /** The last check of the tools, `null` if the project was never checked (absent in an export,
    * which does not run on the machine of the reader). */
   tools?: ToolsInfo | null;

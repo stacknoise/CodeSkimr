@@ -113,3 +113,9 @@ settings-effective-group-snapshots = Snapshots
 settings-effective-group-watcher = File watcher
 settings-effective-group-annotations = Annotations
 settings-effective-group-graph = Dependency map
+status-performance = Performance
+status-performance-missed =
+    { $count ->
+        [one] Performance: 1 target missed
+       *[other] Performance: { $count } targets missed
+    }

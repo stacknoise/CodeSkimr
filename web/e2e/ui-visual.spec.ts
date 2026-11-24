@@ -22,6 +22,7 @@ import {
   shot,
   test,
   type Harness,
+  openInExplorer,
 } from "./fixtures";
 
 const MOCKS = path.resolve(import.meta.dirname, "../../docs/mocks");
@@ -150,7 +151,7 @@ const SOURCE = [
 async function openCalculator(page: Page, harness: Harness, name: string): Promise<void> {
   const row = await addScannedProject(page, harness, name, SOURCE);
   await row.click({ position: { x: 4, y: 4 } });
-  await page.keyboard.press("Enter");
+  await openInExplorer(page);
   await page.getByText("Vis", { exact: true }).click();
   await page.getByText("Calculator", { exact: true }).click();
   await expect(page.getByRole("heading", { name: "Calculator" })).toBeVisible();
@@ -232,7 +233,7 @@ for (const theme of THEMES) {
       await prepare(page, theme);
       const row = await addScannedProject(page, harness, `vissearch${theme}`, MANY_MEMBERS);
       await row.click({ position: { x: 4, y: 4 } });
-      await page.keyboard.press("Enter");
+      await openInExplorer(page);
       await expect(page.getByRole("tree")).toBeVisible();
       await page.keyboard.press("Control+k");
       // With many hits the dialog is cut to 70 vh: the rows above the list keep their size.
@@ -349,7 +350,7 @@ for (const theme of THEMES) {
       await prepare(page, theme);
       const row = await addScannedProject(page, harness, `visalerts${theme}`, SOURCE);
       await row.click({ position: { x: 4, y: 4 } });
-      await page.keyboard.press("Enter");
+      await openInExplorer(page);
       await expect(page.getByRole("tree")).toBeVisible();
       await page.getByRole("button", { name: /^Alerts/ }).click();
       await expect(page.getByRole("dialog", { name: "Alerts" })).toBeVisible();

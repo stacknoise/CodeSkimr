@@ -1,7 +1,7 @@
 // The keyboard paths of the annotations (blueprint 15.4, ADR 0068): K, N and T in the explorer, the
 // tabs of the side panel, the bell with its drawer and the board of the tasks.
 // Runs after ui-explorer.spec.ts: the worker shares one server and every scan adds a project.
-import { addScannedProject, expect, test } from "./fixtures";
+import { addScannedProject, expect, test, openInExplorer } from "./fixtures";
 
 const SOURCE =
   "namespace Notes;\n\npublic class Ledger\n{\n    public int Add(int a, int b) { return a + b; }\n}\n";
@@ -12,7 +12,7 @@ async function openLedger(
   row: import("@playwright/test").Locator,
 ) {
   await row.click({ position: { x: 4, y: 4 } });
-  await page.keyboard.press("Enter");
+  await openInExplorer(page);
   await page.getByText("Notes", { exact: true }).click();
   await page.getByText("Ledger", { exact: true }).click();
   await expect(page.getByRole("heading", { name: "Ledger" })).toBeVisible();

@@ -27,7 +27,7 @@ Es gibt zwei Stufen.
 - **Volle Stufe:** C#, Java, Kotlin, Python, Rust, TypeScript, TSX und JavaScript. Typen, Member, Signaturen, Dokumentationskommentare, Sichtbarkeit, Metriken und Verweise.
 - **Basis-Stufe:** C, C++, Go, PHP und Ruby. Typen, Namensräume und Funktionen mit Position und Größe, Codezeilen, Komplexität über Entscheidungspunkte und Aufrufe per Name. Keine Dokumentationskommentare und keine Sichtbarkeit.
 
-Der Scan-Bildschirm zeigt die Stufe jeder Sprache, die in einem Projekt gefunden wurde.
+Der Reiter „Scan“ eines Projekts zeigt die Stufe jeder Sprache, die in einem Projekt gefunden wurde.
 
 ## Sprache des Programms
 

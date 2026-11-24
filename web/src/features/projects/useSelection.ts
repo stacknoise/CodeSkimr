@@ -1,11 +1,17 @@
-import { createMemo, createSignal } from "solid-js";
+import { createMemo } from "solid-js";
 import { NOT_FOUND } from "./consts";
+import { selectedProject, selectProject } from "./page";
 import { removingNow } from "./removing";
 import type { ProjectRow } from "./types";
 
-/** The selected row of the list and the moves of the arrow keys. */
+/** The selected row of the list and the moves of the arrow keys. The selection is kept outside
+ * the screen, so that it survives a visit of another screen. */
 export function useSelection(rows: () => ProjectRow[], initial: number | null) {
-  const [selected, setSelected] = createSignal<number | null>(initial);
+  if (selectedProject() === null && initial !== null) {
+    selectProject(initial);
+  }
+  const selected = selectedProject;
+  const setSelected = (id: number | null) => selectProject(id);
   const ids = createMemo(() =>
     rows()
       .filter((row) => !removingNow(row))

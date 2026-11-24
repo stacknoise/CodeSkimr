@@ -3,10 +3,11 @@ import { ApiError } from "../../shared/api/client";
 import { runCommand } from "../../shared/api/commands";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { navigate } from "../../app/router";
-import { SCAN_ROUTE } from "../../app/consts";
-import { closeProject, openProject } from "../../shared/project/active";
+import { PROJECTS_ROUTE } from "../../app/consts";
+import { closeProject } from "../../shared/project/active";
 import { pollUnanswered } from "../../shared/api/poll";
 import { COMMAND, POLL_MS } from "./consts";
+import { showScan } from "./page";
 import { forgetLevel2 } from "./level2";
 import { keepRunningOnly, noteLevel2Start, resetLevel2Runs } from "./level2run";
 import type { ProjectRow, Scanned, ToolsInfo } from "./types";
@@ -212,14 +213,14 @@ export async function addProject(
 export function noteScanReport(project: number): void {
   if (knownAtAdd !== null && !knownAtAdd.has(project)) {
     knownAtAdd = null;
-    showScan(project);
+    showScanOf(project);
   }
 }
 
-/** Opens the project and shows its scan and performance screen. */
-function showScan(project: number): void {
-  openProject(project);
-  navigate(SCAN_ROUTE.path);
+/** Opens the project and shows the tab "Scan" of its page. */
+function showScanOf(project: number): void {
+  showScan(project);
+  navigate(PROJECTS_ROUTE.path);
 }
 
 function mark(project: number, on: boolean): void {
@@ -245,7 +246,7 @@ export async function rescanProject(project: number, level2 = true, full = false
   mark(project, true);
   setRequested((previous) => new Map(previous).set(project, Date.now()));
   setActionFailure(null);
-  showScan(project);
+  showScanOf(project);
   try {
     remember(
       await whileReading(() =>

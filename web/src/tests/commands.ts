@@ -1,3 +1,5 @@
+import { selectProject } from "../features/projects/page";
+import { PROJECT_TAB } from "../features/projects/consts";
 import { afterEach, beforeEach, vi } from "vitest";
 import { setLanguage } from "../shared/i18n/i18n";
 import { storeToken } from "../shared/session/token";
@@ -25,6 +27,7 @@ export function useServerSession(): void {
     sessionStorage.clear();
     storeToken("csk_t");
     setLanguage("en");
+    selectProject(null, PROJECT_TAB.overview);
   });
   afterEach(() => {
     fetchMock.mockReset();

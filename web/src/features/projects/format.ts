@@ -11,6 +11,10 @@ import {
   SECONDS_DECIMALS,
   TIME_UNITS,
   CLOCK_OPTIONS,
+  MEGABYTE_UNIT,
+  SIZE_DECIMALS,
+  SIZE_STEP,
+  SIZE_UNITS,
 } from "./consts";
 import type { LanguageInfo } from "./types";
 
@@ -85,4 +89,20 @@ export function parseTime(micros: number, language: string): string {
 /** The time of day of a moment (milliseconds since the epoch) in the language of the screen. */
 export function clock(moment: number, language: string): string {
   return new Date(moment).toLocaleTimeString(language, CLOCK_OPTIONS);
+}
+
+/** A size in bytes as "412 MB": the largest unit that leaves at least 1. */
+export function size(bytes: number, language: string): string {
+  let value = bytes;
+  let unit = 0;
+  while (value >= SIZE_STEP && unit < SIZE_UNITS.length - 1) {
+    value /= SIZE_STEP;
+    unit += 1;
+  }
+  const decimals = unit >= MEGABYTE_UNIT ? SIZE_DECIMALS : 0;
+  const text = new Intl.NumberFormat(language, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimals,
+  }).format(value);
+  return `${text} ${SIZE_UNITS[unit]}`;
 }

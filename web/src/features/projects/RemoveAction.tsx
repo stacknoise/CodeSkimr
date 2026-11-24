@@ -63,6 +63,9 @@ function Confirm(props: { name: string; onYes: () => void; onNo: () => void }) {
  * read again and the row is built anew, which must not close the question. */
 const [askingFor, setAskingFor] = createSignal<number | null>(null);
 
+/** Whether a question before a removal is open. */
+export const removeQuestionOpen = () => askingFor() !== null;
+
 /** Closes the open question, if there is one. */
 export function closeRemoveQuestion(): void {
   setAskingFor(null);
