@@ -4,9 +4,13 @@
 mod common;
 
 use codeskimr_application::ports::{
-    PreviousIndex, ProjectRepository, SnapshotData, SnapshotStore, SymbolKey,
+    Confirmation, PreviousIndex, ProjectRepository, ScanWarning, SnapshotData, SnapshotStore,
+    SymbolKey,
 };
-use codeskimr_domain::{FileId, MetricKind, RelativePath, ScanMode, SnapshotId, SymbolKind};
+use codeskimr_codes::ErrorCode;
+use codeskimr_domain::{
+    CommitHash, FileId, MetricKind, RelativePath, ScanMode, SnapshotId, SymbolKind, Timestamp,
+};
 use common::{
     PROJECT, code_of, data, file, header, metric, project, reference, registered_store, symbol,
 };
@@ -40,6 +44,97 @@ fn b_rewritten(name: &str, references: Vec<codeskimr_domain::Reference>) -> Snap
     scan.symbols = vec![symbol(42, 41, SymbolKind::Class, name, None)];
     scan.references = references;
     scan
+}
+
+#[test]
+fn confirming_the_newest_snapshot_changes_its_time_commit_and_mode_and_nothing_else() {
+    let store = registered_store();
+    let written = store.persist(first_scan(10)).unwrap();
+    let commit = CommitHash::new("abc123").unwrap();
+    let confirmed = store
+        .confirm(&confirmation(10, Some(commit.clone())))
+        .unwrap()
+        .expect("the snapshot is the newest")
+        .snapshot;
+    assert_eq!(confirmed.id, written.id, "no snapshot is added");
+    assert_eq!(confirmed.created, Timestamp(2_000));
+    assert_eq!(confirmed.commit, Some(commit));
+    assert_eq!(confirmed.mode, ScanMode::Incremental);
+    assert_eq!(confirmed.stats, written.stats);
+    assert_eq!(store.latest_snapshot(PROJECT).unwrap(), Some(confirmed));
+    assert_eq!(store.latest_state(PROJECT).unwrap().symbols.len(), 3);
+}
+
+/// A scan of the project that found every file as `snapshot` has it.
+#[cfg(test)]
+fn confirmation(snapshot: u64, commit: Option<CommitHash>) -> Confirmation {
+    Confirmation {
+        project: PROJECT,
+        snapshot: SnapshotId::new(snapshot),
+        at: Timestamp(2_000),
+        commit,
+    }
+}
+
+#[test]
+fn only_the_newest_snapshot_is_confirmed() {
+    let store = registered_store();
+    assert_eq!(store.confirm(&confirmation(10, None)).unwrap(), None);
+    store.persist(first_scan(10)).unwrap();
+    let newer = store.persist(b_rewritten("App.B", vec![])).unwrap();
+    assert_eq!(
+        store.confirm(&confirmation(10, None)).unwrap(),
+        None,
+        "a snapshot written after the scan read the newest one is not stamped by it"
+    );
+    assert_eq!(store.latest_snapshot(PROJECT).unwrap(), Some(newer));
+}
+
+#[test]
+fn a_confirmed_snapshot_tells_the_warnings_of_its_scan() {
+    let store = registered_store();
+    let mut scan = first_scan(10);
+    scan.warnings = vec![ScanWarning {
+        code: ErrorCode::AmbiguousReference,
+        count: 4,
+    }];
+    store.persist(scan.clone()).unwrap();
+    let confirmed = store.confirm(&confirmation(10, None)).unwrap().unwrap();
+    assert_eq!(confirmed.warnings, scan.warnings);
+}
+
+#[test]
+fn layers_that_change_after_the_scan_build_the_layer_graph_of_the_newest_snapshot_again() {
+    let store = registered_store();
+    store.persist(first_scan(10)).unwrap();
+    assert_eq!(store.layer_edges(SnapshotId::new(10)).unwrap(), Vec::new());
+    let layers: &[(&str, &[&str])] = &[("Upper", &["App.A"]), ("Lower", &["App.B"])];
+    store
+        .save_project(&project(1, "/work/app", layers))
+        .unwrap();
+    let edges = store.layer_edges(SnapshotId::new(10)).unwrap();
+    let shown: Vec<_> = edges
+        .iter()
+        .map(|edge| (edge.from.as_str(), edge.to.as_str(), edge.count))
+        .collect();
+    assert_eq!(shown, [("Upper", "Lower", 1)]);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    assert_eq!(store.layer_edges(SnapshotId::new(10)).unwrap(), Vec::new());
+}
+
+#[test]
+fn the_head_of_the_newest_snapshot_leaves_the_symbols_to_a_second_read() {
+    let store = registered_store();
+    store.persist(first_scan(10)).unwrap();
+    let state = store.latest_state(PROJECT).unwrap();
+    let head = store.latest_head(PROJECT).unwrap();
+    assert_eq!(head.symbols, Vec::new());
+    assert_eq!(head.files, state.files);
+    assert_eq!(head.snapshot, state.snapshot);
+    assert_eq!(head.names_stored, state.names_stored);
+    assert_eq!(head.ambiguous_places, state.ambiguous_places);
+    let symbols = store.snapshot_symbols(SnapshotId::new(10)).unwrap();
+    assert_eq!(symbols, state.symbols);
 }
 
 #[test]

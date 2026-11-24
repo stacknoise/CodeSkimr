@@ -3,7 +3,7 @@ import type { BudgetTargets } from "../scan/types";
 /** The output of `status.info`. */
 export interface StatusInfo {
   /** The version of the program, as `codeskimr --version` prints it. */
-  version?: string;
+  version: string;
   /** Milliseconds from the start of the program until the server answered. */
   startup_ms: number | null;
   /** Memory of the program in megabytes. */

@@ -30,6 +30,9 @@ export const USAGES_ROUTE = { path: "/usages", label: I18N_KEYS.USAGES_TITLE } a
 /** The editor of the layers; it is reached from the settings and from the hints, so it has no
  * button in the rail. */
 export const LAYERS_ROUTE = { path: "/layers", label: I18N_KEYS.LAYERS_TITLE } as const;
+/** The list of the error codes to look up; it is reached from the settings, so it has no button in
+ * the rail. */
+export const CODES_ROUTE = { path: "/codes", label: I18N_KEYS.CODES_TITLE } as const;
 /** The board of the tasks and the notes of the project (mock 16). */
 export const ANNOTATIONS_ROUTE: Route = {
   path: "/annotations",

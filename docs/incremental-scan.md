@@ -12,9 +12,9 @@ project (rename, delete, new target, second candidate, new overload) and compare
 ## Steps
 
 1. **Discover.** The discovery adapter marks changed files. A file the previous snapshot does not know is
-   marked as changed here, whatever the adapter says. `ProjectRepository::latest_state` reads the
-   files and the symbols of the previous snapshot in one transaction, so a snapshot written in
-   between cannot make them disagree. The references are read later, and only those the scan needs
+   marked as changed here, whatever the adapter says. `ProjectRepository::latest_head` reads the
+   files of the previous snapshot and `snapshot_symbols` its symbols once a change is known; both
+   name the snapshot, so a snapshot written in between cannot make them disagree. The references are read later, and only those the scan needs
    (see "Which references are read"). `Carried::from_previous` splits the state into
    - the unchanged files and their symbols,
    - the references from unchanged files whose target is gone,
@@ -22,6 +22,10 @@ project (rename, delete, new target, second candidate, new overload) and compare
      (`PendingReference`), resolved or not,
    - the **removed** paths (in the previous snapshot, no longer on disk).
    A snapshot that does not store the names (written before migration 11) is followed by a full scan.
+   If the scan sees exactly the files of the previous snapshot, each with the stored hash, nothing
+   changed: the symbols are not read (`latest_head` reads the files only), the next three stages pass
+   through, and the persist stage writes no snapshot but confirms the previous one with the time of
+   the scan (`SnapshotStore::confirm`, ADR 0093).
 2. **Analyze.** Only changed files are analysed.
 3. **Resolve.** The global symbol table is the symbols of the unchanged files plus the new symbols. The
    resolver gets the new names and the names of the unchanged files, so it does exactly what a full scan

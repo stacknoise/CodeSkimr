@@ -4,20 +4,23 @@ use std::collections::HashMap;
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    Level2Replacement, SnapshotData, SnapshotStore, SymbolFingerprints,
+    Confirmation, Confirmed, Level2Replacement, SnapshotData, SnapshotStore, SymbolFingerprints,
 };
 use codeskimr_domain::{
     CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, SymbolId,
 };
 use rusqlite::{Connection, params};
 
+use crate::catalog::warnings;
 use crate::codec::column_int;
 use crate::consts::{
     BULK_FINGERPRINTS_MIN, BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR,
     PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON,
 };
 use crate::error::{StorageError, StorageResult};
-use crate::headers::{insert_metric, insert_reference, insert_symbol, set_totals, totals};
+use crate::headers::{
+    insert_metric, insert_reference, insert_symbol, latest_snapshot, set_totals, totals,
+};
 use crate::integrity;
 use crate::pending;
 use crate::projects::load_layers;
@@ -45,9 +48,40 @@ impl SnapshotStore for SqliteStore {
         .map_err(CodedError::from)
     }
 
+    fn confirm(&self, scan: &Confirmation) -> Result<Option<Confirmed>, CodedError> {
+        self.write(|tx| confirm(tx, scan)).map_err(CodedError::from)
+    }
+
     fn next_free_id(&self) -> Result<u64, CodedError> {
         Self::next_free_id(self)
     }
+}
+
+/// Marks the snapshot of `scan` as the result of a scan that found nothing changed, if it still
+/// is the newest of its project.
+fn confirm(conn: &Connection, scan: &Confirmation) -> StorageResult<Option<Confirmed>> {
+    let Some(latest) = latest_snapshot(conn, scan.project)?.filter(|it| it.id == scan.snapshot)
+    else {
+        return Ok(None);
+    };
+    conn.execute(
+        sql::SNAPSHOT_CONFIRM,
+        params![
+            scan.at.0,
+            scan.commit.as_ref().map(CommitHash::as_str),
+            ScanMode::Incremental.label(),
+            column_int(latest.id.get())?,
+        ],
+    )?;
+    Ok(Some(Confirmed {
+        warnings: warnings(conn, latest.id)?,
+        snapshot: Snapshot {
+            created: scan.at,
+            commit: scan.commit.clone(),
+            mode: ScanMode::Incremental,
+            ..latest
+        },
+    }))
 }
 
 pub(crate) fn write_snapshot(

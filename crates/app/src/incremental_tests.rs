@@ -378,6 +378,36 @@ fn the_names_read_in_one_incremental_scan_serve_the_next() {
 }
 
 #[test]
+fn a_scan_that_finds_nothing_changed_keeps_the_snapshot_and_a_change_after_it_is_still_seen() {
+    let root = tempfile::tempdir().unwrap();
+    let folder = root.path().join("project");
+    write_project(&folder, BASE, &[]);
+    let data = locations(&root.path().join("data"));
+    let step = session(&folder, &data);
+    step.scan_quick(ScanMode::Full).unwrap();
+    let before = (snapshot_id(&data), references_of(&data));
+
+    step.scan_quick(ScanMode::Incremental).unwrap();
+    assert_eq!(snapshot_id(&data), before.0, "no snapshot is written");
+    assert_eq!(latest_mode(&data), ScanMode::Incremental);
+    assert_eq!(references_of(&data), before.1);
+
+    // The oracle: the change after a scan without changes gives what a full scan gives.
+    apply(&folder, &[("Target.cs", Some(GOAL))]);
+    step.scan_quick(ScanMode::Incremental).unwrap();
+    assert_ne!(snapshot_id(&data), before.0, "the change is a new snapshot");
+    let (full, _) = both_ways(BASE, &[&[("Target.cs", Some(GOAL))]]);
+    assert_eq!(references_of(&data), full);
+}
+
+/// The id of the newest snapshot.
+fn snapshot_id(locations: &Locations) -> u64 {
+    let config = config_files::load(locations, &GlobalOptions::default(), None).unwrap();
+    let store = open_store(locations, &config).unwrap();
+    store.latest_snapshot(PROJECT).unwrap().unwrap().id.get()
+}
+
+#[test]
 fn a_change_that_is_undone_in_the_next_scan_leaves_no_trace() {
     let original = BASE[1].1;
     assert_same_in_steps(&[
