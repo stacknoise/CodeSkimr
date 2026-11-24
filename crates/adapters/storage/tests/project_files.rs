@@ -222,7 +222,7 @@ fn a_lost_catalog_does_not_cost_the_project_files() {
 
     let store = open(&db.0);
 
-    assert!(store.overviews().unwrap().is_empty());
+    assert_eq!(store.overviews().unwrap().len(), 0);
     assert!(
         project_file(&db.0, &first).exists(),
         "the file is left alone, not deleted"
@@ -240,7 +240,7 @@ fn a_file_of_another_installation_is_left_alone() {
     let store = open(&db.0);
 
     assert!(foreign.exists());
-    assert!(store.overviews().unwrap().is_empty());
+    assert_eq!(store.overviews().unwrap().len(), 0);
 }
 
 #[test]
@@ -252,7 +252,7 @@ fn the_database_of_an_earlier_version_is_not_opened_and_not_deleted() {
 
     let store = open(&db.0);
 
-    assert!(store.overviews().unwrap().is_empty());
+    assert_eq!(store.overviews().unwrap().len(), 0);
     assert!(old.exists());
 }
 
