@@ -2,6 +2,7 @@ import { createEffect, ErrorBoundary, For, onCleanup, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { AlertsDrawer } from "../features/alerts/Drawer";
 import { hideDrawer, refreshCount } from "../features/alerts/store";
+import { CodesScreen } from "../features/codes/CodesScreen";
 import { BoardScreen } from "../features/annotations/BoardScreen";
 import { ConnectionScreen } from "../features/session/ConnectionScreen";
 import { GraphScreen } from "../features/graph/GraphScreen";
@@ -26,6 +27,7 @@ import { cx } from "../shared/ui/cx";
 import { screenAt, type ScreenTable } from "../shared/ui/screenAt";
 import {
   ANNOTATIONS_ROUTE,
+  CODES_ROUTE,
   EXPLORER_ROUTE,
   FLUSH_PATHS,
   FOOTER_ROUTES,
@@ -49,6 +51,7 @@ import { currentPath, navigate } from "./router";
 const SCREENS: ScreenTable = [
   [SETTINGS_ROUTE.path, SettingsScreen],
   [LAYERS_ROUTE.path, LayersScreen],
+  [CODES_ROUTE.path, CodesScreen],
   [GRAPH_ROUTE.path, GraphScreen],
   [SCAN_ROUTE.path, ScanScreen],
   [STATS_ROUTE.path, StatsScreen],
