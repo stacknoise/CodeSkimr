@@ -685,7 +685,10 @@ mod stage_time_tests {
         ];
         let lines = stage_lines(events, ProjectId::new(1));
         assert_eq!(seen(&lines), [("measure", 0.07)]);
-        assert!(stage_lines([], ProjectId::new(1)).is_empty());
+        assert_eq!(
+            stage_lines([], ProjectId::new(1)),
+            Vec::<codeskimr_cli::StageLine>::new()
+        );
     }
 }
 
