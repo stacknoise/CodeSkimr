@@ -23,6 +23,7 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0019_ambiguous_places.sql"),
     include_str!("../migrations/0020_symbol_statistics.sql"),
     include_str!("../migrations/0021_snapshot_skipped_files.sql"),
+    include_str!("../migrations/0022_project_removing.sql"),
 ];
 
 /// Name of the pragma that holds the schema version.
@@ -144,6 +145,12 @@ pub const BULK_REFERENCES_MIN: usize = 20_000;
 /// The indexes are built again after the load when the new references are at least this share of
 /// the stored ones, expressed as "one in N" (a load of half the table or more).
 pub const BULK_REFERENCES_SHARE_DIVISOR: usize = 2;
+
+/// Files whose shared rows one write of a project removal deletes. A removal goes in slices so
+/// that other writes (a rename, a scan of another project) get their turn in between.
+pub const REMOVAL_FILES_PER_SLICE: usize = 500;
+/// Pause between two slices of a removal, in milliseconds, so a waiting write gets the connection.
+pub const REMOVAL_PAUSE_MS: u64 = 5;
 
 /// Position of the kind in a row of `REFERENCE_TARGETS`.
 pub const REFERENCE_KIND_COLUMN: usize = 2;

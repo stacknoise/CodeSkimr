@@ -1,6 +1,6 @@
 //! Which projects are being scanned right now.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
@@ -14,7 +14,18 @@ use crate::consts::{IDLE_POLL, MAX_PARALLEL_SCANS};
 
 /// The projects with a running scan; a second scan of the same project is refused (`PRJ-302`).
 #[derive(Debug, Clone, Default)]
-pub struct RunningScans(Arc<Mutex<BTreeMap<u64, Option<CancelToken>>>>);
+pub struct RunningScans {
+    scans: Arc<Mutex<BTreeMap<u64, Option<CancelToken>>>>,
+    /// The projects among them that are being removed, not scanned.
+    removing: Arc<Mutex<BTreeSet<u64>>>,
+}
+
+/// Marks a project as being removed until it is dropped.
+#[derive(Debug)]
+pub struct RemovalMark {
+    removing: Arc<Mutex<BTreeSet<u64>>>,
+    project: ProjectId,
+}
 
 /// Marks a project as scanning until it is dropped.
 #[derive(Debug)]
@@ -25,7 +36,30 @@ pub struct ScanGuard {
 
 impl RunningScans {
     fn lock(&self) -> MutexGuard<'_, BTreeMap<u64, Option<CancelToken>>> {
-        self.0.lock().unwrap_or_else(PoisonError::into_inner)
+        self.scans.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// Marks `project` as being removed, which the project list shows as such and not as a scan.
+    /// The scan lock of `start` is still needed; this only names what holds it.
+    #[must_use]
+    pub fn mark_removing(&self, project: ProjectId) -> RemovalMark {
+        self.removing
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(project.get());
+        RemovalMark {
+            removing: Arc::clone(&self.removing),
+            project,
+        }
+    }
+
+    /// Whether `project` is being removed.
+    #[must_use]
+    pub fn is_removing(&self, project: ProjectId) -> bool {
+        self.removing
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .contains(&project.get())
     }
 
     /// Marks `project` as scanning.
@@ -118,6 +152,15 @@ impl ProjectScanner for ExclusiveScans {
 impl Drop for ScanGuard {
     fn drop(&mut self) {
         self.scans.lock().remove(&self.project.get());
+    }
+}
+
+impl Drop for RemovalMark {
+    fn drop(&mut self) {
+        self.removing
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(&self.project.get());
     }
 }
 

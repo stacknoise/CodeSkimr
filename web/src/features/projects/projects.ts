@@ -45,6 +45,11 @@ export function cancelRename(): void {
   setRenaming(null);
 }
 
+/** Closes the name edit if it is the one of project `id`. */
+export function cancelRenameOf(id: number): void {
+  setRenaming((open) => (open?.id === id ? null : open));
+}
+
 /** Saves the typed name of the open edit; an empty name goes back to the suggested one. Returns
  * whether it worked; a failure stays on the screen and the edit stays open. */
 export async function saveRename(): Promise<boolean> {
