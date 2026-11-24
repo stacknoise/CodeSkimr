@@ -1,4 +1,4 @@
-# 0092 – A scan that finds nothing changed writes no snapshot
+# 0093 – A scan that finds nothing changed writes no snapshot
 
 Status: proposed (hand test of 1.0.0-rc.6 by Anton of 2026-11-24: an incremental scan of `microsoft/vscode` without any change took 56.8 s)
 
