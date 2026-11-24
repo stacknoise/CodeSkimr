@@ -27,9 +27,9 @@ use crate::error::StorageResult;
 use crate::ranking_rows::{Filter, facts_of, filter_of};
 use crate::sql;
 use crate::statistics::load_facts;
-use crate::store::{Build, SqliteStore};
+use crate::store::{Build, ProjectDb};
 
-impl SqliteStore {
+impl ProjectDb {
     /// Makes sure the numbers of `snapshot` exist and were counted for `names`: counts them if
     /// not, once even if several callers ask at the same time.
     fn ensure_statistics(&self, snapshot: SnapshotId, names: &[String]) -> StorageResult<()> {
@@ -252,7 +252,7 @@ fn insert_row(
     Ok(())
 }
 
-impl CodeStatistics for SqliteStore {
+impl CodeStatistics for ProjectDb {
     fn symbol_facts(&self, snapshot: SnapshotId) -> Result<Vec<SymbolFacts>, CodedError> {
         let raw = column_int(snapshot.get())?;
         // The load takes long for a large project: it runs on a connection of its own, so the

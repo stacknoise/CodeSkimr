@@ -12,7 +12,7 @@ use codeskimr_domain::{
     Confidence, Direction, FileId, Reference, ReferenceId, ReferenceKind, SnapshotId, SymbolId,
     UsageQuery,
 };
-use codeskimr_storage::SqliteStore;
+use codeskimr_storage::ProjectDb;
 use criterion::Criterion;
 
 mod common;
@@ -50,7 +50,7 @@ fn reference(id: u64) -> Option<Reference> {
     })
 }
 
-fn store() -> Option<SqliteStore> {
+fn store() -> Option<ProjectDb> {
     common::store(
         (1..=SYMBOLS)
             .filter_map(|id| common::symbol(id, &format!("item{id}")))
@@ -73,7 +73,7 @@ fn query(direction: Direction, depth: u32) -> UsageQuery {
 /// The reads of one `usages.query` call at depth 2 for the hub, in the order the command makes
 /// them: the walk in both directions, the direct usages for the counts, and the impact. A failed
 /// read ends the benchmark.
-fn command_reads(store: &SqliteStore) -> Option<()> {
+fn command_reads(store: &ProjectDb) -> Option<()> {
     let snapshot = SnapshotId::new(SNAPSHOT);
     for walk in [
         query(Direction::Incoming, MAX_DEPTH),

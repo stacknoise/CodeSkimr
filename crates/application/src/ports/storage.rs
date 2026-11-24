@@ -331,13 +331,15 @@ pub trait SnapshotStore: Send + Sync {
     /// A coded failure of the `STO` group; nothing is changed then.
     fn confirm(&self, scan: &Confirmation) -> Result<Option<Confirmed>, CodedError>;
 
-    /// The first id that is higher than every stored id. The scanner moves its id sequence up to
-    /// it when a scan starts, so ids that another process wrote in the meantime are not handed
-    /// out again. Every store answers this itself: a default would hide ids handed out twice.
+    /// The first free ids in the file of `project`: the first id above every stored id of a file,
+    /// symbol or reference, and the first free snapshot id (ADR 0095). The scanner moves its id
+    /// sequence up to them when a scan starts, so ids that another process wrote in the meantime
+    /// are not handed out again. Every store answers this itself: a default would hide ids
+    /// handed out twice.
     ///
     /// # Errors
     /// A coded failure of the `STO` group.
-    fn next_free_id(&self) -> Result<u64, CodedError>;
+    fn next_free_ids(&self, project: ProjectId) -> Result<(u64, u64), CodedError>;
 }
 
 /// Removes a project and everything stored about it.

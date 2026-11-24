@@ -10,7 +10,7 @@ use rusqlite::{Connection, params};
 use crate::codec::{Cols, column_int, label_from, small_from};
 use crate::error::StorageResult;
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 
 /// The columns of `STATE_SYMBOLS`, still raw.
 struct StateRow {
@@ -128,7 +128,7 @@ fn same_name(
     .collect()
 }
 
-impl SqliteStore {
+impl ProjectDb {
     /// Makes the indexes of the alert step if the database lacks one (once per database: a scan
     /// that writes symbols keeps them up to date from then on).
     fn ensure_state_indexes(&self) -> StorageResult<()> {
@@ -141,7 +141,7 @@ impl SqliteStore {
     }
 }
 
-impl SymbolStates for SqliteStore {
+impl SymbolStates for ProjectDb {
     fn states(
         &self,
         snapshot: SnapshotId,

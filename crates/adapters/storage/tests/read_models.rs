@@ -18,7 +18,7 @@ fn names(hits: &[codeskimr_storage::SearchHit]) -> Vec<&str> {
 }
 
 #[cfg(test)]
-fn searchable() -> codeskimr_storage::SqliteStore {
+fn searchable() -> codeskimr_storage::ProjectDb {
     let symbols = vec![
         symbol(21, 11, SymbolKind::Class, "App.Order", None),
         symbol(22, 11, SymbolKind::Class, "App.OrderService", None),
@@ -147,7 +147,7 @@ fn type_summary_has_members_and_metrics_for_types_only() {
 }
 
 #[cfg(test)]
-fn layered() -> codeskimr_storage::SqliteStore {
+fn layered() -> codeskimr_storage::ProjectDb {
     let layers = [
         ("Api", &["App.Api"][..]),
         ("Core", &["App.Core"]),

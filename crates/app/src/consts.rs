@@ -31,8 +31,8 @@ pub const HOME_DATA_PARTS: [&str; 2] = [".local", "share"];
 /// Path of the application support base below the home folder on macOS.
 pub const HOME_MACOS_PARTS: [&str; 2] = ["Library", "Application Support"];
 
-/// The `SQLite` database inside the data folder.
-pub const DATABASE_FILE: &str = "codeskimr.db";
+/// The catalog database inside the data folder; the project files lie in the folder `projects` beside it (ADR 0095).
+pub const DATABASE_FILE: &str = "catalog.db";
 /// Empty file whose lock serialises the creation of the installation token.
 /// How long the first start waits for the token lock of another program.
 pub const TOKEN_LOCK_WAIT: Duration = Duration::from_secs(10);

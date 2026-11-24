@@ -6,8 +6,8 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    LanguageShare, LeftOut, ProjectCatalog, ProjectOverview, ProjectToolCheck, ScanReportStore,
-    ScanWarning,
+    DatabaseInfo, DatabaseState, LanguageShare, LeftOut, ProjectCatalog, ProjectOverview,
+    ProjectToolCheck, ScanReportStore, ScanWarning,
 };
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_application::report_view::ReportView;
@@ -18,11 +18,11 @@ use serde::{Deserialize, Serialize};
 
 use super::Context;
 use super::consts::{
-    ADD_DESCRIPTION, ADD_TITLE, CANCEL_DESCRIPTION, CANCEL_TITLE, KIND_FOLDER, KIND_GIT,
-    LEVEL2_NOT_REQUESTED, LEVEL2_NOT_STARTED, LEVEL2_STARTED, LIST_DESCRIPTION, LIST_TITLE,
-    PROJECTS_ADD, PROJECTS_CANCEL, PROJECTS_LIST, PROJECTS_RESCAN, PROJECTS_TOOLS,
-    RESCAN_DESCRIPTION, RESCAN_TITLE, SHORTCUT_NEW, SHORTCUT_RESCAN, TOOLS_DESCRIPTION,
-    TOOLS_TITLE,
+    ADD_DESCRIPTION, ADD_TITLE, CANCEL_DESCRIPTION, CANCEL_TITLE, DATABASE_MISSING, DATABASE_OK,
+    DATABASE_REMOVING, DATABASE_UNREADABLE, KIND_FOLDER, KIND_GIT, LEVEL2_NOT_REQUESTED,
+    LEVEL2_NOT_STARTED, LEVEL2_STARTED, LIST_DESCRIPTION, LIST_TITLE, PROJECTS_ADD,
+    PROJECTS_CANCEL, PROJECTS_LIST, PROJECTS_RESCAN, PROJECTS_TOOLS, RESCAN_DESCRIPTION,
+    RESCAN_TITLE, SHORTCUT_NEW, SHORTCUT_RESCAN, TOOLS_DESCRIPTION, TOOLS_TITLE,
 };
 use crate::scan::{BrowserScan, Level2Start, open_on, reopen};
 use crate::source_arg::{SourceError, classify};
@@ -82,6 +82,30 @@ pub struct LeftOutRow {
     pub kept: bool,
 }
 
+/// The file that holds the data of a project (ADR 0095).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct DatabaseRow {
+    /// The path of the database file of the project, on the machine that runs the program.
+    pub path: String,
+    /// Size of the file with its write-ahead log, in bytes; 0 if it is missing.
+    pub size_bytes: u64,
+    /// `ok`, `missing` or `removing`.
+    pub state: &'static str,
+}
+
+fn database_row(info: &DatabaseInfo) -> DatabaseRow {
+    DatabaseRow {
+        path: info.path.clone(),
+        size_bytes: info.size_bytes,
+        state: match info.state {
+            DatabaseState::Ok => DATABASE_OK,
+            DatabaseState::Missing => DATABASE_MISSING,
+            DatabaseState::Removing => DATABASE_REMOVING,
+            DatabaseState::Unreadable => DATABASE_UNREADABLE,
+        },
+    }
+}
+
 /// One row of the project list.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ProjectRow {
@@ -118,6 +142,8 @@ pub struct ProjectRow {
     /// Whether that removal stopped before it was done (the app was closed meanwhile); it goes on
     /// when the removal is asked for again.
     pub interrupted: bool,
+    /// Where the data of the project lies and how large it is (ADR 0095).
+    pub database: Option<DatabaseRow>,
     /// What the last check of the tools found; `None` if the project was never checked.
     pub tools: Option<ToolsView>,
     /// What the newest scan says about itself: level, channel and what level 2 did per language;
@@ -211,6 +237,7 @@ fn project_row(
         running: running && !marked && !overview.removing,
         removing: marked || overview.removing,
         interrupted: overview.removing && !marked,
+        database: overview.database.as_ref().map(database_row),
         tools,
         report,
     }

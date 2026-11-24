@@ -20,12 +20,6 @@ pub const PROJECT_UPSERT: &str = "INSERT INTO projects (id, name, source_kind, l
     location = excluded.location, branch = excluded.branch, credential = excluded.credential";
 /// Whether a project exists: id.
 pub const PROJECT_EXISTS: &str = "SELECT COUNT(*) FROM projects WHERE id = ?1";
-/// Removes a project; layers, consent, tool reports and annotations follow by cascade: id.
-pub const PROJECT_DELETE: &str = "DELETE FROM projects WHERE id = ?1";
-/// The ids of the files of a snapshot, in order: snapshot.
-pub const SNAPSHOT_FILE_IDS: &str = "SELECT id FROM files WHERE snapshot_id = ?1 ORDER BY id";
-/// All snapshots of a project: project id.
-pub const SNAPSHOTS_OF_PROJECT: &str = "SELECT id FROM snapshots WHERE project_id = ?1";
 /// Removes the layers of a project (their namespaces go with them): project id.
 pub const LAYERS_DELETE: &str = "DELETE FROM layers WHERE project_id = ?1";
 /// Adds a layer: project id, position, name, whether it has a `may_use` list.
@@ -51,6 +45,14 @@ pub const NAMESPACES_OF_LAYER: &str = "SELECT namespace FROM layer_namespaces \
 pub const MAX_ID: &str = "SELECT MAX(id) FROM (\
     SELECT MAX(id) AS id FROM snapshots UNION ALL SELECT MAX(id) FROM files \
     UNION ALL SELECT MAX(id) FROM symbol_rows UNION ALL SELECT MAX(id) FROM symbol_references)";
+
+/// Highest id of any stored file, symbol or reference (the ids that only count in one file).
+pub const MAX_ROW_ID: &str = "SELECT MAX(id) FROM (\
+    SELECT MAX(id) AS id FROM files UNION ALL SELECT MAX(id) FROM symbol_rows \
+    UNION ALL SELECT MAX(id) FROM symbol_references)";
+
+/// Highest id of any stored snapshot.
+pub const MAX_SNAPSHOT_ID: &str = "SELECT MAX(id) FROM snapshots";
 
 /// Highest id of any registered project.
 pub const MAX_PROJECT_ID: &str = "SELECT MAX(id) FROM projects";
@@ -177,16 +179,6 @@ pub const SNAPSHOT_CONTENT_DELETE: &[&str] = &[
     "DELETE FROM snapshot_statistics WHERE snapshot_id = ?1",
     "DELETE FROM files WHERE snapshot_id = ?1",
 ];
-/// The big tables of a snapshot, deleted a part at a time when a project is removed: snapshot and
-/// the number of rows of one part, less one. Each deletes the first rows in the order of the primary
-/// key, so that a statement holds the store only for the time of that part, not of all rows.
-pub const SNAPSHOT_PART_DELETE: &[&str] = &[
-    "DELETE FROM search_index WHERE snapshot_id = ?1 AND symbol_id <= COALESCE((SELECT symbol_id FROM search_index WHERE snapshot_id = ?1 ORDER BY symbol_id LIMIT 1 OFFSET ?2), 9223372036854775807)",
-    "DELETE FROM usage_counts WHERE snapshot_id = ?1 AND symbol_id <= COALESCE((SELECT symbol_id FROM usage_counts WHERE snapshot_id = ?1 ORDER BY symbol_id LIMIT 1 OFFSET ?2), 9223372036854775807)",
-    "DELETE FROM type_summary WHERE snapshot_id = ?1 AND symbol_id <= COALESCE((SELECT symbol_id FROM type_summary WHERE snapshot_id = ?1 ORDER BY symbol_id LIMIT 1 OFFSET ?2), 9223372036854775807)",
-    "DELETE FROM symbol_statistics WHERE snapshot_id = ?1 AND symbol_id <= COALESCE((SELECT symbol_id FROM symbol_statistics WHERE snapshot_id = ?1 ORDER BY symbol_id LIMIT 1 OFFSET ?2), 9223372036854775807)",
-    "DELETE FROM coupling_rows WHERE snapshot_id = ?1 AND symbol_id <= COALESCE((SELECT symbol_id FROM coupling_rows WHERE snapshot_id = ?1 ORDER BY symbol_id LIMIT 1 OFFSET ?2), 9223372036854775807)",
-];
 /// Empties the layer graph of a snapshot before it is built again for other layers: snapshot.
 pub const LAYER_GRAPH_DELETE: &str = "DELETE FROM layer_graph WHERE snapshot_id = ?1";
 /// The read models of a snapshot, emptied before they are built again: snapshot.
@@ -243,10 +235,6 @@ pub const SYMBOL_INSERT: &str = "INSERT INTO symbol_rows (id, file_id, kind, nam
 pub const REFERENCE_INSERT: &str = "INSERT INTO symbol_references (id, first_snapshot, \
     from_symbol, to_symbol, file_id, start_line, start_column, end_line, end_column, kind, \
     confidence, verified) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)";
-/// Sum of the reference totals of the snapshots of a project: project id. Rows that incremental
-/// snapshots share count more than once, so it is an upper bound, enough to size a removal.
-pub const PROJECT_REFERENCE_COUNT: &str =
-    "SELECT COALESCE(SUM(refs), 0) FROM snapshots WHERE project_id = ?1";
 /// Number of stored references, over all snapshots.
 pub const REFERENCE_COUNT: &str = "SELECT COUNT(*) FROM symbol_references";
 /// Drops the indexes of `symbol_references` before a bulk load; `REFERENCE_INDEXES_CREATE` builds

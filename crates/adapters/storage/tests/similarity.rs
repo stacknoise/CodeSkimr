@@ -51,7 +51,7 @@ fn first_scan() -> codeskimr_application::ports::SnapshotData {
 }
 
 #[cfg(test)]
-fn registered() -> codeskimr_storage::SqliteStore {
+fn registered() -> codeskimr_storage::ProjectDb {
     let store = store(3);
     store.save_project(&project(1, "/work/app", &[])).unwrap();
     store.persist(first_scan()).unwrap();
@@ -60,7 +60,7 @@ fn registered() -> codeskimr_storage::SqliteStore {
 
 #[cfg(test)]
 fn ask(
-    store: &codeskimr_storage::SqliteStore,
+    store: &codeskimr_storage::ProjectDb,
     snapshot: SnapshotId,
     hashes: &[u64],
     minimum_percent: u32,
@@ -71,7 +71,7 @@ fn ask(
 /// The same with a symbol to leave out and a limit: `(minimum percent, excluded, limit)`.
 #[cfg(test)]
 fn ask_with(
-    store: &codeskimr_storage::SqliteStore,
+    store: &codeskimr_storage::ProjectDb,
     snapshot: SnapshotId,
     hashes: &[u64],
     (minimum_percent, exclude, limit): (u32, Option<SymbolId>, u32),

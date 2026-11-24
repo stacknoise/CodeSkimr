@@ -18,7 +18,7 @@ use codeskimr_domain::{
     NewAnnotation, ProjectId, QualifiedName, ReferenceKind, Snapshot, SnapshotId, SnapshotStats,
     Symbol, SymbolId, SymbolKind, Timestamp,
 };
-use codeskimr_storage::SqliteStore;
+use codeskimr_storage::ProjectDb;
 use criterion::Criterion;
 
 mod common;
@@ -54,7 +54,7 @@ fn name(id: u64) -> String {
     format!("function{id}")
 }
 
-fn annotate(store: &SqliteStore, id: u64) -> Option<()> {
+fn annotate(store: &ProjectDb, id: u64) -> Option<()> {
     let target = symbol(id, &name(id))?;
     store
         .create_annotation(&AnnotationCreation {
@@ -84,7 +84,7 @@ fn annotate(store: &SqliteStore, id: u64) -> Option<()> {
 /// Writes the second snapshot: the same files under new ids with `symbols` and `hashes` (their ids
 /// and files are moved to the new ones) and `pending` names that point at nothing.
 fn next_snapshot(
-    store: &SqliteStore,
+    store: &ProjectDb,
     symbols: Vec<Symbol>,
     hashes: Vec<SymbolHash>,
     pending: u64,

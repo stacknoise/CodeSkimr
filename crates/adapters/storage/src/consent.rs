@@ -8,9 +8,9 @@ use rusqlite::{OptionalExtension, params};
 use crate::codec::column_int;
 use crate::error::StorageError;
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 
-impl ConsentStore for SqliteStore {
+impl ConsentStore for ProjectDb {
     fn consent(&self, project: ProjectId) -> Result<ConsentRecord, CodedError> {
         self.read(|conn| {
             let row: Option<(bool, bool)> = conn

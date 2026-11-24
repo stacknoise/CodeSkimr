@@ -24,7 +24,7 @@ const FORBIDDEN: [&str; 7] = [
 const IMPORTS: [&str; 2] = ["confirm", "revoke"];
 /// The definitions, the re-exports, the storage adapter, the one interactive command and its
 /// tests (compiled only for tests), and the command `level2.revoke`.
-const ALLOWED: [&str; 7] = [
+const ALLOWED: [&str; 8] = [
     "app/src/level2_consent.rs",
     // The command `level2.revoke` (ADR 0071): the one more caller, and only of `revoke`.
     "app/src/ui_commands/level2_revoke.rs",
@@ -33,6 +33,9 @@ const ALLOWED: [&str; 7] = [
     "application/src/ports/consent.rs",
     "application/src/ports/mod.rs",
     "storage/src/consent.rs",
+    // The router over the project files: it may only forward the port call `store_consent` with
+    // the finished grant to the right file; it never builds a grant (ADR 0095).
+    "storage/src/set/ports.rs",
 ];
 
 /// The code of a file without its comment lines and without white space.
@@ -151,5 +154,20 @@ fn opening_the_window_is_no_way_to_a_consent() {
             !reaches_consent(&fs::read_to_string(file).unwrap()),
             "{file:?}"
         );
+    }
+}
+
+/// The router over the project files only forwards a finished grant: it never names the way to
+/// make one (ADR 0095).
+#[test]
+fn the_router_of_the_project_files_only_forwards_a_grant() {
+    let file = product::product_sources()
+        .into_iter()
+        .find(|file| file.ends_with("storage/src/set/ports.rs"))
+        .unwrap();
+    let code = squeezed(&fs::read_to_string(file).unwrap());
+    assert!(code.contains("store_consent"));
+    for name in ["level2::", "ConsentGrant::new", "ConsentWriter"] {
+        assert!(!code.contains(name), "{name}");
     }
 }

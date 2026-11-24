@@ -75,7 +75,7 @@ fn timed_scan(
 }
 
 #[cfg(test)]
-fn parse_micros_of_the_newest(store: &codeskimr_storage::SqliteStore) -> Option<u64> {
+fn parse_micros_of_the_newest(store: &codeskimr_storage::ProjectDb) -> Option<u64> {
     store.overviews().unwrap()[0].languages[0].parse_micros
 }
 
@@ -113,7 +113,7 @@ fn the_warnings_of_the_newest_scan_are_read_back_and_not_carried_over() {
         scan
     };
     let newest =
-        |store: &codeskimr_storage::SqliteStore| store.overviews().unwrap().remove(0).warnings;
+        |store: &codeskimr_storage::ProjectDb| store.overviews().unwrap().remove(0).warnings;
     store.persist(timed_scan(10, ScanMode::Full, None)).unwrap();
     assert_eq!(newest(&store), Vec::new());
     store.persist(warned(20, ScanMode::Full, 7)).unwrap();
@@ -143,7 +143,7 @@ fn the_files_the_newest_scan_left_out_are_read_back_and_not_carried_over() {
         kept,
     };
     let newest =
-        |store: &codeskimr_storage::SqliteStore| store.overviews().unwrap().remove(0).left_out;
+        |store: &codeskimr_storage::ProjectDb| store.overviews().unwrap().remove(0).left_out;
     store.persist(timed_scan(10, ScanMode::Full, None)).unwrap();
     assert_eq!(newest(&store), Vec::new());
     let mut scan = timed_scan(20, ScanMode::Full, None);

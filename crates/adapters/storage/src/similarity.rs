@@ -17,7 +17,7 @@ use crate::codec::{Cols, SpanColumns, column_int, id_from, json_list, label_from
 use crate::consts::{HASH_BYTES, PERCENT_BASE};
 use crate::error::StorageResult;
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 
 /// A 64-bit hash as the signed integer of its column, bit for bit.
 fn to_column(hash: u64) -> i64 {
@@ -183,7 +183,7 @@ fn distinct_hashes(query: &Fingerprints) -> usize {
     hashes.len()
 }
 
-impl SimilarityIndex for SqliteStore {
+impl SimilarityIndex for ProjectDb {
     fn fingerprints_of(
         &self,
         snapshot: SnapshotId,

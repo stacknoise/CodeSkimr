@@ -40,6 +40,32 @@ pub struct ProjectOverview {
     pub left_out: Vec<LeftOut>,
     /// The removal of the project has begun and may be interrupted; it has no data to show.
     pub removing: bool,
+    /// The file that holds the project; `None` for a store that keeps no files.
+    pub database: Option<DatabaseInfo>,
+}
+
+/// What the file of a project is: it exists, it is missing, it cannot be opened, or it is being removed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DatabaseState {
+    /// The file is there.
+    Ok,
+    /// The project is registered but its file is not there.
+    Missing,
+    /// The removal of the project has begun.
+    Removing,
+    /// The file is there but cannot be opened; the project is listed so that it can be removed.
+    Unreadable,
+}
+
+/// Where the data of a project lies and how large it is (ADR 0095).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DatabaseInfo {
+    /// The path of the database file of the project.
+    pub path: String,
+    /// The size of the file with its write-ahead log, in bytes; 0 if it is missing.
+    pub size_bytes: u64,
+    /// Whether the file is there.
+    pub state: DatabaseState,
 }
 
 /// Reads the registered projects.

@@ -9,7 +9,7 @@ use crate::codec::{Cols, column_int, id_from, json_labels, label_from, small_fro
 use crate::consts::{CONTAINER_KINDS, TYPE_KINDS};
 use crate::error::StorageResult;
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 
 /// A row of `OUTLINE_OF_KIND` as stored.
 struct NodeRow {
@@ -140,7 +140,7 @@ fn member_rows(
     Ok(found)
 }
 
-impl CodeOutline for SqliteStore {
+impl CodeOutline for ProjectDb {
     fn outline(&self, snapshot: SnapshotId) -> Result<Vec<OutlineNode>, CodedError> {
         self.read_apart(|conn| outline(conn, snapshot))
             .map_err(CodedError::from)

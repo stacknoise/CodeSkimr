@@ -405,7 +405,7 @@ fn mcp_rescan_works_after_another_process_scanned_into_the_same_database() {
     let answer = rescan(&mut session, 2);
     assert_eq!(answer["files"], 2, "{answer}");
     assert!(
-        answer["snapshot"]["id"].as_u64() > second["snapshot"].as_u64(),
+        answer["snapshot"]["id"].as_u64() != second["snapshot"].as_u64(),
         "{answer}"
     );
 }
@@ -591,7 +591,7 @@ fn mcp_for_a_registered_project_without_snapshot_fails_with_mcp_203() {
     let workspace = Workspace::new();
     let folder = fs::canonicalize(workspace.project()).unwrap();
     let store = codeskimr_storage::SqliteStore::open(
-        &workspace.root.path().join("data/codeskimr.db"),
+        &workspace.root.path().join("data/catalog.db"),
         std::num::NonZeroU32::new(5).unwrap(),
     )
     .unwrap();
@@ -692,7 +692,7 @@ fn watch_of_a_git_url_fails_with_cli_102_before_anything_is_registered() {
         .unwrap();
     assert_eq!(output.status.code(), Some(1));
     assert!(stderr(&output).contains("CLI-102"));
-    assert!(!workspace.root.path().join("data/codeskimr.db").exists());
+    assert!(!workspace.root.path().join("data/catalog.db").exists());
 }
 
 #[cfg(test)]

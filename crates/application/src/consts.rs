@@ -161,3 +161,9 @@ pub const COPY_COMMAND_SEPARATOR: char = ' ';
 pub const FIELD_SEPARATOR: u8 = 0;
 /// Length of [`FIELD_SEPARATOR`] in bytes.
 pub const SEPARATOR_LEN: usize = 1;
+
+/// Bits of a snapshot id that count the snapshots of one project; the project number sits above
+/// them (ADR 0095). 20 + 33 = 53 bits, the largest integer range a browser reads exactly.
+pub const COUNTER_BITS: u32 = 33;
+/// The highest project number a snapshot id can carry.
+pub const MAX_PROJECT_NUMBER: u64 = (1 << 20) - 1;

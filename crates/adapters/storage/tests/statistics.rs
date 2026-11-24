@@ -18,7 +18,7 @@ mod tests {
 
     /// `Main` calls `Save` for certain and once only probably and overrides it (which makes no
     /// sense, but is a reference like any other), `Save` calls itself, and a test calls `Save`.
-    fn store() -> codeskimr_storage::SqliteStore {
+    fn store() -> codeskimr_storage::ProjectDb {
         let symbols = vec![
             symbol(20, 11, SymbolKind::Class, "App.Repo", None),
             symbol(21, 11, SymbolKind::Method, "App.Main", None),
@@ -94,11 +94,11 @@ mod tests {
 
     /// Three files with types and members of every kind: used and unused, public and private,
     /// ties in every value, a constructor, an override and a test file that calls into the app.
-    fn varied() -> codeskimr_storage::SqliteStore {
+    fn varied() -> codeskimr_storage::ProjectDb {
         filled(super::common::store(3))
     }
 
-    fn filled(store: codeskimr_storage::SqliteStore) -> codeskimr_storage::SqliteStore {
+    fn filled(store: codeskimr_storage::ProjectDb) -> codeskimr_storage::ProjectDb {
         use codeskimr_application::ports::SnapshotStore;
         use codeskimr_domain::ScanMode;
         store
@@ -209,7 +209,7 @@ mod tests {
         all
     }
 
-    fn marked(store: &codeskimr_storage::SqliteStore, names: &[String]) -> Vec<SymbolFacts> {
+    fn marked(store: &codeskimr_storage::ProjectDb, names: &[String]) -> Vec<SymbolFacts> {
         let mut facts = store.symbol_facts(SNAPSHOT).unwrap();
         mark_tests(&mut facts, names);
         facts
@@ -248,8 +248,8 @@ mod tests {
     /// Two more projects with files of their own, so that the references of the first are read
     /// through its files and not in one pass over the table.
     fn next_to_larger_projects(
-        store: codeskimr_storage::SqliteStore,
-    ) -> codeskimr_storage::SqliteStore {
+        store: codeskimr_storage::ProjectDb,
+    ) -> codeskimr_storage::ProjectDb {
         use codeskimr_application::ports::SnapshotStore;
         use codeskimr_domain::{ProjectId, ScanMode};
 
@@ -279,7 +279,7 @@ mod tests {
         rankings_equal_the_calculation(&next_to_larger_projects(varied()));
     }
 
-    fn rankings_equal_the_calculation(store: &codeskimr_storage::SqliteStore) {
+    fn rankings_equal_the_calculation(store: &codeskimr_storage::ProjectDb) {
         let names = vec!["tests".to_owned()];
         let facts = marked(store, &names);
         assert!(facts.iter().any(|fact| fact.test) && facts.iter().any(|fact| !fact.test));
@@ -409,7 +409,7 @@ mod tests {
     fn a_snapshot_without_the_numbers_gets_them_at_the_first_question() {
         let db = super::common::TempDb::new();
         let store = filled(
-            codeskimr_storage::SqliteStore::open(&db.0, std::num::NonZeroU32::new(3).unwrap())
+            codeskimr_storage::ProjectDb::open(&db.0, std::num::NonZeroU32::new(3).unwrap())
                 .unwrap(),
         );
         let conn = rusqlite::Connection::open(&db.0).unwrap();

@@ -7,7 +7,7 @@ use codeskimr_application::ports::{
 use codeskimr_codes::ErrorCode;
 use std::collections::HashMap;
 
-use codeskimr_domain::{LanguageId, ProjectId, RelativePath, SnapshotId};
+use codeskimr_domain::{LanguageId, Project, ProjectId, RelativePath, SnapshotId};
 use rusqlite::{Connection, params};
 
 use crate::codec::{column_int, id_from, rows_of_snapshot, small_from};
@@ -15,7 +15,7 @@ use crate::error::StorageResult;
 use crate::headers::latest_snapshot;
 use crate::projects::{load_project, load_project_any};
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 
 fn project_ids(conn: &Connection) -> StorageResult<Vec<ProjectId>> {
     let mut statement = conn.prepare_cached(sql::PROJECT_IDS)?;
@@ -106,6 +106,20 @@ pub(crate) fn left_out(conn: &Connection, snapshot: SnapshotId) -> StorageResult
         .collect())
 }
 
+/// A project whose removal has begun: no data to show.
+fn removed_overview(project: Project) -> ProjectOverview {
+    ProjectOverview {
+        project,
+        latest: None,
+        types: u32::default(),
+        languages: Vec::new(),
+        warnings: Vec::new(),
+        left_out: Vec::new(),
+        removing: true,
+        database: None,
+    }
+}
+
 fn overview(conn: &Connection, id: ProjectId) -> StorageResult<ProjectOverview> {
     let removing: i64 = conn.query_row(
         sql::PROJECT_REMOVING,
@@ -113,15 +127,7 @@ fn overview(conn: &Connection, id: ProjectId) -> StorageResult<ProjectOverview> 
         |row| row.get(0),
     )?;
     if removing != 0 {
-        return Ok(ProjectOverview {
-            project: load_project_any(conn, id)?,
-            latest: None,
-            types: u32::default(),
-            languages: Vec::new(),
-            warnings: Vec::new(),
-            left_out: Vec::new(),
-            removing: true,
-        });
+        return Ok(removed_overview(load_project_any(conn, id)?));
     }
     let project = load_project(conn, id)?;
     let latest = latest_snapshot(conn, id)?;
@@ -145,6 +151,7 @@ fn overview(conn: &Connection, id: ProjectId) -> StorageResult<ProjectOverview> 
         warnings,
         left_out,
         removing: false,
+        database: None,
     })
 }
 
@@ -154,7 +161,7 @@ fn languages_of(conn: &Connection, id: ProjectId) -> StorageResult<Vec<LanguageS
         .map_or_else(|| Ok(Vec::new()), |snapshot| languages(conn, snapshot.id))
 }
 
-impl ProjectCatalog for SqliteStore {
+impl ProjectCatalog for ProjectDb {
     fn languages(&self, project: ProjectId) -> Result<Vec<LanguageShare>, CodedError> {
         self.read(|conn| languages_of(conn, project))
             .map_err(CodedError::from)

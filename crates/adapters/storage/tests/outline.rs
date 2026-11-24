@@ -10,7 +10,7 @@ use common::{metric, scanned, symbol};
 const SNAPSHOT: SnapshotId = SnapshotId::new(10);
 
 #[cfg(test)]
-fn store() -> codeskimr_storage::SqliteStore {
+fn store() -> codeskimr_storage::ProjectDb {
     let namespace = symbol(40, 11, SymbolKind::Namespace, "Shop", None);
     let cart = symbol(41, 11, SymbolKind::Class, "Shop.Cart", Some(40));
     let add = symbol(42, 11, SymbolKind::Method, "Shop.Cart.Add", Some(41));

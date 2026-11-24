@@ -22,9 +22,9 @@ use crate::codec::{Cols, column_int, label_from, small_from};
 use crate::consts::{KEPT_WALKS, PRAGMA_DATA_VERSION};
 use crate::error::{StorageError, StorageResult};
 use crate::sql;
-use crate::store::{Build, Kept, SqliteStore};
+use crate::store::{Build, Kept, ProjectDb};
 
-impl SqliteStore {
+impl ProjectDb {
     /// The `data_version` of the database: it changes when another connection commits, never for
     /// the commits of this one.
     pub(crate) fn data_version(&self) -> StorageResult<i64> {
@@ -169,7 +169,7 @@ fn dependency_edges(
     Ok(edges)
 }
 
-impl SqliteStore {
+impl ProjectDb {
     /// What `build` makes of a snapshot, kept in `kept` as long as no write came in: a second
     /// caller for the same build waits for the first and gets its result. The build reads on a
     /// connection of its own.
@@ -236,7 +236,7 @@ impl SqliteStore {
     }
 }
 
-impl UsageIndex for SqliteStore {
+impl UsageIndex for ProjectDb {
     fn usages(
         &self,
         snapshot: SnapshotId,
@@ -287,7 +287,7 @@ mod tests {
 
     use codeskimr_domain::SnapshotId;
 
-    use super::{Build, NamespaceGraph, SqliteStore};
+    use super::{Build, NamespaceGraph, ProjectDb};
 
     const SNAPSHOT: u64 = 7;
     const RETENTION: u32 = 3;
@@ -298,7 +298,7 @@ mod tests {
     /// Asks for the graph twice; `write_meanwhile` says whether a write comes in during the build.
     /// Returns how often the graph was built.
     fn builds_of_two_asks(write_meanwhile: bool) -> u32 {
-        let store = SqliteStore::open_in_memory(NonZeroU32::new(RETENTION).unwrap()).unwrap();
+        let store = ProjectDb::open_in_memory(NonZeroU32::new(RETENTION).unwrap()).unwrap();
         let builds = Cell::new(0);
         for _ in 0..2 {
             store
@@ -332,7 +332,7 @@ mod tests {
     /// and may see the state before it: it must not keep that.
     #[test]
     fn what_waited_at_the_gate_during_a_write_is_not_kept() {
-        let store = SqliteStore::open_in_memory(NonZeroU32::new(RETENTION).unwrap()).unwrap();
+        let store = ProjectDb::open_in_memory(NonZeroU32::new(RETENTION).unwrap()).unwrap();
         let snapshot = SnapshotId::new(SNAPSHOT);
         let gate = store.build_gate(i64::try_from(SNAPSHOT).unwrap(), Build::Graph);
         std::thread::scope(|scope| {

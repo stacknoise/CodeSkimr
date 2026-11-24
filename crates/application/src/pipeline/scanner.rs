@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    AlertTrigger, FolderPath, Permission, Principal, ProjectId, ProjectSource, ScanMode,
+    AlertTrigger, FolderPath, Permission, Principal, Project, ProjectId, ProjectSource, ScanMode,
     ScanOrigin, Snapshot,
 };
 
@@ -24,7 +24,7 @@ use crate::consts::{
 };
 use crate::error::CodedError;
 use crate::events::{Event, EventBus, Level2Finished, ScanStopped, SnapshotCreated, StopReason};
-use crate::ids::IdSequence;
+use crate::ids::{IdSequence, ProjectIds, project_of_snapshot};
 use crate::level2::{LanguageReport, Level2Outcome, Level2Pass, Skipped};
 use crate::ports::{
     Clock, FileAnalyzer, FileDiscovery, LanguageLine, LanguageOutcome, MemoryLimit, MemoryWatch,
@@ -33,6 +33,7 @@ use crate::ports::{
 };
 
 /// Everything the scanner needs from the adapters, wired by the composition root.
+#[derive(Clone)]
 pub struct ScannerPorts {
     /// Makes the source available.
     pub source: Arc<dyn SourceProvider>,
@@ -78,14 +79,14 @@ pub enum JobResult {
 
 /// Runs scan jobs. Create one per application and reuse it.
 pub struct Scanner {
-    pipeline: Pipeline<ScanFlow>,
+    ports: ScannerPorts,
     projects: Arc<dyn ProjectRepository>,
     events: EventBus,
     level2: Option<Level2Pass>,
     alerts: Option<AlertStep>,
     reports: Option<ReportStep>,
     analyzer: Arc<dyn FileAnalyzer>,
-    ids: Arc<IdSequence>,
+    ids: Arc<ProjectIds>,
     store: Arc<dyn SnapshotStore>,
     memory: Option<MemoryLimit>,
 }
@@ -124,21 +125,20 @@ fn pipeline_of(ports: &ScannerPorts, ids: &Arc<IdSequence>) -> Pipeline<ScanFlow
 }
 
 impl Scanner {
-    /// Wires the six stages from `ports`. `ids` is moved up to the store when a scan starts, so it
-    /// only has to be shared by the scanners that write to the same store in this process.
+    /// Takes the ports of the six stages. `ids` is moved up to the store when a scan starts, so
+    /// it only has to be shared by the scanners that write to the same store in this process.
     #[must_use]
-    pub fn new(ports: ScannerPorts, ids: &Arc<IdSequence>, events: EventBus) -> Self {
-        let pipeline = pipeline_of(&ports, ids);
+    pub fn new(ports: ScannerPorts, ids: &Arc<ProjectIds>, events: EventBus) -> Self {
         Self {
-            pipeline,
-            projects: ports.projects,
+            projects: Arc::clone(&ports.projects),
+            analyzer: Arc::clone(&ports.analyzer),
+            store: Arc::clone(&ports.store),
+            ports,
             events,
             level2: None,
             alerts: None,
             reports: None,
-            analyzer: ports.analyzer,
             ids: Arc::clone(ids),
-            store: ports.store,
             memory: None,
         }
     }
@@ -194,20 +194,18 @@ impl Scanner {
         if let Err(denied) = access::require(principal, Permission::Scan) {
             return JobResult::Failed(job.fail(denied.code()));
         }
-        let project = match self.projects.project(project_id) {
-            Ok(project) => project,
+        let (project, sequence) = match self.load(project_id) {
+            Ok(loaded) => loaded,
             Err(cause) => return self.fail(job.fail(cause.code()), project_id),
         };
-        if let Err(cause) = self.catch_up() {
-            return self.fail(job.fail(cause.code()), project_id);
-        }
+        let pipeline = pipeline_of(&self.ports, &sequence);
         let trigger = trigger_of(&project.source, job.trigger());
         let ctx = StageContext::new(project_id, job.token(), &self.events);
         let watch = self
             .memory
             .as_ref()
             .map(|limit| limit.watch(job.token().clone()));
-        let outcome = self.pipeline.run(
+        let outcome = pipeline.run(
             ScanRequest {
                 project,
                 mode,
@@ -228,12 +226,16 @@ impl Scanner {
         }
     }
 
+    /// The project of a job and the id sequence of its file, moved up to the file.
+    fn load(&self, project: ProjectId) -> Result<(Project, Arc<IdSequence>), CodedError> {
+        Ok((self.projects.project(project)?, self.catch_up(project)?))
+    }
+
     /// Moves the id sequence above every stored id. Another process (a scan in the terminal while
     /// the app or an MCP server runs) may have written rows since this scanner was built; without
     /// this its ids would be handed out a second time and the snapshot would be refused.
-    fn catch_up(&self) -> Result<(), CodedError> {
-        self.ids.advance_to(self.store.next_free_id()?);
-        Ok(())
+    fn catch_up(&self, project: ProjectId) -> Result<Arc<IdSequence>, CodedError> {
+        Ok(self.ids.of(project, self.store.next_free_ids(project)?))
     }
 
     /// Level 1 is complete and usable now; level 2 may take minutes. Tells so, runs the second
@@ -312,7 +314,7 @@ impl Scanner {
         let Some(pass) = &self.level2 else {
             return Vec::new();
         };
-        if let Err(cause) = self.catch_up() {
+        if let Err(cause) = self.catch_up(project_of_snapshot(run.snapshot.id)) {
             tracing::warn!(event = LOG_IDS_NOT_CAUGHT_UP, code = cause.code().id());
         }
         let done = pass.run(run.principal, run.snapshot, run.root, run.cancel);

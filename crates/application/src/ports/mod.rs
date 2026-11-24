@@ -40,7 +40,7 @@ pub use annotations::{
     AlertDismissal, AlertFilter, AlertPurge, AlertRaise, AnnotationCreation, AnnotationFilter,
     AnnotationStore, AnnotationUpdate,
 };
-pub use catalog::{LanguageShare, ProjectCatalog, ProjectOverview};
+pub use catalog::{DatabaseInfo, DatabaseState, LanguageShare, ProjectCatalog, ProjectOverview};
 pub use clock::Clock;
 pub use confirmation::{ConfirmationWindow, Level2Switch, WindowOutcome};
 pub use consent::{ConsentGrant, ConsentRecord, ConsentStore, RunPermit};

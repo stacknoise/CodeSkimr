@@ -13,7 +13,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from, small_from};
 use crate::error::StorageResult;
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 
 /// The columns of `SYMBOL_SELECT`, still raw.
 pub(crate) struct SymbolRow {
@@ -187,7 +187,7 @@ fn card(conn: &Connection, snapshot: i64, key: &SymbolKey) -> StorageResult<Opti
     }))
 }
 
-impl SqliteStore {
+impl ProjectDb {
     /// One symbol with its members and metrics, `None` if the snapshot has no such symbol.
     ///
     /// # Errors
@@ -225,7 +225,7 @@ fn code_spans(
     Ok(spans)
 }
 
-impl CodeIndex for SqliteStore {
+impl CodeIndex for ProjectDb {
     fn search_files(
         &self,
         snapshot: SnapshotId,

@@ -12,7 +12,7 @@ use codeskimr_application::alerts::AlertStep;
 use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
-use codeskimr_application::ids::IdSequence;
+use codeskimr_application::ids::ProjectIds;
 use codeskimr_application::level2::Level2Pass;
 use codeskimr_application::metrics::StandardMetrics;
 use codeskimr_application::pipeline::ReportStep;
@@ -96,18 +96,16 @@ pub fn open_store(locations: &Locations, config: &Config) -> Result<Arc<SqliteSt
 /// already, so a caller that needs the analysis for something else too (the session reads the
 /// pack load time, the MCP server searches) loads the language packs once. Git logins read from
 /// `secrets`.
-///
-/// # Errors
-/// `STO` failures of the id lookup.
+#[must_use]
 pub fn scanner_over(
     analysis: &Analysis,
     (store, config, locations): (&Arc<SqliteStore>, &Config, &Locations),
     (events, secrets): (EventBus, &Arc<Secrets>),
-) -> Result<Scanner, CodedError> {
+) -> Scanner {
     let discovery = Arc::clone(&analysis.discovery);
     let analyzer = Arc::clone(&analysis.analyzer);
     let indexers = analysis.indexers.clone();
-    let ids = shared_ids(locations.database(), store.next_free_id()?);
+    let ids = shared_ids(locations.database());
     let pass = Level2Pass {
         runner: index_runner(locations),
         importer: Arc::new(ScipImporter::new(Arc::new(FolderText))),
@@ -135,11 +133,11 @@ pub fn scanner_over(
         max_workers: config.scan.max_workers,
         max_left_out_listed: config.scan.max_left_out_listed,
     };
-    Ok(Scanner::new(ports, &ids, events.clone())
+    Scanner::new(ports, &ids, events.clone())
         .with_memory(crate::memory_limit::scan_limit(config))
         .with_level2(pass)
         .with_alerts(alert_step(store, events))
-        .with_reports(ReportStep::new(store.clone(), Arc::new(SystemClock))))
+        .with_reports(ReportStep::new(store.clone(), Arc::new(SystemClock)))
 }
 
 /// The source of a scan: the git cache, with the credentials of the remotes and the refresh of an
@@ -211,23 +209,19 @@ pub fn indexer_check(
     )))
 }
 
-/// The id sequence of the database file in this process. Scans of different projects run at the
-/// same time (the UI, MCP `rescan`), and each one reads the highest stored id when it starts,
-/// which is too early for ids another scan has reserved but not stored yet. One sequence per
-/// database keeps them apart. The scanner moves it up to the store again when each scan starts,
-/// which covers what another process stored in the meantime; two processes that scan at the very
+/// The id sequences of the projects of this data folder in this process. Scans of different
+/// projects run at the same time (the UI, MCP `rescan`); one sequence per project keeps the ids
+/// of a scan apart from those another scan of the same project has reserved but not stored yet.
+/// The scanner moves it up to the project file again when each scan starts, which covers what
+/// another process stored in the meantime; two processes that scan the same project at the very
 /// same moment stay uncoordinated.
-fn shared_ids(database: PathBuf, first_free: u64) -> Arc<IdSequence> {
-    static IDS: OnceLock<Mutex<BTreeMap<PathBuf, Arc<IdSequence>>>> = OnceLock::new();
+fn shared_ids(database: PathBuf) -> Arc<ProjectIds> {
+    static IDS: OnceLock<Mutex<BTreeMap<PathBuf, Arc<ProjectIds>>>> = OnceLock::new();
     let mut all = IDS
         .get_or_init(Mutex::default)
         .lock()
         .unwrap_or_else(PoisonError::into_inner);
-    let ids = all
-        .entry(database)
-        .or_insert_with(|| Arc::new(IdSequence::starting_at(first_free)));
-    ids.advance_to(first_free);
-    Arc::clone(ids)
+    Arc::clone(all.entry(database).or_default())
 }
 
 /// The two ports that read code: walking the files and analysing one of them. The scan and the

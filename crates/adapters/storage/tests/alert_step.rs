@@ -20,7 +20,7 @@ use codeskimr_domain::{
     QualifiedName, ReferenceKind, ScanMode, SnapshotId, SymbolBaseline, SymbolId, SymbolKind,
     SymbolName, Timestamp,
 };
-use codeskimr_storage::SqliteStore;
+use codeskimr_storage::ProjectDb;
 use common::{PROJECT, data, file, header, metric, project, span, store, symbol};
 
 /// Joins its parts: readable, and different for different parts.
@@ -40,7 +40,7 @@ impl Clock for Now {
     }
 }
 
-fn step(store: &Arc<SqliteStore>) -> AlertStep {
+fn step(store: &Arc<ProjectDb>) -> AlertStep {
     AlertStep {
         annotations: store.clone(),
         states: store.clone(),
@@ -71,7 +71,7 @@ fn version(total: &'static str) -> Version {
 
 /// Writes snapshot `id` with the class `App.Order`, its method `App.Order.Total` and `App.Billing`.
 /// Ids are derived from the snapshot id so that several snapshots can coexist.
-fn scan(store: &SqliteStore, id: u64, version: &Version) {
+fn scan(store: &ProjectDb, id: u64, version: &Version) {
     let (file_id, first) = (id + 1, id * 10);
     let mut scan = data(header(id, ScanMode::Full));
     scan.files = vec![file(id, file_id, "src/order.cs", &format!("h{id}"))];
@@ -107,7 +107,7 @@ fn hash_of(symbol: u64, text: &str) -> SymbolHash {
     }
 }
 
-fn seeded(version: &Version) -> Arc<SqliteStore> {
+fn seeded(version: &Version) -> Arc<ProjectDb> {
     let store = store(5);
     store.save_project(&project(1, "/work/app", &[])).unwrap();
     scan(&store, 10, version);
@@ -122,7 +122,7 @@ fn target(kind: SymbolKind, name: &str) -> AnnotationTarget {
     }
 }
 
-fn mark(store: &SqliteStore, kind: AnnotationKind, target: AnnotationTarget) -> Annotation {
+fn mark(store: &ProjectDb, kind: AnnotationKind, target: AnnotationTarget) -> Annotation {
     let limits = codeskimr_domain::AnnotationLimits {
         max_text_chars: 100,
         max_title_chars: 20,
@@ -156,7 +156,7 @@ fn mark(store: &SqliteStore, kind: AnnotationKind, target: AnnotationTarget) -> 
         .unwrap()
 }
 
-fn open_alerts(store: &SqliteStore) -> Vec<Alert> {
+fn open_alerts(store: &ProjectDb) -> Vec<Alert> {
     store
         .list_alerts(&AlertFilter {
             project: PROJECT,
@@ -169,7 +169,7 @@ fn latest(id: u64) -> SnapshotId {
     SnapshotId::new(id)
 }
 
-fn run(store: &Arc<SqliteStore>, snapshot: u64, trigger: AlertTrigger) {
+fn run(store: &Arc<ProjectDb>, snapshot: u64, trigger: AlertTrigger) {
     let header = header(snapshot, ScanMode::Full);
     step(store).run(&header, trigger).unwrap();
 }
@@ -211,7 +211,7 @@ fn an_incremental_snapshot_keeps_the_hashes_of_the_files_it_did_not_analyse() {
 }
 
 /// Marks the method `Total` critical and takes its first baseline with a scan.
-fn watch_total(store: &Arc<SqliteStore>) -> Annotation {
+fn watch_total(store: &Arc<ProjectDb>) -> Annotation {
     let critical = mark(
         store,
         AnnotationKind::Critical,
@@ -358,7 +358,7 @@ fn a_symbol_with_the_same_name_elsewhere_makes_the_annotation_orphaned() {
 }
 
 /// `App` holds `App.Order` and the nested namespace `App.Sub` with `App.Sub.Deep`.
-fn namespaced(store: &SqliteStore, id: u64, deep: &str) {
+fn namespaced(store: &ProjectDb, id: u64, deep: &str) {
     let (file_id, first) = (id + 1, id * 10);
     let mut scan = data(header(id, ScanMode::Full));
     scan.files = vec![file(id, file_id, "src/app.cs", &format!("h{id}"))];
@@ -418,7 +418,7 @@ fn a_namespace_hashes_the_types_below_it_also_in_nested_namespaces() {
     assert_eq!(alert.sighting.changes, [AlertChange::Content]);
 }
 
-fn flags(store: &SqliteStore) -> Vec<bool> {
+fn flags(store: &ProjectDb) -> Vec<bool> {
     store
         .list_annotations(&AnnotationFilter {
             project: PROJECT,
