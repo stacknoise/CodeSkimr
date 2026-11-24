@@ -303,7 +303,7 @@ codeskimr/
 ### 6.2 Storage
 
 - `symbol_rows.origin` (`syntax` | `index`, ADR 0055) tells level 1 symbols from symbols that level 2 creates; created symbols belong to their file, are replaced with its level 2 references in one transaction and have no metrics.
-- One SQLite database per workspace, in the user data directory. The source code itself is **not** copied; the file is read on demand and checked against its hash.
+- One SQLite database file per project plus a small catalog database, in the user data directory (ADR 0095); removing a project removes its file. The UI shows where each file lies and how large it is. The source code itself is **not** copied; the file is read on demand and checked against its hash.
 - **Read models**, rebuilt incrementally after every snapshot:
   - `search_index` – fuzzy search entries for the quick search
   - `usage_counts` – the "Usages" column
@@ -312,7 +312,7 @@ codeskimr/
 - **Statistics (ADR 0091):** `symbol_statistics` (one row per type and callable with usage counts, measured values, test flag and the place in the order of path and name), `statistics_facets` and `statistics_complexity` (counts per group) and `snapshot_statistics` (which test folders the rows were counted for). Unlike the read models above they are **not** written in the transaction of the snapshot but right after it, in a thread of their own, so that the scan keeps its budget; a snapshot without these rows is valid and gets them at the first question of the statistics screen. A level 2 import deletes the rows of the snapshots it changed.
 - **Retention:** keep the last N snapshots per project (configurable, default from `config/default.toml`).
 - **Annotations (ADR 0068):** the tables `annotation`, `annotation_baseline` and `alert` are not tied to a snapshot and are not touched by retention. A symbol is found again by kind, qualified name and parameter types. Dismissed alerts are kept for `annotations.dismissed_retention_days`.
-- Schema migrations are versioned SQL files in `crates/adapters/storage/migrations/`, applied at start-up.
+- Schema migrations are versioned SQL files in `crates/adapters/storage/migrations/` (one set for the catalog, one for the project files), applied when a file is opened.
 
 ---
 
