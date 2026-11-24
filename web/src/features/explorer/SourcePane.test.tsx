@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from "@solidjs/testing-library";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { focusSymbol } from "../../shared/navigation/navigation";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
@@ -169,5 +169,46 @@ describe("the colours of the syntax", () => {
     await openOrder();
     const code = await screen.findByText(/public class Order/);
     expect(code.className).not.toContain("keyword");
+  });
+});
+
+describe("the button to copy the code", () => {
+  const original = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+
+  afterEach(() => {
+    if (original) {
+      Object.defineProperty(navigator, "clipboard", original);
+    } else {
+      Reflect.deleteProperty(navigator, "clipboard");
+    }
+  });
+
+  it("puts the lines on the clipboard and says it was copied", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    renderWith(() => answer(TYPE_SOURCE));
+    await openOrder();
+    fireEvent.click(await screen.findByRole("button", { name: "Copy code" }));
+    expect(writeText).toHaveBeenCalledWith(TYPE_SOURCE.lines.join("\n"));
+    expect(await screen.findByRole("button", { name: "Copied" })).toBeTruthy();
+  });
+
+  it("is not offered where the browser has no clipboard", async () => {
+    Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
+    renderWith(() => answer(TYPE_SOURCE));
+    await openOrder();
+    await screen.findByText("src/Order.cs");
+    expect(screen.queryByRole("button", { name: "Copy code" })).toBeNull();
+  });
+
+  it("is not offered when there is no code", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: vi.fn() },
+      configurable: true,
+    });
+    renderWith(() => answer({ ...TYPE_SOURCE, lines: [] }));
+    await openOrder();
+    await screen.findByText("src/Order.cs");
+    expect(screen.queryByRole("button", { name: "Copy code" })).toBeNull();
   });
 });

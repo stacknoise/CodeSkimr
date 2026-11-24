@@ -7,6 +7,9 @@ export const COMMAND = {
   source: "explorer.source",
 } as const;
 
+/** The line break of copied code. */
+export const LINE_BREAK = "\n";
+
 /** Letter of the badge of a symbol kind, as in the mock. */
 export const KIND_LETTER: Record<string, string> = {
   namespace: "N",

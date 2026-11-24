@@ -1,10 +1,11 @@
-import { createMemo, For, Match, Show, Switch } from "solid-js";
+import { createMemo, createSignal, For, Match, onCleanup, Show, Switch } from "solid-js";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
 import { showUsages } from "../../shared/navigation/navigation";
-import { PILL_SEPARATOR } from "./consts";
+import { COPIED_MS } from "../../shared/ui/consts";
+import { LINE_BREAK, PILL_SEPARATOR } from "./consts";
 import { sourceWidth } from "./layout";
 import { lineRange } from "./format";
 import { type Segment, segments } from "./segments";
@@ -36,6 +37,31 @@ function onNameClick(event: MouseEvent): void {
 /** The class of the colour of a piece; plain code has none (`styles.plain` is no rule). */
 function colourOf(piece: Segment): string | undefined {
   return piece.tokenClass === null ? undefined : styles[piece.tokenClass];
+}
+
+/** The button "Copy code": puts the lines on the clipboard and says "Copied" for a moment. It is
+ * only there where the browser has a clipboard; the code can always be selected by hand. */
+function CopyButton(props: { lines: string[] }) {
+  const [copied, setCopied] = createSignal(false);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  onCleanup(() => clearTimeout(timer));
+  const copy = () => {
+    navigator.clipboard
+      .writeText(props.lines.join(LINE_BREAK))
+      .then(() => {
+        setCopied(true);
+        clearTimeout(timer);
+        timer = setTimeout(() => setCopied(false), COPIED_MS);
+      })
+      .catch(() => setCopied(false));
+  };
+  return (
+    <Show when={navigator.clipboard !== undefined}>
+      <button type="button" class={styles.copy} onClick={copy} aria-live="polite">
+        {copied() ? t(I18N_KEYS.EXPLORER_SOURCE_COPIED) : t(I18N_KEYS.EXPLORER_SOURCE_COPY)}
+      </button>
+    </Show>
+  );
 }
 
 /** The line numbers and the code side by side. The line numbers are plain text; the code is
@@ -134,6 +160,9 @@ function Content(props: { shown: boolean }) {
                 {PILL_SEPARATOR}
                 {lineRange(info().first_line, info().last_line)}
               </span>
+              <Show when={info().available && !info().excluded && info().lines.length > 0}>
+                <CopyButton lines={info().lines} />
+              </Show>
             </div>
             <Lines info={info()} />
           </>

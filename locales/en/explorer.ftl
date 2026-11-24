@@ -87,3 +87,5 @@ explorer-source-truncated = Shows the first { $count } lines of the declaration.
 explorer-source-pick = Pick a type or a member to see its source.
 explorer-uses-open = Show the usages
 explorer-source-excluded = The source code is not part of this export.
+explorer-source-copy = Copy code
+explorer-source-copied = Copied

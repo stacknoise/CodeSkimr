@@ -494,6 +494,8 @@ export const I18N_KEYS = {
   EXPLORER_SOURCE_PICK: "explorer-source-pick",
   EXPLORER_USES_OPEN: "explorer-uses-open",
   EXPLORER_SOURCE_EXCLUDED: "explorer-source-excluded",
+  EXPLORER_SOURCE_COPY: "explorer-source-copy",
+  EXPLORER_SOURCE_COPIED: "explorer-source-copied",
   EXPORT_BANNER: "export-banner",
   EXPORT_BANNER_COMMIT: "export-banner-commit",
   EXPORT_USAGES_STATE: "export-usages-state",
