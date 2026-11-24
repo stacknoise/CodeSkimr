@@ -473,6 +473,8 @@ codeskimr check <path>            run the convention checks (for CI)
 codeskimr codes [<code>]          list error codes / explain one code
 ```
 
+Everything the command line can do has a counterpart in the UI; the exceptions (the consent to level 2, the start options, `--json`) and the gaps still open are listed in ADR 0092.
+
 The local commands run as the local owner without login. After 1.0 the team edition adds `codeskimr serve --team`, `login --server <url>`, `user …` and `token …` (ADR 0019); local commands keep working without login.
 
 ### 10.3 REST and WebSocket
