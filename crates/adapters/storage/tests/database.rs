@@ -811,15 +811,16 @@ fn symbols_that_level_two_created_are_pruned_with_their_file() {
     assert_eq!(rows_of(&conn, "symbol_references"), 1);
 }
 
-/// The names of all tables the migrations created, without the bookkeeping of the migrations.
-#[cfg(test)]
 /// Every data table is empty: a removal left nothing behind.
+#[cfg(test)]
 fn assert_all_tables_empty(conn: &Connection) {
     for table in data_tables(conn) {
         assert_eq!(rows_of(conn, &table), 0, "table {table}");
     }
 }
 
+/// The names of all tables the migrations created, without the bookkeeping of the migrations.
+#[cfg(test)]
 fn data_tables(conn: &Connection) -> Vec<String> {
     let mut statement = conn
         .prepare(
@@ -988,7 +989,7 @@ fn a_project_in_removal_has_no_snapshot_and_keeps_its_source() {
         .unwrap();
     // The half-deleted data is not offered as the state of the project.
     assert!(store.latest_snapshot(PROJECT).unwrap().is_none());
-    assert!(store.latest_files(PROJECT).unwrap().is_empty());
+    assert_eq!(store.latest_files(PROJECT).unwrap().len(), 0);
     // Adding the same folder again is refused, not answered with the project that goes away.
     let source = ProjectSource::Folder(FolderPath::new("/work/app").unwrap());
     let refused = store
