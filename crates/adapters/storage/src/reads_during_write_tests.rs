@@ -49,6 +49,7 @@ fn scan() -> SnapshotData {
         ambiguous_places: None,
         snapshot,
         left_out: Vec::new(),
+        skipped: Vec::new(),
         warnings: Vec::new(),
         parse_micros: Vec::new(),
         dropped_references: Vec::new(),

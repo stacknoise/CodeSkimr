@@ -63,7 +63,7 @@ pub use references::{ReferenceSite, ReferenceSites};
 pub use report::{
     LanguageLine, LanguageOutcome, LastScan, Level2Report, ReportWrite, ScanReport, ScanReportStore,
 };
-pub use rescan::{LeftOut, PathsReport, ProjectScanner, Rescanned};
+pub use rescan::{LeftOut, PathsReport, ProjectScanner, Rescanned, SkippedFile};
 pub use similarity::{SimilarHit, SimilarQuery, SimilarityIndex};
 pub use source::{
     DiscoveredFile, Excerpt, FetchedSource, FileDiscovery, SourceProvider, SourceText,

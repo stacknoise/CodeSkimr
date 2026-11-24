@@ -44,7 +44,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 20));
+    assert_eq!((mode.as_str(), version), ("wal", 21));
 }
 
 #[test]
@@ -95,7 +95,7 @@ fn a_folder_instead_of_a_file_is_a_database_failure() {
     assert_eq!(code_of(&error), "STO-601");
 }
 
-/// The warning and the left-out file of a scan.
+/// The warning and the left-out file of a scan, with the hash the file had.
 #[cfg(test)]
 fn add_notes_of_the_scan(scan: &mut SnapshotData, base: u64) {
     scan.warnings = vec![codeskimr_application::ports::ScanWarning {
@@ -106,6 +106,11 @@ fn add_notes_of_the_scan(scan: &mut SnapshotData, base: u64) {
         path: RelativePath::new("old.txt").unwrap(),
         code: codeskimr_codes::ErrorCode::FileEncodingUnsupported,
         kept: false,
+    }];
+    scan.skipped = vec![codeskimr_application::ports::SkippedFile {
+        path: RelativePath::new("old.txt").unwrap(),
+        language: LanguageId::new("csharp").unwrap(),
+        content_hash: codeskimr_domain::ContentHash::new("h").unwrap(),
     }];
 }
 
@@ -183,6 +188,7 @@ fn pruned_snapshots_leave_no_rows_behind() {
         ("parse_times", 1),
         ("snapshot_warnings", 1),
         ("snapshot_left_out", 1),
+        ("snapshot_skipped_files", 1),
         ("pending_references", 1),
     ] {
         assert_eq!(rows_of(&conn, table), expected, "table {table}");
@@ -579,7 +585,8 @@ fn a_version_eleven_database_keeps_its_layers_without_a_limit() {
     drop(SqliteStore::open(&db.0, keep(3)).unwrap());
     let conn = Connection::open(&db.0).unwrap();
     conn.execute_batch(
-        "DROP TABLE symbol_statistics;
+        "DROP TABLE snapshot_skipped_files;
+         DROP TABLE symbol_statistics;
          DROP TABLE snapshot_statistics;
          DROP TABLE statistics_facets;
          DROP TABLE statistics_complexity;

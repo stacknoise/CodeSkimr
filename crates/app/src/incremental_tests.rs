@@ -400,6 +400,40 @@ fn a_scan_that_finds_nothing_changed_keeps_the_snapshot_and_a_change_after_it_is
     assert_eq!(references_of(&data), full);
 }
 
+/// A C# class in Windows-1252, which is not read: the scan leaves the file out for good.
+fn unreadable_class(comment: &str) -> Vec<u8> {
+    let mut bytes = b"namespace Demo;\n\npublic class Legacy\n{\n    // M".to_vec();
+    bytes.push(0xFC);
+    bytes.extend_from_slice(comment.as_bytes());
+    bytes.extend_from_slice(b"\n}\n");
+    bytes
+}
+
+#[test]
+fn a_file_that_is_left_out_for_good_does_not_make_every_scan_a_new_snapshot() {
+    let root = tempfile::tempdir().unwrap();
+    let folder = root.path().join("project");
+    write_project(&folder, BASE, &[]);
+    fs::write(folder.join("Legacy.cs"), unreadable_class("ller")).unwrap();
+    let data = locations(&root.path().join("data"));
+    let step = session(&folder, &data);
+    step.scan_quick(ScanMode::Full).unwrap();
+    let first = (snapshot_id(&data), references_of(&data));
+
+    step.scan_quick(ScanMode::Incremental).unwrap();
+    assert_eq!(snapshot_id(&data), first.0, "no snapshot is written");
+    assert_eq!(references_of(&data), first.1);
+
+    // The file is looked at again once it differs, and the scan after that is quick again.
+    fs::write(folder.join("Legacy.cs"), unreadable_class("hle")).unwrap();
+    step.scan_quick(ScanMode::Incremental).unwrap();
+    let second = snapshot_id(&data);
+    assert_ne!(second, first.0, "the change is a new snapshot");
+    assert_eq!(references_of(&data), first.1);
+    step.scan_quick(ScanMode::Incremental).unwrap();
+    assert_eq!(snapshot_id(&data), second, "no snapshot is written");
+}
+
 /// The id of the newest snapshot.
 fn snapshot_id(locations: &Locations) -> u64 {
     let config = config_files::load(locations, &GlobalOptions::default(), None).unwrap();

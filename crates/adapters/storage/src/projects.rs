@@ -2,7 +2,7 @@
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    PendingReference, PreviousIndex, PreviousState, ProjectRepository, StoredNames,
+    PendingReference, PreviousIndex, PreviousState, ProjectRepository, SkippedFile, StoredNames,
     StoredReferences,
 };
 use codeskimr_domain::{
@@ -372,7 +372,30 @@ fn load_latest_state_with(
         snapshot: Some(SnapshotId::new(id_from(snapshot)?)),
         names_stored: pending::is_stored(conn, snapshot)?,
         ambiguous_places: ambiguous.map(id_from).transpose()?,
+        skipped: load_skipped(conn, snapshot)?,
     })
+}
+
+/// The files the scan of `snapshot` left out for good.
+fn load_skipped(conn: &Connection, snapshot: i64) -> StorageResult<Vec<SkippedFile>> {
+    let mut statement = conn.prepare_cached(sql::SKIPPED_FILES)?;
+    let rows = statement.query_map(params![snapshot], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+        ))
+    })?;
+    let mut skipped = Vec::new();
+    for row in rows {
+        let (path, language, hash) = row?;
+        skipped.push(SkippedFile {
+            path: RelativePath::new(path)?,
+            language: LanguageId::new(language)?,
+            content_hash: ContentHash::new(hash)?,
+        });
+    }
+    Ok(skipped)
 }
 
 fn load_latest_files(conn: &Connection, project: ProjectId) -> StorageResult<Vec<SourceFile>> {

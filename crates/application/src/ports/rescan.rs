@@ -1,7 +1,7 @@
 //! Starting an incremental scan from a driving adapter (implemented by the `Scanner`).
 
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Principal, ProjectId, RelativePath, Snapshot};
+use codeskimr_domain::{ContentHash, LanguageId, Principal, ProjectId, RelativePath, Snapshot};
 
 use crate::error::CodedError;
 
@@ -33,6 +33,18 @@ pub struct LeftOut {
     /// keeps that for a failure that may pass (see [`LeftOut::MAY_PASS`]); otherwise the file is
     /// missing in the snapshot.
     pub kept: bool,
+}
+
+/// A file that a scan left out for good (a failure that will not pass), with what it looked like
+/// then. A scan that finds it the same again has nothing new to say about it (ADR 0093).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SkippedFile {
+    /// The file, relative to the root of the project.
+    pub path: RelativePath,
+    /// The language it was taken for.
+    pub language: LanguageId,
+    /// The hash of its content.
+    pub content_hash: ContentHash,
 }
 
 impl LeftOut {

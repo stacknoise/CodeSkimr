@@ -142,6 +142,7 @@ pub fn data(snapshot: Snapshot) -> SnapshotData {
         warnings: Vec::new(),
         ambiguous_places: None,
         left_out: Vec::new(),
+        skipped: Vec::new(),
     }
 }
 

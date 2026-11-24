@@ -22,6 +22,7 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0018_snapshot_left_out.sql"),
     include_str!("../migrations/0019_ambiguous_places.sql"),
     include_str!("../migrations/0020_symbol_statistics.sql"),
+    include_str!("../migrations/0021_snapshot_skipped_files.sql"),
 ];
 
 /// Name of the pragma that holds the schema version.

@@ -160,6 +160,7 @@ pub const SNAPSHOT_CONTENT_DELETE: &[&str] = &[
     "DELETE FROM parse_times WHERE snapshot_id = ?1",
     "DELETE FROM snapshot_warnings WHERE snapshot_id = ?1",
     "DELETE FROM snapshot_left_out WHERE snapshot_id = ?1",
+    "DELETE FROM snapshot_skipped_files WHERE snapshot_id = ?1",
     "DELETE FROM coupling_rows WHERE snapshot_id = ?1",
     "DELETE FROM symbol_statistics WHERE snapshot_id = ?1",
     "DELETE FROM statistics_facets WHERE snapshot_id = ?1",
@@ -526,6 +527,12 @@ pub const WARNING_INSERT: &str =
 pub const WARNINGS: &str =
     "SELECT code, count FROM snapshot_warnings WHERE snapshot_id = ?1 ORDER BY code";
 
+/// Records a file the scan left out for good: snapshot, path, language, content hash.
+pub const SKIPPED_FILE_INSERT: &str = "INSERT INTO snapshot_skipped_files \
+    (snapshot_id, path, language, content_hash) VALUES (?1, ?2, ?3, ?4)";
+/// The files a snapshot's scan left out for good, as path, language and content hash: snapshot.
+pub const SKIPPED_FILES: &str = "SELECT path, language, content_hash \
+    FROM snapshot_skipped_files WHERE snapshot_id = ?1 ORDER BY path";
 /// Records one file that a scan left out: snapshot, path, code, whether the snapshot kept it.
 pub const LEFT_OUT_INSERT: &str =
     "INSERT INTO snapshot_left_out (snapshot_id, path, code, kept) VALUES (?1, ?2, ?3, ?4)";

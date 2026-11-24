@@ -4,12 +4,13 @@
 mod common;
 
 use codeskimr_application::ports::{
-    Confirmation, PreviousIndex, ProjectRepository, ScanWarning, SnapshotData, SnapshotStore,
-    SymbolKey,
+    Confirmation, PreviousIndex, ProjectRepository, ScanWarning, SkippedFile, SnapshotData,
+    SnapshotStore, SymbolKey,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
-    CommitHash, FileId, MetricKind, RelativePath, ScanMode, SnapshotId, SymbolKind, Timestamp,
+    CommitHash, ContentHash, FileId, LanguageId, MetricKind, RelativePath, ScanMode, SnapshotId,
+    SymbolKind, Timestamp,
 };
 use common::{
     PROJECT, code_of, data, file, header, metric, project, reference, registered_store, symbol,
@@ -135,6 +136,25 @@ fn the_head_of_the_newest_snapshot_leaves_the_symbols_to_a_second_read() {
     assert_eq!(head.ambiguous_places, state.ambiguous_places);
     let symbols = store.snapshot_symbols(SnapshotId::new(10)).unwrap();
     assert_eq!(symbols, state.symbols);
+}
+
+#[test]
+fn the_files_a_scan_left_out_for_good_are_read_with_the_newest_snapshot_only() {
+    let store = registered_store();
+    let skipped = vec![SkippedFile {
+        path: RelativePath::new("old.cs").unwrap(),
+        language: LanguageId::new("csharp").unwrap(),
+        content_hash: ContentHash::new("h").unwrap(),
+    }];
+    let mut scan = first_scan(10);
+    scan.skipped.clone_from(&skipped);
+    store.persist(scan).unwrap();
+    assert_eq!(store.latest_head(PROJECT).unwrap().skipped, skipped);
+    assert_eq!(store.latest_state(PROJECT).unwrap().skipped, skipped);
+
+    // The next scan read the file: its snapshot has no such row and carries none over.
+    store.persist(b_rewritten("B", Vec::new())).unwrap();
+    assert_eq!(store.latest_head(PROJECT).unwrap().skipped, Vec::new());
 }
 
 #[test]
