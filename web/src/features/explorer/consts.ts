@@ -7,6 +7,9 @@ export const COMMAND = {
   source: "explorer.source",
 } as const;
 
+/** The icons of the button to copy: ready, done and failed. */
+export const COPY_ICON = { idle: "copy", copied: "check", failed: "cross" } as const;
+
 /** The line break of copied code. */
 export const LINE_BREAK = "\n";
 

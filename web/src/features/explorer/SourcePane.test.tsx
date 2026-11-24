@@ -51,7 +51,7 @@ describe("the source column", () => {
     expect(await screen.findByText("src/Order.cs")).toBeTruthy();
     expect(pane.textContent).toContain("3–6");
     expect(pane.textContent).toContain("decimal Total() => 1m;");
-    expect(pane.querySelector("[aria-hidden='true']")?.textContent).toBe("3\n4\n5\n6");
+    expect(pane.querySelector("pre[aria-hidden='true']")?.textContent).toBe("3\n4\n5\n6");
     expect(asked()).toEqual([{ project: 1, symbol: 7 }]);
   });
 

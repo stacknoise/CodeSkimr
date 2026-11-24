@@ -25,13 +25,22 @@
 .copy {
     margin-left: auto;
     flex: none;
-    padding: var(--space-4) var(--space-8);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
     border: 1px solid var(--line);
     border-radius: var(--radius-badge);
     background: var(--surface);
-    color: var(--ink);
-    font: 500 12px var(--font-sans);
+    color: var(--muted);
     cursor: pointer;
+}
+
+.copy:hover,
+.copy:focus-visible {
+    color: var(--ink);
 }
 
 .path {
