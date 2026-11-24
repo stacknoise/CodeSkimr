@@ -52,10 +52,24 @@ function Confirm(props: { name: string; busy: boolean; onYes: () => void; onNo: 
   );
 }
 
+/** The project whose question is open. It lives outside the row: while a scan runs, the list is
+ * read again and the row is built anew, which must not close the question. */
+const [askingFor, setAskingFor] = createSignal<number | null>(null);
+
+/** Closes the open question, if there is one. */
+export function closeRemoveQuestion(): void {
+  setAskingFor(null);
+}
+
 /** "Remove" of a project row, with a second step: the first click asks, the second one removes.
  * Removing deletes what the app stored about the project, never its files. */
-export function RemoveAction(props: { name: string; onRemove: () => Promise<boolean> }) {
-  const [asking, setAsking] = createSignal(false);
+export function RemoveAction(props: {
+  id: number;
+  name: string;
+  onRemove: () => Promise<boolean>;
+}) {
+  const asking = () => askingFor() === props.id;
+  const setAsking = (open: boolean) => setAskingFor(open ? props.id : null);
   const [busy, setBusy] = createSignal(false);
   const remove = async () => {
     setBusy(true);

@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { activeProject, openProject } from "../../shared/project/active";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { currentPath } from "../../app/router";
 import { ProjectsScreen } from "./ProjectsScreen";
-import { addProject, noteScanReport } from "./projects";
+import { closeRemoveQuestion } from "./RemoveAction";
+import { addProject, noteScanReport, refreshProjects } from "./projects";
 import { UNCHECKED, rescanAsked, rescanned } from "../../tests/scanned";
 import type { ProjectRow } from "./types";
 
@@ -27,6 +28,7 @@ const ROW: ProjectRow = {
 };
 
 useServerSession();
+beforeEach(closeRemoveQuestion);
 
 describe("ProjectsScreen", () => {
   it("says how a first project gets here when there is none", async () => {
@@ -212,6 +214,20 @@ describe("ProjectsScreen", () => {
     expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith("projects.remove"))).toBe(
       false,
     );
+  });
+
+  it("keeps the removal question open while the list is read again during a scan", async () => {
+    let files = 3;
+    serve({
+      "projects.list": () => answer([{ ...ROW, scan: { ...ROW.scan!, files: files++ } }]),
+    });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove project shop" }));
+    expect(screen.getByRole("button", { name: "Remove for good" })).toBeVisible();
+    await refreshProjects();
+    await refreshProjects();
+    expect(screen.getByRole("button", { name: "Remove for good" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeVisible();
   });
 
   it("removes a project after the confirmation, reads the list again and closes it", async () => {

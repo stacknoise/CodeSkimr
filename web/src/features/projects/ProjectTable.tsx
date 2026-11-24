@@ -179,7 +179,11 @@ function StatusCell(props: {
           >
             <Icon name={RESCAN_ICON} />
           </button>
-          <RemoveAction name={props.row.name} onRemove={() => props.onRemove(props.row.id)} />
+          <RemoveAction
+            id={props.row.id}
+            name={props.row.name}
+            onRemove={() => props.onRemove(props.row.id)}
+          />
         </Show>
       </div>
     </td>
