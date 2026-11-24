@@ -6,8 +6,8 @@ mod common;
 use std::num::NonZeroU32;
 
 use codeskimr_application::ports::{
-    PendingReference, ProjectRemoval, ProjectRepository, Receiver, SnapshotData, SnapshotStore,
-    SymbolFingerprints,
+    PendingReference, ProjectCatalog, ProjectRemoval, ProjectRepository, Receiver, SnapshotData,
+    SnapshotStore, SymbolFingerprints,
 };
 use codeskimr_domain::{
     FileId, Fingerprint, Fingerprints, LanguageId, MetricKind, QualifiedName, ReferenceKind,
@@ -44,7 +44,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 21));
+    assert_eq!((mode.as_str(), version), ("wal", 22));
 }
 
 #[test]
@@ -586,7 +586,8 @@ fn a_version_eleven_database_keeps_its_layers_without_a_limit() {
     drop(SqliteStore::open(&db.0, keep(3)).unwrap());
     let conn = Connection::open(&db.0).unwrap();
     conn.execute_batch(
-        "DROP TABLE snapshot_skipped_files;
+        "ALTER TABLE projects DROP COLUMN removing;
+         DROP TABLE snapshot_skipped_files;
          DROP TABLE symbol_statistics;
          DROP TABLE snapshot_statistics;
          DROP TABLE statistics_facets;
@@ -901,4 +902,74 @@ fn the_reverse_index_of_a_file_database_is_loaded_on_its_own_connection() {
         .usages(codeskimr_domain::SnapshotId::new(10), &query, 10)
         .unwrap();
     assert_eq!(page.total, 1);
+}
+
+/// A full scan of `count` files with one symbol each, then an incremental scan that carries all of
+/// them over and adds one more, so that the two snapshots share every row of the first one.
+#[cfg(test)]
+fn many_files_shared_by_two_snapshots(store: &SqliteStore, count: u64) {
+    let mut first = data(header(10, ScanMode::Full));
+    for index in 0..count {
+        let file_id = 1_000 + index;
+        first
+            .files
+            .push(file(10, file_id, &format!("f{index}.cs"), "h"));
+        first.symbols.push(symbol(
+            100_000 + index,
+            file_id,
+            SymbolKind::Class,
+            &format!("App.C{index}"),
+            None,
+        ));
+    }
+    first.references = vec![reference(900_000, 1_000, 100_000, 100_001)];
+    store.persist(first).unwrap();
+    let mut next = data(header(20, ScanMode::Incremental));
+    next.files = vec![file(20, 5_000, "extra.cs", "h")];
+    next.symbols = vec![symbol(200_000, 5_000, SymbolKind::Class, "App.Extra", None)];
+    store.persist(next).unwrap();
+}
+
+#[test]
+fn removing_a_project_with_more_files_than_one_slice_and_shared_rows_leaves_nothing() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    many_files_shared_by_two_snapshots(&store, 1_200);
+    let conn = Connection::open(&db.0).unwrap();
+    assert_eq!(rows_of(&conn, "symbol_rows"), 1_201);
+    store.remove_project(PROJECT).unwrap();
+    for table in data_tables(&conn) {
+        assert_eq!(rows_of(&conn, &table), 0, "table {table}");
+    }
+}
+
+#[test]
+fn an_interrupted_removal_hides_the_project_and_is_finished_by_asking_again() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    many_files_shared_by_two_snapshots(&store, 600);
+    // The state a removal leaves when it stops after its first write and some slices.
+    {
+        let conn = Connection::open(&db.0).unwrap();
+        conn.execute("UPDATE projects SET removing = 1", [])
+            .unwrap();
+        conn.execute("DELETE FROM symbol_references", []).unwrap();
+    }
+    assert_eq!(
+        code_of(&store.project(PROJECT).unwrap_err()),
+        "PRJ-201",
+        "a project in removal is no project for a scan or a rename"
+    );
+    assert!(store.project_for_removal(PROJECT).is_ok());
+    let listed = store.overviews().unwrap();
+    assert_eq!(listed.len(), 1);
+    assert!(listed[0].removing);
+    assert!(listed[0].latest.is_none());
+    store.remove_project(PROJECT).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    for table in data_tables(&conn) {
+        assert_eq!(rows_of(&conn, &table), 0, "table {table}");
+    }
 }

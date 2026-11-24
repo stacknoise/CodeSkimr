@@ -15,6 +15,11 @@ export function removingNow(row: { id: number; removing?: boolean }): boolean {
   return row.removing === true || isRemoving(row.id);
 }
 
+/** Whether the removal of the row is stopped half way and waits to be asked for again. */
+export function interruptedNow(row: { id: number; interrupted?: boolean }): boolean {
+  return row.interrupted === true && !isRemoving(row.id);
+}
+
 /** Marks a project as being removed, or as done with it. */
 export function markRemoving(id: number, on: boolean): void {
   setRemoving((previous) => {

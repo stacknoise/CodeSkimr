@@ -22,7 +22,8 @@ export function useSelection(rows: () => ProjectRow[], initial: number | null) {
   /** Runs `run` with the selected id, if there is one. */
   const act = (run: (id: number) => void) => () => {
     const id = selected();
-    if (id !== null) {
+    const row = rows().find((known) => known.id === id);
+    if (id !== null && (row === undefined || !removingNow(row))) {
       run(id);
     }
   };

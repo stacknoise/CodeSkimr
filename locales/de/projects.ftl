@@ -56,6 +56,7 @@ projects-remove-confirm = Endgültig entfernen
 projects-remove-cancel = Abbrechen
 projects-remove-ask = Entfernung bestätigen
 projects-removing = Wird gelöscht …
+projects-removal-interrupted = Löschen unterbrochen
 projects-never = nie
 projects-header = { $summary } · { $hints }
 

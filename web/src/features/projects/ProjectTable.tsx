@@ -13,7 +13,7 @@ import { LanguageBar } from "./LanguageBar";
 import { Level2Switch } from "./Level2Switch";
 import { projectsScanning, renamingProject, scanSeconds, toolsOf } from "./projects";
 import { RemoveAction } from "./RemoveAction";
-import { removingNow } from "./removing";
+import { interruptedNow, removingNow } from "./removing";
 import { RenameButton, RenameField } from "./RenameForm";
 import { lastScanLine, level2Summary } from "./reportText";
 import { problemsOf } from "./tools";
@@ -162,7 +162,12 @@ function StatusCell(props: { row: ProjectRow }) {
   const problems = () => problemsOf(toolsOf(props.row)).length;
   return (
     <td>
-      <Show when={removingNow(props.row)}>
+      <Show when={interruptedNow(props.row)}>
+        <div class={styles.state} role="status">
+          <Pill tone={TONE.bad}>{t(I18N_KEYS.PROJECTS_REMOVAL_INTERRUPTED)}</Pill>
+        </div>
+      </Show>
+      <Show when={removingNow(props.row) && !interruptedNow(props.row)}>
         <div class={styles.state} role="status">
           <span class={styles.spinner} aria-hidden="true" />
           <Pill tone={TONE.warn}>{t(I18N_KEYS.PROJECTS_REMOVING)}</Pill>
@@ -182,6 +187,24 @@ function StatusCell(props: { row: ProjectRow }) {
   );
 }
 
+/** The icon that scans a project again. */
+function RescanButton(props: { row: ProjectRow; onRescan: (id: number) => void }) {
+  return (
+    <button
+      type="button"
+      class={styles.rescan}
+      aria-label={t(I18N_KEYS.PROJECTS_RESCAN, { name: props.row.name })}
+      title={t(I18N_KEYS.PROJECTS_RESCAN_TIP)}
+      onClick={(event) => {
+        event.stopPropagation();
+        props.onRescan(props.row.id);
+      }}
+    >
+      <Icon name={RESCAN_ICON} />
+    </button>
+  );
+}
+
 /** The icons of the row: scan again, rename, remove. A row that is removed has none. */
 function ActionsCell(props: {
   row: ProjectRow;
@@ -190,20 +213,18 @@ function ActionsCell(props: {
 }) {
   return (
     <td>
+      <Show when={interruptedNow(props.row)}>
+        <div class={styles.actions}>
+          <RemoveAction
+            id={props.row.id}
+            name={props.row.name}
+            onRemove={() => props.onRemove(props.row.id)}
+          />
+        </div>
+      </Show>
       <Show when={!removingNow(props.row) && !props.row.running}>
         <div class={styles.actions}>
-          <button
-            type="button"
-            class={styles.rescan}
-            aria-label={t(I18N_KEYS.PROJECTS_RESCAN, { name: props.row.name })}
-            title={t(I18N_KEYS.PROJECTS_RESCAN_TIP)}
-            onClick={(event) => {
-              event.stopPropagation();
-              props.onRescan(props.row.id);
-            }}
-          >
-            <Icon name={RESCAN_ICON} />
-          </button>
+          <RescanButton row={props.row} onRescan={props.onRescan} />
           <RenameButton id={props.row.id} name={props.row.name} />
           <RemoveAction
             id={props.row.id}

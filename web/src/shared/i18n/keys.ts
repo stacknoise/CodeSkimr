@@ -699,6 +699,7 @@ export const I18N_KEYS = {
   PROJECTS_REMOVE_CANCEL: "projects-remove-cancel",
   PROJECTS_REMOVE_ASK: "projects-remove-ask",
   PROJECTS_REMOVING: "projects-removing",
+  PROJECTS_REMOVAL_INTERRUPTED: "projects-removal-interrupted",
   PROJECTS_NEVER: "projects-never",
   PROJECTS_HEADER: "projects-header",
   PROJECTS_TOOLS_TITLE: "projects-tools-title",

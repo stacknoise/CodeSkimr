@@ -28,6 +28,7 @@ struct TwoProjects;
 
 fn overview(id: u64, name: &str) -> ProjectOverview {
     ProjectOverview {
+        removing: false,
         project: Project {
             id: ProjectId::new(id),
             name: ProjectName::new(name).unwrap(),
@@ -138,8 +139,12 @@ pub(super) fn context(tools: Arc<dyn ProjectToolCheck>, running: RunningScans) -
 /// The list over the two projects, whose stored tool report and report of project 1 are
 /// unreadable.
 fn list_of_two() -> ListProjects {
+    list_of_two_with(RunningScans::default())
+}
+
+fn list_of_two_with(running: RunningScans) -> ListProjects {
     let tools: Arc<dyn ProjectToolCheck> = Arc::new(BrokenFirst);
-    let context = context(Arc::clone(&tools), RunningScans::default());
+    let context = context(Arc::clone(&tools), running);
     ListProjects {
         catalog: Arc::new(TwoProjects),
         tools,
@@ -203,4 +208,17 @@ fn the_list_carries_the_stored_report_and_an_unreadable_one_is_left_out() {
         (7, "1", "browser")
     );
     assert_eq!(report.level2, None);
+}
+
+#[test]
+fn a_project_that_is_removed_is_listed_as_removing_and_not_as_scanning() {
+    let running = RunningScans::default();
+    let list = list_of_two_with(running.clone());
+    let principal = principal::resolve();
+    // The removal holds the scan lock and names itself.
+    let _scanning = running.start(ProjectId::new(1)).unwrap();
+    let _removing = running.mark_removing(ProjectId::new(1));
+    let rows = list.run(&principal, ()).unwrap();
+    assert!(rows[0].removing && !rows[0].running && !rows[0].interrupted);
+    assert!(!rows[1].removing && !rows[1].interrupted);
 }

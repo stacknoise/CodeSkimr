@@ -35,6 +35,9 @@ impl SqliteStore {
             if known == 0 {
                 return Err(StorageError::ProjectNotFound);
             }
+            // From here on the project is no project for anyone else; a removal that stops is
+            // started again by the same call.
+            tx.execute(sql::PROJECT_REMOVING_SET, params![project])?;
             Ok(tx
                 .prepare_cached(sql::SNAPSHOTS_OF_PROJECT)?
                 .query_map(params![project], |row| row.get::<_, i64>(0))?

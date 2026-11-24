@@ -331,9 +331,18 @@ impl ProjectRow {
 }
 
 pub fn load_project(conn: &Connection, id: ProjectId) -> StorageResult<Project> {
+    load_with(conn, id, sql::PROJECT_BY_ID)
+}
+
+/// The project also while its removal has begun; only the removal and the list need it.
+pub fn load_project_any(conn: &Connection, id: ProjectId) -> StorageResult<Project> {
+    load_with(conn, id, sql::PROJECT_BY_ID_ANY)
+}
+
+fn load_with(conn: &Connection, id: ProjectId, query: &str) -> StorageResult<Project> {
     let raw = column_int(id.get())?;
     let row = conn
-        .query_row(sql::PROJECT_BY_ID, params![raw], ProjectRow::from_row)
+        .query_row(query, params![raw], ProjectRow::from_row)
         .optional()?;
     let stored = row.ok_or(StorageError::ProjectNotFound)?;
     Ok(Project {
@@ -438,6 +447,11 @@ fn load_latest_files(conn: &Connection, project: ProjectId) -> StorageResult<Vec
 }
 
 impl ProjectRepository for SqliteStore {
+    fn project_for_removal(&self, id: ProjectId) -> Result<Project, CodedError> {
+        self.read(|conn| load_project_any(conn, id))
+            .map_err(CodedError::from)
+    }
+
     fn project(&self, id: ProjectId) -> Result<Project, CodedError> {
         self.read(|conn| load_project(conn, id))
             .map_err(CodedError::from)

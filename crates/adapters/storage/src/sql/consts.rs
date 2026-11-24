@@ -1,8 +1,15 @@
 //! SQL statements. Parameters are numbered; every statement documents what they are.
 
-/// A registered project by id: id.
-pub const PROJECT_BY_ID: &str =
+/// A registered project by id, unless its removal has begun: id.
+pub const PROJECT_BY_ID: &str = "SELECT name, source_kind, location, branch, credential FROM projects \
+    WHERE id = ?1 AND removing = 0";
+/// A registered project by id, also while it is being removed: id.
+pub const PROJECT_BY_ID_ANY: &str =
     "SELECT name, source_kind, location, branch, credential FROM projects WHERE id = ?1";
+/// Whether the removal of a project has begun: id.
+pub const PROJECT_REMOVING: &str = "SELECT removing FROM projects WHERE id = ?1";
+/// Marks a project as being removed: id.
+pub const PROJECT_REMOVING_SET: &str = "UPDATE projects SET removing = 1 WHERE id = ?1";
 /// Id of the project with the given source: kind, location, branch.
 pub const PROJECT_BY_SOURCE: &str =
     "SELECT id FROM projects WHERE source_kind = ?1 AND location = ?2 AND branch = ?3";

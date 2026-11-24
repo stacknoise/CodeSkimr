@@ -38,6 +38,8 @@ pub struct ProjectOverview {
     /// The files that scan left out by name (ADR 0085); the warnings count all of them. Empty if
     /// it left none out or the snapshot is older than the record.
     pub left_out: Vec<LeftOut>,
+    /// The removal of the project has begun and may be interrupted; it has no data to show.
+    pub removing: bool,
 }
 
 /// Reads the registered projects.

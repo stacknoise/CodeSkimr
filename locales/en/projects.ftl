@@ -56,6 +56,7 @@ projects-remove-confirm = Remove for good
 projects-remove-cancel = Cancel
 projects-remove-ask = Confirm removal
 projects-removing = Removing …
+projects-removal-interrupted = Removal interrupted
 projects-never = never
 projects-header = { $summary } · { $hints }
 

@@ -71,6 +71,8 @@ export interface ProjectRow {
   running: boolean;
   /** The project is being removed: its data goes in many short steps. */
   removing?: boolean;
+  /** The removal stopped before it was done; asking for it again goes on. */
+  interrupted?: boolean;
   /** The files the newest scan left out, as far as it names them; absent in an export. */
   left_out?: LeftOutFile[];
   /** How many more files it left out than `left_out` names. */

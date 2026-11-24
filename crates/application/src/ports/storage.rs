@@ -187,6 +187,15 @@ pub trait ProjectRepository: Send + Sync {
     /// `PRJ-201` if it does not exist.
     fn project(&self, id: ProjectId) -> Result<Project, CodedError>;
 
+    /// The project with this id, also while its removal has begun and `project` no longer finds
+    /// it. The default is `project`.
+    ///
+    /// # Errors
+    /// `PRJ-201` if it does not exist.
+    fn project_for_removal(&self, id: ProjectId) -> Result<Project, CodedError> {
+        self.project(id)
+    }
+
     /// The files of the newest snapshot of the project, empty if it has none.
     ///
     /// # Errors

@@ -357,6 +357,17 @@ describe("ProjectsScreen", () => {
     await waitFor(() => expect(screen.queryByText("Removing …")).not.toBeInTheDocument());
   });
 
+  it("offers only the removal for a removal that was interrupted", async () => {
+    serve({
+      "projects.list": () => answer([{ ...ROW, removing: true, interrupted: true }]),
+    });
+    render(() => <ProjectsScreen />);
+    expect(await screen.findByText("Removal interrupted")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove project shop" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Rename shop" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Scan shop again" })).not.toBeInTheDocument();
+  });
+
   it("shows a removal that the server reports, not a running scan", async () => {
     serve({ "projects.list": () => answer([{ ...ROW, running: false, removing: true }]) });
     render(() => <ProjectsScreen />);
