@@ -25,7 +25,9 @@ project (rename, delete, new target, second candidate, new overload) and compare
    If the scan sees exactly the files of the previous snapshot, each with the stored hash, nothing
    changed: the symbols are not read (`latest_head` reads the files only), the next three stages pass
    through, and the persist stage writes no snapshot but confirms the previous one with the time of
-   the scan (`SnapshotStore::confirm`, ADR 0093).
+   the scan (`SnapshotStore::confirm`, ADR 0093). A file that the previous scan left out for good
+   (an encoding that is not read) is in no snapshot; the snapshot records its hash
+   (`PreviousState::skipped`), and the file counts as unchanged while it has that hash (issue #684).
 2. **Analyze.** Only changed files are analysed.
 3. **Resolve.** The global symbol table is the symbols of the unchanged files plus the new symbols. The
    resolver gets the new names and the names of the unchanged files, so it does exactly what a full scan

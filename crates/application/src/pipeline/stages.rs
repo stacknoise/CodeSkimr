@@ -26,8 +26,8 @@ use crate::ids::IdSequence;
 use crate::ports::{
     AnalyzeRequest, Clock, Confirmation, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts,
     LeftOut, MetricsCalculator, PathsReport, PendingReference, PreviousState, ProjectRepository,
-    ReferenceResolver, ScanWarning, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
-    SymbolFingerprints, SymbolHash,
+    ReferenceResolver, ScanWarning, SkippedFile, SnapshotData, SnapshotStore, SourceProvider,
+    StoredNames, SymbolFingerprints, SymbolHash,
 };
 use crate::selection::Selection;
 use crate::stage::StageKind;
@@ -69,6 +69,10 @@ pub struct ScanRun {
     /// nothing is analysed, resolved, measured or written, and the snapshot is confirmed as it is
     /// (ADR 0093). Set by the discover stage.
     pub confirms: Option<SnapshotId>,
+    /// The files this scan left out for good, with the hash they had (issue #684). The discover
+    /// stage puts in those of the previous snapshot that a scan of some paths does not look at,
+    /// the analyze stage adds its own.
+    pub skipped: Vec<SkippedFile>,
 }
 
 /// Output of the discover stage.
@@ -189,6 +193,7 @@ impl Stage for FetchStage {
             naming_rules: String::new(),
             parse_micros: Vec::new(),
             confirms: None,
+            skipped: Vec::new(),
         })
         .inspect(|_| ctx.progress(1, 1))
     }
@@ -241,9 +246,8 @@ impl Stage for DiscoverStage {
         run.paths_report = report_paths(run.mode, &files, &state.files, &run.paths);
         if run.mode == ScanMode::Incremental {
             limit_to_paths(&mut files, &state.files, &run.paths);
-        }
-        if run.mode == ScanMode::Incremental {
-            run.confirms = unchanged_snapshot(&files, &state);
+            run.confirms = unchanged_snapshot(&files, &state, &run.paths);
+            run.skipped = not_looked_at(&mut state.skipped, &run.paths);
         }
         if run.confirms.is_some() {
             let looked_at = looked_at(&files, &run.paths);
@@ -276,17 +280,46 @@ impl Stage for DiscoverStage {
 /// The newest snapshot, if every file of it is still there with the same content and language and
 /// no other file came: a scan then has nothing to analyse, resolve or write. The files are
 /// compared here, whatever the adapter marked.
-fn unchanged_snapshot(files: &[DiscoveredFile], previous: &PreviousState) -> Option<SnapshotId> {
-    let stored: HashMap<&RelativePath, (&ContentHash, &LanguageId)> = previous
+///
+/// A file the snapshot's scan left out for good is not among the files of the snapshot, so the
+/// adapter takes it for new. It is unchanged as well if it looks as it did then (issue #684); a
+/// scan of some `paths` sees only those of them that the paths name.
+fn unchanged_snapshot(
+    files: &[DiscoveredFile],
+    previous: &PreviousState,
+    paths: &Selection,
+) -> Option<SnapshotId> {
+    type Seen<'a> = (&'a ContentHash, &'a LanguageId);
+    let stored: HashMap<&RelativePath, Seen<'_>> = previous
         .files
         .iter()
         .map(|file| (&file.path, (&file.content_hash, &file.language)))
         .collect();
-    let same = files.len() == stored.len()
+    let skipped: HashMap<&RelativePath, Seen<'_>> = previous
+        .skipped
+        .iter()
+        .filter(|file| paths.is_empty() || paths.contains(&file.path))
+        .map(|file| (&file.path, (&file.content_hash, &file.language)))
+        .collect();
+    let same = files.len() == stored.len() + skipped.len()
         && files.iter().all(|file| {
-            !file.changed && stored.get(&file.path) == Some(&(&file.content_hash, &file.language))
+            let seen = Some(&(&file.content_hash, &file.language));
+            (!file.changed && stored.get(&file.path) == seen) || skipped.get(&file.path) == seen
         });
     previous.snapshot.filter(|_| same)
+}
+
+/// Takes the files out of `skipped` that a scan of `paths` does not look at: the new snapshot
+/// keeps what the previous one knew of them. A scan of all paths looks at every file.
+fn not_looked_at(skipped: &mut Vec<SkippedFile>, paths: &Selection) -> Vec<SkippedFile> {
+    if paths.is_empty() {
+        return Vec::new();
+    }
+    let (kept, looked_at) = std::mem::take(skipped)
+        .into_iter()
+        .partition(|file| !paths.contains(&file.path));
+    *skipped = looked_at;
+    kept
 }
 
 /// How many of `files` the scan compared with the disk: all, or those `paths` name.
@@ -389,6 +422,10 @@ impl Stage for AnalyzeStage {
             out.run.parse_micros = times.into_iter().collect();
         }
         self.settle_left_out(&mut out, &mut files)?;
+        let for_good = skipped_for_good(&out.run.paths_report.left_out, &files);
+        let carried = out.run.skipped.iter().map(still_left_out);
+        out.run.paths_report.left_out.extend(carried);
+        out.run.skipped.extend(for_good);
         Ok(out)
     }
 }
@@ -437,6 +474,38 @@ fn skipped(file: &DiscoveredFile, code: ErrorCode) -> Outcome {
         code,
         kept: false,
     })
+}
+
+/// The files among `left_out` whose failure will not pass (an encoding that is not read), with the
+/// hash and language the scan found them with. A file whose failure may pass is not among them:
+/// the next scan tries it again.
+fn skipped_for_good(left_out: &[LeftOut], files: &[DiscoveredFile]) -> Vec<SkippedFile> {
+    let for_good: HashMap<&RelativePath, ErrorCode> = left_out
+        .iter()
+        .filter(|left| !LeftOut::MAY_PASS.contains(&left.code))
+        .map(|left| (&left.path, left.code))
+        .collect();
+    files
+        .iter()
+        .filter_map(|file| {
+            Some(SkippedFile {
+                path: file.path.clone(),
+                language: file.language.clone(),
+                content_hash: file.content_hash.clone(),
+                code: *for_good.get(&file.path)?,
+            })
+        })
+        .collect()
+}
+
+/// The entry of the list of left-out files for a file that an earlier scan left out for good and
+/// this scan did not look at: the snapshot goes on naming it.
+fn still_left_out(file: &SkippedFile) -> LeftOut {
+    LeftOut {
+        path: file.path.clone(),
+        code: file.code,
+        kept: false,
+    }
 }
 
 /// The failure for a worker that panicked.
@@ -938,6 +1007,7 @@ impl Stage for PersistStage {
             warnings: warnings.clone(),
             ambiguous_places: Some(ambiguous),
             left_out: paths.left_out.clone(),
+            skipped: input.run.skipped,
         };
         let stored = self.store.persist(data)?;
         log_warnings(&warnings);
@@ -967,14 +1037,27 @@ impl PersistStage {
             .store
             .confirm(&scan)?
             .ok_or_else(|| CodedError::new(ErrorCode::TransactionConflict))?;
+        let mut paths = input.run.paths_report;
+        paths.left_out_more =
+            left_out_count(&confirmed.warnings).saturating_sub(count_u64(&confirmed.left_out));
+        paths.left_out = confirmed.left_out;
         Ok(Persisted {
             snapshot: confirmed.snapshot,
             root: input.run.root,
             warnings: confirmed.warnings,
-            paths: listed(input.run.paths_report, self.max_left_out_listed),
+            paths,
             unchanged: true,
         })
     }
+}
+
+/// How many files the scan behind `warnings` left out in all.
+fn left_out_count(warnings: &[ScanWarning]) -> u64 {
+    warnings
+        .iter()
+        .filter(|warning| LeftOut::CODES.contains(&warning.code))
+        .map(|warning| warning.count)
+        .sum()
 }
 
 /// The snapshot row of a run: who it belongs to and how many files, symbols and references it holds.

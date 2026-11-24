@@ -2,9 +2,10 @@
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    PendingReference, PreviousIndex, PreviousState, ProjectRepository, StoredNames,
+    PendingReference, PreviousIndex, PreviousState, ProjectRepository, SkippedFile, StoredNames,
     StoredReferences,
 };
+use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
     BranchName, ContentHash, CredentialId, FileId, FolderPath, GitUrl, LanguageId, Layer,
     LayerName, Loc, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
@@ -12,7 +13,7 @@ use codeskimr_domain::{
 };
 use rusqlite::{Connection, OptionalExtension, Row, params};
 
-use crate::codec::{Cols, column_int, id_from, ordinals, small_from};
+use crate::codec::{Cols, column_int, id_from, ordinals, rows_of_snapshot, small_from};
 use crate::consts::{
     FIRST_PROJECT_ID, ID_STEP, NO_BRANCH, NO_CREDENTIAL, SOURCE_FOLDER, SOURCE_GIT,
 };
@@ -372,7 +373,35 @@ fn load_latest_state_with(
         snapshot: Some(SnapshotId::new(id_from(snapshot)?)),
         names_stored: pending::is_stored(conn, snapshot)?,
         ambiguous_places: ambiguous.map(id_from).transpose()?,
+        skipped: load_skipped(conn, snapshot)?,
     })
+}
+
+/// The files the scan of `snapshot` left out for good. A row with a code that this version does
+/// not know any more is left out: the next scan then looks at the file again.
+fn load_skipped(conn: &Connection, snapshot: i64) -> StorageResult<Vec<SkippedFile>> {
+    let snapshot = SnapshotId::new(id_from(snapshot)?);
+    let rows = rows_of_snapshot(conn, sql::SKIPPED_FILES, snapshot, |cols| {
+        Ok((
+            cols.take::<String>()?,
+            cols.take::<String>()?,
+            cols.take::<String>()?,
+            cols.take::<String>()?,
+        ))
+    })?;
+    let mut skipped = Vec::new();
+    for (path, language, hash, id) in rows {
+        let Some(code) = ErrorCode::ALL.iter().copied().find(|code| code.id() == id) else {
+            continue;
+        };
+        skipped.push(SkippedFile {
+            path: RelativePath::new(path)?,
+            language: LanguageId::new(language)?,
+            content_hash: ContentHash::new(hash)?,
+            code,
+        });
+    }
+    Ok(skipped)
 }
 
 fn load_latest_files(conn: &Connection, project: ProjectId) -> StorageResult<Vec<SourceFile>> {

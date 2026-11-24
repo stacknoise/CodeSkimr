@@ -23,10 +23,10 @@ use codeskimr_application::pipeline::{
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, Confirmation, Confirmed, ConsentStore, DiscoveredFile, FetchedSource,
     FileAnalyzer, FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob,
-    IndexRunner, IndexerSpec, IndexerStatus, Level2Replacement, MemoryGauge, MemoryLimit,
+    IndexRunner, IndexerSpec, IndexerStatus, LeftOut, Level2Replacement, MemoryGauge, MemoryLimit,
     MetricsCalculator, PathsReport, PendingReference, PreviousIndex, PreviousState,
     ProjectRepository, ProjectScanner, Receiver, ReferenceImporter, ReferenceResolver, ReportWrite,
-    Resolution, ScanReport, ScanReportStore, ScanWarning, SnapshotData, SnapshotStore,
+    Resolution, ScanReport, ScanReportStore, ScanWarning, SkippedFile, SnapshotData, SnapshotStore,
     SourceProvider, StoredNames, StoredReferences, SymbolFingerprints, ToolSpec, ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
@@ -52,6 +52,8 @@ struct Previous {
     names_stored: bool,
     /// The number of ambiguous places the snapshot stores; without it a scan reads every reference.
     ambiguous: Option<u64>,
+    /// The files the scan of the snapshot left out for good.
+    skipped: Vec<SkippedFile>,
 }
 
 /// One fake that plays every port. `fail_at` makes that stage fail, `cancel_at` raises the token
@@ -372,6 +374,7 @@ impl ProjectRepository for World {
             snapshot: Some(SnapshotId::new(9)),
             names_stored: self.previous.names_stored,
             ambiguous_places: self.previous.ambiguous,
+            skipped: self.previous.skipped.clone(),
         })
     }
 
@@ -495,6 +498,7 @@ impl SnapshotStore for World {
             .unwrap_or_else(PoisonError::into_inner)
             .push(scan.snapshot);
         Ok(Some(Confirmed {
+            left_out: self.previous.skipped.iter().map(still_named).collect(),
             snapshot: Snapshot {
                 id: scan.snapshot,
                 project: scan.project,
@@ -1013,6 +1017,7 @@ fn previous_snapshot() -> Result<Previous, CodedError> {
                 old_call(302, 200)?,
             ],
         },
+        skipped: Vec::new(),
     })
 }
 
@@ -1257,6 +1262,113 @@ fn a_file_with_another_hash_is_a_change_whatever_discovery_marked() -> Result<()
     assert!(matches!(result, JobResult::Finished(_)));
     assert_eq!(calls_of(&world.confirmed), 0);
     assert_eq!(world.persisted_count(), 1, "the scan goes the whole way");
+    Ok(())
+}
+
+/// What the list of left-out files of a snapshot says of a file its scan left out for good.
+fn still_named(file: &SkippedFile) -> LeftOut {
+    LeftOut {
+        path: file.path.clone(),
+        code: file.code,
+        kept: false,
+    }
+}
+
+/// A file as a scan that left it out for good recorded it.
+fn skipped_file(path: &str, hash: &str) -> Result<SkippedFile, CodedError> {
+    Ok(SkippedFile {
+        path: model(RelativePath::new(path))?,
+        language: model(LanguageId::new("rust"))?,
+        content_hash: model(ContentHash::new(hash))?,
+        code: ErrorCode::FileEncodingUnsupported,
+    })
+}
+
+/// The previous snapshot, whose scan left `d.rs` out for good with the hash `hash`, and a disk
+/// that holds the three files of the snapshot unchanged and `found` besides. Discovery marks a
+/// file the snapshot does not hold as changed, with the hash `h`.
+fn after_a_skipped_file(hash: &str, found: &[&'static str]) -> Result<Arc<World>, CodedError> {
+    let mut previous = previous_snapshot()?;
+    previous.skipped = vec![skipped_file("d.rs", hash)?];
+    let mut on_disk = vec![("a.rs", false), ("b.rs", false), ("c.rs", false)];
+    on_disk.extend(found.iter().map(|path| (*path, true)));
+    Ok(Arc::new(World {
+        previous,
+        found: Some(on_disk),
+        broken: vec![("d.rs", ErrorCode::FileEncodingUnsupported)],
+        ..World::default()
+    }))
+}
+
+#[test]
+fn a_file_left_out_for_good_that_looks_the_same_is_no_change() -> Result<(), CodedError> {
+    let world = after_a_skipped_file("h", &["d.rs"])?;
+    let (result, _) = run(&world, ScanMode::Incremental);
+    assert_eq!(calls_of(&world.confirmed), 1);
+    assert_eq!(world.persisted_count(), 0, "no snapshot is written");
+    let named = ("d.rs".to_owned(), ErrorCode::FileEncodingUnsupported, false);
+    assert_eq!(left_out(&result), [named], "the scan still names the file");
+    Ok(())
+}
+
+#[test]
+fn a_file_left_out_for_good_is_a_change_once_it_differs_or_is_gone() -> Result<(), CodedError> {
+    for world in [
+        after_a_skipped_file("other", &["d.rs"])?,
+        after_a_skipped_file("h", &[])?,
+        after_a_skipped_file("h", &["d.rs", "e.rs"])?,
+    ] {
+        let (result, _) = run(&world, ScanMode::Incremental);
+        assert!(matches!(result, JobResult::Finished(_)));
+        assert_eq!(calls_of(&world.confirmed), 0);
+        assert_eq!(world.persisted_count(), 1, "the scan goes the whole way");
+    }
+    Ok(())
+}
+
+#[test]
+fn a_scan_records_the_files_it_left_out_for_good_with_their_hash() -> Result<(), CodedError> {
+    let world = b_changed_and_broken(ErrorCode::FileEncodingUnsupported)?;
+    run(&world, ScanMode::Incremental);
+    assert_eq!(
+        world.last_persisted()?.skipped,
+        [skipped_file("b.rs", "h")?]
+    );
+    for code in LeftOut::MAY_PASS {
+        let world = b_changed_and_broken(*code)?;
+        run(&world, ScanMode::Incremental);
+        let skipped = world.last_persisted()?.skipped;
+        assert_eq!(skipped, Vec::new(), "the next scan tries the file again");
+    }
+    Ok(())
+}
+
+#[test]
+fn a_scan_of_some_paths_keeps_the_left_out_files_it_does_not_look_at() -> Result<(), CodedError> {
+    let world = after_a_skipped_file("h", &["d.rs"])?;
+    let paths = ["b.rs".to_owned()];
+    let job = Job::new(ProjectId::new(7), ScanMode::Incremental).with_paths(&paths);
+    let result = scanner(&world, &EventBus::new()).run(&Principal::local_owner(), job);
+    assert!(matches!(result, JobResult::Finished(_)));
+    assert_eq!(calls_of(&world.confirmed), 1, "b.rs is as it was");
+
+    let mut previous = previous_snapshot()?;
+    previous.skipped = vec![skipped_file("d.rs", "h")?];
+    let world = Arc::new(World {
+        previous,
+        found: Some(vec![("a.rs", false), ("b.rs", true), ("c.rs", false)]),
+        ..World::default()
+    });
+    let job = Job::new(ProjectId::new(7), ScanMode::Incremental).with_paths(&paths);
+    let result = scanner(&world, &EventBus::new()).run(&Principal::local_owner(), job);
+    assert!(matches!(result, JobResult::Finished(_)));
+    let stored = world.last_persisted()?;
+    assert_eq!(stored.skipped, [skipped_file("d.rs", "h")?]);
+    // The snapshot goes on naming and counting the file, or the scan after it would confirm a
+    // snapshot that says nothing of it.
+    assert_eq!(stored.left_out, [still_named(&stored.skipped[0])]);
+    let code = ErrorCode::FileEncodingUnsupported;
+    assert!(stored.warnings.contains(&ScanWarning { code, count: 1 }));
     Ok(())
 }
 

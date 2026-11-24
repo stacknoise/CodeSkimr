@@ -11,7 +11,7 @@ use codeskimr_domain::{
 };
 use rusqlite::{Connection, params};
 
-use crate::catalog::warnings;
+use crate::catalog::{left_out, warnings};
 use crate::codec::column_int;
 use crate::consts::{
     BULK_FINGERPRINTS_MIN, BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR,
@@ -75,6 +75,7 @@ fn confirm(conn: &Connection, scan: &Confirmation) -> StorageResult<Option<Confi
     )?;
     Ok(Some(Confirmed {
         warnings: warnings(conn, latest.id)?,
+        left_out: left_out(conn, latest.id)?,
         snapshot: Snapshot {
             created: scan.at,
             commit: scan.commit.clone(),
@@ -110,6 +111,7 @@ pub(crate) fn write_snapshot(
     insert_parse_times(conn, data)?;
     insert_warnings(conn, data)?;
     insert_left_out(conn, data)?;
+    insert_skipped(conn, data)?;
     if header.mode == ScanMode::Incremental {
         carry_over(conn, header.project, header.id, &data.removed)?;
     }
@@ -287,6 +289,22 @@ fn insert_left_out(conn: &Connection, data: &SnapshotData) -> StorageResult<()> 
             left.path.as_str(),
             left.code.id(),
             left.kept
+        ])?;
+    }
+    Ok(())
+}
+
+/// The files the scan left out for good, with the hash they had.
+fn insert_skipped(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
+    let snapshot = column_int(data.snapshot.id.get())?;
+    let mut insert = conn.prepare_cached(sql::SKIPPED_FILE_INSERT)?;
+    for file in &data.skipped {
+        insert.execute(params![
+            snapshot,
+            file.path.as_str(),
+            file.language.as_str(),
+            file.content_hash.as_str(),
+            file.code.id()
         ])?;
     }
     Ok(())

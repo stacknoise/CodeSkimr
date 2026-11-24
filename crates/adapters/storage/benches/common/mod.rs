@@ -96,6 +96,7 @@ pub fn data(snapshot: u64, first_file: u64, content: Content) -> SnapshotData {
         warnings: Vec::new(),
         ambiguous_places: None,
         left_out: Vec::new(),
+        skipped: Vec::new(),
         naming_rules: String::new(),
     }
 }

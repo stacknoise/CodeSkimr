@@ -6,7 +6,7 @@ use codeskimr_domain::{
     RelativePath, Snapshot, SnapshotId, SourceFile, Symbol, SymbolId, SymbolPair, Timestamp,
 };
 
-use super::{LeftOut, PendingReference, SymbolFingerprints, SymbolHash};
+use super::{LeftOut, PendingReference, SkippedFile, SymbolFingerprints, SymbolHash};
 use crate::error::CodedError;
 
 /// Everything one scan produced, written as one unit.
@@ -59,6 +59,9 @@ pub struct SnapshotData {
     /// The files the scan left out by name, at most `scan.max_left_out_listed` of them (ADR 0085);
     /// the warnings count all of them.
     pub left_out: Vec<LeftOut>,
+    /// Every file the scan left out for good, with the hash it had (issue #684): the next scan
+    /// takes such a file as unchanged when it decides whether anything changed.
+    pub skipped: Vec<SkippedFile>,
 }
 
 /// A warning of a scan: how often something happened, not one message per occurrence.
@@ -132,6 +135,8 @@ pub struct PreviousState {
     /// How many places of the snapshot match several symbols (`RES-301`), `None` if the store
     /// does not know: the next scan then reads every reference and counts again.
     pub ambiguous_places: Option<u64>,
+    /// The files the scan of the snapshot left out for good, which are not among `files`.
+    pub skipped: Vec<SkippedFile>,
 }
 
 /// A scan that found every file as a snapshot has it (ADR 0093).
@@ -154,6 +159,8 @@ pub struct Confirmed {
     pub snapshot: Snapshot,
     /// The warnings of the scan that wrote the snapshot, which still hold.
     pub warnings: Vec<ScanWarning>,
+    /// The files that scan left out by name, which still are.
+    pub left_out: Vec<LeftOut>,
 }
 
 /// What level 2 stores for some files of a snapshot: the symbols it creates (ADR 0055) and the
