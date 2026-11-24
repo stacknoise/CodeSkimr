@@ -118,8 +118,9 @@ ${stage("","Quelle holen · Dateien finden","Git, .gitignore, Sprachen erkennen"
 const B=[["Programmstart","300","1.426","bad"],["Suche (Tastendruck)","10","7","good"],["Typ wechseln","16","11","good"],["Verwendungsabfrage","20","—",""],["Graph-Layout","50","38","good"],["Scan 100k Zeilen","1.000","—",""],["Scan nur Änderungen","300","212","good"]];
 function leistung(){return uebersicht()+`<div class="card pop"><div class="dsec row" style="border:0"><div style="flex:1"><h2>Leistungsziele</h2><div class="muted" style="font-size:12px;margin-top:2px">Gilt für die ganze App, gemessen in dieser Sitzung</div></div><span class="pill warn">1 von 7 verfehlt</span></div>
 ${B.map(b=>`<div class="brow"><span>${b[0]}</span><span class="mono muted">Ziel &lt; ${b[1]} ms</span><span class="mono" style="width:70px;text-align:right;font-weight:600;color:var(--${b[3]||"muted"})">${b[2]}${b[2]=="—"?"":" ms"}</span></div>`).join("")}</div>`}
+const VIEWS=new Map([["uebersicht",uebersicht],["laeuft",laeuft],["fertig",fertig],["leistung",leistung]]);
 const b=document.getElementById("b");b.classList.add(th);
 b.innerHTML=`<div class="top"><span class="logo">C</span><b style="font-size:14px">CodeSkimr</b><span class="search">Typ, Member oder Befehl …</span></div>
-<div class="main">${rail}<div class="content"><div style="display:flex;gap:14px;flex:1;min-height:0">${{uebersicht,laeuft,fertig,leistung}[v]()}</div></div></div>
+<div class="main">${rail}<div class="content"><div style="display:flex;gap:14px;flex:1;min-height:0">${(VIEWS.has(v)?VIEWS.get(v):uebersicht)()}</div></div></div>
 <div class="status"><span style="color:var(--good)">● Verbunden</span><span>6 Projekte · 3.107 Typen</span><span ${v=="leistung"?'style="color:var(--accent);font-weight:700"':""}>Leistung: 1 Ziel verfehlt ▴</span><span>RAM 118 MB</span></div>`;
 </script></body></html>
