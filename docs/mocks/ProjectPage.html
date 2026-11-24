@@ -78,7 +78,7 @@ const bar=l=>`<div class="lb">${l.map((x,i)=>`<i style="width:${x[1]}%;backgroun
 const leg=l=>`<div class="leg">${l.map((x,i)=>`<span style="--c:var(--c${i+1})">${x[0]} ${x[1]} %</span>`).join("")}</div>`;
 const list=sel=>`<div class="card plist"><div class="dsec row"><h1 style="font-size:18px">Projekte</h1><span class="sp"></span><span class="btn pri sm">+ Neu</span></div>
 <div style="padding:0 14px 10px"><div class="filter" style="width:100%">Projekte filtern …</div></div>
-${P.map(p=>`<div class="pi ${p.n==sel?"sel":""}"><span class="dot ${p.st}"></span><div style="flex:1;min-width:0"><div class="name">${p.n}</div><div class="muted" style="font-size:12px;margin-top:2px">${p.l} · ${p.scan}</div>${p.run?`<div class="mini"><i style="width:${p.run}%"></i></div>`:""}</div></div>`).join("")}
+${P.map(p=>`<div class="pi ${p.n==sel?"sel":""}"><span class="dot ${p.st}" role="img" aria-label="${p.scan}"></span><div style="flex:1;min-width:0"><div class="name">${p.n}</div><div class="muted" style="font-size:12px;margin-top:2px">${p.l} · ${p.scan}</div>${p.run?`<div class="mini"><i style="width:${p.run}%"></i></div>`:""}</div></div>`).join("")}
 <div class="sp"></div><div class="dsec muted" style="font-size:12px">6 Projekte · 3.107 Typen</div></div>`;
 const head=(n,pill,path,btns)=>`<div class="row" style="gap:12px"><div style="flex:1;min-width:0"><div class="row"><h1>${n}</h1>${pill}</div><div class="path mono" style="max-width:none;margin-top:4px">${path}</div></div>${btns}<span class="dots">···</span></div>`;
 const tabs=on=>`<div class="tabs">${["Übersicht","Scan","Genaue Prüfung (Stufe 2)","Werkzeuge"].map(x=>`<span class="tab ${x==on?"on":""}">${x}</span>`).join("")}</div>`;

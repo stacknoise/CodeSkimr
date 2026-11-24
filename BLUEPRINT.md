@@ -34,7 +34,7 @@ CodeSkimr scans code repositories, either a local folder or a Git repository, an
 - Languages:
   - Full tier for C#, TypeScript/JavaScript, Python, Java, Kotlin and Rust. Go follows in the full tier after 1.0 (ADR 0011); in 1.0 it has the basic tier.
   - Basic tier for every language with a Tree-sitter grammar.
-- Explorer, dependency map, usages per symbol, quick search, scan and performance view.
+- Explorer, dependency map, usages per symbol, quick search, projects with their scan and performance tab (ADR 0096).
 - MCP server (stdio and HTTP).
 - Export as a single self-contained HTML file.
 - UI in German and English.
@@ -769,11 +769,11 @@ The screens (details in Appendix B):
 
 | # | Screen | Mock file |
 |---|---|---|
-| 1 | Projects | `docs/mocks/Main.dc.html` |
+| 1 | Projects (replaced by 23, ADR 0096) | `docs/mocks/Main.dc.html` |
 | 2 | Explorer | `docs/mocks/Explorer.dc.html` |
 | 3 | Dependencies | `docs/mocks/Graph.dc.html` |
 | 4 | Quick search (Ctrl+K) | `docs/mocks/Palette.dc.html` |
-| 5 | Scan and performance | `docs/mocks/Scan.dc.html` |
+| 5 | Scan and performance (replaced by 23, ADR 0096) | `docs/mocks/Scan.dc.html` |
 | 6 | Usages (symbol level) | `docs/mocks/Usages.dc.html` |
 | 7 | Sign-in (team server) | `docs/mocks/Login.dc.html` |
 | 8 | Users and project grants | `docs/mocks/Users.dc.html` |
