@@ -396,9 +396,14 @@ pub struct RescanInput {
     /// confirmed for the project.
     #[serde(default)]
     pub level2: Option<bool>,
+    /// `true` scans every file again, as `codeskimr scan` does; left out or `false` scans
+    /// incrementally if the project has been scanned before.
+    #[serde(default)]
+    pub full: bool,
 }
 
-/// Scans a registered project again, incrementally if it has been scanned before.
+/// Scans a registered project again, incrementally if it has been scanned before, or completely
+/// if the caller asks for it.
 pub struct RescanProject {
     pub(super) catalog: Arc<dyn ProjectCatalog>,
     pub(super) context: Arc<Context>,
@@ -434,7 +439,7 @@ impl Command for RescanProject {
         )?
         .with_tools(Arc::clone(&context.tools));
         let run = context.browser_run(id, request.input.level2)?;
-        let mode = if scanned_before {
+        let mode = if scanned_before && !request.input.full {
             ScanMode::Incremental
         } else {
             ScanMode::Full

@@ -21,7 +21,7 @@ A relative folder path is refused (`PRJ-101`), so the folder the server happens 
 
 Shows the scan that is running or ran last: the stage it is in (fetch source, find files, parse, resolve dependencies, metrics, save), files and lines per second, cores in use, memory, and a table per language with tier, files, symbols and parse time. "Recent scans" lists earlier ones. "Performance targets" compares measured values of the program with its budgets (program start, search per keystroke, switching a type, usages query, map layout).
 
-The first scan of a project is full. Later scans are **incremental**: files are compared by a content hash and only changed files are read again; a scan after a small change finishes in a fraction of a second. The interface stays usable during a scan, and you can **cancel** a running scan with the button "Cancel" or `Esc`; it ends without writing a snapshot.
+The first scan of a project is full. Later scans are **incremental**: files are compared by a content hash and only changed files are read again; a scan after a small change finishes in a fraction of a second. The button **"Full scan"** in the section "Scan" of the selected project reads every file again instead, as `codeskimr scan` does on the command line. The interface stays usable during a scan, and you can **cancel** a running scan with the button "Cancel" or `Esc`; it ends without writing a snapshot.
 
 ## On the command line
 
