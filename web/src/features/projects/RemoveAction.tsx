@@ -63,6 +63,23 @@ export function closeRemoveQuestion(): void {
   setAskingFor(null);
 }
 
+/** Removes a project and leaves the state of the row as it found it: the answers are locked
+ * meanwhile, and afterwards only the own question is closed. */
+async function removeProject(id: number, onRemove: () => Promise<boolean>): Promise<void> {
+  setRemoving((previous) => new Set(previous).add(id));
+  try {
+    await onRemove();
+  } finally {
+    setRemoving((previous) => {
+      const next = new Set(previous);
+      next.delete(id);
+      return next;
+    });
+    // The user may have opened the question of another project meanwhile.
+    setAskingFor((open) => (open === id ? null : open));
+  }
+}
+
 /** "Remove" of a project row, with a second step: the first click asks, the second one removes.
  * Removing deletes what the app stored about the project, never its files. */
 export function RemoveAction(props: {
@@ -72,21 +89,7 @@ export function RemoveAction(props: {
 }) {
   const asking = () => askingFor() === props.id;
   const busy = () => removing().has(props.id);
-  const remove = async () => {
-    const id = props.id;
-    setRemoving((previous) => new Set(previous).add(id));
-    try {
-      await props.onRemove();
-    } finally {
-      setRemoving((previous) => {
-        const next = new Set(previous);
-        next.delete(id);
-        return next;
-      });
-      // Only the own question: the user may have opened the one of another project meanwhile.
-      setAskingFor((open) => (open === id ? null : open));
-    }
-  };
+  const remove = () => removeProject(props.id, props.onRemove);
   return (
     <Show
       when={asking()}
