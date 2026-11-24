@@ -4,7 +4,7 @@ import type { ToolInfo, ToolsInfo } from "./types";
 
 /** The tools that are not ready: what the user has to install or update. */
 export function problemsOf(info: ToolsInfo | null): ToolInfo[] {
-  return info?.tools.filter((tool) => tool.state !== TOOL_STATE.ready) ?? [];
+  return info?.tools?.filter((tool) => tool.state !== TOOL_STATE.ready) ?? [];
 }
 
 /** The display name of a language, the id of one without a name. */

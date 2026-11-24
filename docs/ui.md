@@ -22,7 +22,11 @@ codeskimr open
 - Themes Hell, Petrol (default) and Dunkel are CSS variables generated from `design/tokens.toml` by `cargo run -p codeskimr_codegen`; never edit the generated files.
 - No literals in the code: values live in `consts.ts` files, texts in `locales/`.
 
-## Projects (screen 1, WP-44)
+## Projects (screen 1, mock 23, ADR 0096)
+
+Since ADR 0096 the screen is a narrow list (`ProjectList`) and the page of the selected project (`ProjectPage`) with the tabs Overview, Scan, Exact check (stage 2) and Tools; the paragraphs below that speak of a table, of the column "Last scan" or of the row buttons describe the state before and are kept for the commands, keys and states they name (the actions now sit on the page: "Scan again", "Cancel", "Open in explorer" and the icons for rename and remove). The selected project and the tab live in `features/projects/page.ts`, so they survive a visit of another screen; a scan that starts shows the tab "Scan". The screen "Scan and performance" is the tab "Scan" (`features/scan/ScanTab.tsx`); `/scan` redirects there. The performance targets are an entry of the status bar (`features/status/Performance.tsx`, the list is the component `Budgets`). The card "Database" shows `database.path` and `database.size_bytes` of the project (ADR 0095) and says "Not available yet." while the server does not send them. `Esc` cancels a scan only when no name edit and no removal question is open.
+
+## Projects (screen 1, WP-44, before ADR 0096)
 
 The screen calls four commands over `POST /api/v1/commands/{id}` (`shared/api/commands.ts`): `projects.list`, `projects.add`, `projects.rescan` and `projects.remove` (see `docs/server.md`). `projects.rescan` scans the changes since the last scan; with `full: true` (the button "Full scan" of the scan section) it reads every file again, as `codeskimr scan` does.
 
@@ -112,7 +116,7 @@ Screenshots (1440 x 900): [Hell](screenshots/status-hell.png), [Petrol](screensh
 - **Certainty (ADR 0033):** every hit says whether level 2 verified it. The pill of a hit reads `verified`, `unchecked` (found by name resolution only) or `presumed` (level 1 itself is unsure); the side panel counts them apart and, while no hit of the answer is verified (`level2: "unavailable"`; `"active"` as soon as one is), says that the usages and the impact are preliminary and may be incomplete or contain wrong hits. The sentence says that level 2 did not check these hits (not that no indexer exists: the screen does not know that), and that level 2 runs with `codeskimr scan` in a terminal and with a scan in the browser (if switched on and confirmed), never with a scan through MCP. While some hits are verified and others not, a shorter sentence says that part of the hits was not checked. Verified hits are sorted first. `verified` and `level2` come from the stored references: level 2 sets them when the owner confirmed it and an indexer checked the file (`docs/level2-import.md`).
 - Deviations from the mock: the hit list shows file and line, not the code line (reading code needs `read_source` and the token, which this screen does not use; follow-up issue); "Alt + click on a symbol in the code" has no effect because the source column has no symbol spans yet (same reason as in the explorer); the hit list shows the callers (or, for "what is called", the callees), not both; the graph shows type uses of the symbol as cards too; "Open in editor" is not on this screen; the footer shows the connection, not "Reference index" or the query time.
 
-## Scan and performance (screen 5, issues #153, #168, #210)
+## Scan and performance (screen 5, now the tab "Scan", issues #153, #168, #210)
 
 - Cancel: while a scan runs, the header shows the button "Cancel" with the key `Esc` (not while typing in a field). It calls `projects.cancel`; the screen changes when the event stream reports `scan_stopped` with `cancelled`, so a cancel that came too late changes nothing. The scan ends without a snapshot; the call that started it answers `PRJ-303` ("The scan was cancelled").
 - Cores: the fourth figure shows the threads of the analyze stage while a scan runs and a dash otherwise: the cores the system offers (`status.info` `workers`), but never more than there are files to analyse, because the stage starts no more threads than that.

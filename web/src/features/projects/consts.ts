@@ -283,3 +283,12 @@ export const RENAME_ICON = "edit";
 export const RENAME_ICON_SIZE = 14;
 /** Index of "MB" in `SIZE_UNITS`. */
 export const MEGABYTE_UNIT = 2;
+
+/** Id prefixes of the tab buttons and the tab panels, for `aria-controls`. */
+export const TAB_ID = "project-tab-";
+export const PANEL_ID = "project-panel-";
+/** How the arrow keys move between the tabs. */
+export const TAB_STEP: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1 };
+/** `tabindex` of the selected tab and of the others (the arrow keys reach them). */
+export const TAB_IN = 0;
+export const TAB_OUT = -1;

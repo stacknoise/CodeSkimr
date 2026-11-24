@@ -217,3 +217,6 @@ projects-db-copy = Copy path
 projects-db-copied = Copied
 projects-source-line = { $parts }
 projects-scan-start-hint = Start a scan with “Scan again”; its progress shows up here.
+projects-language-percent = { $percent } %
+projects-open-explorer = Open in explorer
+projects-list-progress = Scan progress of { $name }

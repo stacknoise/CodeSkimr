@@ -40,12 +40,9 @@ export const ANNOTATIONS_ROUTE: Route = {
   icon: "annotations",
   needsProject: true,
 };
-export const SCAN_ROUTE: Route = {
-  path: "/scan",
-  label: I18N_KEYS.NAV_SCAN,
-  icon: "scan",
-  needsProject: true,
-};
+/** The former scan screen; its content is the tab "Scan" of the projects screen now, and the old
+ * address leads there (ADR 0096). */
+export const LEGACY_SCAN_PATH = "/scan";
 export const GRAPH_ROUTE: Route = {
   path: "/graph",
   label: I18N_KEYS.NAV_GRAPH,
@@ -75,7 +72,6 @@ export const PROJECT_PATHS: readonly string[] = [
   EXPLORER_ROUTE.path,
   GRAPH_ROUTE.path,
   ANNOTATIONS_ROUTE.path,
-  SCAN_ROUTE.path,
   STATS_ROUTE.path,
   USAGES_ROUTE.path,
 ];
@@ -87,7 +83,6 @@ export const MAIN_ROUTES: Route[] = [
   GRAPH_ROUTE,
   STATS_ROUTE,
   ANNOTATIONS_ROUTE,
-  SCAN_ROUTE,
 ];
 /** Screens in the lower part of the rail. */
 export const FOOTER_ROUTES: Route[] = [SETTINGS_ROUTE];

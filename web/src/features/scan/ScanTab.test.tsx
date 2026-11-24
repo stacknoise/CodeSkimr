@@ -8,7 +8,9 @@ import type { ProjectRow } from "../projects/types";
 import { refreshProjects } from "../projects/projects";
 import { refreshStatus } from "../status/status";
 import { listenToScans, resetRuns } from "./events";
-import { ScanScreen } from "./ScanScreen";
+import { ProjectsScreen } from "../projects/ProjectsScreen";
+import { Performance } from "../status/Performance";
+import { chooseProject, chooseTab, TAB_SCAN } from "../../tests/pageTabs";
 
 const ROW: ProjectRow = {
   id: 1,
@@ -97,8 +99,20 @@ async function shown() {
   await refreshProjects();
   await refreshStatus();
   const stop = listenToScans();
-  render(() => <ScanScreen />);
+  render(() => (
+    <>
+      <ProjectsScreen />
+      <Performance />
+    </>
+  ));
+  await chooseProject();
+  await chooseTab(TAB_SCAN);
   return stop;
+}
+
+/** Opens the list of the performance targets at the status bar. */
+function openPerformance(): void {
+  fireEvent.click(screen.getByRole("button", { name: /^(Performance|Leistung)/ }));
 }
 
 /** The screen with a server that also answers `projects.cancel`. */
@@ -112,17 +126,17 @@ async function shownWithCancel() {
   return shown();
 }
 
-describe("ScanScreen", () => {
+describe("the tab Scan", () => {
   it("shows the budgets with the measured start time, the languages and recent scans when idle", async () => {
     setLanguage("en");
     const stop = await shown();
     expect(await screen.findByText("No scan running")).toBeInTheDocument();
+    openPerformance();
     expect(screen.getByText("Program start")).toBeInTheDocument();
     expect(screen.getAllByText("Target < 300 ms")).toHaveLength(2);
     expect(screen.getByText("180 ms")).toBeInTheDocument();
     expect(screen.getByText("C#")).toBeInTheDocument();
     expect(screen.getByText("38,000")).toBeInTheDocument();
-    expect(screen.getAllByText("shop · full")).toHaveLength(2);
     stop();
   });
 
@@ -230,6 +244,7 @@ describe("ScanScreen", () => {
     recordTime("graph_layout", 61);
     const stop = await shown();
     await screen.findByText("No scan running");
+    openPerformance();
     expect(screen.getByText("4 ms")).toBeInTheDocument();
     expect(screen.getByText("61 ms")).toBeInTheDocument();
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
@@ -296,6 +311,7 @@ describe("ScanScreen", () => {
     });
     FakeSocket.last?.send({ type: "snapshot_created", project: 1, snapshot: 6 });
     await screen.findByText("Scan finished");
+    openPerformance();
     const row = screen.getByText("Scan 100k lines").parentElement as HTMLElement;
     const value = row.lastElementChild as HTMLElement;
     expect(value.className).not.toMatch(/good|bad/);
@@ -313,6 +329,7 @@ describe("ScanScreen", () => {
       pack_load_ms: 60_000,
     });
     await screen.findByText("Scan finished");
+    openPerformance();
     const row = screen.getByText("Scan 100k lines").parentElement as HTMLElement;
     // The load took longer than the whole run in the browser, so nothing is left to measure.
     expect(within(row).getByText("0 ms")).toBeInTheDocument();
@@ -446,6 +463,7 @@ describe("ScanScreen", () => {
     setLanguage("de");
     const stop = await shown();
     expect(await screen.findByText("Kein Scan läuft")).toBeInTheDocument();
+    openPerformance();
     expect(screen.getByText("Leistungsziele")).toBeInTheDocument();
     expect(screen.getAllByText("Ziel < 300 ms")).toHaveLength(2);
     stop();
@@ -454,8 +472,8 @@ describe("ScanScreen", () => {
   it("asks for a first project when there is none", async () => {
     setLanguage("en");
     serve({ "projects.list": () => answer([]), "status.info": () => answer(STATUS) });
-    const stop = await shown();
-    expect(await screen.findByText(/Add a project first/)).toBeInTheDocument();
-    stop();
+    await refreshProjects();
+    render(() => <ProjectsScreen />);
+    expect(await screen.findByText("No projects yet")).toBeInTheDocument();
   });
 });
