@@ -363,3 +363,20 @@ pub const STATS_TOP: u32 = 5;
 /// The separator between the namespace and the name in the qualified name of a type that the tree
 /// leaves out of its answer (the reader puts it together again).
 pub(super) const QUALIFIED_SEPARATOR: &str = ".";
+
+/// Id of the command that shows the settings in effect with their origin.
+pub const SETTINGS_EFFECTIVE: &str = "settings.effective";
+/// Title key of `settings.effective`.
+pub const SETTINGS_EFFECTIVE_TITLE: &str = i18n::COMMAND_SETTINGS_EFFECTIVE_TITLE;
+/// Description key of `settings.effective`.
+pub const SETTINGS_EFFECTIVE_DESCRIPTION: &str = i18n::COMMAND_SETTINGS_EFFECTIVE_DESCRIPTION;
+/// Origin name of a value from `config/default.toml`.
+pub const ORIGIN_DEFAULT: &str = "default";
+/// Origin name of a value from the user configuration file.
+pub const ORIGIN_USER: &str = "user";
+/// Origin name of a value from the `.codeskimr.toml` of a project.
+pub const ORIGIN_PROJECT: &str = "project";
+/// Origin name of a value from a command line flag (`--set`).
+pub const ORIGIN_CLI: &str = "cli";
+/// Joins key and value in the text of a command line override.
+pub const OVERRIDE_JOIN: char = '=';

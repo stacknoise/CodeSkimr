@@ -154,6 +154,8 @@ describe("the login of a Git project", () => {
       "credentials.set": () => {
         throw new TypeError("network down");
       },
+      "tools.indexers": () => answer({ checked_at: null, languages: [], tools: [] }),
+      "settings.effective": () => answer({ user_file: null, overrides: [], settings: [] }),
     });
     const spy = vi.spyOn(console, "error");
     render(() => <SettingsScreen />);

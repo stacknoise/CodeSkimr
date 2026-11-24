@@ -1,5 +1,7 @@
 //! One layer of the override chain: user file, project file or command line flags.
 
+use std::collections::BTreeMap;
+
 use toml::{Table, Value};
 
 use super::consts::{ASSIGNMENT, KEY_SEPARATOR, OVERRIDE_VALUE_KEY};
@@ -117,6 +119,29 @@ pub(super) fn deep_merge(base: &mut Table, over: &Table) {
             }
             _ => {
                 base.insert(key.clone(), value.clone());
+            }
+        }
+    }
+}
+
+/// Notes `source` as the origin of every value in `layer` (a value is anything but a table; a
+/// list counts as one value), under its dotted key path.
+pub(super) fn note_origins(
+    layer: &Table,
+    source: LayerSource,
+    prefix: &str,
+    origins: &mut BTreeMap<String, LayerSource>,
+) {
+    for (key, value) in layer {
+        let path = if prefix.is_empty() {
+            key.clone()
+        } else {
+            format!("{prefix}{KEY_SEPARATOR}{key}")
+        };
+        match value {
+            Value::Table(inner) => note_origins(inner, source, &path, origins),
+            _ => {
+                origins.insert(path, source);
             }
         }
     }
