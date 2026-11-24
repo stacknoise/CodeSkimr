@@ -4,7 +4,7 @@
 mod cases {
     use codeskimr_application::tools::{ToolView, ToolsView};
     use codeskimr_cli::{
-        LeftOutLine, LeftOutView, Level2Line, Level2Reason, ScanSummary, WarningLine,
+        LeftOutLine, LeftOutView, Level2Line, Level2Reason, ScanSummary, StageLine, WarningLine,
         scan_finished, scan_json,
     };
     use codeskimr_i18n::Messages;
@@ -19,6 +19,7 @@ mod cases {
             seconds: 1.5,
             cpu_seconds: 4.25,
             pack_load_seconds: 0.5,
+            stages: Vec::new(),
             level2,
             warnings: Vec::new(),
             left_out: LeftOutView::default(),
@@ -73,6 +74,37 @@ mod cases {
         ));
         assert!(contains(&de, &["go", "übersprungen", "bestätigt"]));
         assert!(contains(&de, &["java", "RES-502"]));
+    }
+
+    fn with_stage_times() -> ScanSummary {
+        let stage = |stage: &str, seconds: f64| StageLine {
+            stage: stage.to_owned(),
+            seconds,
+        };
+        ScanSummary {
+            stages: vec![stage("discover", 15.25), stage("resolve", 120.0)],
+            ..summary(Vec::new())
+        }
+    }
+
+    #[test]
+    fn the_time_of_each_stage_is_a_line_in_both_languages_and_in_json() {
+        let messages = Messages::load().unwrap();
+        let en = scan_finished(&messages, "en", &with_stage_times()).unwrap();
+        assert!(
+            en.contains("Steps: discover 15.25 s, resolve 120 s."),
+            "{en}"
+        );
+        let de = scan_finished(&messages, "de", &with_stage_times()).unwrap();
+        assert!(
+            de.contains("Schritte: discover 15.25 s, resolve 120 s."),
+            "{de}"
+        );
+        let json = scan_json(&with_stage_times()).unwrap();
+        assert!(
+            json.contains(r#""stages":[{"stage":"discover","seconds":15.25},{"stage":"resolve","seconds":120.0}]"#),
+            "{json}"
+        );
     }
 
     #[test]

@@ -8,7 +8,7 @@ use codeskimr_application::access;
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::events::EventBus;
+use codeskimr_application::events::{Event, EventBus, Subscription};
 use codeskimr_application::level2::{LanguageReport, Level2Outcome, Skipped};
 use codeskimr_application::pipeline::Level2Run;
 use codeskimr_application::pipeline::{Job, JobResult, Queued, Scanner};
@@ -16,9 +16,11 @@ use codeskimr_application::ports::{
     CodeStatistics, FileAnalyzer, LanguageOutcome, PathsReport, ProjectRepository,
     ProjectToolCheck, ScanWarning, StatisticsSetup,
 };
+use codeskimr_application::stage::StageKind;
 use codeskimr_application::tools::ToolsView;
 use codeskimr_cli::{
-    GlobalOptions, LeftOutView, Level2Line, Level2Reason, ScanArgs, ScanSummary, WarningLine,
+    GlobalOptions, LeftOutView, Level2Line, Level2Reason, ScanArgs, ScanSummary, StageLine,
+    WarningLine,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
@@ -309,6 +311,7 @@ impl Session {
 
     fn run_ran(&self, job: Job<Queued>) -> Result<Ran, CodedError> {
         let started = Instant::now();
+        let progress = self.events.subscribe();
         let loading_before = self.analyzer.pack_load_time();
         let cpu_start = process_cpu_time();
         let mode = job.mode();
@@ -329,6 +332,7 @@ impl Session {
                     seconds,
                     cpu_seconds: seconds_since(cpu_start),
                     pack_load_seconds: loading.as_secs_f64(),
+                    stages: stage_lines(&progress),
                     level2: job.level2().iter().map(level2_line).collect(),
                     warnings: job.warnings().iter().map(warning_line).collect(),
                     left_out: left_out_view(job.paths_report()),
@@ -344,6 +348,28 @@ impl Session {
             JobResult::Cancelled(_) => Err(CodedError::new(ErrorCode::ScanCancelled)),
         }
     }
+}
+
+/// The time each stage of the scan took: the last report of each stage carries its whole time.
+fn stage_lines(progress: &Subscription) -> Vec<StageLine> {
+    let mut last: Vec<Option<u64>> = vec![None; StageKind::ALL.len()];
+    for event in progress.try_iter() {
+        if let Event::ScanProgressed(report) = event
+            && let Some(slot) = last.get_mut(report.stage as usize)
+        {
+            *slot = Some(report.elapsed_ms);
+        }
+    }
+    StageKind::ALL
+        .iter()
+        .zip(last)
+        .filter_map(|(stage, millis)| {
+            Some(StageLine {
+                stage: stage.label().to_owned(),
+                seconds: Duration::from_millis(millis?).as_secs_f64(),
+            })
+        })
+        .collect()
 }
 
 /// What a finished scan leaves for the caller.
