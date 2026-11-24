@@ -28,6 +28,8 @@ SQLite database per workspace, WAL mode, schema migrations in `crates/adapters/s
 - Outside the ports: `save_project` (registers a project, PRJ-301 for a duplicate source),
   `latest_snapshot`, `next_free_id` (start value for `IdSequence`).
 
+Finding the slow step of a large write: with `CODESKIMR_LOG=info` every step of writing a snapshot logs `persist_step` with `step` (`header`, `prune_before_load`, `facts`, `reference_indexes`, `details`, `integrity`, `read_models`, `prune`) and `elapsed_ms`. `references` (the insert), `reference_indexes` and `fingerprints` are parts of `facts`, and `prune_before_load` only runs for a large full scan when snapshots beyond the retention exist.
+
 ## Known limits
 
 - Search is case-insensitive for ASCII only (SQLite `lower`); the query is lowered the same way.

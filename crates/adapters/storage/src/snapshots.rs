@@ -10,13 +10,17 @@ use codeskimr_domain::{
     CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats, SourceFile,
     SymbolId,
 };
+use std::time::Instant;
+
 use rusqlite::{Connection, params};
 
 use crate::catalog::{left_out, warnings};
 use crate::codec::column_int;
 use crate::consts::{
-    BULK_FINGERPRINTS_MIN, BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR,
-    PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON,
+    BULK_FINGERPRINTS_MIN, BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR, LOG_PERSIST_STEP,
+    PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON, STEP_DETAILS, STEP_FACTS, STEP_FINGERPRINTS, STEP_HEADER,
+    STEP_INTEGRITY, STEP_PRUNE, STEP_PRUNE_BEFORE, STEP_READ_MODELS, STEP_REFERENCE_INDEXES,
+    STEP_REFERENCES,
 };
 use crate::error::{StorageError, StorageResult};
 use crate::headers::{
@@ -98,8 +102,23 @@ pub(crate) fn write_snapshot(
         return Err(StorageError::ProjectNotFound);
     }
     conn.pragma_update(None, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON)?;
-    insert_header(conn, header)?;
-    let pruned = prune_before_load(conn, data, keep)?;
+    timed(STEP_HEADER, || insert_header(conn, header))?;
+    let pruned = timed(STEP_PRUNE_BEFORE, || prune_before_load(conn, data, keep))?;
+    timed(STEP_FACTS, || insert_facts(conn, data, pruned))?;
+    timed(STEP_DETAILS, || insert_details(conn, data))?;
+    timed(STEP_INTEGRITY, || integrity::check(conn, data))?;
+    let stats = timed(STEP_READ_MODELS, || finish_read_models(conn, data))?;
+    timed(STEP_PRUNE, || prune(conn, project, keep))?;
+    Ok(Snapshot {
+        stats,
+        ..header.clone()
+    })
+}
+
+/// Writes what belongs to the snapshot besides the facts: the naming rules, parse times,
+/// warnings, left-out and skipped files, and for an incremental scan the carried-over rows.
+fn insert_details(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
+    let header = &data.snapshot;
     conn.execute(
         sql::SNAPSHOT_NAMING_SET,
         params![data.naming_rules, column_int(header.id.get())?],
@@ -109,7 +128,6 @@ pub(crate) fn write_snapshot(
         sql::SNAPSHOT_AMBIGUOUS_SET,
         params![ambiguous, column_int(header.id.get())?],
     )?;
-    insert_facts(conn, data, pruned)?;
     insert_parse_times(conn, data)?;
     insert_warnings(conn, data)?;
     insert_left_out(conn, data)?;
@@ -117,13 +135,17 @@ pub(crate) fn write_snapshot(
     if header.mode == ScanMode::Incremental {
         carry_over(conn, header.project, header.id, &data.removed)?;
     }
-    integrity::check(conn, data)?;
-    let stats = finish_read_models(conn, data)?;
-    prune(conn, project, keep)?;
-    Ok(Snapshot {
-        stats,
-        ..header.clone()
-    })
+    Ok(())
+}
+
+/// Runs one step of the write and logs how long it took (`CODESKIMR_LOG=info`), so that the slow
+/// step of a large write can be found on real data.
+fn timed<T>(step: &'static str, run: impl FnOnce() -> StorageResult<T>) -> StorageResult<T> {
+    let started = Instant::now();
+    let result = run();
+    let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+    tracing::info!(event = LOG_PERSIST_STEP, step, elapsed_ms);
+    result
 }
 
 /// Builds the read models and sets the totals of the snapshot. The totals count the references
@@ -213,24 +235,38 @@ fn insert_facts(
         insert_symbol(conn, symbol, hashes.get(&symbol.id).copied())?;
     }
     let bulk = indexes_dropped || bulk_load_starts(conn, data.references.len())?;
-    let mut references = conn.prepare_cached(sql::REFERENCE_INSERT)?;
-    for reference in &data.references {
-        insert_reference(&mut references, snapshot, reference)?;
-    }
+    timed(STEP_REFERENCES, || insert_references(conn, data, snapshot))?;
     if bulk {
-        for create in sql::REFERENCE_INDEXES_CREATE {
-            conn.execute(create, [])?;
-        }
+        timed(STEP_REFERENCE_INDEXES, || create_reference_indexes(conn))?;
     }
     for metric in &data.metrics {
         insert_metric(conn, snapshot, metric)?;
     }
-    insert_fingerprints(conn, &data.fingerprints)?;
+    timed(STEP_FINGERPRINTS, || {
+        insert_fingerprints(conn, &data.fingerprints)
+    })?;
     pending::insert_all(conn, &data.pending)?;
     pending::mark_stored(conn, snapshot)?;
     let mut dropped = conn.prepare_cached(sql::REFERENCE_DELETE)?;
     for id in &data.dropped_references {
         dropped.execute(params![column_int(id.get())?])?;
+    }
+    Ok(())
+}
+
+/// Inserts the references of the snapshot.
+fn insert_references(conn: &Connection, data: &SnapshotData, snapshot: i64) -> StorageResult<()> {
+    let mut references = conn.prepare_cached(sql::REFERENCE_INSERT)?;
+    for reference in &data.references {
+        insert_reference(&mut references, snapshot, reference)?;
+    }
+    Ok(())
+}
+
+/// Builds the reference indexes that a bulk load left out.
+fn create_reference_indexes(conn: &Connection) -> StorageResult<()> {
+    for create in sql::REFERENCE_INDEXES_CREATE {
+        conn.execute(create, [])?;
     }
     Ok(())
 }
