@@ -1,6 +1,6 @@
 # Hand test of 1.0.0-rc.6 on Windows (M1 to M6)
 
-Run by the product owner on 2026-11-24 on his Windows laptop with the downloaded program file of the release draft `1.0.0-rc.6` (no checkout, no cargo). The task list covered only what the CI cannot show: the private C# reference (ADR 0017), a private Git repository, the dialogs of the system and the look of the screens. Results were reported in the project chat. The detailed list of the usage sample was judged by Claude against the source of the private project; no name, path or count of that project is recorded here (ADR 0017, ADR 0011).
+Run by the product owner on 2026-11-24 on his Windows laptop with the downloaded program file of the release draft `1.0.0-rc.6` (no checkout, no cargo). The task list covered only what the CI cannot show: the private C# reference (ADR 0017), a private Git repository, the dialogs of the system and the look of the screens. Results were reported in the project chat. The detailed list of the usage sample was judged by Claude against the source of the private project; no name, path or absolute count of that project is recorded here, only rates and orders of magnitude (ADR 0017, ADR 0011).
 
 This page adds to the reports `m1-m2.md`, `m3.md`, `m4.md`, `m5.md` and `m6.md`; it does not replace them. Acceptance itself stays the product owner's decision.
 
@@ -11,7 +11,7 @@ Legend: ✅ passed · ◐ passed with a named limit or finding · ⏭ voluntary,
 | Task | Milestone | Result | Evidence |
 |---|---|---|---|
 | Preparation: checksum of the download, version, `--help` | all | ✅ | Reported as passed. |
-| Private reference by script: counts, scan time, incremental scan, MCP tools | M1, M2 | ✅ | Three scans in fresh databases give the same counts. Full scan (median of three): 0.27 s for `src` alone, 0.44 s for the whole repository with its tests, which extrapolates to about 2.1 s per 100k LOC: over the budget, the known limit of #410. Incremental scan after one appended line: median 83 ms (`src`) and 98 ms (with tests), within the budget of 300 ms. `tools/list` shows 13 tools; slowest query 12 ms. |
+| Private reference by script: counts, scan time, incremental scan, MCP tools | M1, M2 | ✅ | Three scans in fresh databases give the same counts. Full scan: about 2.1 s per 100k LOC when extrapolated, the same with and without the tests: over the budget of 1 s, the known limit of #410. Incremental scan after one appended line: about 0.1 s, within the budget of 300 ms. `tools/list` shows 13 tools; every query answers in well under 100 ms. |
 | An agent uses the MCP server | M2 | ✅ | Claude Code in the Claude desktop app searched symbols and listed the usages of a method through `codeskimr mcp --project`. See the notes for how the server had to be registered. |
 | Usage sample of 20 symbols | M2 criterion 4 | ◐ | Two runs with different symbols, see the next section. Every usage of the source was found in both runs; every hit marked `certain` is correct; wrong hits are all `uncertain`. Finding #685. |
 | Large public C# project for time | M1 | ⏭ | Not run; the limit is decided (#410). |
@@ -19,7 +19,7 @@ Legend: ✅ passed · ◐ passed with a named limit or finding · ⏭ voluntary,
 | Folder dialog | M3, M6 | ◐ | The dialog opens in front, a chosen folder is scanned, a second click while the dialog is open is refused. After that refused click a third click opened a second dialog: #692, fixed on `main` with #693 after rc.6 (to be confirmed with the next test version). |
 | Screens, keyboard, themes, language | M3 | ✅ | Reported as "looks good". |
 | Map, scan and usages on the private project | M4 | ✅ | F8 on the usages screen and Alt+click in the source pane work. |
-| Large project (VS Code checkout) while a console scan runs | M4 | ◐ | The UI stays usable during the scan, the statistics page loads in a few seconds, and the small project is fast afterwards. Findings: #695 (the projects list shows the project as never scanned while the console scans it; correct again after the scan) and #694 (the UI does not show a scan of the console at all). The full scan took 344 s for 16,717 files, of which the screen "Scans and performance" attributes 334 s to parsing TypeScript; reported to the scan-speed work, not a criterion of M4. |
+| Large project (VS Code checkout) while a console scan runs | M4 | ◐ | The UI stays usable during the scan, the statistics page loads in a few seconds, and the small project is fast afterwards. Findings: #695 (the projects list shows the project as never scanned while the console scans it; correct again after the scan) and #694 (the UI does not show a scan of the console at all). The full scan of this public project took 344 s for 16,717 files, of which the screen "Scans and performance" attributes 334 s to parsing TypeScript; reported to the scan-speed work, not a criterion of M4. |
 | Sign "approximation" in the UI | M5 | ✅ | The accuracy card of the usages screen carries the chip for C# and says that level 2 is not confirmed for the project and that all hits are unverified. The scan output names each missing level 2 tool with its purpose and an install hint. |
 | Level 2 on Windows | M5 | ⏭ | Not run. |
 | Stored login (`credential set`) | M6 | ✅ | Stored; the secret is not printed. |
@@ -30,14 +30,14 @@ Legend: ✅ passed · ◐ passed with a named limit or finding · ⏭ voluntary,
 
 Both runs asked `find_usages` with `include_tests = true` for 20 symbols picked by the script. The hits were compared with the source.
 
-| Run | Symbols complete | Symbols without a wrong hit | Hits | Correct | Recall | Precision |
-|---|---|---|---|---|---|---|
-| `src` only (tests not scanned) | 20 of 20 | 16 of 20 | 49 | 37 | 100 % | 76 % |
-| Whole repository with tests | 20 of 20 | 15 of 20 | 81 | 55 | 100 % | 68 % |
+| Run | Symbols complete | Symbols without a wrong hit | Recall | Precision |
+|---|---|---|---|---|
+| `src` only (tests not scanned) | 20 of 20 | 16 of 20 | 100 % | 76 % |
+| Whole repository with tests | 20 of 20 | 15 of 20 | 100 % | 68 % |
 
-- Every hit marked `certain` is correct (20 and 13 hits). Every wrong hit is `uncertain`.
+- Every hit marked `certain` is correct. Every wrong hit is `uncertain`.
 - One cause for all wrong hits of the first run: a member of the same name on another type when the type of the receiver is not known (lambda parameter, `foreach` variable, result of a call, index access). This belongs to #134 and #127.
-- In the second run one project method with a very common name was given 17 calls of a method of the runtime library with the same name (#685; the product owner decided to fix it before 1.0). Without that symbol the precision is 85 %. One symbol shows that overloads are not told apart.
+- In the second run one project method with a very common name was given many calls of a method of the runtime library with the same name (#685; the product owner decided to fix it before 1.0). Without that symbol the precision is 85 %. One symbol shows that overloads are not told apart.
 - Calls through an interface to its only implementation were counted as correct, as in the earlier samples.
 
 Proposed verdict: met with the named approximation. Completeness, which the product owner ranks first, is 100 % in both runs; the precision is that of level 1 for C#, which is shown as an approximation in the UI and in the release notes (decision of 2026-11-20).
