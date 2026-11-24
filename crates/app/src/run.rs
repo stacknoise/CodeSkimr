@@ -631,10 +631,10 @@ fn source_failure(error: SourceError, messages: &Messages, language: &str) -> Fa
         SourceError::CredentialNotUsable => messages
             .format(language, CLI_CREDENTIAL_UNUSABLE_HINT, None)
             .ok(),
-        SourceError::NotASource => None,
+        SourceError::NotASource | SourceError::NameInvalid => None,
     };
     Failure {
-        code: ErrorCode::ProjectSourceInvalid,
+        code: CodedError::from(error).code(),
         detail,
         shown: false,
     }

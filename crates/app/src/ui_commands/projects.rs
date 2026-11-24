@@ -336,6 +336,9 @@ pub struct AddInput {
     /// confirmed for the project.
     #[serde(default)]
     pub level2: Option<bool>,
+    /// Display name; left out or empty, the name follows the source.
+    #[serde(default)]
+    pub name: Option<String>,
 }
 
 /// Registers a folder or a Git repository as a project and scans it.
@@ -363,6 +366,10 @@ impl Command for AddProject {
         let spec = match request.input.credential.as_deref() {
             Some(name) => spec.with_credential(name)?,
             None => spec,
+        };
+        let spec = match request.input.name.as_deref().map(str::trim) {
+            Some(name) if !name.is_empty() => spec.with_name(name)?,
+            _ => spec,
         };
         if matches!(spec.source, ProjectSource::Folder(_)) && !Path::new(text).is_absolute() {
             return Err(SourceError::NotASource.into());

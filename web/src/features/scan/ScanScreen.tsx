@@ -50,6 +50,9 @@ function subjectId(): number | null {
 /** The mode a scan has: the first scan of a project is full, later ones are incremental. */
 function modeText(row: ProjectRow | undefined, run: Run | undefined): string {
   const scanned = row?.scan != null;
+  if (run?.state === STATE.running && !scanned) {
+    return t(I18N_KEYS.SCAN_MODE_FIRST);
+  }
   const incremental =
     run?.state === STATE.running ? scanned : row?.scan?.mode === SCAN_MODE.incremental;
   return t(incremental ? I18N_KEYS.SCAN_MODE_INCREMENTAL : I18N_KEYS.SCAN_MODE_FULL);

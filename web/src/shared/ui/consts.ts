@@ -76,3 +76,6 @@ export const DETAILS_ROWS = 4;
 export const DETAILS_SEPARATOR = ": ";
 /** How long an answer may take before the screen says that it is still loading, in milliseconds. */
 export const SLOW_LOAD_DELAY_MS = 1000;
+
+/** The states of a try to copy to the clipboard. */
+export const COPY = { copied: "copied", failed: "failed" } as const;

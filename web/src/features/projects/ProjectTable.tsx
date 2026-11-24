@@ -11,8 +11,9 @@ import { PROJECT_COLUMNS, PROJECT_TABLE_KEY, RESCAN_ICON, SCAN_MODE, SOURCE_KIND
 import { ago, count, seconds } from "./format";
 import { LanguageBar } from "./LanguageBar";
 import { Level2Switch } from "./Level2Switch";
-import { projectsScanning, scanSeconds, toolsOf } from "./projects";
+import { projectsScanning, renamingProject, scanSeconds, toolsOf } from "./projects";
 import { RemoveAction } from "./RemoveAction";
+import { RenameButton, RenameField } from "./RenameForm";
 import { lastScanLine, level2Summary } from "./reportText";
 import { problemsOf } from "./tools";
 import type { ProjectRow } from "./types";
@@ -116,14 +117,18 @@ export function ProjectTable(props: ProjectTableProps) {
 function NameCell(props: { row: ProjectRow; onOpen: (id: number) => void }) {
   return (
     <td>
-      <button
-        type="button"
-        class={styles.name}
-        aria-label={t(I18N_KEYS.PROJECTS_OPEN, { name: props.row.name })}
-        onClick={() => props.onOpen(props.row.id)}
-      >
-        {props.row.name}
-      </button>
+      <Show when={renamingProject()?.id !== props.row.id}>
+        <button
+          type="button"
+          class={styles.name}
+          aria-label={t(I18N_KEYS.PROJECTS_OPEN, { name: props.row.name })}
+          onClick={() => props.onOpen(props.row.id)}
+        >
+          {props.row.name}
+        </button>
+      </Show>
+      <RenameButton id={props.row.id} name={props.row.name} />
+      <RenameField id={props.row.id} name={props.row.name} />
       <div class={styles.path}>{props.row.location}</div>
     </td>
   );
@@ -179,7 +184,11 @@ function StatusCell(props: {
           >
             <Icon name={RESCAN_ICON} />
           </button>
-          <RemoveAction name={props.row.name} onRemove={() => props.onRemove(props.row.id)} />
+          <RemoveAction
+            id={props.row.id}
+            name={props.row.name}
+            onRemove={() => props.onRemove(props.row.id)}
+          />
         </Show>
       </div>
     </td>

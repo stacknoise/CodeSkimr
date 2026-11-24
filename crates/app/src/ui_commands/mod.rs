@@ -35,6 +35,9 @@ mod projects_pick_tests;
 mod projects_remove;
 #[cfg(test)]
 mod projects_remove_tests;
+mod projects_rename;
+#[cfg(test)]
+mod projects_rename_tests;
 #[cfg(test)]
 mod projects_tests;
 mod rating;
@@ -106,6 +109,7 @@ use preferences::{GetPreferences, PreferencesFile, SetPreferences};
 use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
 use projects_pick::{FolderDialogInfo, PickFolder};
 use projects_remove::RemoveProject;
+use projects_rename::{RenameProject, SuggestName};
 use search::{SearchPorts, SearchQuery};
 use settings::EffectiveSettings;
 use source::ExplorerSource;
@@ -404,6 +408,8 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<AddProject>()?;
     api.expose::<RescanProject>()?;
     api.expose::<RemoveProject>()?;
+    api.expose::<RenameProject>()?;
+    api.expose::<SuggestName>()?;
     api.expose::<FolderDialogInfo>()?;
     api.expose::<PickFolder>()?;
     api.expose::<CheckTools>()?;
@@ -472,6 +478,13 @@ fn register_projects(
             context: Arc::clone(context),
         },
     )?;
+    add(
+        registry,
+        RenameProject {
+            store: catalog.clone(),
+        },
+    )?;
+    add(registry, SuggestName)?;
     register_folder_dialog(registry)?;
     register_scans(registry, catalog, context)
 }

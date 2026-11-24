@@ -1,11 +1,18 @@
 import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { activeProject, openProject } from "../../shared/project/active";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { currentPath } from "../../app/router";
 import { ProjectsScreen } from "./ProjectsScreen";
-import { addProject, noteScanReport } from "./projects";
+import { closeRemoveQuestion } from "./RemoveAction";
+import {
+  addProject,
+  cancelRename,
+  noteScanReport,
+  refreshProjects,
+  renamingProject,
+} from "./projects";
 import { UNCHECKED, rescanAsked, rescanned } from "../../tests/scanned";
 import type { ProjectRow } from "./types";
 
@@ -27,6 +34,8 @@ const ROW: ProjectRow = {
 };
 
 useServerSession();
+beforeEach(closeRemoveQuestion);
+afterEach(cancelRename);
 
 describe("ProjectsScreen", () => {
   it("says how a first project gets here when there is none", async () => {
@@ -86,6 +95,106 @@ describe("ProjectsScreen", () => {
     const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith("projects.add"));
     expect(JSON.parse(call?.[1].body)).toEqual({ source: "/work/shop", branch: "main" });
     await waitFor(() => expect((field as HTMLInputElement).value).toBe(""));
+  });
+
+  it("fills the display name from the source and sends it only when the user typed one", async () => {
+    serve({
+      "projects.list": () => answer([]),
+      "projects.suggest_name": () => answer({ name: "shop/src" }),
+      "projects.add": () =>
+        answer({
+          project: 1,
+          snapshot: 5,
+          files: 3,
+          symbols: 9,
+          references: 4,
+          seconds: 1,
+          tools: UNCHECKED,
+        }),
+    });
+    render(() => <ProjectsScreen />);
+    const field = await screen.findByPlaceholderText(/Paste a folder path/);
+    fireEvent.input(field, { target: { value: "/work/shop/src" } });
+    const name = await screen.findByLabelText("Display name");
+    await waitFor(() => expect((name as HTMLInputElement).value).toBe("shop/src"));
+    fireEvent.click(screen.getByRole("button", { name: "Add and scan" }));
+    await waitFor(() => expect((field as HTMLInputElement).value).toBe(""));
+    const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith("projects.add"));
+    expect(JSON.parse(call?.[1].body)).toEqual({ source: "/work/shop/src", branch: "main" });
+  });
+
+  it("asks for no name while a network path is typed", async () => {
+    serve({
+      "projects.list": () => answer([]),
+      "projects.suggest_name": () => answer({ name: "x" }),
+    });
+    render(() => <ProjectsScreen />);
+    const field = await screen.findByPlaceholderText(/Paste a folder path/);
+    fireEvent.input(field, { target: { value: "\\\\server\\share\\src" } });
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    expect(
+      fetchMock.mock.calls.some(([path]) => String(path).endsWith("projects.suggest_name")),
+    ).toBe(false);
+  });
+
+  it("renames a project, and keeps the typed name when the list is read again", async () => {
+    let name = "shop";
+    serve({
+      "projects.list": () => answer([{ ...ROW, name }]),
+      "projects.rename": () => {
+        name = "Webshop";
+        return answer({ project: 1, name });
+      },
+    });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Rename shop" }));
+    const input = screen.getByLabelText("New display name for shop");
+    fireEvent.input(input, { target: { value: "Webshop" } });
+    await refreshProjects();
+    expect((screen.getByLabelText("New display name for shop") as HTMLInputElement).value).toBe(
+      "Webshop",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByText("Webshop")).toBeInTheDocument();
+    const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith("projects.rename"));
+    expect(JSON.parse(call?.[1].body)).toEqual({ project: 1, name: "Webshop" });
+  });
+
+  it("closes an open name edit when the screen is left", async () => {
+    serve({ "projects.list": () => answer([ROW]) });
+    const view = render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Rename shop" }));
+    expect(renamingProject()).not.toBeNull();
+    view.unmount();
+    expect(renamingProject()).toBeNull();
+  });
+
+  it("closes the name edit of a project that is removed", async () => {
+    let removed = false;
+    serve({
+      "projects.list": () => answer(removed ? [] : [ROW]),
+      "projects.remove": () => {
+        removed = true;
+        return answer({ project: 1 });
+      },
+    });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Rename shop" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove project shop" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove for good" }));
+    await waitFor(() => expect(renamingProject()).toBeNull());
+  });
+
+  it("shows why a name was refused and keeps the edit open", async () => {
+    serve({
+      "projects.list": () => answer([ROW]),
+      "projects.rename": () => answer({ code: "PRJ-102" }, 400),
+    });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Rename shop" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByLabelText("New display name for shop")).toBeInTheDocument();
   });
 
   it("tells a refusal in words and keeps what was typed", async () => {
@@ -212,6 +321,44 @@ describe("ProjectsScreen", () => {
     expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith("projects.remove"))).toBe(
       false,
     );
+  });
+
+  it("keeps the removal question open while the list is read again during a scan", async () => {
+    let files = 3;
+    serve({
+      "projects.list": () => answer([{ ...ROW, scan: { ...ROW.scan!, files: files++ } }]),
+    });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove project shop" }));
+    expect(screen.getByRole("button", { name: "Remove for good" })).toBeVisible();
+    await refreshProjects();
+    await refreshProjects();
+    expect(screen.getByRole("button", { name: "Remove for good" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeVisible();
+  });
+
+  it("keeps the answers locked while the project is removed and the list is read again", async () => {
+    let finish: (value: Response) => void = () => undefined;
+    fetchMock.mockImplementation((path: string) =>
+      path.endsWith("projects.remove")
+        ? new Promise<Response>((resolve) => (finish = resolve))
+        : Promise.resolve(answer([{ ...ROW }])),
+    );
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove project shop" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove for good" }));
+    await refreshProjects();
+    expect(screen.getByRole("button", { name: "Remove for good" })).toBeDisabled();
+    finish(answer({ project: 1 }));
+  });
+
+  it("closes the question when the screen is left", async () => {
+    serve({ "projects.list": () => answer([ROW]) });
+    const view = render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove project shop" }));
+    view.unmount();
+    render(() => <ProjectsScreen />);
+    expect(await screen.findByRole("button", { name: "Remove project shop" })).toBeVisible();
   });
 
   it("removes a project after the confirmation, reads the list again and closes it", async () => {

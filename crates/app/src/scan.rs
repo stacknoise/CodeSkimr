@@ -48,11 +48,15 @@ use crate::wiring::{
 ///
 /// # Errors
 /// [`SourceError`] (`PRJ-101`) if the argument is neither a folder nor a Git URL without secrets,
-/// or if a credential is named for a folder.
+/// or if a credential is named for a folder; `PRJ-102` if the display name is invalid.
 pub fn prepare(args: &ScanArgs) -> Result<SourceSpec, SourceError> {
     let spec = classify(&args.source, args.branch.as_deref())?;
-    match &args.credential {
-        Some(name) => spec.with_credential(name),
+    let spec = match &args.credential {
+        Some(name) => spec.with_credential(name)?,
+        None => spec,
+    };
+    match &args.name {
+        Some(name) => spec.with_name(name),
         None => Ok(spec),
     }
 }
@@ -633,8 +637,15 @@ fn with_layers(
 
 /// The project of this source: the registered one, or a new one (one transaction in the store,
 /// so concurrent scans of different sources never share an id).
+///
+/// A name the user chose (`--name`) also renames a project that is registered already.
 fn register(store: &SqliteStore, spec: SourceSpec) -> Result<Project, CodedError> {
-    store.register_project(spec.name, spec.source)
+    let (name, named) = (spec.name.clone(), spec.named);
+    let project = store.register_project(spec.name, spec.source)?;
+    if named && project.name != name {
+        return store.rename_project(project.id, name);
+    }
+    Ok(project)
 }
 
 #[cfg(test)]

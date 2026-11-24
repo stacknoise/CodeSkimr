@@ -10,7 +10,7 @@ Implements the first part of blueprint section 10.2: `codeskimr scan` and `codes
 ## `codeskimr scan <path|git-url>`
 
 ```
-codeskimr scan <path|git-url> [--branch <name>] [--json] [--watch] [--credential <id>]
+codeskimr scan <path|git-url> [--branch <name>] [--json] [--watch] [--credential <id>] [--name <name>]
 ```
 
 1. The argument is an existing folder (made absolute) or a Git URL (`https://`, `http://`, `ssh://`, `git://`, `git@…`, or ending in `.git`). A Git URL with secrets in it (user info for HTTP(S), a password anywhere, a query or a fragment, in any letter case) is refused with `PRJ-101` and a second line that names the reason: they would be stored in the database and printed (blueprint 12). A bare SSH user name (`git@host:org/repo`) is fine. `--branch` only applies to Git sources and is ignored for folders. On Windows the `\\?\` prefix of the absolute path is removed (UNC paths keep it). The branch defaults to `main`.
@@ -18,6 +18,8 @@ codeskimr scan <path|git-url> [--branch <name>] [--json] [--watch] [--credential
 3. One full scan runs: fetch, discover, analyze, resolve, measure, persist. A new snapshot is written; `--json` prints `{project, snapshot, files, symbols, references, seconds, cpu_seconds, pack_load_seconds, stages, level2, warnings, left_out, tools}` on one line (`tools` is the result of the tool check, `docs/tools-check.md`; `stages` has the seconds of each stage that reported, as `{stage, seconds}` in the order fetch, discover, analyze, resolve, measure, persist, the same wire labels the events use and in both languages unchanged; unlike `seconds`, the times of the stages include the time loading language packs), otherwise a summary in the language of the user (the totals, one line "Steps: …" with the stage times, a line for each language level 2 looked at and for each warning), followed by one line for each tool of level 2 that is missing, too old or whose version could not be read, with its purpose and install hint. A failed tool check never fails the scan.
 4. Without `--watch` the scan is full and the command ends.
 5. With `--watch` (ADR 0029) the command keeps running after the first full scan. The watcher (`watcher.debounce_ms`, `watcher.max_wait_ms`, `scan.excluded_folders`) publishes `FilesChanged`; `watch.rs` turns the changes that piled up into one incremental scan, or into a full scan if the operating system lost events. Scans never overlap. Re-scans do not check the tools again (`docs/tools-check.md`). Each re-scan prints one line (`N changed files scanned again in M ms.`; with `--json` the usual summary line). A failed re-scan prints its error and watching goes on. Only folders can be watched: a Git URL fails with `CLI-102`. Stop with Ctrl+C.
+
+`--name <name>` gives the project a display name (at most 80 characters, no control or invisible characters such as a direction override; `PRJ-102` otherwise). It is only a label: the id and the source stay. If the source is registered already, the name replaces the old one; without `--name` the name stays. A new project is named after its folder, or after the folder and its parent (`shop/src`) if the folder is called `src`, `source`, `sources`, `lib` or `www` (`GENERIC_FOLDER_NAMES`).
 
 `--credential <id>` names a stored credential (see below) that logs in to a Git source; for a folder it fails with `PRJ-101`. Without it the system's Git credential helper decides, and there is never a prompt on the terminal (the clone runs with `gitoxide.credentials.terminalPrompt=false`), so a server or an MCP session cannot hang on a login.
 

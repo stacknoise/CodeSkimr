@@ -4,7 +4,9 @@ import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
 import { showUsages } from "../../shared/navigation/navigation";
-import { PILL_SEPARATOR } from "./consts";
+import { COPY } from "../../shared/ui/consts";
+import { createCopier } from "../../shared/ui/copier";
+import { LINE_BREAK, PILL_SEPARATOR } from "./consts";
 import { sourceWidth } from "./layout";
 import { lineRange } from "./format";
 import { type Segment, segments } from "./segments";
@@ -36,6 +38,28 @@ function onNameClick(event: MouseEvent): void {
 /** The class of the colour of a piece; plain code has none (`styles.plain` is no rule). */
 function colourOf(piece: Segment): string | undefined {
   return piece.tokenClass === null ? undefined : styles[piece.tokenClass];
+}
+
+/** The button "Copy code": puts the lines on the clipboard and says "Copied" or "Not copied" for a
+ * moment. The code can always be selected by hand. */
+function CopyButton(props: { lines: string[] }) {
+  const { state, copy } = createCopier();
+  const label = () =>
+    state() === COPY.copied
+      ? I18N_KEYS.EXPLORER_SOURCE_COPIED
+      : state() === COPY.failed
+        ? I18N_KEYS.EXPLORER_SOURCE_COPY_FAILED
+        : I18N_KEYS.EXPLORER_SOURCE_COPY;
+  return (
+    <button
+      type="button"
+      class={styles.copy}
+      onClick={() => copy(props.lines.join(LINE_BREAK))}
+      aria-live="polite"
+    >
+      {t(label())}
+    </button>
+  );
 }
 
 /** The line numbers and the code side by side. The line numbers are plain text; the code is
@@ -102,6 +126,22 @@ function Lines(props: { info: SourceInfo }) {
   );
 }
 
+/** The line above the code: file, position and the button to copy the code. */
+function Head(props: { info: SourceInfo }) {
+  return (
+    <div class={styles.head}>
+      <span class={styles.path}>{props.info.path}</span>
+      <span>
+        {PILL_SEPARATOR}
+        {lineRange(props.info.first_line, props.info.last_line)}
+      </span>
+      <Show when={props.info.available && !props.info.excluded && props.info.lines.length > 0}>
+        <CopyButton lines={props.info.lines} />
+      </Show>
+    </div>
+  );
+}
+
 /** What the right column shows: a hint, a failure, the wait, or the source. */
 function Content(props: { shown: boolean }) {
   return (
@@ -128,13 +168,7 @@ function Content(props: { shown: boolean }) {
       <Match when={sourceInfo()}>
         {(info) => (
           <>
-            <div class={styles.head}>
-              <span class={styles.path}>{info().path}</span>
-              <span>
-                {PILL_SEPARATOR}
-                {lineRange(info().first_line, info().last_line)}
-              </span>
-            </div>
+            <Head info={info()} />
             <Lines info={info()} />
           </>
         )}

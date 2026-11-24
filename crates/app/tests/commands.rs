@@ -137,6 +137,26 @@ fn scanning_again_reuses_the_project_and_adds_a_snapshot() {
 }
 
 #[test]
+fn a_chosen_name_is_kept_and_renames_a_project_that_exists() {
+    let workspace = Workspace::new();
+    let first = json_of(&workspace.scan(&[]));
+    assert_eq!(first["project"], "project");
+    let named = json_of(&workspace.scan(&["--name", "My shop"]));
+    assert_eq!(named["project"], "My shop");
+    // Scanning again without a name leaves the name alone.
+    let again = json_of(&workspace.scan(&[]));
+    assert_eq!(again["project"], "My shop");
+}
+
+#[test]
+fn an_invalid_name_fails_with_prj_102_before_anything_is_registered() {
+    let workspace = Workspace::new();
+    let output = workspace.scan(&["--name", "  "]);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(stderr(&output).contains("PRJ-102"));
+}
+
+#[test]
 fn the_text_summary_follows_the_language() {
     let workspace = Workspace::new();
     let english = workspace

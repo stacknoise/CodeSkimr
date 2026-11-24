@@ -187,6 +187,7 @@ fn a_check_that_fails_never_fails_the_scan() {
         credential: None,
         json: false,
         watch: false,
+        name: None,
     };
     let session = scan::open(
         scan::prepare(&args).unwrap(),
@@ -211,6 +212,7 @@ fn summary_of(world: &World) -> codeskimr_cli::ScanSummary {
         credential: None,
         json: false,
         watch: false,
+        name: None,
     };
     let config = config_files::load(&world.locations, &global, None).unwrap();
     let store = open_store(&world.locations, &config).unwrap();
@@ -274,6 +276,7 @@ fn a_scan_whose_tools_are_all_there_prints_no_tool_line() {
         credential: None,
         json: false,
         watch: false,
+        name: None,
     };
     let summary = scan::open(
         scan::prepare(&args).unwrap(),

@@ -52,17 +52,44 @@ function Confirm(props: { name: string; busy: boolean; onYes: () => void; onNo: 
   );
 }
 
+/** The project whose question is open. It lives outside the row: while a scan runs, the list is
+ * read again and the row is built anew, which must not close the question. */
+const [askingFor, setAskingFor] = createSignal<number | null>(null);
+/** The projects that are being removed; also outside the row, for the same reason. */
+const [removing, setRemoving] = createSignal<ReadonlySet<number>>(new Set());
+
+/** Closes the open question, if there is one. */
+export function closeRemoveQuestion(): void {
+  setAskingFor(null);
+}
+
+/** Removes a project and leaves the state of the row as it found it: the answers are locked
+ * meanwhile, and afterwards only the own question is closed. */
+async function removeProject(id: number, onRemove: () => Promise<boolean>): Promise<void> {
+  setRemoving((previous) => new Set(previous).add(id));
+  try {
+    await onRemove();
+  } finally {
+    setRemoving((previous) => {
+      const next = new Set(previous);
+      next.delete(id);
+      return next;
+    });
+    // The user may have opened the question of another project meanwhile.
+    setAskingFor((open) => (open === id ? null : open));
+  }
+}
+
 /** "Remove" of a project row, with a second step: the first click asks, the second one removes.
  * Removing deletes what the app stored about the project, never its files. */
-export function RemoveAction(props: { name: string; onRemove: () => Promise<boolean> }) {
-  const [asking, setAsking] = createSignal(false);
-  const [busy, setBusy] = createSignal(false);
-  const remove = async () => {
-    setBusy(true);
-    await props.onRemove();
-    setBusy(false);
-    setAsking(false);
-  };
+export function RemoveAction(props: {
+  id: number;
+  name: string;
+  onRemove: () => Promise<boolean>;
+}) {
+  const asking = () => askingFor() === props.id;
+  const busy = () => removing().has(props.id);
+  const remove = () => removeProject(props.id, props.onRemove);
   return (
     <Show
       when={asking()}
@@ -70,7 +97,7 @@ export function RemoveAction(props: { name: string; onRemove: () => Promise<bool
         <RowButton
           label={t(I18N_KEYS.PROJECTS_REMOVE, { name: props.name })}
           text={t(I18N_KEYS.PROJECTS_REMOVE_BUTTON)}
-          onClick={() => setAsking(true)}
+          onClick={() => setAskingFor(props.id)}
         />
       }
     >
@@ -78,7 +105,7 @@ export function RemoveAction(props: { name: string; onRemove: () => Promise<bool
         name={props.name}
         busy={busy()}
         onYes={() => void remove()}
-        onNo={() => setAsking(false)}
+        onNo={() => closeRemoveQuestion()}
       />
     </Show>
   );
