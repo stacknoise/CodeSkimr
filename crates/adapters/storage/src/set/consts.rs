@@ -34,6 +34,9 @@ pub const LOG_OLD_DATABASE_IGNORED: &str = "old_database_ignored";
 /// Log event: a removal that was interrupted is finished.
 pub const LOG_REMOVAL_FINISHED: &str = "project_removal_finished";
 
+/// Between the time and the process in the name of an installation.
+pub const INSTALLATION_SEPARATOR: char = '-';
+
 /// Creates the catalog: the projects and the identity of the installation.
 pub const REGISTRY_SCHEMA: &str = "\
     CREATE TABLE IF NOT EXISTS projects ( \

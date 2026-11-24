@@ -24,7 +24,7 @@ const FORBIDDEN: [&str; 7] = [
 const IMPORTS: [&str; 2] = ["confirm", "revoke"];
 /// The definitions, the re-exports, the storage adapter, the one interactive command and its
 /// tests (compiled only for tests), and the command `level2.revoke`.
-const ALLOWED: [&str; 7] = [
+const ALLOWED: [&str; 8] = [
     "app/src/level2_consent.rs",
     // The command `level2.revoke` (ADR 0071): the one more caller, and only of `revoke`.
     "app/src/ui_commands/level2_revoke.rs",
@@ -33,6 +33,8 @@ const ALLOWED: [&str; 7] = [
     "application/src/ports/consent.rs",
     "application/src/ports/mod.rs",
     "storage/src/consent.rs",
+    // The router over the project files only forwards the port call to the right file.
+    "storage/src/set/ports.rs",
 ];
 
 /// The code of a file without its comment lines and without white space.

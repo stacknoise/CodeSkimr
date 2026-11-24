@@ -67,7 +67,8 @@ impl SqliteStore {
         Some(
             folder
                 .join(PROJECTS_FOLDER)
-                .join(format!("{}.{PROJECT_FILE_EXTENSION}", project.get())),
+                .join(project.get().to_string())
+                .with_extension(PROJECT_FILE_EXTENSION),
         )
     }
 

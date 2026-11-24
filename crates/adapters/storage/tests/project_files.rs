@@ -60,6 +60,14 @@ fn scan(store: &SqliteStore, project: &Project, round: u64) -> SnapshotId {
     SnapshotId::new(snapshot)
 }
 
+/// Two registered projects with one scan each.
+fn two_scanned(store: &SqliteStore) -> (Project, Project) {
+    let (first, second) = (register(store, "/work/a"), register(store, "/work/b"));
+    scan(store, &first, 0);
+    scan(store, &second, 0);
+    (first, second)
+}
+
 fn note(project: ProjectId, text: &str) -> AnnotationCreation {
     AnnotationCreation {
         annotation: NewAnnotation {
@@ -101,9 +109,7 @@ fn project_file(catalog: &Path, project: &Project) -> std::path::PathBuf {
 fn every_project_has_a_file_of_its_own_and_the_list_says_where_and_how_large() {
     let db = TempDb::new();
     let store = open(&db.0);
-    let (first, second) = (register(&store, "/work/a"), register(&store, "/work/b"));
-    scan(&store, &first, 0);
-    scan(&store, &second, 0);
+    let (first, second) = two_scanned(&store);
     assert_ne!(project_file(&db.0, &first), project_file(&db.0, &second));
     let overviews = store.overviews().unwrap();
     assert_eq!(overviews.len(), 2);
@@ -175,9 +181,7 @@ fn a_snapshot_id_leads_to_the_file_of_its_project() {
 fn notes_stay_with_their_project_and_a_new_scan_does_not_touch_them() {
     let db = TempDb::new();
     let store = open(&db.0);
-    let (first, second) = (register(&store, "/work/a"), register(&store, "/work/b"));
-    scan(&store, &first, 0);
-    scan(&store, &second, 0);
+    let (first, second) = two_scanned(&store);
     let in_first = store.create_annotation(&note(first.id, "one")).unwrap();
     let in_second = store.create_annotation(&note(second.id, "two")).unwrap();
     assert_eq!(

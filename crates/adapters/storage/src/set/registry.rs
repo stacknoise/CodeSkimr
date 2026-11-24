@@ -15,9 +15,10 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 use super::consts::APPLICATION_ID;
 use super::consts::{
-    CHECK_OK, HIGHEST_NUMBER_EVER, INSTALLATION_ID, INSTALLATION_INSERT, PRAGMA_APPLICATION_ID,
-    PROJECT_BY_SOURCE, PROJECT_DELETE, PROJECT_INSERT, PROJECT_INSERT_AS, PROJECT_MARK_REMOVING,
-    PROJECT_NUMBERS, PROJECT_REMOVING, PROJECT_SET_SOURCE, QUICK_CHECK, REGISTRY_SCHEMA,
+    CHECK_OK, HIGHEST_NUMBER_EVER, INSTALLATION_ID, INSTALLATION_INSERT, INSTALLATION_SEPARATOR,
+    PRAGMA_APPLICATION_ID, PROJECT_BY_SOURCE, PROJECT_DELETE, PROJECT_INSERT, PROJECT_INSERT_AS,
+    PROJECT_MARK_REMOVING, PROJECT_NUMBERS, PROJECT_REMOVING, PROJECT_SET_SOURCE, QUICK_CHECK,
+    REGISTRY_SCHEMA,
 };
 use crate::codec::{column_int, id_from};
 use crate::consts::{BUSY_TIMEOUT_MS, JOURNAL_MODE_WAL, PRAGMA_JOURNAL_MODE};
@@ -231,5 +232,5 @@ fn new_installation_id() -> String {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |elapsed| elapsed.as_nanos());
-    format!("{nanos:x}-{:x}", std::process::id())
+    format!("{nanos:x}{INSTALLATION_SEPARATOR}{:x}", std::process::id())
 }
