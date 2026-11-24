@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { focusSymbol } from "../../shared/navigation/navigation";
 import { openProject } from "../../shared/project/active";
+import { useClipboard } from "../../tests/clipboard";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { openOrder, ORDER, OUTLINE } from "../../tests/explorer";
 import { forgetExplorer } from "./explorer";
@@ -173,19 +174,11 @@ describe("the colours of the syntax", () => {
 });
 
 describe("the button to copy the code", () => {
-  const original = Object.getOwnPropertyDescriptor(navigator, "clipboard");
-
-  afterEach(() => {
-    if (original) {
-      Object.defineProperty(navigator, "clipboard", original);
-    } else {
-      Reflect.deleteProperty(navigator, "clipboard");
-    }
-  });
+  const setClipboard = useClipboard();
 
   it("puts the lines on the clipboard and says it was copied", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    setClipboard({ writeText });
     renderWith(() => answer(TYPE_SOURCE));
     await openOrder();
     fireEvent.click(await screen.findByRole("button", { name: "Copy code" }));
@@ -194,7 +187,7 @@ describe("the button to copy the code", () => {
   });
 
   it("says so when the browser has no clipboard or refuses it", async () => {
-    Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
+    setClipboard(undefined);
     renderWith(() => answer(TYPE_SOURCE));
     await openOrder();
     fireEvent.click(await screen.findByRole("button", { name: "Copy code" }));
@@ -202,10 +195,7 @@ describe("the button to copy the code", () => {
   });
 
   it("is not offered when there is no code", async () => {
-    Object.defineProperty(navigator, "clipboard", {
-      value: { writeText: vi.fn() },
-      configurable: true,
-    });
+    setClipboard({ writeText: vi.fn() });
     renderWith(() => answer({ ...TYPE_SOURCE, lines: [] }));
     await openOrder();
     await screen.findByText("src/Order.cs");
