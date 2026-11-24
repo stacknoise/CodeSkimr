@@ -313,4 +313,24 @@ mod tests {
         // `File` of `Strangers` is declared in the file with its type: the call reaches `Options`.
         assert!(!kept.iter().any(|(line, _)| *line == 48), "{kept:?}");
     }
+
+    #[test]
+    fn calls_and_members_behind_a_negation_or_an_await_are_usages() {
+        // Issue #705: `if (!await _field.Method())` lists the call, like the forms around it.
+        let line_of = |name: &str| {
+            receiver_usages_in("negation.cs", name)
+                .iter()
+                .map(|(line, _)| *line)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(line_of("IGate.Negated"), [23]);
+        assert_eq!(line_of("IGate.Awaited"), [24]);
+        assert_eq!(line_of("IGate.Plain"), [25]);
+        assert_eq!(line_of("IGate.Grouped"), [26]);
+        assert_eq!(line_of("IGate.Chained"), [27]);
+        assert_eq!(line_of("IGate.Safe"), [28]);
+        assert_eq!(line_of("IGate.Mixed"), [29]);
+        assert_eq!(line_of("IGate.Primary"), [36]);
+        assert_eq!(line_of("IFlag.Ready"), [30, 31]);
+    }
 }
