@@ -14,9 +14,12 @@ use codeskimr_domain::ProjectId;
 use rusqlite::params;
 
 use crate::codec::column_int;
-use crate::consts::{REMOVAL_FILES_PER_SLICE, REMOVAL_PAUSE_MS};
+use crate::consts::{
+    BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR, BULK_REMOVAL_REFERENCES_MAX,
+    REMOVAL_FILES_PER_SLICE, REMOVAL_PAUSE_MIN_ROWS, REMOVAL_PAUSE_MS,
+};
 use crate::error::StorageError;
-use crate::snapshots::delete_shared_rows;
+use crate::snapshots::{delete_shared_rows, delete_snapshot};
 use crate::sql;
 use crate::store::SqliteStore;
 
@@ -38,10 +41,15 @@ impl SqliteStore {
             // From here on the project is no project for anyone else; a removal that stops is
             // started again by the same call.
             tx.execute(sql::PROJECT_REMOVING_SET, params![project])?;
-            Ok(tx
+            let snapshots = tx
                 .prepare_cached(sql::SNAPSHOTS_OF_PROJECT)?
                 .query_map(params![project], |row| row.get::<_, i64>(0))?
-                .collect::<Result<Vec<_>, _>>()?)
+                .collect::<Result<Vec<_>, _>>()?;
+            if bulk_removal_starts(tx, project)? {
+                remove_snapshots_at_once(tx, &snapshots)?;
+                return Ok(Vec::new());
+            }
+            Ok(snapshots)
         })?;
         for snapshot in snapshots {
             self.remove_snapshot_in_slices(snapshot)?;
@@ -67,11 +75,12 @@ impl SqliteStore {
             }
         }
         for delete in sql::SNAPSHOT_CONTENT_DELETE {
-            self.write(|tx| {
-                tx.prepare_cached(delete)?.execute(params![snapshot])?;
-                Ok(())
-            })?;
-            pause();
+            let deleted =
+                self.write(|tx| Ok(tx.prepare_cached(delete)?.execute(params![snapshot])?))?;
+            // A table with few rows was a short write; nobody waited for it.
+            if deleted > REMOVAL_PAUSE_MIN_ROWS {
+                pause();
+            }
         }
         self.write(|tx| {
             tx.execute(sql::SNAPSHOT_PRUNE, params![snapshot])?;
@@ -83,4 +92,47 @@ impl SqliteStore {
 /// Gives a write that waits for the connection its turn.
 fn pause() {
     std::thread::sleep(Duration::from_millis(REMOVAL_PAUSE_MS));
+}
+
+/// Whether the project owns so many of the stored references that its shared rows are best
+/// deleted in one write with the indexes dropped. With live indexes every deleted reference costs
+/// several index updates (18 s for 2.5 million references against 1.3 s without them); building
+/// the indexes again over what is left costs less than that as long as the project owns about as
+/// many references as all other projects together, the same trade as when a large scan is loaded.
+/// The write holds the store for a few seconds then; otherwise the removal goes in slices.
+fn bulk_removal_starts(conn: &rusqlite::Connection, project: i64) -> Result<bool, StorageError> {
+    let own: i64 = conn.query_row(sql::PROJECT_REFERENCE_COUNT, params![project], |row| {
+        row.get(0)
+    })?;
+    let own = usize::try_from(own).unwrap_or(usize::MAX);
+    // A larger project would hold the store for longer than another process waits for it.
+    if !(BULK_REFERENCES_MIN..=BULK_REMOVAL_REFERENCES_MAX).contains(&own) {
+        return Ok(false);
+    }
+    let all: i64 = conn.query_row(sql::REFERENCE_COUNT, [], |row| row.get(0))?;
+    let rest = usize::try_from(all)
+        .unwrap_or(usize::MAX)
+        .saturating_sub(own);
+    Ok(own >= rest / BULK_REFERENCES_SHARE_DIVISOR)
+}
+
+/// Deletes the snapshots of the project one after the other, each with everything it owns, between
+/// dropping and building again the indexes of the references and of the fingerprints. A snapshot
+/// goes whole before the next, so that the rows the two shared go with the second.
+fn remove_snapshots_at_once(
+    conn: &rusqlite::Connection,
+    snapshots: &[i64],
+) -> Result<(), StorageError> {
+    for drop in sql::REFERENCE_INDEXES_DROP {
+        conn.execute(drop, [])?;
+    }
+    conn.execute(sql::FINGERPRINT_INDEX_DROP, [])?;
+    for snapshot in snapshots {
+        delete_snapshot(conn, *snapshot)?;
+    }
+    for create in sql::REFERENCE_INDEXES_CREATE {
+        conn.execute(create, [])?;
+    }
+    conn.execute(sql::FINGERPRINT_INDEX_CREATE, [])?;
+    Ok(())
 }

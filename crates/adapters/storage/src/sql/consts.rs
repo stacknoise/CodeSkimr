@@ -233,6 +233,10 @@ pub const SYMBOL_INSERT: &str = "INSERT INTO symbol_rows (id, file_id, kind, nam
 pub const REFERENCE_INSERT: &str = "INSERT INTO symbol_references (id, first_snapshot, \
     from_symbol, to_symbol, file_id, start_line, start_column, end_line, end_column, kind, \
     confidence, verified) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)";
+/// Sum of the reference totals of the snapshots of a project: project id. Rows that incremental
+/// snapshots share count more than once, so it is an upper bound, enough to size a removal.
+pub const PROJECT_REFERENCE_COUNT: &str =
+    "SELECT COALESCE(SUM(refs), 0) FROM snapshots WHERE project_id = ?1";
 /// Number of stored references, over all snapshots.
 pub const REFERENCE_COUNT: &str = "SELECT COUNT(*) FROM symbol_references";
 /// Drops the indexes of `symbol_references` before a bulk load; `REFERENCE_INDEXES_CREATE` builds
