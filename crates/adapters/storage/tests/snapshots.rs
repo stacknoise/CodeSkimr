@@ -75,7 +75,7 @@ fn the_head_of_the_newest_snapshot_leaves_the_symbols_to_a_second_read() {
     store.persist(first_scan(10)).unwrap();
     let state = store.latest_state(PROJECT).unwrap();
     let head = store.latest_head(PROJECT).unwrap();
-    assert!(head.symbols.is_empty());
+    assert_eq!(head.symbols, Vec::new());
     assert_eq!(head.files, state.files);
     assert_eq!(head.snapshot, state.snapshot);
     assert_eq!(head.names_stored, state.names_stored);
