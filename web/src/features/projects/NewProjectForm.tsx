@@ -1,10 +1,18 @@
-import { createEffect, createSignal, For, onMount, Show } from "solid-js";
+import { createEffect, createSignal, For, onCleanup, onMount, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
 import { SETTINGS_ROUTE } from "../../app/consts";
 import { navigate } from "../../app/router";
-import { DEFAULT_BRANCH, FOLDER_PATH, GIT_ADDRESS, SOURCE_KIND, type SourceKind } from "./consts";
+import {
+  DEFAULT_BRANCH,
+  FOLDER_PATH,
+  GIT_ADDRESS,
+  NETWORK_PATH,
+  SOURCE_KIND,
+  SUGGEST_DELAY_MS,
+  type SourceKind,
+} from "./consts";
 import { BrowseButton, BrowseWaiting, useBrowse } from "./BrowseButton";
 import { failureText } from "./failure";
 import { readFolderDialog } from "./folderDialog";
@@ -160,11 +168,17 @@ function useName(source: () => string) {
     if (text === "") {
       setTyped(false);
     }
-    void (text === "" ? Promise.resolve(null) : suggestName(text)).then((suggested) => {
-      if (ticket === asked && !typed()) {
-        setName(suggested ?? "");
-      }
-    });
+    // A network path (`\\server\share`) would make the server reach out for every pause in
+    // typing; it gets its name when it is added.
+    const wanted = text !== "" && !NETWORK_PATH.test(text);
+    const timer = setTimeout(() => {
+      void (wanted ? suggestName(text) : Promise.resolve(null)).then((suggested) => {
+        if (ticket === asked && !typed()) {
+          setName(suggested ?? "");
+        }
+      });
+    }, SUGGEST_DELAY_MS);
+    onCleanup(() => clearTimeout(timer));
   });
   const type = (value: string) => {
     setTyped(value !== "");

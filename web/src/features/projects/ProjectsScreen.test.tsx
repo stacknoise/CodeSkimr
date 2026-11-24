@@ -115,6 +115,20 @@ describe("ProjectsScreen", () => {
     expect(JSON.parse(call?.[1].body)).toEqual({ source: "/work/shop/src", branch: "main" });
   });
 
+  it("asks for no name while a network path is typed", async () => {
+    serve({
+      "projects.list": () => answer([]),
+      "projects.suggest_name": () => answer({ name: "x" }),
+    });
+    render(() => <ProjectsScreen />);
+    const field = await screen.findByPlaceholderText(/Paste a folder path/);
+    fireEvent.input(field, { target: { value: "\\\\server\\share\\src" } });
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    expect(
+      fetchMock.mock.calls.some(([path]) => String(path).endsWith("projects.suggest_name")),
+    ).toBe(false);
+  });
+
   it("renames a project, and keeps the typed name when the list is read again", async () => {
     let name = "shop";
     serve({

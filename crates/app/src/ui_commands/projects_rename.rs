@@ -3,6 +3,7 @@
 
 use std::sync::Arc;
 
+use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::ProjectRepository;
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
@@ -100,13 +101,17 @@ impl Command for SuggestName {
         title_key: SUGGEST_NAME_TITLE,
         description_key: SUGGEST_NAME_DESCRIPTION,
         shortcut: None,
-        read_only: true,
-        permission: Permission::Read,
+        // Not "read only": it looks the folder up on disk, so it needs the right to register.
+        read_only: false,
+        permission: Permission::RegisterProject,
     };
 
     /// # Errors
-    /// `AUTH-401` without the right to read. Text that is no source is not an error.
+    /// `AUTH-401` without the right to register projects: the folder is looked up on disk (the path
+    /// is made canonical), which a reader may not make the machine do. Text that is no source is
+    /// not an error.
     fn execute(&self, request: Request<'_, Self>) -> Result<Suggested, CodedError> {
+        access::require(request.principal, Permission::RegisterProject)?;
         let name = classify(request.input.source.trim(), None)
             .ok()
             .map(|spec| spec.name.to_string());

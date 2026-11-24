@@ -1,4 +1,4 @@
-import { createEffect, createSignal, on, onMount, Show, untrack } from "solid-js";
+import { createEffect, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { EXPLORER_ROUTE } from "../../app/consts";
@@ -14,6 +14,7 @@ import {
   projects,
   projectsLoaded,
   refreshProjects,
+  cancelRename,
   removeProject,
   rescanProject,
 } from "./projects";
@@ -138,6 +139,8 @@ export function ProjectsScreen() {
   const drop = useDropSource(setSource, () => input?.focus());
   const selection = useSelection(projects, activeProject());
   onMount(() => void refreshProjects());
+  // An open name edit does not wait for the next visit.
+  onCleanup(cancelRename);
   useToolsCheck(selection.selected);
   useLevel2States(selection.selected);
   const selectedRow = () => projects().find((row) => row.id === selection.selected());

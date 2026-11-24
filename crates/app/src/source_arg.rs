@@ -4,6 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use codeskimr_application::error::CodedError;
+use codeskimr_application::level2::hides_text;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{BranchName, CredentialId, FolderPath, GitUrl, ProjectName, ProjectSource};
 
@@ -25,7 +26,7 @@ pub enum SourceError {
     HasCredentials,
     /// A credential was named for a folder, or its name is empty.
     CredentialNotUsable,
-    /// The display name is empty, has control characters or is too long.
+    /// The display name is empty, has control or invisible characters or is too long.
     NameInvalid,
 }
 
@@ -130,7 +131,7 @@ pub fn folder_spec(folder: &Path) -> Result<SourceSpec, CodedError> {
 /// [`SourceError::NameInvalid`] (`PRJ-102`) otherwise.
 pub fn display_name(text: &str) -> Result<ProjectName, SourceError> {
     let text = text.trim();
-    if text.chars().count() > MAX_PROJECT_NAME_CHARS || text.chars().any(char::is_control) {
+    if text.chars().count() > MAX_PROJECT_NAME_CHARS || hides_text(text) {
         return Err(SourceError::NameInvalid);
     }
     ProjectName::new(text).map_err(|_| SourceError::NameInvalid)

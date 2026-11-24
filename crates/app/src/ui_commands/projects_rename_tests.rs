@@ -54,13 +54,29 @@ fn an_empty_name_goes_back_to_the_name_of_the_source() {
 fn a_name_with_control_characters_or_too_long_is_refused() {
     let fixture = Fixture::installed(None);
     let project = fixture.scanned();
-    for name in ["two\nlines".to_owned(), "x".repeat(81)] {
+    // A line break, and a direction override that could turn the name around on the screen.
+    for name in [
+        "two\nlines".to_owned(),
+        "a\u{202E}b".to_owned(),
+        "x".repeat(81),
+    ] {
         let refused = fixture.call(
             "projects.rename",
             json!({ "project": project, "name": name }),
         );
         assert_eq!(refused, Err("PRJ-102"));
     }
+}
+
+#[test]
+fn a_reader_cannot_ask_for_a_suggestion() {
+    let fixture = Fixture::installed(None);
+    let refused = fixture.call_as(
+        principal::reader(),
+        "projects.suggest_name",
+        json!({ "source": fixture.folder() }),
+    );
+    assert_eq!(refused, Err("AUTH-401"));
 }
 
 #[test]

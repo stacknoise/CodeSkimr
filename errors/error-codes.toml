@@ -199,7 +199,7 @@ id = "PRJ-102"
 name = "project_name_invalid"
 severity = "error"
 retryable = false
-description = "The display name of a project is empty, has control characters or is too long."
+description = "The display name of a project is empty, has control or invisible characters or is too long."
 since = "1.0.0"
 
 [[codes]]

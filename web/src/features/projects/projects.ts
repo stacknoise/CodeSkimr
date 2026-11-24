@@ -263,6 +263,9 @@ function forget(project: number): void {
   setLastSeconds(without);
   forgetLevel2(project);
   resetLevel2Runs(project);
+  if (renaming()?.id === project) {
+    setRenaming(null);
+  }
   closeProject(project);
 }
 

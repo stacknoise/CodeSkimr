@@ -37,7 +37,7 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `APP-603` | the program could not start itself in the background or show its tray icon | start it with `--console` to stay in the window and look at the log in the data folder (`codeskimr.log`) |
 | `APP-604` | the console window for the level 2 confirmation could not be started | copy the command the screen shows and run it in a terminal |
 | `APP-602` | the language packs built into the program could not be written to the data folder | free space and check the rights of the data folder; a `languages/` folder next to the program (with at least one `<language>/language.toml`) is used instead ([Installation](installation.md#build)) |
-| `PRJ-102` | the display name of a project is empty, has control characters or is longer than 80 characters | type a shorter name without line breaks |
+| `PRJ-102` | the display name of a project is empty, has control or invisible characters or is longer than 80 characters | type a shorter name without line breaks |
 | `PRJ-101` | the source is no existing folder and no valid Git address, or the address contains secrets, blanks or starts with a dash, or the branch name is not valid, or the folder is relative | give an absolute path; take secrets out of the address ([Sources and credentials](sources-and-credentials.md)) |
 | `PRJ-201` | no such project | add and scan it first |
 | `PRJ-302` | a scan of this project is already running (also when removing the project) | wait for it or cancel it |

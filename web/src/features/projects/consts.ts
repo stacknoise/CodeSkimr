@@ -35,6 +35,11 @@ export const CREDENTIAL_NAMES_KEY = "codeskimr.credentials.names";
 
 /** A pasted text that is clearly a path of a folder. */
 export const FOLDER_PATH = /^(?:[/~\\]|[a-z]:[\\/])/i;
+/** A path on the network (`\\server\share` or `//server/share`): looking it up can wait for a
+ * remote machine, so no name is suggested while it is typed. */
+export const NETWORK_PATH = /^(?:\\\\|\/\/)/;
+/** How long the form waits after the last key before it asks for a suggested name. */
+export const SUGGEST_DELAY_MS = 300;
 /** A pasted text that is the address of a repository, not a path. */
 export const GIT_ADDRESS = /^(?:[a-z][a-z0-9+.-]*:\/\/|git@)/i;
 
