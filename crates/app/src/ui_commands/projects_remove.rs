@@ -57,9 +57,10 @@ impl Command for RemoveProject {
     /// failure of the store; nothing is deleted then.
     fn execute(&self, request: Request<'_, Self>) -> Result<Removed, CodedError> {
         let id = ProjectId::new(request.input.project);
-        let project = self.projects.project(id)?;
+        let project = self.projects.project_for_removal(id)?;
         // The scan lock is held until the project is gone, so no scan can start in between.
         let _scanning = self.context.running.start(id)?;
+        let _removing = self.context.running.mark_removing(id);
         self.removal.remove_project(id)?;
         self.forget_clone(id, &project.source);
         Ok(Removed { project: id.get() })

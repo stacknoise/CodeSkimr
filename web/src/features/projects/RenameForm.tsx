@@ -1,6 +1,8 @@
 import { Show } from "solid-js";
+import { Icon } from "../../shared/ui/Icon";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { RENAME_ICON, RENAME_ICON_SIZE } from "./consts";
 import { cancelRename, renamingProject, saveRename, startRename, typeRename } from "./projects";
 import styles from "./ProjectTable.module.css";
 
@@ -45,12 +47,13 @@ export function RenameButton(props: { id: number; name: string }) {
         type="button"
         class={styles.pencil}
         aria-label={t(I18N_KEYS.PROJECTS_RENAME, { name: props.name })}
+        title={t(I18N_KEYS.PROJECTS_RENAME_BUTTON)}
         onClick={(event) => {
           event.stopPropagation();
           startRename(props.id, props.name);
         }}
       >
-        {t(I18N_KEYS.PROJECTS_RENAME_BUTTON)}
+        <Icon name={RENAME_ICON} size={RENAME_ICON_SIZE} />
       </button>
     </Show>
   );

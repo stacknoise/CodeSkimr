@@ -28,6 +28,7 @@ projects-column-types = Types
 projects-column-loc = LOC
 projects-column-last-scan = Last scan
 projects-column-status = Status
+projects-column-actions = Actions
 projects-hint-keys = Enter opens · R rescans · N new project
 
 projects-source-placeholder = Paste a folder path or Git URL – or drop a folder here
@@ -41,6 +42,7 @@ projects-scan-incremental = incremental
 projects-scan-seconds = { $seconds } s
 projects-scan-time = { $mode } · { $seconds }
 projects-rescan = Scan { $name } again
+projects-rescan-tip = Scan again
 projects-adding = Scanning …
 projects-drop-without-path = The browser does not reveal the path of a dropped folder. Paste the path into the field instead.
 projects-load-failed = The project list could not be loaded.
@@ -53,6 +55,8 @@ projects-remove-question = Remove { $name } from the app? Scans, results and not
 projects-remove-confirm = Remove for good
 projects-remove-cancel = Cancel
 projects-remove-ask = Confirm removal
+projects-removing = Removing …
+projects-removal-interrupted = Removal interrupted
 projects-never = never
 projects-header = { $summary } · { $hints }
 
