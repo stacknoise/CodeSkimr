@@ -33,8 +33,8 @@ Option 3.
   - `serve`, `open`, `mcp`, `--console`, `--data-dir`, `--languages`, and `--config` and `--set` as start options: they decide how and where the program starts, before there is a UI. The UI may show them.
   - `--json`: output for scripts; the counterpart is the REST interface.
   - `--help`: the counterpart is the manual.
-- **Before 1.0:** gap 1 (button "Full scan", `projects.rescan` with `full`), gap 5 (a screen with the list of error codes) and of gap 6 the display of the settings in effect, read only.
-- **After 1.0:** gap 2 (with the background jobs and the live view), gap 3, gap 4 (the extension "Rules"), changing settings in the UI (the rest of gap 6; `--set` at the start stays a start option) and gap 7 (issue #690). Each needs its own package; gaps 2 and 3 need their own ADR.
+- **Before 1.0:** gap 1 (button "Full scan", `projects.rescan` with `full`), gap 5 (a screen with the list of error codes) of gap 6 the display of the settings in effect, read only, and gap 7 (the settings screen shows the version, issue #690; moved here from "after 1.0" on 2026-11-24).
+- **After 1.0:** gap 2 (with the background jobs and the live view), gap 3, gap 4 (the extension "Rules"), and changing settings in the UI (the rest of gap 6; `--set` at the start stays a start option). Each needs its own package; gaps 2 and 3 need their own ADR.
 
 ## Consequences
 

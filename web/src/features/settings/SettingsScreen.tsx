@@ -12,6 +12,7 @@ import { ThemeCard } from "./ThemeCard";
 import { LANGUAGES } from "../../shared/i18n/consts";
 import { LAYERS_ROUTE } from "../../app/consts";
 import { navigate } from "../../app/router";
+import { statusInfo } from "../status/status";
 
 /** The theme cards and the follow-system switch. */
 function ThemePanel() {
@@ -108,6 +109,11 @@ export function SettingsScreen() {
       <header>
         <h1>{t(I18N_KEYS.SETTINGS_TITLE)}</h1>
         <p class={styles.sub}>{t(I18N_KEYS.SETTINGS_SUBTITLE)}</p>
+        <Show when={statusInfo()?.version}>
+          {(version) => (
+            <p class={styles.sub}>{t(I18N_KEYS.SETTINGS_VERSION, { version: version() })}</p>
+          )}
+        </Show>
       </header>
       <ThemePanel />
       <LanguagePanel />

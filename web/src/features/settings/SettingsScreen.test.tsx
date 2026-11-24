@@ -2,6 +2,8 @@ import { fireEvent, render, screen } from "@solidjs/testing-library";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { currentPath } from "../../app/router";
+import { answer, serve, useServerSession } from "../../tests/commands";
+import { refreshStatus } from "../status/status";
 import { SettingsScreen } from "./SettingsScreen";
 
 beforeEach(() => {
@@ -50,5 +52,16 @@ describe("SettingsScreen", () => {
     render(() => <SettingsScreen />);
     fireEvent.click(screen.getByRole("button", { name: "Edit layers" }));
     expect(currentPath()).toBe("/layers");
+  });
+});
+
+describe("the version on the settings screen", () => {
+  useServerSession();
+
+  it("is the one that codeskimr --version prints", async () => {
+    serve({ "status.info": () => answer({ version: "1.2.3" }) });
+    await refreshStatus();
+    render(() => <SettingsScreen />);
+    expect(screen.getByText("CodeSkimr version 1.2.3")).toBeInTheDocument();
   });
 });

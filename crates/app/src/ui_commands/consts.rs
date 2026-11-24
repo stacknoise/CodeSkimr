@@ -8,6 +8,8 @@ pub const PROJECTS_LIST: &str = "projects.list";
 pub const PROJECTS_ADD: &str = "projects.add";
 /// Id of the command that scans a registered project again.
 pub const PROJECTS_RESCAN: &str = "projects.rescan";
+/// The version of the program, as `codeskimr --version` prints it.
+pub const PROGRAM_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Id of the command that removes a project from the app.
 pub const PROJECTS_REMOVE: &str = "projects.remove";
 /// Id of the command that tells whether a folder dialog exists on this machine.
