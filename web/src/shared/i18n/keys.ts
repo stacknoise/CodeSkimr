@@ -167,6 +167,8 @@ export const I18N_KEYS = {
   CLI_HELP_HINT: "cli-help-hint",
   CLI_CODES_NOT_FOUND: "cli-codes-not-found",
   CLI_SCAN_DETAILS: "cli-scan-details",
+  CLI_SCAN_STAGE: "cli-scan-stage",
+  CLI_SCAN_STAGES: "cli-scan-stages",
   CLI_ABOUT: "cli-about",
   CLI_CMD_SCAN: "cli-cmd-scan",
   CLI_CMD_MCP: "cli-cmd-mcp",

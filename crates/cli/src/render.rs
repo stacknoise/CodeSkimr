@@ -5,11 +5,11 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
     CLI_CREDENTIAL_DELETED, CLI_CREDENTIAL_DEVICE_PROMPT, CLI_CREDENTIAL_STORED, CLI_ERROR_LINE,
     CLI_EXPORT_WRITTEN, CLI_OPEN_READY, CLI_OPEN_URL_WARNING, CLI_SCAN_DETAILS, CLI_SCAN_FINISHED,
-    CLI_SCAN_STARTED, CLI_SCAN_TOOL_MISSING, CLI_SCAN_TOOL_NOT_RUNNABLE,
-    CLI_SCAN_TOOL_NOT_RUNNABLE_SILENT, CLI_SCAN_TOOL_TOO_NEW, CLI_SCAN_TOOL_TOO_OLD,
-    CLI_SCAN_TOOL_UNKNOWN, CLI_SECRET_PROMPT, CLI_SERVE_LISTENING, CLI_START_KEEP_OPEN,
-    CLI_START_TRAY, CLI_TRAY_LOG, CLI_TRAY_OPEN, CLI_TRAY_QUIT, CLI_TRAY_TOOLTIP,
-    CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
+    CLI_SCAN_STAGE, CLI_SCAN_STAGES, CLI_SCAN_STARTED, CLI_SCAN_TOOL_MISSING,
+    CLI_SCAN_TOOL_NOT_RUNNABLE, CLI_SCAN_TOOL_NOT_RUNNABLE_SILENT, CLI_SCAN_TOOL_TOO_NEW,
+    CLI_SCAN_TOOL_TOO_OLD, CLI_SCAN_TOOL_UNKNOWN, CLI_SECRET_PROMPT, CLI_SERVE_LISTENING,
+    CLI_START_KEEP_OPEN, CLI_START_TRAY, CLI_TRAY_LOG, CLI_TRAY_OPEN, CLI_TRAY_QUIT,
+    CLI_TRAY_TOOLTIP, CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
 };
 use codeskimr_domain::ToolState;
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
@@ -18,6 +18,15 @@ use serde::Serialize;
 use crate::consts::{LINE_BREAK, LIST_SEPARATOR, NO_VERSION, SECONDS_BASE, SECONDS_DECIMALS, arg};
 use crate::level2::Level2Line;
 use crate::warning::{LeftOutView, WarningLine};
+
+/// How long one stage of a scan took, from the time it started to the time it reported its end.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct StageLine {
+    /// The label of the stage as on the wire (`discover`, `analyze`, …).
+    pub stage: String,
+    /// Seconds the stage took.
+    pub seconds: f64,
+}
 
 /// The outcome of a scan as shown to the user and written by `--json`.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -41,6 +50,8 @@ pub struct ScanSummary {
     /// `seconds`. Packs are loaded when the first file of their language is analyzed, so a scan
     /// of a language that was already loaded in the same process reports 0.
     pub pack_load_seconds: f64,
+    /// How long each stage took, in the order they ran; empty if the scan did not tell.
+    pub stages: Vec<StageLine>,
     /// What level 2 did for each language that has an indexer; empty if it is not wired.
     pub level2: Vec<Level2Line>,
     /// What the scan warns about, one line per code with a count; empty if nothing.
@@ -344,6 +355,7 @@ pub fn scan_finished(
     let first = messages.format(language, CLI_SCAN_FINISHED, Some(&finished))?;
     let second = messages.format(language, CLI_SCAN_DETAILS, Some(&details))?;
     let mut lines = vec![first, second];
+    lines.extend(stages_line(messages, language, &summary.stages)?);
     for line in &summary.level2 {
         lines.push(line.render(messages, language)?);
     }
@@ -353,6 +365,29 @@ pub fn scan_finished(
     lines.extend(summary.left_out.render(messages, language)?);
     lines.extend(scan_tools(messages, language, &summary.tools)?);
     Ok(lines.join(LINE_BREAK))
+}
+
+/// The line with the time of each stage, if the scan told them.
+fn stages_line(
+    messages: &Messages,
+    language: &str,
+    stages: &[StageLine],
+) -> Result<Option<String>, I18nError> {
+    if stages.is_empty() {
+        return Ok(None);
+    }
+    let mut parts = Vec::new();
+    for stage in stages {
+        let mut args = FluentArgs::new();
+        args.set(arg::STAGE, stage.stage.clone());
+        args.set(arg::SECONDS, FluentValue::from(rounded(stage.seconds)));
+        parts.push(messages.format(language, CLI_SCAN_STAGE, Some(&args))?);
+    }
+    let mut args = FluentArgs::new();
+    args.set(arg::STAGES, parts.join(LIST_SEPARATOR));
+    messages
+        .format(language, CLI_SCAN_STAGES, Some(&args))
+        .map(Some)
 }
 
 /// The line that tells watch mode is on.
@@ -388,6 +423,14 @@ pub fn scan_json(summary: &ScanSummary) -> Result<String, serde_json::Error> {
         seconds: rounded(summary.seconds),
         cpu_seconds: rounded(summary.cpu_seconds),
         pack_load_seconds: rounded(summary.pack_load_seconds),
+        stages: summary
+            .stages
+            .iter()
+            .map(|line| StageLine {
+                seconds: rounded(line.seconds),
+                ..line.clone()
+            })
+            .collect(),
         ..summary.clone()
     })
 }

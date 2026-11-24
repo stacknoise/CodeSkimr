@@ -267,6 +267,10 @@ pub mod arg {
     pub const PATH: &str = "path";
     /// `{ $files }`: number of scanned files.
     pub const FILES: &str = "files";
+    /// `{ $stage }`: the label of a stage of a scan.
+    pub const STAGE: &str = "stage";
+    /// `{ $stages }`: the times of the stages of a scan, one text per stage.
+    pub const STAGES: &str = "stages";
     /// `{ $symbols }`: number of symbols.
     pub const SYMBOLS: &str = "symbols";
     /// `{ $references }`: number of references.
