@@ -225,3 +225,22 @@ pub const IDLE_READERS: usize = 4;
 /// A snapshot that holds more than one in this many of the files of the database reads its
 /// references in one pass over the table; a smaller one reads them through its files.
 pub const WHOLE_TABLE_SHARE: i64 = 2;
+
+/// Log event of one step of writing a snapshot.
+pub const LOG_PERSIST_STEP: &str = "persist_step";
+/// Step: insert the snapshot header.
+pub const STEP_HEADER: &str = "header";
+/// Step: drop the indexes and delete expired snapshots before a large full scan is loaded.
+pub const STEP_PRUNE_BEFORE: &str = "prune_before_load";
+/// Step: insert files, symbols, references, metrics, fingerprints and pending items.
+pub const STEP_FACTS: &str = "facts";
+/// Step: insert naming rules, parse times, warnings, left-out files and carried-over rows.
+pub const STEP_DETAILS: &str = "details";
+/// Step: check the integrity of the written facts.
+pub const STEP_INTEGRITY: &str = "integrity";
+/// Step: build the read models and set the totals.
+pub const STEP_READ_MODELS: &str = "read_models";
+/// Step: delete the snapshots beyond the retention.
+pub const STEP_PRUNE: &str = "prune";
+/// Step: build the reference indexes after a bulk load.
+pub const STEP_REFERENCE_INDEXES: &str = "reference_indexes";
