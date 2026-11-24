@@ -23,3 +23,16 @@ fn multi_byte_text_keeps_its_offsets() {
     let source = "// Größe\nlet s = a?.B = 1;";
     assert_eq!(prepare(source).len(), source.len());
 }
+
+#[test]
+fn an_unclosed_bracket_after_a_question_mark_ends_with_its_statement() {
+    let source = "x = c ?[1, 2 : y; z[0] = 1;";
+    assert!(matches!(prepare(source), std::borrow::Cow::Borrowed(_)));
+}
+
+#[test]
+fn a_blanked_mark_after_multi_byte_text_keeps_its_column() {
+    let source = "var größe = 1; a?.B = 2;";
+    let fixed = prepare(source);
+    assert_eq!(fixed.find("a .B"), source.find("a?.B"));
+}

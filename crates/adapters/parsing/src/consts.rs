@@ -321,3 +321,5 @@ pub const ASSIGN_COMPOUND_SIGNS: &str = "+-*/%&|^";
 pub const NON_ASSIGN_FOLLOWERS: &str = "=>";
 /// The character that may be part of a member name besides letters and digits.
 pub const NAME_JOINER: char = '_';
+/// The end of a statement, where the search for the closing bracket of `?[` stops.
+pub const STATEMENT_END: char = ';';

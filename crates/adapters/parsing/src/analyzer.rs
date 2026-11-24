@@ -135,7 +135,8 @@ impl SnippetFingerprinter for TreeSitterAnalyzer {
             .fingerprinting
             .ok_or_else(|| CodedError::new(ErrorCode::UnexpectedInternalError))?;
         let pack = self.packs.get(language).map_err(CodedError::caused_by)?;
-        let tree = parse(pack, source, self.parse_timeout).map_err(CodedError::caused_by)?;
+        let source = prepared(pack, source);
+        let tree = parse(pack, &source, self.parse_timeout).map_err(CodedError::caused_by)?;
         Ok(fingerprints::of_source(pack, tree.root_node(), settings))
     }
 }

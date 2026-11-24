@@ -11,7 +11,7 @@ use std::collections::HashSet;
 
 use crate::consts::{
     ASSIGN_COMPOUND_SIGNS, ASSIGN_SIGN, BLANK, BRACKET_CLOSE, BRACKET_OPEN, COALESCE_ASSIGN,
-    MEMBER_DOT, NAME_JOINER, NON_ASSIGN_FOLLOWERS, NULL_CONDITIONAL_MARK,
+    MEMBER_DOT, NAME_JOINER, NON_ASSIGN_FOLLOWERS, NULL_CONDITIONAL_MARK, STATEMENT_END,
 };
 
 /// The source with the null-conditional mark of every assignment target blanked out; the source
@@ -69,6 +69,10 @@ fn assigned_after_members(text: &str) -> bool {
 fn assigned_after_brackets(text: &str) -> bool {
     let mut depth = 0usize;
     for (at, c) in text.char_indices() {
+        if c == STATEMENT_END {
+            // An unclosed `?[` (a ternary with a collection) ends with its statement.
+            return false;
+        }
         if c == BRACKET_OPEN {
             depth += 1;
         } else if c == BRACKET_CLOSE {
