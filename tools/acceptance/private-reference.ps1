@@ -114,7 +114,7 @@ Set-Content $review "Je Symbol: Textsuche (Fundstellen des Namens) und Verwendun
 $rows = @()
 foreach ($s in $picked) {
     $timer = [Diagnostics.Stopwatch]::StartNew()
-    $u = (Tool 'find_usages' @{ symbol = $s.qualified_name; limit = 100 }).structuredContent
+    $u = (Tool 'find_usages' @{ symbol = $s.qualified_name; limit = 100; include_tests = $true }).structuredContent
     $timer.Stop()
     $certain = @($u.usages | Where-Object { $_.confidence -eq 'certain' }).Count
     $rows += [pscustomobject]@{ Total = $u.total; Certain = $certain; Ms = $timer.Elapsed.TotalMilliseconds }
@@ -124,3 +124,5 @@ $writer.Close(); $mcp.WaitForExit(5000) | Out-Null
 Log ("Stichprobe: $($rows.Count) Symbole, Verwendungen gesamt $(($rows | Measure-Object Total -Sum).Sum), davon certain $(($rows | Measure-Object Certain -Sum).Sum), langsamste Abfrage $([math]::Round(($rows | Measure-Object Ms -Maximum).Maximum, 1)) ms")
 Log "Zur Beurteilung: pruefung-usages.txt im Ausgabeordner (bleibt lokal)."
 Write-Host "`nFertig. Bitte den Inhalt von $report in den Projekt-Chat kopieren und sagen, wie viele der 20 Symbole in $review stimmen."
+# The data folder of the measurement must not stay set in the caller's window.
+Remove-Item Env:CODESKIMR_DATA_DIR -ErrorAction SilentlyContinue
