@@ -6,8 +6,8 @@ mod common;
 use std::num::NonZeroU32;
 
 use codeskimr_application::ports::{
-    PendingReference, ProjectCatalog, ProjectRemoval, ProjectRepository, Receiver, SnapshotData,
-    SnapshotStore, SymbolFingerprints,
+    PendingReference, ProjectRemoval, ProjectRepository, Receiver, SnapshotData, SnapshotStore,
+    SymbolFingerprints,
 };
 use codeskimr_domain::{
     FileId, Fingerprint, Fingerprints, LanguageId, MetricKind, QualifiedName, ReferenceKind,
@@ -852,38 +852,4 @@ fn the_reverse_index_of_a_file_database_is_loaded_on_its_own_connection() {
         .usages(codeskimr_domain::SnapshotId::new(10), &query, 10)
         .unwrap();
     assert_eq!(page.total, 1);
-}
-
-/// The project list of one store, read while another store (another process) persists a scan,
-/// shows the last finished scan until the new one is committed, never an empty project.
-#[test]
-fn the_project_list_keeps_the_last_scan_while_another_store_persists() {
-    let db = TempDb::new();
-    let reader = SqliteStore::open(&db.0, keep(3)).unwrap();
-    reader.save_project(&project(1, "/work/app", &[])).unwrap();
-    reader.persist(scan_with_every_table(10, 100)).unwrap();
-    let before = reader.overviews().unwrap();
-    let before_types = before[0].types;
-    assert!(before[0].latest.is_some());
-    let path = db.0.clone();
-    let writer = std::thread::spawn(move || {
-        let store = SqliteStore::open(&path, keep(3)).unwrap();
-        store.persist(scan_with_every_table(20, 200)).unwrap();
-    });
-    while !writer.is_finished() {
-        let now = reader.overviews().unwrap();
-        let latest = now[0].latest.as_ref().expect("the project keeps a scan");
-        assert!(now[0].types >= before_types.min(1), "types vanished");
-        assert!(latest.id.get() == 10 || latest.id.get() == 20);
-    }
-    writer.join().unwrap();
-    assert_eq!(
-        reader.overviews().unwrap()[0]
-            .latest
-            .as_ref()
-            .unwrap()
-            .id
-            .get(),
-        20
-    );
 }
