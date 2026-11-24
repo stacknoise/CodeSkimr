@@ -57,13 +57,13 @@ pub const MAX_PROJECT_ID: &str = "SELECT MAX(id) FROM projects";
 
 /// Files of the newest snapshot of a project: project id.
 pub const LATEST_FILES: &str = "SELECT snapshot_id, id, path, language, content_hash, loc \
-    FROM files WHERE snapshot_id = (SELECT MAX(id) FROM snapshots WHERE project_id = ?1) \
+    FROM files WHERE snapshot_id = (SELECT MAX(id) FROM snapshots WHERE project_id = ?1 AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1)) \
     ORDER BY path";
 /// Id of the newest snapshot of a project, null without one: project id.
-pub const LATEST_SNAPSHOT_ID: &str = "SELECT MAX(id) FROM snapshots WHERE project_id = ?1";
+pub const LATEST_SNAPSHOT_ID: &str = "SELECT MAX(id) FROM snapshots WHERE project_id = ?1 AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1)";
 /// The newest snapshot of a project: project id.
 pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files, \
-    symbols, refs FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";
+    symbols, refs FROM snapshots WHERE project_id = ?1 AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1) ORDER BY id DESC LIMIT 1";
 
 /// Confirms a snapshot after a scan that found nothing changed: creation time, commit, mode (the
 /// label of an incremental scan), snapshot id.
@@ -518,8 +518,7 @@ pub const TOOL_FINDINGS: &str = "SELECT language, tool, role, state, found, requ
 pub const SNAPSHOT_NAMING_SET: &str = "UPDATE snapshots SET naming_rules = ?1 WHERE id = ?2";
 /// The naming rules of the newest snapshot of a project; no row without a snapshot, `NULL` for one
 /// from before the record existed.
-pub const SNAPSHOT_NAMING_LATEST: &str =
-    "SELECT naming_rules FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";
+pub const SNAPSHOT_NAMING_LATEST: &str = "SELECT naming_rules FROM snapshots WHERE project_id = ?1 AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1) ORDER BY id DESC LIMIT 1";
 
 /// Records the parse time of one language of a snapshot: snapshot, language, microseconds.
 pub const PARSE_TIME_INSERT: &str =
@@ -632,7 +631,7 @@ pub const REFERENCE_DELETE: &str = "DELETE FROM symbol_references WHERE id = ?1"
 
 /// Whether the newest snapshot of the project holds a symbol: project, kind, qualified name.
 pub const ANNOTATION_TARGET_EXISTS: &str = "SELECT COUNT(*) FROM symbols WHERE snapshot_id = \
-    (SELECT MAX(id) FROM snapshots WHERE project_id = ?1) AND +kind = ?2 AND qualified_name = ?3";
+    (SELECT MAX(id) FROM snapshots WHERE project_id = ?1 AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1)) AND +kind = ?2 AND qualified_name = ?3";
 /// The number of annotations of a kind on a symbol other than the given one: project, target kind,
 /// name, parameters, annotation kind, annotation id (0 for a new one).
 pub const ANNOTATION_KIND_COUNT: &str = "SELECT COUNT(*) FROM annotation WHERE project_id = ?1 \

@@ -973,3 +973,28 @@ fn an_interrupted_removal_hides_the_project_and_is_finished_by_asking_again() {
         assert_eq!(rows_of(&conn, &table), 0, "table {table}");
     }
 }
+
+#[test]
+fn a_project_in_removal_has_no_snapshot_and_keeps_its_source() {
+    use codeskimr_domain::{FolderPath, ProjectName, ProjectSource};
+
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    many_files_shared_by_two_snapshots(&store, 3);
+    assert!(store.latest_snapshot(PROJECT).unwrap().is_some());
+    Connection::open(&db.0)
+        .unwrap()
+        .execute("UPDATE projects SET removing = 1", [])
+        .unwrap();
+    // The half-deleted data is not offered as the state of the project.
+    assert!(store.latest_snapshot(PROJECT).unwrap().is_none());
+    assert!(store.latest_files(PROJECT).unwrap().is_empty());
+    // Adding the same folder again is refused, not answered with the project that goes away.
+    let source = ProjectSource::Folder(FolderPath::new("/work/app").unwrap());
+    let refused = store
+        .register_project(ProjectName::new("again").unwrap(), source.clone())
+        .unwrap_err();
+    assert_eq!(code_of(&refused), "PRJ-301");
+    assert!(store.project_by_source(&source).unwrap().is_none());
+}

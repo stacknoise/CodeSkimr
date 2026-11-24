@@ -118,6 +118,12 @@ impl SqliteStore {
     ) -> Result<Project, CodedError> {
         self.write(|tx| {
             if let Some(known) = project_of_source(tx, &source)? {
+                // A project that is being removed still owns its source until it is gone.
+                let removing: i64 =
+                    tx.query_row(sql::PROJECT_REMOVING, params![known], |row| row.get(0))?;
+                if removing != 0 {
+                    return Err(StorageError::ProjectExists);
+                }
                 return load_project(tx, ProjectId::new(id_from(known)?));
             }
             let highest: Option<i64> = tx.query_row(sql::MAX_PROJECT_ID, [], |row| row.get(0))?;
@@ -150,8 +156,13 @@ impl SqliteStore {
                     |row| row.get(0),
                 )
                 .optional()?;
+            // A project that is being removed is no project any more, for anyone but its removal.
             id.map(|raw| load_project(conn, ProjectId::new(id_from(raw)?)))
                 .transpose()
+                .or_else(|error| match error {
+                    StorageError::ProjectNotFound => Ok(None),
+                    other => Err(other),
+                })
         })
         .map_err(CodedError::from)
     }

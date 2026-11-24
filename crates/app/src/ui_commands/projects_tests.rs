@@ -67,7 +67,10 @@ fn overview(id: u64, name: &str) -> ProjectOverview {
 
 impl ProjectCatalog for TwoProjects {
     fn overviews(&self) -> Result<Vec<ProjectOverview>, CodedError> {
-        Ok(vec![overview(1, "first"), overview(2, "second")])
+        // The second project was being removed when the app ended: marked for good, no removal runs.
+        let mut second = overview(2, "second");
+        second.removing = true;
+        Ok(vec![overview(1, "first"), second])
     }
 
     fn languages(&self, _project: ProjectId) -> Result<Vec<LanguageShare>, CodedError> {
@@ -220,5 +223,5 @@ fn a_project_that_is_removed_is_listed_as_removing_and_not_as_scanning() {
     let _removing = running.mark_removing(ProjectId::new(1));
     let rows = list.run(&principal, ()).unwrap();
     assert!(rows[0].removing && !rows[0].running && !rows[0].interrupted);
-    assert!(!rows[1].removing && !rows[1].interrupted);
+    assert!(rows[1].removing && rows[1].interrupted && !rows[1].running);
 }
