@@ -57,7 +57,7 @@ impl SourceColumns {
         }
     }
 
-    fn source(
+    pub(crate) fn source(
         kind: &str,
         location: String,
         branch: String,

@@ -44,7 +44,7 @@ pub struct ProjectOverview {
     pub database: Option<DatabaseInfo>,
 }
 
-/// What the file of a project is: it exists, it is missing, or it is being removed.
+/// What the file of a project is: it exists, it is missing, it cannot be opened, or it is being removed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DatabaseState {
     /// The file is there.
@@ -53,6 +53,8 @@ pub enum DatabaseState {
     Missing,
     /// The removal of the project has begun.
     Removing,
+    /// The file is there but cannot be opened; the project is listed so that it can be removed.
+    Unreadable,
 }
 
 /// Where the data of a project lies and how large it is (ADR 0095).

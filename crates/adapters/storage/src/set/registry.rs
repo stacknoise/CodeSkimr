@@ -17,11 +17,11 @@ use super::consts::APPLICATION_ID;
 use super::consts::{
     CHECK_OK, HIGHEST_NUMBER_EVER, INSTALLATION_ID, INSTALLATION_INSERT, INSTALLATION_SEPARATOR,
     PRAGMA_APPLICATION_ID, PROJECT_BY_SOURCE, PROJECT_DELETE, PROJECT_INSERT, PROJECT_INSERT_AS,
-    PROJECT_MARK_REMOVING, PROJECT_NUMBERS, PROJECT_REMOVING, PROJECT_SET_SOURCE, QUICK_CHECK,
-    REGISTRY_SCHEMA,
+    PROJECT_MARK_REMOVING, PROJECT_NUMBERS, PROJECT_REMOVING, PROJECT_SET_SOURCE, PROJECT_SOURCE,
+    QUICK_CHECK, REGISTRY_SCHEMA,
 };
 use crate::codec::{column_int, id_from};
-use crate::consts::{BUSY_TIMEOUT_MS, JOURNAL_MODE_WAL, PRAGMA_JOURNAL_MODE};
+use crate::consts::{BUSY_TIMEOUT_MS, JOURNAL_MODE_WAL, NO_CREDENTIAL, PRAGMA_JOURNAL_MODE};
 use crate::error::{StorageError, StorageResult};
 use crate::projects::SourceColumns;
 use codeskimr_domain::ProjectSource;
@@ -167,6 +167,19 @@ impl Registry {
             )
             .optional()?;
         Ok(mark.map(|mark| mark != 0))
+    }
+
+    /// The source the catalog holds for `project`, without a credential (the catalog keeps none);
+    /// it is the index copy, the project file holds the one that counts (ADR 0095).
+    pub(crate) fn source_of(&self, project: ProjectId) -> StorageResult<ProjectSource> {
+        let (kind, location, branch): (String, String, String) = self
+            .conn()
+            .query_row(PROJECT_SOURCE, params![column_int(project.get())?], |row| {
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+            })
+            .optional()?
+            .ok_or(StorageError::ProjectNotFound)?;
+        SourceColumns::source(&kind, location, branch, NO_CREDENTIAL.to_owned())
     }
 
     /// Marks `project` as being removed.

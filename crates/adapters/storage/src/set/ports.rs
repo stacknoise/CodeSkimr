@@ -25,6 +25,7 @@ use codeskimr_domain::{
 };
 
 use super::SqliteStore;
+use super::consts::LOG_PROJECT_SKIPPED;
 use crate::error::StorageError;
 use crate::store::ProjectDb;
 
@@ -205,6 +206,10 @@ impl ProjectCatalog for SqliteStore {
         let mut all = Vec::new();
         for entry in self.entries().map_err(CodedError::from)? {
             let Ok(db) = self.db_any(entry.project) else {
+                all.push(
+                    self.unreadable_overview(entry.project)
+                        .map_err(CodedError::from)?,
+                );
                 continue;
             };
             for mut overview in ProjectCatalog::overviews(&*db)? {
@@ -272,7 +277,18 @@ impl AnnotationStore for SqliteStore {
             if entry.removing {
                 continue;
             }
-            deleted += AnnotationStore::purge_dismissed(&*self.of_project(entry.project)?, purge)?;
+            // One file that does not open must not stop the sweep over the others.
+            match self
+                .of_project(entry.project)
+                .and_then(|db| AnnotationStore::purge_dismissed(&*db, purge))
+            {
+                Ok(count) => deleted += count,
+                Err(error) => tracing::warn!(
+                    event = LOG_PROJECT_SKIPPED,
+                    project = entry.project.get(),
+                    error = %error
+                ),
+            }
         }
         Ok(deleted)
     }

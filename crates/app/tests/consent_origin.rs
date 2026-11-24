@@ -33,7 +33,8 @@ const ALLOWED: [&str; 8] = [
     "application/src/ports/consent.rs",
     "application/src/ports/mod.rs",
     "storage/src/consent.rs",
-    // The router over the project files only forwards the port call to the right file.
+    // The router over the project files: it may only forward the port call `store_consent` with
+    // the finished grant to the right file; it never builds a grant (ADR 0095).
     "storage/src/set/ports.rs",
 ];
 

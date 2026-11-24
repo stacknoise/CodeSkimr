@@ -272,3 +272,56 @@ fn a_project_registered_twice_is_the_same_project() {
         .collect();
     assert_eq!(numbers, vec![first.id.get()]);
 }
+
+#[test]
+fn a_file_that_does_not_open_stays_in_the_list_and_does_not_stop_the_others() {
+    let db = TempDb::new();
+    let (broken, fine) = {
+        let store = open(&db.0);
+        let (broken, fine) = two_scanned(&store);
+        store.create_annotation(&note(fine.id, "x")).unwrap();
+        (broken, fine)
+    };
+    let damaged = project_file(&db.0, &broken);
+    for suffix in ["-wal", "-shm"] {
+        let mut name = damaged.as_os_str().to_owned();
+        name.push(suffix);
+        let _ = fs::remove_file(name);
+    }
+    fs::write(&damaged, b"this is no database").unwrap();
+
+    let store = open(&db.0);
+
+    let overviews = store.overviews().unwrap();
+    let states: Vec<_> = overviews
+        .iter()
+        .map(|overview| overview.database.as_ref().unwrap().state)
+        .collect();
+    assert_eq!(states, [DatabaseState::Unreadable, DatabaseState::Ok]);
+    assert_eq!(overviews[0].project.id, broken.id);
+    assert_eq!(listed(&store, fine.id), 1);
+    store.remove_project(broken.id).unwrap();
+    assert!(!damaged.exists());
+}
+
+#[test]
+fn a_removal_that_was_interrupted_is_finished_at_the_next_start() {
+    let db = TempDb::new();
+    let gone = {
+        let store = open(&db.0);
+        let gone = register(&store, "/work/a");
+        scan(&store, &gone, 0);
+        gone
+    };
+    let catalog = rusqlite::Connection::open(&db.0).unwrap();
+    catalog
+        .execute("UPDATE projects SET removing = 1", [])
+        .unwrap();
+    drop(catalog);
+    assert!(project_file(&db.0, &gone).exists());
+
+    let store = open(&db.0);
+
+    assert!(!project_file(&db.0, &gone).exists());
+    assert_eq!(store.overviews().unwrap().len(), 0);
+}

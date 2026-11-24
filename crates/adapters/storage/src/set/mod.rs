@@ -16,10 +16,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{DatabaseInfo, DatabaseState};
+use codeskimr_application::ports::{DatabaseInfo, DatabaseState, ProjectOverview};
 use codeskimr_domain::{Project, ProjectId, ProjectName, ProjectSource};
 
-use self::consts::OPEN_FILES_MAX;
+use self::consts::{LOG_PROJECT_UNREADABLE, OPEN_FILES_MAX};
 use self::registry::{Entry, Registry};
 use crate::error::{StorageError, StorageResult};
 use crate::store::{ProjectDb, StoreOptions};
@@ -120,8 +120,11 @@ impl SqliteStore {
             }
             self.registry.register_as(project.id, &project.source)?;
         }
-        self.db(project.id)?.stored(project)?;
-        self.registry.set_source(project.id, &project.source)
+        // The catalog first: its unique index refuses a source that another project has before
+        // the file is touched, and a stop in between leaves the file with the old source, which
+        // the next save repairs. The project file holds the copy that counts (ADR 0095).
+        self.registry.set_source(project.id, &project.source)?;
+        self.db(project.id)?.stored(project)
     }
 
     /// Gives the project a new display name; source, scans and layers stay as they are.
@@ -202,6 +205,32 @@ impl SqliteStore {
             path: path.to_string_lossy().into_owned(),
             size_bytes: size.unwrap_or_default(),
             state,
+        })
+    }
+
+    /// The entry of a project whose file cannot be opened: what the catalog knows (its number and
+    /// source), no data, and the state of the file, so that the project stays visible and can be
+    /// removed instead of vanishing from the list.
+    pub(crate) fn unreadable_overview(&self, project: ProjectId) -> StorageResult<ProjectOverview> {
+        tracing::warn!(event = LOG_PROJECT_UNREADABLE, project = project.get());
+        let mut info = self.database_info(project, false);
+        if let Some(info) = info.as_mut().filter(|info| info.state == DatabaseState::Ok) {
+            info.state = DatabaseState::Unreadable;
+        }
+        Ok(ProjectOverview {
+            project: Project {
+                id: project,
+                name: ProjectName::new(project.get().to_string())?,
+                source: self.registry.source_of(project)?,
+                layers: Vec::new(),
+            },
+            latest: None,
+            types: u32::default(),
+            languages: Vec::new(),
+            warnings: Vec::new(),
+            left_out: Vec::new(),
+            removing: false,
+            database: info,
         })
     }
 

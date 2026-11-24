@@ -38,8 +38,13 @@ impl SqliteStore {
     /// the catalog. A file that the system still holds stays marked and is removed at the next
     /// start.
     pub(super) fn remove_marked(&self, id: ProjectId) -> StorageResult<()> {
+        self.remove_marked_within(id, Duration::from_millis(REMOVAL_WAIT_MS))
+    }
+
+    /// [`Self::remove_marked`] with its own limit on the wait.
+    fn remove_marked_within(&self, id: ProjectId, wait: Duration) -> StorageResult<()> {
         let held = self.forget_file(id);
-        let deadline = Instant::now() + Duration::from_millis(REMOVAL_WAIT_MS);
+        let deadline = Instant::now() + wait;
         if let Some(db) = held {
             wait_until_alone(db, deadline)?;
         }
@@ -82,5 +87,49 @@ fn retry_until(
             Err(error) if Instant::now() >= deadline => return Err(StorageError::Io(error)),
             Err(_) => thread::sleep(Duration::from_millis(REMOVAL_PAUSE_MS)),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::num::NonZeroU32;
+    use std::time::Duration;
+
+    use codeskimr_domain::{FolderPath, ProjectName, ProjectSource};
+
+    use super::SqliteStore;
+    use crate::error::StorageError;
+
+    #[test]
+    fn a_file_that_a_call_still_holds_keeps_its_mark_and_goes_when_the_call_ends() {
+        let folder = std::env::temp_dir().join(format!(
+            "codeskimr-removal-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let catalog = folder.join("catalog.db");
+        let store = SqliteStore::open(&catalog, NonZeroU32::new(3).unwrap()).unwrap();
+        let name = ProjectName::new("held").unwrap();
+        let source = ProjectSource::Folder(FolderPath::new("/work/held").unwrap());
+        let id = store.register_project(name, source).unwrap().id;
+        let path = store.path_of(id).unwrap();
+        let held = store.db(id).unwrap();
+        store.registry.mark_removing(id).unwrap();
+
+        let refused = store.remove_marked_within(id, Duration::from_millis(100));
+
+        assert!(matches!(refused, Err(StorageError::Io(_))));
+        assert!(path.exists(), "a file in use is not deleted");
+        assert_eq!(store.registry.removing(id).unwrap(), Some(true));
+
+        drop(held);
+        store
+            .remove_marked_within(id, Duration::from_secs(1))
+            .unwrap();
+
+        assert!(!path.exists());
+        assert_eq!(store.registry.removing(id).unwrap(), None);
+        drop(store);
+        let _ = std::fs::remove_dir_all(&folder);
     }
 }

@@ -54,7 +54,7 @@ export interface ProjectDatabase {
   path: string;
   /** Size of the file with its write-ahead log, in bytes; 0 if it is missing. */
   size_bytes: number;
-  state: "ok" | "missing" | "removing";
+  state: "ok" | "missing" | "removing" | "unreadable";
 }
 
 export interface LeftOutFile {

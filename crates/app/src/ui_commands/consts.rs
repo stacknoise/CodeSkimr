@@ -176,6 +176,8 @@ pub const DATABASE_OK: &str = "ok";
 pub const DATABASE_MISSING: &str = "missing";
 /// `database.state` of a project that is being removed.
 pub const DATABASE_REMOVING: &str = "removing";
+/// The state of a project file that cannot be opened.
+pub const DATABASE_UNREADABLE: &str = "unreadable";
 
 /// Title key of `explorer.outline`.
 pub const OUTLINE_TITLE: &str = i18n::COMMAND_EXPLORER_OUTLINE_TITLE;

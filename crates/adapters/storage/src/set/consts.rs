@@ -31,6 +31,10 @@ pub const LOG_FILE_LEFT_ALONE: &str = "project_file_left_alone";
 pub const LOG_ORPHAN_DELETED: &str = "project_file_orphan_deleted";
 /// Log event: the database of an older version is no longer used.
 pub const LOG_OLD_DATABASE_IGNORED: &str = "old_database_ignored";
+/// Log event: a project file could not be opened and was left out of a sweep over all projects.
+pub const LOG_PROJECT_SKIPPED: &str = "project_file_skipped";
+/// Log event: a project file could not be opened and is listed as unreadable.
+pub const LOG_PROJECT_UNREADABLE: &str = "project_file_unreadable";
 /// Log event: a removal that was interrupted is finished.
 pub const LOG_REMOVAL_FINISHED: &str = "project_removal_finished";
 
@@ -60,6 +64,8 @@ pub const PROJECT_BY_SOURCE: &str =
     "SELECT number, removing FROM projects WHERE kind = ?1 AND location = ?2 AND branch = ?3";
 /// Every registered project with its removal mark, in the order of registration.
 pub const PROJECT_NUMBERS: &str = "SELECT number, removing FROM projects ORDER BY number";
+/// The source of a project: its number.
+pub const PROJECT_SOURCE: &str = "SELECT kind, location, branch FROM projects WHERE number = ?1";
 /// The removal mark of a project: its number.
 pub const PROJECT_REMOVING: &str = "SELECT removing FROM projects WHERE number = ?1";
 /// Marks a project as being removed: its number.
