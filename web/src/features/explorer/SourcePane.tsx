@@ -128,6 +128,22 @@ function Lines(props: { info: SourceInfo }) {
   );
 }
 
+/** The line above the code: file, position and the button to copy the code. */
+function Head(props: { info: SourceInfo }) {
+  return (
+    <div class={styles.head}>
+      <span class={styles.path}>{props.info.path}</span>
+      <span>
+        {PILL_SEPARATOR}
+        {lineRange(props.info.first_line, props.info.last_line)}
+      </span>
+      <Show when={props.info.available && !props.info.excluded && props.info.lines.length > 0}>
+        <CopyButton lines={props.info.lines} />
+      </Show>
+    </div>
+  );
+}
+
 /** What the right column shows: a hint, a failure, the wait, or the source. */
 function Content(props: { shown: boolean }) {
   return (
@@ -154,16 +170,7 @@ function Content(props: { shown: boolean }) {
       <Match when={sourceInfo()}>
         {(info) => (
           <>
-            <div class={styles.head}>
-              <span class={styles.path}>{info().path}</span>
-              <span>
-                {PILL_SEPARATOR}
-                {lineRange(info().first_line, info().last_line)}
-              </span>
-              <Show when={info().available && !info().excluded && info().lines.length > 0}>
-                <CopyButton lines={info().lines} />
-              </Show>
-            </div>
+            <Head info={info()} />
             <Lines info={info()} />
           </>
         )}
