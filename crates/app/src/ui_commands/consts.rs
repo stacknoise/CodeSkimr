@@ -112,6 +112,8 @@ pub const STATUS_INFO: &str = "status.info";
 pub const STATUS_TITLE: &str = i18n::COMMAND_STATUS_INFO_TITLE;
 /// Description key of `status.info`.
 pub const STATUS_DESCRIPTION: &str = i18n::COMMAND_STATUS_INFO_DESCRIPTION;
+/// The version of the program, as `codeskimr --version` prints it.
+pub const PROGRAM_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Bytes in a megabyte, for the memory shown in the status bar.
 pub const BYTES_PER_MEGABYTE: u64 = 1_048_576;
 

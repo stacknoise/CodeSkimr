@@ -875,6 +875,7 @@ export const I18N_KEYS = {
   NAV_NEEDS_PROJECT: "nav-needs-project",
   SETTINGS_TITLE: "settings-title",
   SETTINGS_SUBTITLE: "settings-subtitle",
+  SETTINGS_VERSION: "settings-version",
   SETTINGS_THEME_TITLE: "settings-theme-title",
   SETTINGS_THEME_NOTE: "settings-theme-note",
   SETTINGS_THEME_NAME_HELL: "settings-theme-name-hell",

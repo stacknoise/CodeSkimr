@@ -9,6 +9,7 @@ CodeSkimr wird als **eine einzelne Datei je System** ausgeliefert (Windows x86_6
 1. Datei und `.sha256` herunterladen und die Prüfsumme vergleichen: Windows `Get-FileHash .\codeskimr-<Version>-windows-x86_64.exe -Algorithm SHA256`, Linux `sha256sum -c codeskimr-<Version>-linux-x86_64.sha256`, macOS `shasum -a 256 -c codeskimr-<Version>-macos-aarch64.sha256`.
 2. Optional die Herkunft prüfen: `gh attestation verify <Datei> --repo stacknoise/CodeSkimr` zeigt, dass GitHub die Datei aus diesem Repository gebaut hat.
 3. Starten. Linux und macOS: vorher `chmod +x <Datei>`. Dann `./codeskimr-<Version>-<System> serve`; unter Windows `.\codeskimr-<Version>-windows-x86_64.exe serve`. Sie können die Datei in `codeskimr` umbenennen und in einen Ordner Ihres Suchpfads legen.
+   Welche Version läuft, zeigt `codeskimr --version` in der Konsole und der Bildschirm „Einstellungen“ unter der Überschrift.
 
 Die Dateien sind **noch nicht signiert** (die Signierung kommt als Erstes nach 1.0). Deshalb warnt das Betriebssystem beim ersten Start:
 

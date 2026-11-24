@@ -12,7 +12,9 @@ use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Req
 use codeskimr_domain::Permission;
 use serde::Serialize;
 
-use super::consts::{BYTES_PER_MEGABYTE, STATUS_DESCRIPTION, STATUS_INFO, STATUS_TITLE};
+use super::consts::{
+    BYTES_PER_MEGABYTE, PROGRAM_VERSION, STATUS_DESCRIPTION, STATUS_INFO, STATUS_TITLE,
+};
 
 static STARTED: OnceLock<Instant> = OnceLock::new();
 static READY: OnceLock<Duration> = OnceLock::new();
@@ -32,6 +34,8 @@ pub fn mark_ready() {
 /// The measurements of the status bar.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct StatusOut {
+    /// The version of the program, the one `codeskimr --version` prints (ADR 0092, gap 7).
+    pub version: &'static str,
     /// Milliseconds from the start of the program until the server answered; `None` if it was
     /// not measured (the server of a test).
     pub startup_ms: Option<u64>,
@@ -113,6 +117,7 @@ impl Command for StatusInfo {
     fn execute(&self, request: Request<'_, Self>) -> Result<StatusOut, CodedError> {
         access::require(request.principal, Permission::Read)?;
         Ok(StatusOut {
+            version: PROGRAM_VERSION,
             startup_ms: startup_ms(),
             memory_mb: memory_mb(),
             budgets: self.budgets,

@@ -7,6 +7,7 @@ nav-settings = Settings
 nav-needs-project = { $name }: open a project first
 settings-title = Settings
 settings-subtitle = Appearance and language
+settings-version = CodeSkimr version { $version }
 settings-theme-title = Theme
 settings-theme-note = The preview shows the theme before you apply it.
 settings-theme-name-hell = Light
