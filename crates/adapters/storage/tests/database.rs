@@ -813,6 +813,13 @@ fn symbols_that_level_two_created_are_pruned_with_their_file() {
 
 /// The names of all tables the migrations created, without the bookkeeping of the migrations.
 #[cfg(test)]
+/// Every data table is empty: a removal left nothing behind.
+fn assert_all_tables_empty(conn: &Connection) {
+    for table in data_tables(conn) {
+        assert_eq!(rows_of(conn, &table), 0, "table {table}");
+    }
+}
+
 fn data_tables(conn: &Connection) -> Vec<String> {
     let mut statement = conn
         .prepare(
@@ -854,9 +861,7 @@ fn removing_a_project_leaves_no_rows_in_any_table_and_keeps_the_others() {
     store
         .remove_project(codeskimr_domain::ProjectId::new(2))
         .unwrap();
-    for table in data_tables(&conn) {
-        assert_eq!(rows_of(&conn, &table), 0, "table {table}");
-    }
+    assert_all_tables_empty(&conn);
     assert_eq!(
         code_of(&store.remove_project(PROJECT).unwrap_err()),
         "PRJ-201"
@@ -871,9 +876,7 @@ fn removing_a_project_with_shared_rows_of_an_incremental_scan_leaves_nothing() {
     full_then_incremental(&store);
     store.remove_project(PROJECT).unwrap();
     let conn = Connection::open(&db.0).unwrap();
-    for table in data_tables(&conn) {
-        assert_eq!(rows_of(&conn, &table), 0, "table {table}");
-    }
+    assert_all_tables_empty(&conn);
 }
 
 #[test]
@@ -939,9 +942,7 @@ fn removing_a_project_with_more_files_than_one_slice_and_shared_rows_leaves_noth
     let conn = Connection::open(&db.0).unwrap();
     assert_eq!(rows_of(&conn, "symbol_rows"), 1_201);
     store.remove_project(PROJECT).unwrap();
-    for table in data_tables(&conn) {
-        assert_eq!(rows_of(&conn, &table), 0, "table {table}");
-    }
+    assert_all_tables_empty(&conn);
 }
 
 #[test]
@@ -969,9 +970,7 @@ fn an_interrupted_removal_hides_the_project_and_is_finished_by_asking_again() {
     assert!(listed[0].latest.is_none());
     store.remove_project(PROJECT).unwrap();
     let conn = Connection::open(&db.0).unwrap();
-    for table in data_tables(&conn) {
-        assert_eq!(rows_of(&conn, &table), 0, "table {table}");
-    }
+    assert_all_tables_empty(&conn);
 }
 
 #[test]
