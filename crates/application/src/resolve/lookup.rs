@@ -147,13 +147,16 @@ impl<'a> Context<'a> {
     fn has_unknown_receiver(&self, occurrence: &PendingReference) -> bool {
         match &occurrence.receiver {
             Some(Receiver::Unknown) => true,
-            Some(Receiver::Named(name)) => !self
-                .table
-                .named(name.as_str())
-                .iter()
-                .any(|symbol| matches!(symbol.kind, SymbolKind::Namespace | SymbolKind::Module)),
+            Some(Receiver::Named(name)) => !Self::has_qualifier(self.table.named(name.as_str())),
             _ => false,
         }
+    }
+
+    /// Whether one of the symbols is a namespace or a module, which qualifies a name.
+    fn has_qualifier(named: &[&Symbol]) -> bool {
+        named
+            .iter()
+            .any(|symbol| matches!(symbol.kind, SymbolKind::Namespace | SymbolKind::Module))
     }
 
     /// The types in which a member must be found (step 3), or `None` if the syntax says nothing
@@ -187,25 +190,40 @@ impl<'a> Context<'a> {
             return Some(types);
         }
         let named = self.table.named(name);
-        let is_qualifier = named
-            .iter()
-            .any(|symbol| matches!(symbol.kind, SymbolKind::Namespace | SymbolKind::Module));
-        (!is_qualifier && !self.is_value_in_reach(occurrence, named)).then(Vec::new)
+        (!Self::has_qualifier(named) && !self.is_value_in_reach(occurrence, named)).then(Vec::new)
     }
 
     /// Whether one of the symbols is a value (field, property, ...) that the scopes of the
-    /// occurrence reach. A value of the same name in an unrelated type is not one: the name then
-    /// stands for something outside the project.
+    /// occurrence reach, also in another part of a `partial` type that encloses it. A value of
+    /// the same name in an unrelated type is not one: the name then stands for something outside
+    /// the project.
     fn is_value_in_reach(&self, occurrence: &PendingReference, named: &[&'a Symbol]) -> bool {
         let values: Vec<&'a Symbol> = named
             .iter()
             .copied()
             .filter(|symbol| VALUES.contains(&symbol.kind))
             .collect();
-        !values.is_empty()
-            && !self
-                .in_scope(occurrence.from, occurrence.file, &values)
-                .global
+        if values.is_empty() {
+            return false;
+        }
+        if !self
+            .in_scope(occurrence.from, occurrence.file, &values)
+            .global
+        {
+            return true;
+        }
+        let owners: HashSet<&str> = self
+            .table
+            .ancestors(occurrence.from)
+            .filter(|symbol| is_type(symbol.kind))
+            .map(|symbol| symbol.qualified_name.as_str())
+            .collect();
+        values.iter().any(|value| {
+            value
+                .parent
+                .and_then(|parent| self.table.get(parent))
+                .is_some_and(|parent| owners.contains(parent.qualified_name.as_str()))
+        })
     }
 
     fn enclosing_type(&self, from: SymbolId) -> Option<SymbolId> {

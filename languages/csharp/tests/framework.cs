@@ -8,7 +8,7 @@ public sealed class Store : IStore
     public int IndexOf(string key) => 0;
 }
 
-public class Options { public string Directory { get; set; } }
+public class Options { public string Directory { get; set; } public string File { get; set; } }
 
 public class Finder
 {
@@ -29,5 +29,22 @@ public class Finder
 
 namespace Elsewhere
 {
-    public class File { public string Name { get; set; } }
+    public class Document { public string Name { get; set; } }
+}
+
+public partial class Parts
+{
+    public bool Reach() { return Config.Exists("a") && Settings.Exists("b"); }
+}
+
+public partial class Parts
+{
+    public Store Config { get; set; }
+    private readonly Store Settings = new();
+}
+
+public class Strangers
+{
+    public Options File { get; set; }
+    public bool Property(string path) { return File.Exists(path); }
 }

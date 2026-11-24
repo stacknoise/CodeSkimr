@@ -285,10 +285,11 @@ mod tests {
 
     #[test]
     fn calls_on_framework_types_are_no_usages_of_a_same_named_project_method() {
-        // `File.Exists`, `Directory.Exists` and `List.IndexOf` on a field, a parameter and a local
-        // name a type outside the project: none reaches `Store.Exists` or `Store.IndexOf`.
+        // `Directory.Exists` (a property of that name sits in an unrelated type), `File.Exists`
+        // (the same) and `List.IndexOf` on a field, a parameter and a local name
+        // something outside the project: none reaches `Store.Exists` or `Store.IndexOf`.
         let exists = receiver_usages_in("framework.cs", "Store.Exists");
-        assert_eq!(lines(&exists), [23, 24, 25]);
+        assert_eq!(lines(&exists), [23, 24, 25, 36]);
         let index = receiver_usages_in("framework.cs", "Store.IndexOf");
         assert!(index.is_empty(), "{index:?}");
     }
@@ -296,10 +297,20 @@ mod tests {
     #[test]
     fn a_receiver_of_unknown_inferred_type_keeps_the_fallback_unchecked() {
         let interface = receiver_usages_in("framework.cs", "IStore.Exists");
-        assert_eq!(lines(&interface), [23]);
+        assert_eq!(lines(&interface), [23, 25, 36]);
         let own = receiver_usages_in("framework.cs", "Store.Exists");
         // `Own(Store s)` is typed; `var x = Make(); x.Exists(..)` keeps the name as unchecked.
         assert!(own.contains(&(24, Confidence::Certain)));
         assert!(own.contains(&(25, Confidence::Probable)));
+    }
+
+    #[test]
+    fn a_value_of_the_enclosing_type_or_of_its_other_part_keeps_the_fallback() {
+        // `Config` and `Settings` are declared in the second `partial` part, the call is in the
+        // first: the name stands for a value, so the member name alone stays, as unchecked.
+        let kept = receiver_usages_in("framework.cs", "Store.Exists");
+        assert!(kept.contains(&(36, Confidence::Probable)), "{kept:?}");
+        // `File` of `Strangers` is declared in the file with its type: the call reaches `Options`.
+        assert!(!kept.iter().any(|(line, _)| *line == 48), "{kept:?}");
     }
 }
