@@ -20,6 +20,8 @@ export type WireEvent =
       snapshot: number;
       /** Milliseconds that loading language packs took; the scan time leaves them out. */
       pack_load_ms?: number;
+      /** Whether the scan found no file changed and only confirmed the snapshot (ADR 0093). */
+      unchanged?: boolean;
     }
   | { type: typeof EVENT.changed; project: number; files: number; rescan: boolean }
   | {
@@ -53,6 +55,8 @@ export interface Run {
   stages: Partial<Record<Stage, StageRun>>;
   /** Milliseconds the server spent loading language packs during the run (ADR 0059). */
   packLoadMs: number;
+  /** Whether the run ended without a change: the server confirmed the snapshot it had. */
+  unchanged: boolean;
 }
 
 /** The measurements of the budgets that `status.info` returns. */

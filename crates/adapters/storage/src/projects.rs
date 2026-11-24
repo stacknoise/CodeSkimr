@@ -19,6 +19,7 @@ use crate::consts::{
 use crate::error::{StorageError, StorageResult};
 use crate::pending;
 use crate::previous::{latest_snapshot_id, load_latest_index, load_symbols};
+use crate::read_models;
 use crate::references;
 use crate::sql;
 use crate::store::SqliteStore;
@@ -81,7 +82,13 @@ impl SqliteStore {
     /// # Errors
     /// `PRJ-301` if another project has the same source, otherwise a coded `STO` failure.
     pub fn save_project(&self, project: &Project) -> Result<(), CodedError> {
-        self.write(|tx| save(tx, project)).map_err(CodedError::from)
+        self.write(|tx| {
+            save(tx, project)?;
+            // The layer graph of the newest snapshot may have been built again.
+            self.forget_builds();
+            Ok(())
+        })
+        .map_err(CodedError::from)
     }
 
     /// The project registered for `source`, or a new one with the next free id, in one
@@ -171,9 +178,15 @@ fn save(conn: &Connection, project: &Project) -> StorageResult<()> {
             source.credential
         ],
     )?;
+    let before = load_layers(conn, project.id)?;
     conn.execute(sql::LAYERS_DELETE, params![id])?;
     for (position, layer) in ordinals().zip(&project.layers) {
         save_layer(conn, id, position, layer)?;
+    }
+    if before != project.layers {
+        // A scan that finds no file changed writes no snapshot (ADR 0093), so the layer graph of
+        // the newest one follows the layers here.
+        read_models::relayer(conn, project.id, &project.layers)?;
     }
     Ok(())
 }

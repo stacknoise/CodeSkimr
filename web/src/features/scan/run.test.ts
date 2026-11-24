@@ -35,24 +35,25 @@ function fold(events: [WireEvent, number][]): Run[] {
 }
 
 describe("checkedOnly", () => {
-  it("tells how many files a finished scan checked when none had to be parsed", () => {
+  it("tells how many files a scan checked when the server says that none changed", () => {
     const [run] = fold([
       [progress("discover", 40, 40), 1000],
       [progress("analyze", 0, 0), 1100],
-      [created, 1200],
+      [{ ...created, unchanged: true }, 1200],
     ]);
     expect(checkedOnly(run!)).toBe(40);
   });
 
-  it("is null while the scan runs and when files were parsed", () => {
+  it("is null while the scan runs and when a snapshot was written without parsing", () => {
     const [running] = fold([[progress("discover", 40, 40), 1000]]);
     expect(checkedOnly(running!)).toBeNull();
-    const [parsed] = fold([
-      [progress("discover", 40, 40), 1000],
-      [progress("analyze", 3, 3), 1100],
+    // Only deleted files: nothing to parse, but the snapshot is a new one.
+    const [deleted] = fold([
+      [progress("discover", 39, 39), 1000],
+      [progress("analyze", 0, 0), 1100],
       [created, 1200],
     ]);
-    expect(checkedOnly(parsed!)).toBeNull();
+    expect(checkedOnly(deleted!)).toBeNull();
   });
 });
 

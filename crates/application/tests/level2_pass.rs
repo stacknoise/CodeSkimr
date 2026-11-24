@@ -173,11 +173,10 @@ mod cases {
             Ok(1)
         }
 
-        fn confirm_latest(
+        fn confirm(
             &self,
-            _: ProjectId,
-            _: (Timestamp, Option<&codeskimr_domain::CommitHash>),
-        ) -> Result<Option<Snapshot>, CodedError> {
+            _: &codeskimr_application::ports::Confirmation,
+        ) -> Result<Option<codeskimr_application::ports::Confirmed>, CodedError> {
             Ok(None)
         }
 

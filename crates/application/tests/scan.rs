@@ -21,13 +21,13 @@ use codeskimr_application::pipeline::{
     Job, JobResult, Level2Run, ReportStep, Scanner, ScannerPorts,
 };
 use codeskimr_application::ports::{
-    AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
-    FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
-    IndexerSpec, IndexerStatus, Level2Replacement, MemoryGauge, MemoryLimit, MetricsCalculator,
-    PathsReport, PendingReference, PreviousIndex, PreviousState, ProjectRepository, ProjectScanner,
-    Receiver, ReferenceImporter, ReferenceResolver, ReportWrite, Resolution, ScanReport,
-    ScanReportStore, ScanWarning, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
-    StoredReferences, SymbolFingerprints, ToolSpec, ToolVersion,
+    AnalyzeRequest, Clock, Confirmation, Confirmed, ConsentStore, DiscoveredFile, FetchedSource,
+    FileAnalyzer, FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob,
+    IndexRunner, IndexerSpec, IndexerStatus, Level2Replacement, MemoryGauge, MemoryLimit,
+    MetricsCalculator, PathsReport, PendingReference, PreviousIndex, PreviousState,
+    ProjectRepository, ProjectScanner, Receiver, ReferenceImporter, ReferenceResolver, ReportWrite,
+    Resolution, ScanReport, ScanReportStore, ScanWarning, SnapshotData, SnapshotStore,
+    SourceProvider, StoredNames, StoredReferences, SymbolFingerprints, ToolSpec, ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -71,7 +71,9 @@ struct World {
     rules: (&'static str, Option<&'static str>),
     persisted: Mutex<Vec<SnapshotData>>,
     /// How often a scan confirmed the newest snapshot instead of writing one.
-    confirmed: Mutex<u32>,
+    confirmed: Mutex<Vec<SnapshotId>>,
+    /// How many snapshots another process wrote after this scan read the newest one.
+    written_meanwhile: u32,
     measured: Mutex<Vec<(usize, usize)>>,
     /// The pairs each measurement got for the references that stayed in the store.
     pairs: Mutex<Vec<Vec<SymbolPair>>>,
@@ -144,11 +146,14 @@ fn project() -> Result<Project, CodedError> {
     })
 }
 
+/// A file as discovery finds it: an unchanged one has the hash the previous snapshot stores
+/// (`old_file`), a changed one another.
 fn discovered(path: &str, changed: bool) -> Result<DiscoveredFile, CodedError> {
+    let hash = if changed { "h" } else { "old" };
     Ok(DiscoveredFile {
         path: model(RelativePath::new(path))?,
         language: model(LanguageId::new("rust"))?,
-        content_hash: model(ContentHash::new("h"))?,
+        content_hash: model(ContentHash::new(hash))?,
         changed,
     })
 }
@@ -480,27 +485,32 @@ impl SnapshotStore for World {
         Err(CodedError::new(ErrorCode::UnexpectedInternalError))
     }
 
-    fn confirm_latest(
-        &self,
-        project: ProjectId,
-        (created, commit): (Timestamp, Option<&CommitHash>),
-    ) -> Result<Option<Snapshot>, CodedError> {
+    fn confirm(&self, scan: &Confirmation) -> Result<Option<Confirmed>, CodedError> {
         self.gate(StageKind::Persist)?;
-        *self
-            .confirmed
+        if self.written_meanwhile > 0 {
+            return Ok(None);
+        }
+        self.confirmed
             .lock()
-            .unwrap_or_else(PoisonError::into_inner) += 1;
-        Ok(Some(Snapshot {
-            id: SnapshotId::new(9),
-            project,
-            commit: commit.cloned(),
-            created,
-            mode: ScanMode::Incremental,
-            stats: SnapshotStats {
-                files: 3,
-                symbols: 3,
-                references: 3,
+            .unwrap_or_else(PoisonError::into_inner)
+            .push(scan.snapshot);
+        Ok(Some(Confirmed {
+            snapshot: Snapshot {
+                id: scan.snapshot,
+                project: scan.project,
+                commit: scan.commit.clone(),
+                created: scan.at,
+                mode: ScanMode::Incremental,
+                stats: SnapshotStats {
+                    files: 3,
+                    symbols: 3,
+                    references: 3,
+                },
             },
+            warnings: vec![ScanWarning {
+                code: ErrorCode::AmbiguousReference,
+                count: 2,
+            }],
         }))
     }
 
@@ -1169,21 +1179,13 @@ fn incremental_scan_analyses_only_changed_files_and_resolves_dependents_again()
 #[test]
 fn an_incremental_scan_that_finds_nothing_changed_confirms_the_snapshot_and_writes_nothing()
 -> Result<(), CodedError> {
-    let world = Arc::new(World {
-        previous: previous_snapshot()?,
-        found: Some(vec![("a.rs", false), ("b.rs", false), ("c.rs", false)]),
-        ..World::default()
-    });
+    let world = Arc::new(nothing_changed()?);
     let (result, events) = run(&world, ScanMode::Incremental);
     let JobResult::Finished(job) = result else {
         panic!("scan did not finish");
     };
     assert_eq!(world.persisted_count(), 0, "no snapshot is written");
-    let confirmed = *world
-        .confirmed
-        .lock()
-        .unwrap_or_else(PoisonError::into_inner);
-    assert_eq!(confirmed, 1);
+    assert_eq!(calls_of(&world.confirmed), 1);
     assert_eq!(
         job.snapshot().id,
         SnapshotId::new(9),
@@ -1200,9 +1202,61 @@ fn an_incremental_scan_that_finds_nothing_changed_confirms_the_snapshot_and_writ
     assert!(
         events
             .iter()
-            .any(|event| matches!(event, Event::SnapshotCreated(_))),
+            .any(|event| matches!(event, Event::SnapshotCreated(created) if created.unchanged)),
         "the listeners still learn that the scan ended"
     );
+    Ok(())
+}
+
+/// A world in which discovery sees the three files of the previous snapshot as they are stored.
+fn nothing_changed() -> Result<World, CodedError> {
+    Ok(World {
+        previous: previous_snapshot()?,
+        found: Some(vec![("a.rs", false), ("b.rs", false), ("c.rs", false)]),
+        ..World::default()
+    })
+}
+
+#[test]
+fn a_confirmed_snapshot_gives_the_scan_its_stored_warnings() -> Result<(), CodedError> {
+    let world = Arc::new(nothing_changed()?);
+    let (result, _) = run(&world, ScanMode::Incremental);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    let warnings: Vec<_> = job.warnings().iter().map(|w| (w.code, w.count)).collect();
+    assert_eq!(warnings, [(ErrorCode::AmbiguousReference, 2)]);
+    Ok(())
+}
+
+#[test]
+fn a_snapshot_written_meanwhile_fails_the_scan_that_found_nothing_changed() -> Result<(), CodedError>
+{
+    let world = Arc::new(World {
+        written_meanwhile: 1,
+        ..nothing_changed()?
+    });
+    let (result, _) = run(&world, ScanMode::Incremental);
+    let JobResult::Failed(job) = result else {
+        panic!("scan did not fail");
+    };
+    assert_eq!(job.code(), ErrorCode::TransactionConflict);
+    assert_eq!(world.persisted_count(), 0);
+    Ok(())
+}
+
+#[test]
+fn a_file_with_another_hash_is_a_change_whatever_discovery_marked() -> Result<(), CodedError> {
+    let mut previous = previous_snapshot()?;
+    previous.files[1].content_hash = model(ContentHash::new("older"))?;
+    let world = Arc::new(World {
+        previous,
+        ..nothing_changed()?
+    });
+    let (result, _) = run(&world, ScanMode::Incremental);
+    assert!(matches!(result, JobResult::Finished(_)));
+    assert_eq!(calls_of(&world.confirmed), 0);
+    assert_eq!(world.persisted_count(), 1, "the scan goes the whole way");
     Ok(())
 }
 

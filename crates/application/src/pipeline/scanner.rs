@@ -248,18 +248,15 @@ impl Scanner {
             .analyzer
             .pack_load_time()
             .saturating_sub(loading_before);
-        self.created(&persisted.snapshot, loading);
-        if !persisted.unchanged {
-            // Nothing changed, so the baselines of the critical symbols have nothing new to say.
-            self.check_alerts(&persisted.snapshot, trigger);
-        }
+        self.created(&persisted.snapshot, (loading, persisted.unchanged));
+        self.check_alerts(&persisted.snapshot, trigger);
         let (snapshot, level2) = self.second_pass(
             principal,
             persisted.clone(),
             (job.token(), job.level2_wanted()),
         );
         if snapshot != persisted.snapshot {
-            self.created(&snapshot, loading);
+            self.created(&snapshot, (loading, false));
         }
         let mut warnings = persisted.warnings;
         warnings.extend(self.store_report(&snapshot, job.origin(), level2.as_deref()));
@@ -320,7 +317,7 @@ impl Scanner {
         }
         let done = pass.run(run.principal, run.snapshot, run.root, run.cancel);
         if done.snapshot != *run.snapshot {
-            self.created(&done.snapshot, Duration::ZERO);
+            self.created(&done.snapshot, (Duration::ZERO, false));
         }
         // A failure to store is logged by `store_report`; the run itself has ended.
         self.store_report(&done.snapshot, run.origin, Some(&done.reports));
@@ -393,11 +390,14 @@ impl Scanner {
         }
     }
 
-    fn created(&self, snapshot: &Snapshot, pack_load: Duration) {
+    /// Tells that a scan or a pass of level 2 ended with `snapshot`; `unchanged` if a scan found
+    /// nothing changed and only confirmed it.
+    fn created(&self, snapshot: &Snapshot, (pack_load, unchanged): (Duration, bool)) {
         self.events
             .publish(&Event::SnapshotCreated(SnapshotCreated {
                 snapshot: snapshot.clone(),
                 pack_load,
+                unchanged,
             }));
     }
 

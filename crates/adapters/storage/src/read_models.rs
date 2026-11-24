@@ -5,13 +5,16 @@
 
 use std::collections::BTreeMap;
 
-use codeskimr_domain::{Confidence, Layer, MetricKind, ReferenceKind, SnapshotId, SymbolKind};
+use codeskimr_domain::{
+    Confidence, Layer, MetricKind, ProjectId, ReferenceKind, SnapshotId, SymbolKind,
+};
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, column_int, id_from};
 use crate::consts::{EDGE_STEP, REFERENCE_KIND_COLUMN, TYPE_KINDS};
 use crate::cycles::edges_in_cycles;
 use crate::error::StorageResult;
+use crate::previous::latest_snapshot_id;
 use crate::references::{id_set, of_snapshot};
 use crate::sql;
 
@@ -130,6 +133,16 @@ fn count_edges(
         }
     }
     Ok(counts)
+}
+
+/// Builds the layer graph of the newest snapshot of `project` again, for `layers` that changed
+/// since it was written. Nothing happens if the project has no snapshot.
+pub fn relayer(conn: &Connection, project: ProjectId, layers: &[Layer]) -> StorageResult<()> {
+    let Some(snapshot) = latest_snapshot_id(conn, project)? else {
+        return Ok(());
+    };
+    conn.execute(sql::LAYER_GRAPH_DELETE, params![snapshot])?;
+    rebuild_layer_graph(conn, snapshot, layers)
 }
 
 /// Aggregates the references between layers. An edge violates the layering when the layer it

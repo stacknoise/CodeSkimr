@@ -67,6 +67,7 @@ function fresh(project: number, now: number, first: ProgressEvent): Run {
     code: null,
     stages: {},
     packLoadMs: 0,
+    unchanged: false,
   };
 }
 
@@ -113,6 +114,7 @@ export function applyEvent(runs: readonly Run[], event: WireEvent, now: number):
       endedAt: now,
       stages,
       packLoadMs,
+      unchanged: event.unchanged === true,
     });
   }
   const state = event.reason === STOP.cancelled ? STATE.cancelled : STATE.failed;
@@ -135,13 +137,11 @@ export function files(run: Run): { done: number; total: number } | null {
   return stage ? { done: stage.done, total: stage.total } : null;
 }
 
-/** The number of files a finished scan looked at when it had none to parse, because none changed;
+/** The number of files a scan compared with the snapshot when the server said that none changed;
  * `null` for any other run. */
 export function checkedOnly(run: Run): number | null {
   const found = run.stages[CHECK_STAGE];
-  const parsed = fileStage(run);
-  const none = parsed === undefined || parsed.total === 0;
-  return run.state === STATE.done && none && found !== undefined ? found.total : null;
+  return run.unchanged && found !== undefined ? found.total : null;
 }
 
 /** Percent of the files that are done, at most 99 while the scan runs. 100 once the scan is done; 0

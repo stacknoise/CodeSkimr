@@ -134,6 +134,28 @@ pub struct PreviousState {
     pub ambiguous_places: Option<u64>,
 }
 
+/// A scan that found every file as a snapshot has it (ADR 0093).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Confirmation {
+    /// The project that was scanned.
+    pub project: ProjectId,
+    /// The snapshot the files were compared with.
+    pub snapshot: SnapshotId,
+    /// When the scan ended.
+    pub at: Timestamp,
+    /// The commit the scan saw, if the source has one.
+    pub commit: Option<CommitHash>,
+}
+
+/// A snapshot as a scan confirmed it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Confirmed {
+    /// The snapshot with the time and commit of the confirming scan.
+    pub snapshot: Snapshot,
+    /// The warnings of the scan that wrote the snapshot, which still hold.
+    pub warnings: Vec<ScanWarning>,
+}
+
 /// What level 2 stores for some files of a snapshot: the symbols it creates (ADR 0055) and the
 /// references that replace the level 1 references of those files where they answer; the others stay.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -283,17 +305,15 @@ pub trait SnapshotStore: Send + Sync {
     /// nothing is changed then.
     fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError>;
 
-    /// Records that a scan found every file of the newest snapshot of `project` unchanged: the
-    /// snapshot gets the creation time and commit of the scan and counts as incremental, and
-    /// nothing else is written. Returns it as stored, `None` if the project has no snapshot.
+    /// Records that a scan found every file of a snapshot unchanged: the snapshot gets the
+    /// creation time and commit of the scan and counts as incremental, and nothing else is
+    /// written. Returns it as stored with the warnings of the scan that wrote it, or `None` if it
+    /// is no longer the newest snapshot of its project (another process wrote one meanwhile):
+    /// nothing is changed then.
     ///
     /// # Errors
     /// A coded failure of the `STO` group; nothing is changed then.
-    fn confirm_latest(
-        &self,
-        project: ProjectId,
-        scanned: (Timestamp, Option<&CommitHash>),
-    ) -> Result<Option<Snapshot>, CodedError>;
+    fn confirm(&self, scan: &Confirmation) -> Result<Option<Confirmed>, CodedError>;
 
     /// The first id that is higher than every stored id. The scanner moves its id sequence up to
     /// it when a scan starts, so ids that another process wrote in the meantime are not handed

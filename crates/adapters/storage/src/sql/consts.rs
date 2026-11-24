@@ -167,6 +167,8 @@ pub const SNAPSHOT_CONTENT_DELETE: &[&str] = &[
     "DELETE FROM snapshot_statistics WHERE snapshot_id = ?1",
     "DELETE FROM files WHERE snapshot_id = ?1",
 ];
+/// Empties the layer graph of a snapshot before it is built again for other layers: snapshot.
+pub const LAYER_GRAPH_DELETE: &str = "DELETE FROM layer_graph WHERE snapshot_id = ?1";
 /// The read models of a snapshot, emptied before they are built again: snapshot.
 pub const READ_MODELS_DELETE: &[&str] = &[
     "DELETE FROM type_summary WHERE snapshot_id = ?1",

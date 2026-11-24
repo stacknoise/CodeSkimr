@@ -1,6 +1,6 @@
 //! The six concrete stages, each built from the ports it needs, and the values passed between them.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
@@ -8,8 +8,9 @@ use std::thread;
 use std::time::Instant;
 
 use codeskimr_domain::{
-    CommitHash, FileId, FolderPath, LanguageId, Metric, Project, Reference, RelativePath, ScanMode,
-    Snapshot, SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts, SymbolOrigin, Timestamp,
+    CommitHash, ContentHash, FileId, FolderPath, LanguageId, Metric, Project, Reference,
+    RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts,
+    SymbolOrigin, Timestamp,
 };
 
 use codeskimr_codes::{Coded, ErrorCode};
@@ -23,8 +24,8 @@ use crate::consts::{
 use crate::error::CodedError;
 use crate::ids::IdSequence;
 use crate::ports::{
-    AnalyzeRequest, Clock, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, LeftOut,
-    MetricsCalculator, PathsReport, PendingReference, PreviousState, ProjectRepository,
+    AnalyzeRequest, Clock, Confirmation, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts,
+    LeftOut, MetricsCalculator, PathsReport, PendingReference, PreviousState, ProjectRepository,
     ReferenceResolver, ScanWarning, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
     SymbolFingerprints, SymbolHash,
 };
@@ -64,10 +65,10 @@ pub struct ScanRun {
     /// Time spent analysing (parse, symbols, metrics, fingerprints), summed over the files of each
     /// language in microseconds; set by the analyze stage, empty in an incremental scan.
     pub parse_micros: Vec<(LanguageId, u64)>,
-    /// Whether an incremental scan found every file as the newest snapshot has it: nothing is
-    /// analysed, resolved, measured or written, and the snapshot is confirmed as it is. Set by the
-    /// discover stage.
-    pub unchanged: bool,
+    /// The newest snapshot, if an incremental scan found every file as that snapshot has it:
+    /// nothing is analysed, resolved, measured or written, and the snapshot is confirmed as it is
+    /// (ADR 0093). Set by the discover stage.
+    pub confirms: Option<SnapshotId>,
 }
 
 /// Output of the discover stage.
@@ -187,7 +188,7 @@ impl Stage for FetchStage {
             commit: fetched.commit,
             naming_rules: String::new(),
             parse_micros: Vec::new(),
-            unchanged: false,
+            confirms: None,
         })
         .inspect(|_| ctx.progress(1, 1))
     }
@@ -241,10 +242,12 @@ impl Stage for DiscoverStage {
         if run.mode == ScanMode::Incremental {
             limit_to_paths(&mut files, &state.files, &run.paths);
         }
-        if run.mode == ScanMode::Incremental && is_unchanged(&files, &state) {
-            run.unchanged = true;
-            let found = count(&files);
-            ctx.progress(found, found);
+        if run.mode == ScanMode::Incremental {
+            run.confirms = unchanged_snapshot(&files, &state);
+        }
+        if run.confirms.is_some() {
+            let looked_at = looked_at(&files, &run.paths);
+            ctx.progress(looked_at, looked_at);
             return Ok(Discovered {
                 run,
                 files,
@@ -270,12 +273,29 @@ impl Stage for DiscoverStage {
     }
 }
 
-/// Whether every file of the newest snapshot is still there with the same content and no other
-/// file came: a scan then has nothing to analyse, resolve or write.
-fn is_unchanged(files: &[DiscoveredFile], previous: &PreviousState) -> bool {
-    previous.snapshot.is_some()
-        && files.len() == previous.files.len()
-        && files.iter().all(|file| !file.changed)
+/// The newest snapshot, if every file of it is still there with the same content and language and
+/// no other file came: a scan then has nothing to analyse, resolve or write. The files are
+/// compared here, whatever the adapter marked.
+fn unchanged_snapshot(files: &[DiscoveredFile], previous: &PreviousState) -> Option<SnapshotId> {
+    let stored: HashMap<&RelativePath, (&ContentHash, &LanguageId)> = previous
+        .files
+        .iter()
+        .map(|file| (&file.path, (&file.content_hash, &file.language)))
+        .collect();
+    let same = files.len() == stored.len()
+        && files.iter().all(|file| {
+            !file.changed && stored.get(&file.path) == Some(&(&file.content_hash, &file.language))
+        });
+    previous.snapshot.filter(|_| same)
+}
+
+/// How many of `files` the scan compared with the disk: all, or those `paths` name.
+fn looked_at(files: &[DiscoveredFile], paths: &Selection) -> u32 {
+    if paths.is_empty() {
+        return count(files);
+    }
+    let named = files.iter().filter(|file| paths.contains(&file.path));
+    u32::try_from(named.count()).unwrap_or(u32::MAX)
 }
 
 /// What becomes of `paths`: those that name no file now and in the previous snapshot, and whether
@@ -345,7 +365,7 @@ impl Stage for AnalyzeStage {
             mut files,
             carried,
         } = input;
-        if run.unchanged {
+        if run.confirms.is_some() {
             return Ok(Analyzed::empty(run, carried));
         }
         let full = run.mode == ScanMode::Full;
@@ -661,7 +681,7 @@ impl Stage for ResolveStage {
     }
 
     fn run(&self, input: Analyzed, ctx: &StageContext<'_>) -> Result<Resolved, Interruption> {
-        if input.run.unchanged {
+        if input.run.confirms.is_some() {
             return Ok(Resolved::without_references(input));
         }
         self.resolve(input, ctx)
@@ -756,7 +776,7 @@ impl Stage for MeasureStage {
     }
 
     fn run(&self, input: Resolved, ctx: &StageContext<'_>) -> Result<Measured, Interruption> {
-        if input.run.unchanged {
+        if input.run.confirms.is_some() {
             // Nothing changed, so every stored value still holds.
             return Ok(Measured::with(input, Vec::new()));
         }
@@ -891,10 +911,12 @@ impl Stage for PersistStage {
 
     fn run(&self, input: Measured, ctx: &StageContext<'_>) -> Result<Persisted, Interruption> {
         ctx.progress(0, 1);
-        let root = input.run.root.clone();
-        if input.run.unchanged {
-            return self.confirm(input, root).inspect(|_| ctx.progress(1, 1));
+        if let Some(snapshot) = input.run.confirms {
+            return self
+                .confirm(input, snapshot)
+                .inspect(|_| ctx.progress(1, 1));
         }
+        let root = input.run.root.clone();
         let snapshot = snapshot_of(&input, self.clock.now());
         let ambiguous = input.carried.ambiguous_places(&input.references);
         let mut warnings = warnings_of(ambiguous, input.given_up);
@@ -931,19 +953,24 @@ impl Stage for PersistStage {
 }
 
 impl PersistStage {
-    /// The end of a scan that found nothing changed: the newest snapshot stays as it is and gets
-    /// the time and commit of this scan.
-    fn confirm(&self, input: Measured, root: FolderPath) -> Result<Persisted, Interruption> {
-        let project = input.run.project.id;
-        let scanned = (self.clock.now(), input.run.commit.as_ref());
-        let snapshot = self
-            .store
-            .confirm_latest(project, scanned)?
-            .ok_or_else(internal_failure)?;
-        Ok(Persisted {
+    /// The end of a scan that found nothing changed: `snapshot` stays as it is and gets the time
+    /// and commit of this scan. If another process wrote a snapshot meanwhile, the scan fails with
+    /// `STO-302` and can be run again.
+    fn confirm(&self, input: Measured, snapshot: SnapshotId) -> Result<Persisted, Interruption> {
+        let scan = Confirmation {
+            project: input.run.project.id,
             snapshot,
-            root,
-            warnings: Vec::new(),
+            at: self.clock.now(),
+            commit: input.run.commit,
+        };
+        let confirmed = self
+            .store
+            .confirm(&scan)?
+            .ok_or_else(|| CodedError::new(ErrorCode::TransactionConflict))?;
+        Ok(Persisted {
+            snapshot: confirmed.snapshot,
+            root: input.run.root,
+            warnings: confirmed.warnings,
             paths: listed(input.run.paths_report, self.max_left_out_listed),
             unchanged: true,
         })
