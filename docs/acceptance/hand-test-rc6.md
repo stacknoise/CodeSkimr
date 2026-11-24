@@ -101,4 +101,4 @@ Run by the product owner on Windows with a short test list for the fixes since r
 | Rest of the list | ✅ "Fits as far as I can see." |
 | Time to save in a full scan of the public VS Code checkout | ❌ Not faster. Two runs: persist 273 s and 252 s of a total of 386 s and 346 s (discover 18 s then 2 s, analyze 26 s, resolve 41 to 43 s, measure 2 s); rc.7 needed about 245 s for persisting. The cause is being measured; not a criterion of M1 to M6 (known limit #410 for large projects). |
 
-The step "persist" is thus about 75 % of the full scan of a project of this size; all other steps together take about 90 s.
+The step "persist" is thus about 70 % of the full scan of a project of this size; all other steps together take about 100 s.
