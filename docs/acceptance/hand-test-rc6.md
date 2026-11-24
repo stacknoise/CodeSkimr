@@ -47,9 +47,9 @@ Proposed verdict: met with the named approximation. Completeness, which the prod
 | Issue | What | Decision |
 |---|---|---|
 | #685 | C#, level 1: calls of a library method listed as usages of a project method of the same name | before 1.0; fixed with #689 and confirmed with rc.7 |
-| #705 | C#, level 1: a call inside `if (!await field.Method())` is not listed as a usage (the one missing usage of the rc.7 sample) | not a blocker for 1.0 |
+| #705 | C#, level 1: a call inside `if (!await field.Method())` is not listed as a usage (the one missing usage of the rc.7 sample) | not a blocker for 1.0; fixed and confirmed with rc.9 (the call after `a?.B =` is found) |
 | #692 | Folder dialog: a refused click released the lock, the next click opened a second dialog | fixed with #693, confirmed with rc.7 |
-| #695 | Projects list shows a scanned project as never scanned while the console scans it | before 1.0 |
+| #695 | Projects list shows a scanned project as never scanned while the console scans it | before 1.0; fixed and confirmed with rc.9 |
 | #694 | The UI does not show scans started in the console (state and progress) | after 1.0, with the job register of the panel "background processes" |
 
 ## Notes on the scripts and the manual
@@ -86,3 +86,19 @@ Run by the product owner on Windows with the same scripts and the program file o
 - One real usage is missing: a call of the form `if (!await field.Method())` in production code, while the mock set-ups of the same method in tests are found (#705, no blocker for 1.0).
 
 Proposed verdict for M2 criterion 4: met with the named approximation. Completeness is about 98 % (19 of 20 symbols complete; the 100 % of the rc.6 runs was not reached this time because of the one missing usage of #705), and the rate of correct hits rose from 68 % (rc.6) to about 86 %.
+
+## Repeat run with 1.0.0-rc.9 (2026-11-24)
+
+Run by the product owner on Windows with a short test list for the fixes since rc.7.
+
+| Check | Result |
+|---|---|
+| Usage found after a null-conditional assignment (`a?.B = ...`, #705) | ✅ |
+| Screen "Scans and performance" | ✅ |
+| Projects list while the console scans a project (#695) | ✅ The row keeps its state and counts during the scan. |
+| Display names | ✅ |
+| Copy code | ✅ |
+| Rest of the list | ✅ "Fits as far as I can see." |
+| Time to save in a full scan of the public VS Code checkout | ❌ Not faster. Two runs: persist 273 s and 252 s of a total of 386 s and 346 s (discover 18 s then 2 s, analyze 26 s, resolve 41 to 43 s, measure 2 s); rc.7 needed about 245 s for persisting. The cause is being measured; not a criterion of M1 to M6 (known limit #410 for large projects). |
+
+The step "persist" is thus about 70 % of the full scan of a project of this size; all other steps together take about 100 s.
