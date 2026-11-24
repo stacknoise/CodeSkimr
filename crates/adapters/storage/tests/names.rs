@@ -34,7 +34,7 @@ fn name(
 
 /// All names of the newest snapshot.
 #[cfg(test)]
-fn all_names(store: &codeskimr_storage::SqliteStore) -> Vec<PendingReference> {
+fn all_names(store: &codeskimr_storage::ProjectDb) -> Vec<PendingReference> {
     let state = store.latest_state(PROJECT).unwrap();
     store
         .stored_names(state.snapshot.unwrap(), StoredNames::All)
@@ -171,10 +171,7 @@ fn names_are_read_by_kind_and_by_the_symbol_they_are_written_in() {
 
 /// Persists a first scan that wrote `names` and returns its snapshot.
 #[cfg(test)]
-fn persist_names(
-    store: &codeskimr_storage::SqliteStore,
-    names: Vec<PendingReference>,
-) -> SnapshotId {
+fn persist_names(store: &codeskimr_storage::ProjectDb, names: Vec<PendingReference>) -> SnapshotId {
     store.persist(first_scan(names)).unwrap();
     store.latest_state(PROJECT).unwrap().snapshot.unwrap()
 }

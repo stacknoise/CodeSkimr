@@ -11,7 +11,7 @@ mod tests {
         Confidence, NamespaceGraph, Reference, ReferenceKind, SnapshotId, Symbol, SymbolId,
         SymbolKind, TypeLink, namespace_graph, type_neighbours,
     };
-    use codeskimr_storage::SqliteStore;
+    use codeskimr_storage::ProjectDb;
 
     use super::common::{reference, symbol, three_snapshots};
 
@@ -106,7 +106,7 @@ mod tests {
         }
     }
 
-    fn two_projects() -> SqliteStore {
+    fn two_projects() -> ProjectDb {
         three_snapshots(
             (first_symbols(), first_references()),
             (second_symbols(), second_references()),

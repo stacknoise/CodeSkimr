@@ -16,7 +16,7 @@ use codeskimr_domain::{
     ContentHash, Loc, NewAnnotation, ProjectId, QualifiedName, ScanMode, SnapshotId,
     SymbolBaseline, SymbolKind, TaskStatus, Timestamp,
 };
-use codeskimr_storage::SqliteStore;
+use codeskimr_storage::ProjectDb;
 use common::{PROJECT, TempDb, code_of, data, file, header, project, store, symbol};
 use rusqlite::Connection;
 
@@ -28,7 +28,7 @@ const DAY: i64 = 86_400;
 
 /// A snapshot of the project 1 with the types `App.Order` and `App.Billing` and the method
 /// `App.Order.Total`. Ids are derived from the snapshot id so that several snapshots can coexist.
-fn scan(store: &SqliteStore, snapshot: u64) {
+fn scan(store: &ProjectDb, snapshot: u64) {
     let (file_id, first) = (snapshot + 1, snapshot * 10);
     let mut scan = data(header(snapshot, ScanMode::Full));
     scan.files = vec![file(
@@ -51,7 +51,7 @@ fn scan(store: &SqliteStore, snapshot: u64) {
     store.persist(scan).unwrap();
 }
 
-fn seeded(retention: u32) -> SqliteStore {
+fn seeded(retention: u32) -> ProjectDb {
     let store = store(retention);
     store.save_project(&project(1, "/work/app", &[])).unwrap();
     scan(&store, 10);
@@ -102,7 +102,7 @@ fn creation(target: AnnotationTarget, kind: AnnotationKind) -> AnnotationCreatio
     }
 }
 
-fn add(store: &SqliteStore, target: AnnotationTarget, kind: AnnotationKind) -> Annotation {
+fn add(store: &ProjectDb, target: AnnotationTarget, kind: AnnotationKind) -> Annotation {
     store.create_annotation(&creation(target, kind)).unwrap()
 }
 
@@ -128,7 +128,7 @@ fn sighting(snapshot: u64) -> AlertSighting {
     }
 }
 
-fn raise(store: &SqliteStore, annotation: &Annotation, snapshot: u64, now: i64) -> Alert {
+fn raise(store: &ProjectDb, annotation: &Annotation, snapshot: u64, now: i64) -> Alert {
     store
         .raise_alert(&AlertRaise {
             annotation: annotation.id,
@@ -139,7 +139,7 @@ fn raise(store: &SqliteStore, annotation: &Annotation, snapshot: u64, now: i64) 
         .unwrap()
 }
 
-fn alerts(store: &SqliteStore, state: Option<AlertState>) -> Vec<Alert> {
+fn alerts(store: &ProjectDb, state: Option<AlertState>) -> Vec<Alert> {
     store
         .list_alerts(&AlertFilter {
             project: PROJECT,
@@ -148,7 +148,7 @@ fn alerts(store: &SqliteStore, state: Option<AlertState>) -> Vec<Alert> {
         .unwrap()
 }
 
-fn all(store: &SqliteStore) -> Vec<Annotation> {
+fn all(store: &ProjectDb) -> Vec<Annotation> {
     store
         .list_annotations(&AnnotationFilter {
             project: PROJECT,
@@ -159,7 +159,7 @@ fn all(store: &SqliteStore) -> Vec<Annotation> {
 }
 
 /// A critical annotation on `App.Order` with the baseline `h1` and an open alert.
-fn watched_and_alerted(store: &SqliteStore) -> Annotation {
+fn watched_and_alerted(store: &ProjectDb) -> Annotation {
     let critical = add(store, order(), AnnotationKind::Critical);
     store
         .store_baseline(critical.id, &baseline("h1", 4))
@@ -264,7 +264,7 @@ fn annotations_and_baselines_survive_new_snapshots_and_retention() {
 #[test]
 fn deleting_a_project_deletes_its_annotations_baselines_and_alerts() {
     let db = TempDb::new();
-    let store = SqliteStore::open(&db.0, NonZeroU32::new(3).unwrap()).unwrap();
+    let store = ProjectDb::open(&db.0, NonZeroU32::new(3).unwrap()).unwrap();
     store.save_project(&project(1, "/work/app", &[])).unwrap();
     scan(&store, 10);
     watched_and_alerted(&store);

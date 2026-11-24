@@ -5,8 +5,7 @@
 mod common;
 
 use codeskimr_application::ports::{
-    LanguageLine, LanguageOutcome, LastScan, Level2Report, ProjectRemoval, ReportWrite, ScanReport,
-    ScanReportStore,
+    LanguageLine, LanguageOutcome, LastScan, Level2Report, ReportWrite, ScanReport, ScanReportStore,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{LanguageId, ScanLevel, ScanOrigin, SkipReason, Timestamp};
@@ -170,18 +169,4 @@ fn a_report_of_an_unknown_project_is_refused() {
         .store_report(&write(last(10, ScanLevel::One, ScanOrigin::Terminal), None))
         .unwrap_err();
     assert_eq!(code_of(&error), "PRJ-201");
-}
-
-#[test]
-fn removing_the_project_removes_the_report() {
-    let store = store(3);
-    store.save_project(&project(1, "/work/app", &[])).unwrap();
-    store
-        .store_report(&write(
-            last(10, ScanLevel::Two, ScanOrigin::Browser),
-            Some(second_pass(11, ScanOrigin::Browser, mixed())),
-        ))
-        .unwrap();
-    store.remove_project(PROJECT).unwrap();
-    assert_eq!(store.report(PROJECT).unwrap(), None);
 }

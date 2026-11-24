@@ -29,6 +29,7 @@ struct TwoProjects;
 fn overview(id: u64, name: &str) -> ProjectOverview {
     ProjectOverview {
         removing: false,
+        database: None,
         project: Project {
             id: ProjectId::new(id),
             name: ProjectName::new(name).unwrap(),

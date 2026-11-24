@@ -12,7 +12,7 @@ use crate::codec::{Cols, column_int, id_from, label_from, small_from};
 use crate::consts::{LIKE_ANY, LIKE_ESCAPE, LIKE_ONE};
 use crate::error::StorageResult;
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 
 /// The metric strip of a type: members and the metrics of the type and its members.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -184,7 +184,7 @@ fn type_summary(
     .transpose()
 }
 
-impl SqliteStore {
+impl ProjectDb {
     /// Number of references to a symbol, the "Usages" column; zero if nothing refers to it.
     ///
     /// # Errors

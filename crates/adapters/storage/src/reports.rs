@@ -11,7 +11,7 @@ use rusqlite::{Connection, OptionalExtension, Transaction, params};
 use crate::codec::{Cols, column_int, id_from, label_from};
 use crate::error::{StorageError, StorageResult};
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 
 /// The columns of a language line as stored.
 struct LineColumns {
@@ -172,7 +172,7 @@ fn report_of(conn: &Connection, project: ProjectId) -> StorageResult<Option<Scan
         .transpose()
 }
 
-impl ScanReportStore for SqliteStore {
+impl ScanReportStore for ProjectDb {
     fn store_report(&self, write: &ReportWrite) -> Result<(), CodedError> {
         self.write(|tx| store(tx, write)).map_err(CodedError::from)
     }

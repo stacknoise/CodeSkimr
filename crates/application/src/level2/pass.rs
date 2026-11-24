@@ -21,7 +21,7 @@ use crate::cancel::CancelToken;
 use crate::config::Level2;
 use crate::error::CodedError;
 use crate::events::{Event, EventBus, Level2Progressed};
-use crate::ids::IdSequence;
+use crate::ids::{IdSequence, ProjectIds, project_of_snapshot};
 use crate::ports::{
     ConsentStore, FileDiscovery, ImportRequest, Imported, IndexJob, IndexRunner, IndexerSpec,
     IndexerStatus, Level2Replacement, PreviousIndex, ProjectRepository, ReferenceImporter,
@@ -42,8 +42,8 @@ pub struct Level2Pass {
     pub projects: Arc<dyn ProjectRepository>,
     /// Writes the new references.
     pub store: Arc<dyn SnapshotStore>,
-    /// Ids of the new references.
-    pub ids: Arc<IdSequence>,
+    /// Ids of the new references, one sequence for each project.
+    pub ids: Arc<ProjectIds>,
     /// Largest source file whose text the importer may read, in bytes (the scan's own limit).
     pub max_file_bytes: u64,
     /// The settings of the user (`level2.*`).
@@ -316,7 +316,12 @@ impl Level2Pass {
         imported: &Imported,
         stale: u64,
     ) -> Result<(Level2Outcome, Snapshot), Skipped> {
-        let (symbols, references) = renumber(imported, &self.ids);
+        let project = project_of_snapshot(snapshot.id);
+        let first_free = self
+            .store
+            .next_free_ids(project)
+            .map_err(|cause| Skipped::Failed(cause.code()))?;
+        let (symbols, references) = renumber(imported, &self.ids.of(project, first_free));
         let fresh = self
             .store
             .replace_level2(Level2Replacement {

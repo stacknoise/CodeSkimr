@@ -290,11 +290,16 @@ fn next_free_id_is_above_every_stored_id() {
 }
 
 #[test]
-fn the_scanner_reads_the_next_free_id_through_the_snapshot_port() {
+fn the_scanner_reads_the_next_free_ids_through_the_snapshot_port() {
     let store = registered_store();
     store.persist(first_scan(10)).unwrap();
     let port: &dyn SnapshotStore = &store;
-    assert_eq!(port.next_free_id().unwrap(), 32);
+    // Files, symbols and references go on at 32; the next snapshot comes after snapshot 10.
+    assert_eq!(
+        port.next_free_ids(codeskimr_domain::ProjectId::new(7))
+            .unwrap(),
+        (32, 11)
+    );
 }
 
 /// Incremental scan 40 that analyses only `c.cs` and adds the given references.
@@ -450,7 +455,7 @@ fn the_latest_index_holds_every_symbol_and_reference_or_nothing() {
 
 /// The Ce values of the class `App.A` (id 21) in a snapshot.
 #[cfg(test)]
-fn ce_of_a(store: &codeskimr_storage::SqliteStore, snapshot: u64) -> Vec<f64> {
+fn ce_of_a(store: &codeskimr_storage::ProjectDb, snapshot: u64) -> Vec<f64> {
     let key = SymbolKey::Id(symbol(21, 11, SymbolKind::Class, "x", None).id);
     store
         .symbol_detail(SnapshotId::new(snapshot), &key)

@@ -15,7 +15,7 @@ use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::config::{Config, ConfigLayer, LayerSource};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::{Event, EventBus, StopReason};
-use codeskimr_application::ids::IdSequence;
+use codeskimr_application::ids::{IdSequence, ProjectIds};
 use codeskimr_application::level2::{Level2Pass, confirm};
 use codeskimr_application::pipeline::{
     Job, JobResult, Level2Run, ReportStep, Scanner, ScannerPorts,
@@ -518,8 +518,8 @@ impl SnapshotStore for World {
         }))
     }
 
-    fn next_free_id(&self) -> Result<u64, CodedError> {
-        Ok(self.first_free_id)
+    fn next_free_ids(&self, _project: ProjectId) -> Result<(u64, u64), CodedError> {
+        Ok((self.first_free_id, 0))
     }
 }
 
@@ -579,7 +579,7 @@ fn scanner_with(world: &Arc<World>, bus: &EventBus, memory: Option<MemoryLimit>)
         max_workers: 0,
         max_left_out_listed: 2,
     };
-    let scanner = Scanner::new(ports, &Arc::new(IdSequence::starting_at(1)), bus.clone());
+    let scanner = Scanner::new(ports, &Arc::new(ProjectIds::default()), bus.clone());
     match memory {
         Some(limit) => scanner.with_memory(limit),
         None => scanner,
@@ -2113,7 +2113,7 @@ fn level2_scanner_on(
         ProjectId::new(7),
     )?;
     let runner = Arc::new(CountingRunner(Mutex::default()));
-    let ids = Arc::new(IdSequence::starting_at(5000));
+    let ids = Arc::new(ProjectIds::default());
     let pass = Level2Pass {
         runner: runner.clone(),
         importer: Arc::new(NoImport),

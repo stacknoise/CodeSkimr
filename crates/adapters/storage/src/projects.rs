@@ -23,18 +23,18 @@ use crate::previous::{latest_snapshot_id, load_latest_index, load_symbols};
 use crate::read_models;
 use crate::references;
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 
 /// A source as stored: kind, location, branch and the name of the credential (never its secret).
-struct SourceColumns {
-    kind: &'static str,
-    location: String,
-    branch: String,
+pub(crate) struct SourceColumns {
+    pub(crate) kind: &'static str,
+    pub(crate) location: String,
+    pub(crate) branch: String,
     credential: String,
 }
 
 impl SourceColumns {
-    fn of(source: &ProjectSource) -> Self {
+    pub(crate) fn of(source: &ProjectSource) -> Self {
         match source {
             ProjectSource::Folder(path) => Self {
                 kind: SOURCE_FOLDER,
@@ -57,7 +57,7 @@ impl SourceColumns {
         }
     }
 
-    fn source(
+    pub(crate) fn source(
         kind: &str,
         location: String,
         branch: String,
@@ -77,19 +77,36 @@ impl SourceColumns {
     }
 }
 
-impl SqliteStore {
+impl ProjectDb {
     /// Registers a project, or updates the name, source and layers of a known id.
     ///
     /// # Errors
     /// `PRJ-301` if another project has the same source, otherwise a coded `STO` failure.
     pub fn save_project(&self, project: &Project) -> Result<(), CodedError> {
+        self.stored(project).map_err(CodedError::from)
+    }
+
+    /// [`Self::save_project`] with the failure of the store.
+    pub(crate) fn stored(&self, project: &Project) -> StorageResult<()> {
         self.write(|tx| {
             save(tx, project)?;
             // The layer graph of the newest snapshot may have been built again.
             self.forget_builds();
             Ok(())
         })
-        .map_err(CodedError::from)
+    }
+
+    /// Marks the project as being removed.
+    pub(crate) fn mark_removing(&self, id: ProjectId) -> StorageResult<()> {
+        self.write(|tx| {
+            tx.execute(sql::PROJECT_REMOVING_SET, params![column_int(id.get())?])?;
+            Ok(())
+        })
+    }
+
+    /// The project with `id`, if it is not being removed.
+    pub(crate) fn load(&self, id: ProjectId) -> StorageResult<Project> {
+        self.read(|conn| load_project(conn, id))
     }
 
     /// Gives the project a new display name; source, scans and layers stay as they are.
@@ -322,8 +339,8 @@ impl LayerRow {
 struct ProjectRow {
     name: String,
     kind: String,
-    location: String,
-    branch: String,
+    pub(crate) location: String,
+    pub(crate) branch: String,
     credential: String,
 }
 
@@ -457,7 +474,7 @@ fn load_latest_files(conn: &Connection, project: ProjectId) -> StorageResult<Vec
     Ok(files)
 }
 
-impl ProjectRepository for SqliteStore {
+impl ProjectRepository for ProjectDb {
     fn project_for_removal(&self, id: ProjectId) -> Result<Project, CodedError> {
         self.read(|conn| load_project_any(conn, id))
             .map_err(CodedError::from)

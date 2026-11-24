@@ -50,7 +50,7 @@ fn ids(references: &[Reference]) -> Vec<u64> {
 }
 
 #[cfg(test)]
-fn read(store: &codeskimr_storage::SqliteStore, which: StoredReferences<'_>) -> Vec<u64> {
+fn read(store: &codeskimr_storage::ProjectDb, which: StoredReferences<'_>) -> Vec<u64> {
     let snapshot = store.latest_state(PROJECT).unwrap().snapshot.unwrap();
     ids(&store.stored_references(snapshot, which).unwrap())
 }

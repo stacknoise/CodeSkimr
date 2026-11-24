@@ -590,7 +590,7 @@ fn session(
         &analysis,
         (store, &config, locations),
         (events.clone(), secrets),
-    )?;
+    );
     let tools = tool_checker(store, (locations, index_runner(locations)))?;
     Ok(Session {
         scanner,

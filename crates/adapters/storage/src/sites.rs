@@ -8,7 +8,7 @@ use rusqlite::{Connection, params};
 use crate::codec::{Cols, SpanColumns, column_int};
 use crate::error::StorageResult;
 use crate::sql;
-use crate::store::SqliteStore;
+use crate::store::ProjectDb;
 
 /// The columns of `REFERENCE_SITES`, still raw.
 struct Row {
@@ -57,7 +57,7 @@ fn sites(
     Ok(found)
 }
 
-impl ReferenceSites for SqliteStore {
+impl ReferenceSites for ProjectDb {
     fn references_from(
         &self,
         snapshot: SnapshotId,

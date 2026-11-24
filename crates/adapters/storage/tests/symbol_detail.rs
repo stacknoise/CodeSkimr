@@ -10,7 +10,7 @@ use common::{metric, scanned, symbol};
 const SNAPSHOT: SnapshotId = SnapshotId::new(10);
 
 #[cfg(test)]
-fn store() -> codeskimr_storage::SqliteStore {
+fn store() -> codeskimr_storage::ProjectDb {
     let symbols = vec![
         symbol(21, 11, SymbolKind::Class, "App.Order", None),
         symbol(22, 11, SymbolKind::Method, "App.Order.Total", Some(21)),

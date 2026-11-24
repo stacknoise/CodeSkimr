@@ -42,7 +42,7 @@ fn scan() -> SnapshotData {
 }
 
 #[cfg(test)]
-fn registered() -> codeskimr_storage::SqliteStore {
+fn registered() -> codeskimr_storage::ProjectDb {
     let store = store(3);
     store.save_project(&project(1, "/work/app", &[])).unwrap();
     store.persist(scan()).unwrap();
@@ -68,7 +68,7 @@ fn replacement(files: &[u64], references: Vec<Reference>) -> Level2Replacement {
 }
 
 #[cfg(test)]
-fn stored(store: &codeskimr_storage::SqliteStore) -> Vec<(u64, bool)> {
+fn stored(store: &codeskimr_storage::ProjectDb) -> Vec<(u64, bool)> {
     let mut all: Vec<_> = store
         .latest_index(PROJECT)
         .unwrap()
@@ -181,11 +181,7 @@ fn only_the_newest_snapshot_may_be_changed() {
 
 /// The value of a coupling metric of a symbol in the newest snapshot, `None` if there is none.
 #[cfg(test)]
-fn coupling_of(
-    store: &codeskimr_storage::SqliteStore,
-    symbol: u64,
-    kind: MetricKind,
-) -> Option<f64> {
+fn coupling_of(store: &codeskimr_storage::ProjectDb, symbol: u64, kind: MetricKind) -> Option<f64> {
     let key = SymbolKey::Id(SymbolId::new(symbol));
     let detail = store
         .symbol_detail(SnapshotId::new(SNAPSHOT), &key)
@@ -199,7 +195,7 @@ fn coupling_of(
 
 /// Two namespaces, `Alpha` (symbols 81, 82) and `Beta` (83, 84); `Run` calls `Go`.
 #[cfg(test)]
-fn namespaces() -> codeskimr_storage::SqliteStore {
+fn namespaces() -> codeskimr_storage::ProjectDb {
     let store = store(3);
     store.save_project(&project(1, "/work/app", &[])).unwrap();
     let mut scan = two_files();
@@ -249,7 +245,7 @@ fn a_verified_reference_adds_the_dependency() {
 
 /// The ids of the symbols that use `symbol` directly in the newest snapshot.
 #[cfg(test)]
-fn users_of(store: &codeskimr_storage::SqliteStore, symbol: u64) -> Vec<u64> {
+fn users_of(store: &codeskimr_storage::ProjectDb, symbol: u64) -> Vec<u64> {
     let query = UsageQuery {
         symbol: SymbolId::new(symbol),
         direction: Direction::Incoming,
@@ -295,7 +291,7 @@ fn with_created() -> Level2Replacement {
 }
 
 #[cfg(test)]
-fn symbols_of_index(store: &codeskimr_storage::SqliteStore) -> Vec<(u64, Option<u64>)> {
+fn symbols_of_index(store: &codeskimr_storage::ProjectDb) -> Vec<(u64, Option<u64>)> {
     let mut found: Vec<_> = store
         .latest_index(PROJECT)
         .unwrap()
@@ -385,7 +381,7 @@ fn a_replacement_with_bad_symbols_changes_nothing() {
 /// What the newest snapshot says about the direct users of `symbol`: `(from, verified)`.
 #[cfg(test)]
 fn verified_users_of(
-    store: &codeskimr_storage::SqliteStore,
+    store: &codeskimr_storage::ProjectDb,
     snapshot: u64,
     symbol: u64,
 ) -> Vec<(u64, bool)> {
@@ -425,11 +421,11 @@ fn a_store_that_kept_the_index_sees_what_another_connection_replaced() {
     // The server answers queries from one store and keeps the index of the snapshot; a scan of
     // the browser, or `codeskimr scan` in another process, writes through its own store.
     let db = common::TempDb::new();
-    let serving = codeskimr_storage::SqliteStore::open(&db.0, std::num::NonZeroU32::MIN).unwrap();
+    let serving = codeskimr_storage::ProjectDb::open(&db.0, std::num::NonZeroU32::MIN).unwrap();
     serving.save_project(&project(1, "/work/app", &[])).unwrap();
     serving.persist(scan()).unwrap();
     assert_eq!(users_of(&serving, 83), [82], "the index is built and kept");
-    let writer = codeskimr_storage::SqliteStore::open(&db.0, std::num::NonZeroU32::MIN).unwrap();
+    let writer = codeskimr_storage::ProjectDb::open(&db.0, std::num::NonZeroU32::MIN).unwrap();
     writer
         .replace_level2(replacement(&[71], vec![verified(900, 71, 82, 84)]))
         .unwrap();

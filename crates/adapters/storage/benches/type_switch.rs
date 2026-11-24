@@ -8,7 +8,7 @@ use std::process::ExitCode;
 
 use codeskimr_application::ports::{CodeIndex, CodeOutline};
 use codeskimr_domain::{SnapshotId, Symbol, SymbolId, SymbolKind};
-use codeskimr_storage::SqliteStore;
+use codeskimr_storage::ProjectDb;
 use criterion::Criterion;
 
 mod common;
@@ -35,7 +35,7 @@ fn member_of_group(id: u64) -> Option<Symbol> {
 }
 
 /// Reads one type: its card and its member rows.
-fn switch_to(store: &SqliteStore, id: u64) -> Option<()> {
+fn switch_to(store: &ProjectDb, id: u64) -> Option<()> {
     let snapshot = SnapshotId::new(SNAPSHOT);
     let id = SymbolId::new(id);
     black_box(store.symbol_card(snapshot, id).ok()??);

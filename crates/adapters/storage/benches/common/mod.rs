@@ -10,7 +10,7 @@ use codeskimr_domain::{
     SnapshotStats, SourceFile, Span, Symbol, SymbolId, SymbolKind, SymbolName, Timestamp,
     Visibility,
 };
-use codeskimr_storage::SqliteStore;
+use codeskimr_storage::ProjectDb;
 
 /// Symbols of a project of about 100k lines.
 pub const SYMBOLS: u64 = 20_000;
@@ -108,14 +108,14 @@ pub fn store(
     references: Vec<Reference>,
     hashes: Vec<SymbolHash>,
     metrics: Vec<codeskimr_domain::Metric>,
-) -> Option<SqliteStore> {
+) -> Option<ProjectDb> {
     let content = Content {
         symbols,
         references,
         hashes,
         pending: Vec::new(),
     };
-    let store = SqliteStore::open_in_memory(NonZeroU32::MIN).ok()?;
+    let store = ProjectDb::open_in_memory(NonZeroU32::MIN).ok()?;
     store.save_project(&project()?).ok()?;
     let mut scan = data(SNAPSHOT, 1, content);
     scan.metrics = metrics;
