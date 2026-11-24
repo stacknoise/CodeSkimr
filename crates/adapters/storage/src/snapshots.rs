@@ -7,7 +7,8 @@ use codeskimr_application::ports::{
     Confirmation, Confirmed, Level2Replacement, SnapshotData, SnapshotStore, SymbolFingerprints,
 };
 use codeskimr_domain::{
-    CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, SymbolId,
+    CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats, SourceFile,
+    SymbolId,
 };
 use rusqlite::{Connection, params};
 
@@ -98,6 +99,7 @@ pub(crate) fn write_snapshot(
     }
     conn.pragma_update(None, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON)?;
     insert_header(conn, header)?;
+    let pruned = prune_before_load(conn, data, keep)?;
     conn.execute(
         sql::SNAPSHOT_NAMING_SET,
         params![data.naming_rules, column_int(header.id.get())?],
@@ -107,7 +109,7 @@ pub(crate) fn write_snapshot(
         sql::SNAPSHOT_AMBIGUOUS_SET,
         params![ambiguous, column_int(header.id.get())?],
     )?;
-    insert_facts(conn, data)?;
+    insert_facts(conn, data, pruned)?;
     insert_parse_times(conn, data)?;
     insert_warnings(conn, data)?;
     insert_left_out(conn, data)?;
@@ -116,16 +118,28 @@ pub(crate) fn write_snapshot(
         carry_over(conn, header.project, header.id, &data.removed)?;
     }
     integrity::check(conn, data)?;
-    // The totals count the references from the usage counts, so the read models come first.
-    let layers = load_layers(conn, header.project)?;
-    let tests = read_models::rebuild(conn, header.id, &layers)?;
-    let stats = totals(conn, header.id, tests)?;
-    set_totals(conn, header.id, stats)?;
+    let stats = finish_read_models(conn, data)?;
     prune(conn, project, keep)?;
     Ok(Snapshot {
         stats,
         ..header.clone()
     })
+}
+
+/// Builds the read models and sets the totals of the snapshot. The totals count the references
+/// from the usage counts, so the read models come first. A full scan holds all its references,
+/// so they are counted from memory.
+fn finish_read_models(conn: &Connection, data: &SnapshotData) -> StorageResult<SnapshotStats> {
+    let header = &data.snapshot;
+    let layers = load_layers(conn, header.project)?;
+    let tests = if header.mode == ScanMode::Full && data.dropped_references.is_empty() {
+        read_models::rebuild_loaded(conn, header.id, &layers, &data.references)?
+    } else {
+        read_models::rebuild(conn, header.id, &layers)?
+    };
+    let stats = totals(conn, header.id, tests)?;
+    set_totals(conn, header.id, stats)?;
+    Ok(stats)
 }
 
 /// Deletes all but the newest `keep` snapshots of the project, table by table.
@@ -169,7 +183,11 @@ fn insert_header(conn: &Connection, snapshot: &Snapshot) -> StorageResult<()> {
     Ok(())
 }
 
-fn insert_facts(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
+fn insert_facts(
+    conn: &Connection,
+    data: &SnapshotData,
+    indexes_dropped: bool,
+) -> StorageResult<()> {
     let snapshot = column_int(data.snapshot.id.get())?;
     for file in &data.files {
         insert_file(conn, snapshot, file)?;
@@ -182,7 +200,7 @@ fn insert_facts(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
     for symbol in &data.symbols {
         insert_symbol(conn, symbol, hashes.get(&symbol.id).copied())?;
     }
-    let bulk = bulk_load_starts(conn, data.references.len())?;
+    let bulk = indexes_dropped || bulk_load_starts(conn, data.references.len())?;
     let mut references = conn.prepare_cached(sql::REFERENCE_INSERT)?;
     for reference in &data.references {
         insert_reference(&mut references, snapshot, reference)?;
@@ -203,6 +221,30 @@ fn insert_facts(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
         dropped.execute(params![column_int(id.get())?])?;
     }
     Ok(())
+}
+
+/// Before a large full scan is loaded, drops the reference indexes and deletes the snapshots that
+/// fall out of the retention. Deleting millions of rows is far cheaper without the indexes, and the
+/// indexes are built afterwards over fewer rows. A full scan shares nothing with the old
+/// snapshots, so nothing that it needs is lost. Returns whether it dropped the indexes, which the
+/// load then builds again.
+fn prune_before_load(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageResult<bool> {
+    let header = &data.snapshot;
+    if header.mode != ScanMode::Full || data.references.len() < BULK_REFERENCES_MIN {
+        return Ok(false);
+    }
+    let project = column_int(header.project.get())?;
+    let expired = conn
+        .prepare_cached(sql::SNAPSHOTS_EXPIRED)?
+        .exists(params![project, keep])?;
+    if !expired {
+        return Ok(false);
+    }
+    for drop in sql::REFERENCE_INDEXES_DROP {
+        conn.execute(drop, [])?;
+    }
+    prune(conn, project, keep)?;
+    Ok(true)
 }
 
 /// Drops the reference indexes when so many rows arrive that building them afterwards is cheaper
