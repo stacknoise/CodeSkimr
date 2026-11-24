@@ -21,7 +21,7 @@ Ein relativer Ordnerpfad wird abgelehnt (`PRJ-101`); der Ordner, in dem der Serv
 
 Zeigt den laufenden oder zuletzt gelaufenen Scan: die Stufe, in der er steht (Quelle holen, Dateien finden, Parsen, Abhängigkeiten auflösen, Metriken, Speichern), Dateien und Zeilen pro Sekunde, genutzte Kerne, Speicher und eine Tabelle je Sprache mit Stufe, Dateien, Symbolen und Parse-Zeit. „Letzte Scans“ listet frühere auf. „Leistungsziele“ vergleicht gemessene Werte des Programms mit seinen Budgets (Programmstart, Suche je Tastendruck, Typwechsel, Verwendungsabfrage, Kartenlayout).
 
-Der erste Scan eines Projekts ist vollständig. Spätere Scans sind **inkrementell**: Dateien werden über einen Inhalts-Hash verglichen, und nur geänderte Dateien werden neu gelesen; ein Scan nach einer kleinen Änderung ist in einem Bruchteil einer Sekunde fertig. Die Oberfläche bleibt während eines Scans bedienbar, und Sie können einen laufenden Scan mit dem Knopf „Abbrechen“ oder `Esc` **abbrechen**; er endet, ohne einen Snapshot zu schreiben.
+Der erste Scan eines Projekts ist vollständig. Spätere Scans sind **inkrementell**: Dateien werden über einen Inhalts-Hash verglichen, und nur geänderte Dateien werden neu gelesen; ein Scan nach einer kleinen Änderung ist in einem Bruchteil einer Sekunde fertig. Der Knopf **„Vollständig neu scannen“** im Abschnitt „Scan“ des ausgewählten Projekts liest stattdessen alle Dateien neu ein, wie `codeskimr scan` in der Kommandozeile. Die Oberfläche bleibt während eines Scans bedienbar, und Sie können einen laufenden Scan mit dem Knopf „Abbrechen“ oder `Esc` **abbrechen**; er endet, ohne einen Snapshot zu schreiben.
 
 ## Auf der Kommandozeile
 

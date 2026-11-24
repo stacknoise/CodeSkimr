@@ -755,6 +755,8 @@ export const I18N_KEYS = {
   PROJECTS_LEVEL2_BUILD_NOTE: "projects-level2-build-note",
   PROJECTS_LEVEL2_STAGE1_ONLY: "projects-level2-stage1-only",
   PROJECTS_LEVEL2_STAGE1_ONLY_HINT: "projects-level2-stage1-only-hint",
+  PROJECTS_LEVEL2_FULL_RESCAN: "projects-level2-full-rescan",
+  PROJECTS_LEVEL2_FULL_RESCAN_HINT: "projects-level2-full-rescan-hint",
   PROJECTS_LEVEL2_SCAN_TITLE: "projects-level2-scan-title",
   PROJECTS_LEVEL2_FINISHED: "projects-level2-finished",
   PROJECTS_LEVEL2_NOT_STARTED_NOT_PERMITTED: "projects-level2-not-started-not-permitted",

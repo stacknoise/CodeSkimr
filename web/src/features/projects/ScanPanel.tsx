@@ -130,34 +130,49 @@ function Report(props: { row: ProjectRow }) {
   );
 }
 
-/** The scan buttons: a full scan that runs stage 2 where it is allowed, and a quick one without. */
+/** One scan button: starts the scan and keeps the focus on the project. */
+function ScanButton(props: { row: ProjectRow; label: string; hint?: string; scan: () => void }) {
+  return (
+    <button
+      type="button"
+      class={styles.button}
+      title={props.hint}
+      onClick={() => {
+        props.scan();
+        keepFocus(props.row.id);
+      }}
+    >
+      {props.label}
+    </button>
+  );
+}
+
+/** The scan buttons: a scan of the changes that runs stage 2 where it is allowed, a quick one
+ * without, and a full one that reads every file again. */
 function Buttons(props: { row: ProjectRow }) {
   const busy = () => props.row.running || projectsScanning().has(props.row.id);
+  const id = () => props.row.id;
   return (
     <Show when={!busy()}>
       <p class={styles.text}>{t(I18N_KEYS.PROJECTS_LEVEL2_BUILD_NOTE)}</p>
       <div class={styles.buttons}>
-        <button
-          type="button"
-          class={styles.button}
-          onClick={() => {
-            void rescanProject(props.row.id);
-            keepFocus(props.row.id);
-          }}
-        >
-          {t(I18N_KEYS.PROJECTS_LEVEL2_RESCAN)}
-        </button>
-        <button
-          type="button"
-          class={styles.button}
-          title={t(I18N_KEYS.PROJECTS_LEVEL2_STAGE1_ONLY_HINT)}
-          onClick={() => {
-            void rescanProject(props.row.id, false);
-            keepFocus(props.row.id);
-          }}
-        >
-          {t(I18N_KEYS.PROJECTS_LEVEL2_STAGE1_ONLY)}
-        </button>
+        <ScanButton
+          row={props.row}
+          label={t(I18N_KEYS.PROJECTS_LEVEL2_RESCAN)}
+          scan={() => void rescanProject(id())}
+        />
+        <ScanButton
+          row={props.row}
+          label={t(I18N_KEYS.PROJECTS_LEVEL2_STAGE1_ONLY)}
+          hint={t(I18N_KEYS.PROJECTS_LEVEL2_STAGE1_ONLY_HINT)}
+          scan={() => void rescanProject(id(), false)}
+        />
+        <ScanButton
+          row={props.row}
+          label={t(I18N_KEYS.PROJECTS_LEVEL2_FULL_RESCAN)}
+          hint={t(I18N_KEYS.PROJECTS_LEVEL2_FULL_RESCAN_HINT)}
+          scan={() => void rescanProject(id(), true, true)}
+        />
       </div>
     </Show>
   );

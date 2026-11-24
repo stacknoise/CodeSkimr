@@ -292,6 +292,22 @@ fn a_project_is_scanned_again_incrementally() {
 }
 
 #[test]
+fn a_project_is_scanned_completely_when_the_caller_asks_for_it() {
+    let fixture = Fixture::new();
+    let scanned = fixture
+        .call("projects.add", json!({ "source": fixture.folder() }))
+        .unwrap();
+    fixture
+        .call(
+            "projects.rescan",
+            json!({ "project": scanned["project"], "full": true }),
+        )
+        .unwrap();
+    let list = fixture.call("projects.list", Value::Null).unwrap();
+    assert_eq!(list[0]["scan"]["mode"], "full");
+}
+
+#[test]
 fn a_scan_of_the_browser_says_why_level_2_did_not_start_and_stores_the_report() {
     let fixture = Fixture::new();
     let scanned = fixture
