@@ -82,3 +82,4 @@ scan-left-out-unnamed = { $count ->
     [one] One file was left out. Its name shows after the next scan.
    *[other] { $count } files were left out. Their names show after the next scan.
 }
+scan-files-unchanged = No file changed · { $checked } checked

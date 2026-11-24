@@ -23,7 +23,7 @@ The code never changes; the text can improve. Quote the code when you report a p
 
 ## The published catalogue
 
-On the command line, `codeskimr codes` lists all codes with their messages, and `codeskimr codes SRC-401` explains one: message, developer description, group, severity, whether a retry can help and since which version it exists.
+On the command line, `codeskimr codes` lists all codes with their messages, and `codeskimr codes SRC-401` explains one: message, developer description, group, severity, whether a retry can help and since which version it exists. The app has the same: under "Settings", "Show error codes" opens the list to look up, with a search, filters by severity and group and the explanation of each code.
 
 The complete list of codes with name, severity, whether retrying helps, the version since which it exists and a description is generated from the registry `errors/error-codes.toml` and published in [`docs/error-codes.md`](../../error-codes.md). Do not edit it by hand.
 

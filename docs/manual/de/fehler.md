@@ -23,7 +23,7 @@ Der Code ändert sich nie; der Text kann besser werden. Nennen Sie den Code, wen
 
 ## Der veröffentlichte Katalog
 
-Auf der Kommandozeile listet `codeskimr codes` alle Codes mit ihren Meldungen auf, und `codeskimr codes SRC-401` erklärt einen: Meldung, Entwicklerbeschreibung, Gruppe, Schweregrad, ob ein neuer Versuch helfen kann und seit welcher Version es ihn gibt.
+Auf der Kommandozeile listet `codeskimr codes` alle Codes mit ihren Meldungen auf, und `codeskimr codes SRC-401` erklärt einen: Meldung, Entwicklerbeschreibung, Gruppe, Schweregrad, ob ein neuer Versuch helfen kann und seit welcher Version es ihn gibt. Dasselbe gibt es in der App: Unter „Einstellungen“ öffnet „Fehlercodes anzeigen“ die Liste zum Nachschlagen, mit Suche, Filter nach Schweregrad und Gruppe und der Erklärung zu jedem Code.
 
 Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilft, der Version, seit der es ihn gibt, und einer Beschreibung wird aus dem Register `errors/error-codes.toml` erzeugt und in [`docs/error-codes.md`](../../error-codes.md) veröffentlicht (Englisch). Bearbeiten Sie sie nicht von Hand.
 

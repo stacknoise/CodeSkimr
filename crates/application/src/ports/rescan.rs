@@ -51,7 +51,7 @@ impl LeftOut {
 /// The snapshot of a rescan and what became of its paths.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Rescanned {
-    /// The snapshot the scan wrote.
+    /// The snapshot the scan wrote, or the newest one if the scan found nothing changed.
     pub snapshot: Snapshot,
     /// What the scan did with the paths; empty if there were none.
     pub paths: PathsReport,

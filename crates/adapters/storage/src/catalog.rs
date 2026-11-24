@@ -78,7 +78,7 @@ fn languages(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<Langu
 
 /// The warnings of the scan that wrote `snapshot`. A code that this version does not know any more
 /// is left out.
-fn warnings(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<ScanWarning>> {
+pub(crate) fn warnings(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<ScanWarning>> {
     let rows = rows_of_snapshot(conn, sql::WARNINGS, snapshot, |cols| {
         Ok((cols.take::<String>()?, cols.take::<i64>()?))
     })?;

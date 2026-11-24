@@ -335,7 +335,7 @@ flowchart LR
 
 **Rules:**
 
-- **Incremental by default.** Only files whose hash changed are processed. Dependent references are re-resolved through the reverse index.
+- **Incremental by default.** Only files whose hash changed are processed. Dependent references are re-resolved through the reverse index. A scan that finds no file changed writes no snapshot: the newest one is confirmed with the time of the scan (ADR 0093).
 - **Streaming results.** The UI can already show finished parts while the scan runs (mock 5).
 - **Cancellable** at every stage boundary, without leaving a partial snapshot behind.
 - **Watch mode:** file-system events are debounced; the incremental re-scan budget is < 300 ms (section 16).
@@ -473,6 +473,8 @@ codeskimr check <path>            run the convention checks (for CI)
 codeskimr codes [<code>]          list error codes / explain one code
 ```
 
+Everything the command line can do has a counterpart in the UI; the exceptions (the consent to level 2, the start options, `--json`) and the gaps still open are listed in ADR 0092.
+
 The local commands run as the local owner without login. After 1.0 the team edition adds `codeskimr serve --team`, `login --server <url>`, `user …` and `token …` (ADR 0019); local commands keep working without login.
 
 ### 10.3 REST and WebSocket
@@ -502,7 +504,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | `get_architecture` | project | layers, allowed dependencies, namespace map, conventions |
 | `get_project` | project? | languages, and per tool of level 2 its state (ready, missing, too old, version unknown) with purpose and install hint (ADR 0033, decision 8) |
 | `check_conventions` | paths or diff | violations of section 3 (duplicates, literals, layering, length, complexity) with error codes |
-| `rescan` | paths? | incremental update, returns the new snapshot id |
+| `rescan` | paths? | incremental update, returns the id of the newest snapshot (a new one if something changed, ADR 0093) |
 | `list_annotations` | symbol? or project, kind? | notes, tasks and critical marks with target and status (ADR 0068, read-only) |
 | `get_alerts` | project, state? | open alerts for critical symbols: kind, what changed, symbol (ADR 0068, read-only) |
 

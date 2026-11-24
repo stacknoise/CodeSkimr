@@ -173,6 +173,13 @@ mod cases {
             Ok(1)
         }
 
+        fn confirm(
+            &self,
+            _: &codeskimr_application::ports::Confirmation,
+        ) -> Result<Option<codeskimr_application::ports::Confirmed>, CodedError> {
+            Ok(None)
+        }
+
         fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError> {
             self.replaced
                 .lock()

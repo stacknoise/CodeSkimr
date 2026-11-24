@@ -4,7 +4,7 @@ import { count, seconds } from "../projects/format";
 import { statusInfo } from "../status/status";
 import { PERCENT_SIGN, PROGRESS_MAX, PROGRESS_MIN, STATE } from "./consts";
 import { lastEventAt } from "./events";
-import { files, filesPerSecond, percent, secondsLeft } from "./run";
+import { checkedOnly, files, filesPerSecond, percent, secondsLeft } from "./run";
 import type { Run } from "./types";
 import styles from "./Progress.module.css";
 
@@ -30,6 +30,10 @@ function caption(run: Run): string {
     return t(I18N_KEYS.SCAN_PENDING);
   }
   const language = currentLanguage();
+  const checked = checkedOnly(run);
+  if (checked !== null) {
+    return t(I18N_KEYS.SCAN_FILES_UNCHANGED, { checked: count(checked, language) });
+  }
   const counts = { done: count(known.done, language), total: count(known.total, language) };
   const left = secondsLeft(run, lastEventAt());
   return left === null

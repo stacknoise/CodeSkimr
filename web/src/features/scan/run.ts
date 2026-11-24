@@ -1,5 +1,6 @@
 import {
   EVENT,
+  CHECK_STAGE,
   FILE_STAGE,
   MAX_RUNS,
   MIN_FILES_FOR_ESTIMATE,
@@ -66,6 +67,7 @@ function fresh(project: number, now: number, first: ProgressEvent): Run {
     code: null,
     stages: {},
     packLoadMs: 0,
+    unchanged: false,
   };
 }
 
@@ -112,6 +114,7 @@ export function applyEvent(runs: readonly Run[], event: WireEvent, now: number):
       endedAt: now,
       stages,
       packLoadMs,
+      unchanged: event.unchanged === true,
     });
   }
   const state = event.reason === STOP.cancelled ? STATE.cancelled : STATE.failed;
@@ -132,6 +135,13 @@ function fileStage(run: Run): StageRun | undefined {
 export function files(run: Run): { done: number; total: number } | null {
   const stage = fileStage(run);
   return stage ? { done: stage.done, total: stage.total } : null;
+}
+
+/** The number of files a scan compared with the snapshot when the server said that none changed;
+ * `null` for any other run. */
+export function checkedOnly(run: Run): number | null {
+  const found = run.stages[CHECK_STAGE];
+  return run.unchanged && found !== undefined ? found.total : null;
 }
 
 /** Percent of the files that are done, at most 99 while the scan runs. 100 once the scan is done; 0

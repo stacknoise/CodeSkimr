@@ -1,0 +1,853 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 41,
+      "operands": null,
+      "operators": null,
+      "symbol": "framework.cs"
+    },
+    {
+      "decisions": null,
+      "loc": 41,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IStore"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IStore.Exists"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Store"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Demo.Store.Exists"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "Demo.Store.IndexOf"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Options"
+    },
+    {
+      "decisions": null,
+      "loc": 15,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Finder"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "Demo.Finder.Finder"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        5,
+        5
+      ],
+      "symbol": "Demo.Finder.Framework"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "Demo.Finder.Directories"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "Demo.Finder.Listed"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "Demo.Finder.Field"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        4
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "Demo.Finder.Local"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        5,
+        6
+      ],
+      "operators": [
+        4,
+        6
+      ],
+      "symbol": "Demo.Finder.Through"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "Demo.Finder.Own"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        4,
+        5
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "Demo.Finder.Unknown"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "Demo.Finder.Make"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Elsewhere"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Elsewhere.Document"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Parts"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        5,
+        6
+      ],
+      "operators": [
+        4,
+        6
+      ],
+      "symbol": "Demo.Parts.Reach"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Parts"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Strangers"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "Demo.Strangers.Property"
+    }
+  ],
+  "loc": 41,
+  "references": [
+    {
+      "at": "4:28",
+      "from": "Demo.Store",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "IStore"
+    },
+    {
+      "at": "6:39",
+      "from": "Demo.Store.Exists",
+      "kind": "read",
+      "receiver": null,
+      "target": "File"
+    },
+    {
+      "at": "6:44",
+      "from": "Demo.Store.Exists",
+      "kind": "call",
+      "receiver": "named File",
+      "target": "Exists"
+    },
+    {
+      "at": "14:21",
+      "from": "Demo.Finder",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "List"
+    },
+    {
+      "at": "15:21",
+      "from": "Demo.Finder",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IStore"
+    },
+    {
+      "at": "16:18",
+      "from": "Demo.Finder.Finder",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IStore"
+    },
+    {
+      "at": "16:34",
+      "from": "Demo.Finder.Finder",
+      "kind": "write",
+      "receiver": null,
+      "target": "_store"
+    },
+    {
+      "at": "18:49",
+      "from": "Demo.Finder.Framework",
+      "kind": "read",
+      "receiver": null,
+      "target": "File"
+    },
+    {
+      "at": "18:54",
+      "from": "Demo.Finder.Framework",
+      "kind": "call",
+      "receiver": "named File",
+      "target": "Exists"
+    },
+    {
+      "at": "19:50",
+      "from": "Demo.Finder.Directories",
+      "kind": "read",
+      "receiver": null,
+      "target": "Directory"
+    },
+    {
+      "at": "19:60",
+      "from": "Demo.Finder.Directories",
+      "kind": "call",
+      "receiver": "named Directory",
+      "target": "Exists"
+    },
+    {
+      "at": "20:22",
+      "from": "Demo.Finder.Listed",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "List"
+    },
+    {
+      "at": "20:57",
+      "from": "Demo.Finder.Listed",
+      "kind": "call",
+      "receiver": "typed List",
+      "target": "IndexOf"
+    },
+    {
+      "at": "21:32",
+      "from": "Demo.Finder.Field",
+      "kind": "read",
+      "receiver": null,
+      "target": "_names"
+    },
+    {
+      "at": "21:39",
+      "from": "Demo.Finder.Field",
+      "kind": "call",
+      "receiver": "typed List",
+      "target": "IndexOf"
+    },
+    {
+      "at": "22:25",
+      "from": "Demo.Finder.Local",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "List"
+    },
+    {
+      "at": "22:62",
+      "from": "Demo.Finder.Local",
+      "kind": "call",
+      "receiver": "typed List",
+      "target": "IndexOf"
+    },
+    {
+      "at": "23:24",
+      "from": "Demo.Finder.Through",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IStore"
+    },
+    {
+      "at": "23:45",
+      "from": "Demo.Finder.Through",
+      "kind": "call",
+      "receiver": "typed IStore",
+      "target": "Exists"
+    },
+    {
+      "at": "23:60",
+      "from": "Demo.Finder.Through",
+      "kind": "read",
+      "receiver": null,
+      "target": "_store"
+    },
+    {
+      "at": "23:67",
+      "from": "Demo.Finder.Through",
+      "kind": "call",
+      "receiver": "typed IStore",
+      "target": "Exists"
+    },
+    {
+      "at": "24:20",
+      "from": "Demo.Finder.Own",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Store"
+    },
+    {
+      "at": "24:40",
+      "from": "Demo.Finder.Own",
+      "kind": "call",
+      "receiver": "typed Store",
+      "target": "Exists"
+    },
+    {
+      "at": "25:36",
+      "from": "Demo.Finder.Unknown",
+      "kind": "call",
+      "receiver": null,
+      "target": "Make"
+    },
+    {
+      "at": "25:53",
+      "from": "Demo.Finder.Unknown",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "Exists"
+    },
+    {
+      "at": "36:33",
+      "from": "Demo.Parts.Reach",
+      "kind": "read",
+      "receiver": null,
+      "target": "Config"
+    },
+    {
+      "at": "36:40",
+      "from": "Demo.Parts.Reach",
+      "kind": "call",
+      "receiver": "named Config",
+      "target": "Exists"
+    },
+    {
+      "at": "36:55",
+      "from": "Demo.Parts.Reach",
+      "kind": "read",
+      "receiver": null,
+      "target": "Settings"
+    },
+    {
+      "at": "36:64",
+      "from": "Demo.Parts.Reach",
+      "kind": "call",
+      "receiver": "named Settings",
+      "target": "Exists"
+    },
+    {
+      "at": "41:11",
+      "from": "Demo.Parts.Config",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Store"
+    },
+    {
+      "at": "42:21",
+      "from": "Demo.Parts",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Store"
+    },
+    {
+      "at": "47:11",
+      "from": "Demo.Strangers.File",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Options"
+    },
+    {
+      "at": "48:47",
+      "from": "Demo.Strangers.Property",
+      "kind": "read",
+      "receiver": null,
+      "target": "File"
+    },
+    {
+      "at": "48:52",
+      "from": "Demo.Strangers.Property",
+      "kind": "call",
+      "receiver": "typed Options",
+      "target": "Exists"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "framework.cs",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-50:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "Demo",
+      "parent": "framework.cs",
+      "signature": null,
+      "span": "0:0-50:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "Demo.IStore",
+      "parent": "Demo",
+      "signature": null,
+      "span": "2:0-2:53",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.IStore.Exists",
+      "parent": "Demo.IStore",
+      "signature": "bool Exists(string name);",
+      "span": "2:26-2:51",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Store",
+      "parent": "Demo",
+      "signature": null,
+      "span": "4:0-8:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Store.Exists",
+      "parent": "Demo.Store",
+      "signature": "public bool Exists(string name)",
+      "span": "6:4-6:57",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Store.IndexOf",
+      "parent": "Demo.Store",
+      "signature": "public int IndexOf(string key)",
+      "span": "7:4-7:40",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Options",
+      "parent": "Demo",
+      "signature": null,
+      "span": "10:0-10:95",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Options.Directory",
+      "parent": "Demo.Options",
+      "signature": null,
+      "span": "10:23-10:60",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Options.File",
+      "parent": "Demo.Options",
+      "signature": null,
+      "span": "10:61-10:93",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Finder",
+      "parent": "Demo",
+      "signature": null,
+      "span": "12:0-27:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Demo.Finder._names",
+      "parent": "Demo.Finder",
+      "signature": null,
+      "span": "14:34-14:48",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Demo.Finder._store",
+      "parent": "Demo.Finder",
+      "signature": null,
+      "span": "15:28-15:34",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "constructor",
+      "name": "Demo.Finder.Finder",
+      "parent": "Demo.Finder",
+      "signature": "public Finder(IStore store)",
+      "span": "16:4-16:51",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Finder.Framework",
+      "parent": "Demo.Finder",
+      "signature": "public bool Framework(string path)",
+      "span": "18:4-18:69",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Finder.Directories",
+      "parent": "Demo.Finder",
+      "signature": "public bool Directories(string path)",
+      "span": "19:4-19:75",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Finder.Listed",
+      "parent": "Demo.Finder",
+      "signature": "public int Listed(List<string> names)",
+      "span": "20:4-20:72",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Finder.Field",
+      "parent": "Demo.Finder",
+      "signature": "public int Field()",
+      "span": "21:4-21:54",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Finder.Local",
+      "parent": "Demo.Finder",
+      "signature": "public int Local()",
+      "span": "22:4-22:77",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Finder.Through",
+      "parent": "Demo.Finder",
+      "signature": "public bool Through(IStore s)",
+      "span": "23:4-23:81",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Finder.Own",
+      "parent": "Demo.Finder",
+      "signature": "public bool Own(Store s)",
+      "span": "24:4-24:54",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Finder.Unknown",
+      "parent": "Demo.Finder",
+      "signature": "public bool Unknown()",
+      "span": "25:4-25:67",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Finder.Make",
+      "parent": "Demo.Finder",
+      "signature": "private static object Make()",
+      "span": "26:4-26:41",
+      "static": true,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "Demo.Elsewhere",
+      "parent": "Demo",
+      "signature": null,
+      "span": "29:0-32:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Elsewhere.Document",
+      "parent": "Demo.Elsewhere",
+      "signature": null,
+      "span": "31:4-31:62",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Elsewhere.Document.Name",
+      "parent": "Demo.Elsewhere.Document",
+      "signature": null,
+      "span": "31:28-31:60",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Parts",
+      "parent": "Demo",
+      "signature": null,
+      "span": "34:0-37:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Parts.Reach",
+      "parent": "Demo.Parts",
+      "signature": "public bool Reach()",
+      "span": "36:4-36:78",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Parts",
+      "parent": "Demo",
+      "signature": null,
+      "span": "39:0-43:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Parts.Config",
+      "parent": "Demo.Parts",
+      "signature": null,
+      "span": "41:4-41:37",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Demo.Parts.Settings",
+      "parent": "Demo.Parts",
+      "signature": null,
+      "span": "42:27-42:43",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Strangers",
+      "parent": "Demo",
+      "signature": null,
+      "span": "45:0-49:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Strangers.File",
+      "parent": "Demo.Strangers",
+      "signature": null,
+      "span": "47:4-47:37",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Strangers.Property",
+      "parent": "Demo.Strangers",
+      "signature": "public bool Property(string path)",
+      "span": "48:4-48:67",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

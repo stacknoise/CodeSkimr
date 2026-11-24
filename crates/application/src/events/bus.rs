@@ -186,6 +186,7 @@ mod tests {
                 },
             },
             pack_load: std::time::Duration::ZERO,
+            unchanged: false,
         })
     }
 
