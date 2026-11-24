@@ -4,9 +4,10 @@ import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
 import { showUsages } from "../../shared/navigation/navigation";
-import { COPY } from "../../shared/ui/consts";
+import { COPY, ICON_SIZE_MEDIUM } from "../../shared/ui/consts";
+import { Icon, type IconName } from "../../shared/ui/Icon";
 import { createCopier } from "../../shared/ui/copier";
-import { LINE_BREAK, PILL_SEPARATOR } from "./consts";
+import { COPY_ICON, COPY_IDLE, NO_TEXT, LINE_BREAK, PILL_SEPARATOR } from "./consts";
 import { sourceWidth } from "./layout";
 import { lineRange } from "./format";
 import { type Segment, segments } from "./segments";
@@ -40,25 +41,33 @@ function colourOf(piece: Segment): string | undefined {
   return piece.tokenClass === null ? undefined : styles[piece.tokenClass];
 }
 
-/** The button "Copy code": puts the lines on the clipboard and says "Copied" or "Not copied" for a
- * moment. The code can always be selected by hand. */
+/** The button "Copy code", the usual icon of two sheets. It turns into a tick for a moment when the
+ * code is on the clipboard, and into a cross when it is not. The name and the tooltip say the same
+ * in words, and an invisible status tells a screen reader what happened. The code can always be selected by hand. */
 function CopyButton(props: { lines: string[] }) {
   const { state, copy } = createCopier();
   const label = () =>
     state() === COPY.copied
-      ? I18N_KEYS.EXPLORER_SOURCE_COPIED
+      ? t(I18N_KEYS.EXPLORER_SOURCE_COPIED)
       : state() === COPY.failed
-        ? I18N_KEYS.EXPLORER_SOURCE_COPY_FAILED
-        : I18N_KEYS.EXPLORER_SOURCE_COPY;
+        ? t(I18N_KEYS.EXPLORER_SOURCE_COPY_FAILED)
+        : t(I18N_KEYS.EXPLORER_SOURCE_COPY);
+  const icon = (): IconName => COPY_ICON[state() ?? COPY_IDLE];
   return (
-    <button
-      type="button"
-      class={styles.copy}
-      onClick={() => copy(props.lines.join(LINE_BREAK))}
-      aria-live="polite"
-    >
-      {t(label())}
-    </button>
+    <>
+      <button
+        type="button"
+        class={styles.copy}
+        onClick={() => copy(props.lines.join(LINE_BREAK))}
+        aria-label={label()}
+        title={label()}
+      >
+        <Icon name={icon()} size={ICON_SIZE_MEDIUM} />
+      </button>
+      <span class={styles.srOnly} role="status">
+        {state() === null ? NO_TEXT : label()}
+      </span>
+    </>
   );
 }
 

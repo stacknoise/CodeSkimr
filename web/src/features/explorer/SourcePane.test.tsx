@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { focusSymbol } from "../../shared/navigation/navigation";
 import { openProject } from "../../shared/project/active";
 import { useClipboard } from "../../tests/clipboard";
+import { ICON_PATHS } from "../../shared/ui/consts";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { openOrder, ORDER, OUTLINE } from "../../tests/explorer";
 import { forgetExplorer } from "./explorer";
@@ -51,7 +52,7 @@ describe("the source column", () => {
     expect(await screen.findByText("src/Order.cs")).toBeTruthy();
     expect(pane.textContent).toContain("3–6");
     expect(pane.textContent).toContain("decimal Total() => 1m;");
-    expect(pane.querySelector("[aria-hidden='true']")?.textContent).toBe("3\n4\n5\n6");
+    expect(pane.querySelector("pre[aria-hidden='true']")?.textContent).toBe("3\n4\n5\n6");
     expect(asked()).toEqual([{ project: 1, symbol: 7 }]);
   });
 
@@ -184,6 +185,10 @@ describe("the button to copy the code", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Copy code" }));
     expect(writeText).toHaveBeenCalledWith(TYPE_SOURCE.lines.join("\n"));
     expect(await screen.findByRole("button", { name: "Copied" })).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("Copied");
+    expect(
+      screen.getByRole("button", { name: "Copied" }).querySelector("path")?.getAttribute("d"),
+    ).toBe(ICON_PATHS.check[0]);
   });
 
   it("says so when the browser has no clipboard or refuses it", async () => {
@@ -191,7 +196,9 @@ describe("the button to copy the code", () => {
     renderWith(() => answer(TYPE_SOURCE));
     await openOrder();
     fireEvent.click(await screen.findByRole("button", { name: "Copy code" }));
-    expect(await screen.findByRole("button", { name: "Not copied" })).toBeTruthy();
+    const button = await screen.findByRole("button", { name: "Not copied" });
+    expect(screen.getByRole("status").textContent).toBe("Not copied");
+    expect(button.querySelector("path")?.getAttribute("d")).toBe(ICON_PATHS.cross[0]);
   });
 
   it("is not offered when there is no code", async () => {

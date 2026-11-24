@@ -37,6 +37,9 @@ export const ICON_PATHS = {
     "M6 7v10M18 9c0 5-12 3-12 8",
   ],
   download: ["M12 4v11M7 10l5 5 5-5", "M5 20h14"],
+  copy: ["M9 9h11v11H9z", "M5 15H4V4h11v1"],
+  check: ["M5 12.5l4.5 4.5L19 7"],
+  cross: ["M6 6l12 12M18 6L6 18"],
   bell: ["M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8", "M10 20a2 2 0 0 0 4 0"],
   annotations: [
     "M9 6h11M9 12h11M9 18h11",
