@@ -17,11 +17,11 @@ use rusqlite::{Connection, params};
 use crate::catalog::{left_out, warnings};
 use crate::codec::column_int;
 use crate::consts::{
-    BULK_FINGERPRINTS_MIN, BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR, CACHE_SIZE_KIB,
-    LARGE_LOAD_REFERENCES_MIN, LOAD_CACHE_SIZE_KIB, LOG_PERSIST_STEP, PRAGMA_CACHE_SIZE,
-    PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON, STEP_DETAILS, STEP_FACTS, STEP_FINGERPRINTS, STEP_HEADER,
-    STEP_INTEGRITY, STEP_PRUNE, STEP_PRUNE_BEFORE, STEP_READ_MODELS, STEP_REFERENCE_INDEXES,
-    STEP_REFERENCES,
+    BULK_FINGERPRINTS_MIN, BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR,
+    LARGE_LOAD_REFERENCES_MIN, LOAD_CACHE_SIZE_KIB, LOG_CACHE_NOT_RESTORED, LOG_PERSIST_STEP,
+    PRAGMA_CACHE_SIZE, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON, STEP_DETAILS, STEP_FACTS,
+    STEP_FINGERPRINTS, STEP_HEADER, STEP_INTEGRITY, STEP_PRUNE, STEP_PRUNE_BEFORE,
+    STEP_READ_MODELS, STEP_REFERENCE_INDEXES, STEP_REFERENCES,
 };
 use crate::error::{StorageError, StorageResult};
 use crate::headers::{
@@ -120,10 +120,11 @@ pub(crate) fn write_snapshot(
 /// A larger page cache for the write of a large scan. The rows of a large scan land in three
 /// indexes of all the stored references; with the usual cache every insert reads and writes pages
 /// of the file. The cache is only a limit (pages are taken as they are used), and it goes back to
-/// the usual size when the guard is dropped.
+/// the size it had when the guard is dropped, also when the write fails or is rolled back: the
+/// cache size is a setting of the connection, not part of the transaction.
 pub(crate) struct LoadCache<'a> {
-    /// The connection whose cache was raised, if it was.
-    raised: Option<&'a Connection>,
+    /// The connection whose cache was raised, with the size it had, if it was raised.
+    raised: Option<(&'a Connection, i64)>,
 }
 
 impl<'a> LoadCache<'a> {
@@ -132,16 +133,21 @@ impl<'a> LoadCache<'a> {
         if references < LARGE_LOAD_REFERENCES_MIN {
             return Ok(Self { raised: None });
         }
+        let before: i64 = conn.pragma_query_value(None, PRAGMA_CACHE_SIZE, |row| row.get(0))?;
         conn.pragma_update(None, PRAGMA_CACHE_SIZE, LOAD_CACHE_SIZE_KIB)?;
-        Ok(Self { raised: Some(conn) })
+        Ok(Self {
+            raised: Some((conn, before)),
+        })
     }
 }
 
 impl Drop for LoadCache<'_> {
     fn drop(&mut self) {
-        if let Some(conn) = self.raised {
+        if let Some((conn, before)) = self.raised {
             // Not being able to shrink the cache again costs memory, not correctness.
-            let _ = conn.pragma_update(None, PRAGMA_CACHE_SIZE, CACHE_SIZE_KIB);
+            if let Err(cause) = conn.pragma_update(None, PRAGMA_CACHE_SIZE, before) {
+                tracing::warn!(event = LOG_CACHE_NOT_RESTORED, %cause);
+            }
         }
     }
 }

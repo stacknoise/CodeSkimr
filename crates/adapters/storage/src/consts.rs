@@ -257,7 +257,10 @@ pub const STEP_REFERENCES: &str = "references";
 pub const STEP_FINGERPRINTS: &str = "fingerprints";
 /// From this many references a scan is a large load, for which the write gets a larger page cache.
 pub const LARGE_LOAD_REFERENCES_MIN: usize = 500_000;
-/// Page cache of 2 GiB (a negative value is a size in KiB) while a large scan is written. On a
+/// Page cache of 1 GiB (a negative value is a size in KiB) while a large scan is written. On a
 /// test load of 6 million references into a database that held 18 million, 1 GiB and 2 GiB cut
-/// the write from 96 s to 56 s and 59 s.
-pub const LOAD_CACHE_SIZE_KIB: i64 = -2_097_152;
+/// the write from 96 s to 56 s and 59 s, so the larger one buys nothing; the cache counts against
+/// the memory ceiling of the scan.
+pub const LOAD_CACHE_SIZE_KIB: i64 = -1_048_576;
+/// Log event: the cache size of the write connection could not be set back.
+pub const LOG_CACHE_NOT_RESTORED: &str = "cache_size_not_restored";
