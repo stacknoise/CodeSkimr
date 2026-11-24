@@ -690,14 +690,11 @@ fn reference_indexes(conn: &Connection) -> Vec<String> {
         .collect()
 }
 
-#[test]
-fn a_bulk_load_of_references_keeps_the_indexes_totals_and_usage_counts() {
-    let db = TempDb::new();
-    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
-    store.save_project(&project(1, "/work/app", &[])).unwrap();
-    let count = 25_000;
-    // The second scan finds the table filled and loads as many rows again.
-    for (snapshot, base) in [(10, 100), (20, 200)] {
+/// Persists a full scan of `count` references for each (snapshot, base) and checks its totals and
+/// the usage count of the target.
+#[cfg(test)]
+fn persist_counted(store: &SqliteStore, scans: &[(u64, u64)], count: u64) {
+    for &(snapshot, base) in scans {
         let stored = store
             .persist(scan_with_references(snapshot, base, count))
             .unwrap();
@@ -708,6 +705,16 @@ fn a_bulk_load_of_references_keeps_the_indexes_totals_and_usage_counts() {
             count
         );
     }
+}
+
+#[test]
+fn a_bulk_load_of_references_keeps_the_indexes_totals_and_usage_counts() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    let count = 25_000;
+    // The second scan finds the table filled and loads as many rows again.
+    persist_counted(&store, &[(10, 100), (20, 200)], count);
     let conn = Connection::open(&db.0).unwrap();
     assert_eq!(
         reference_indexes(&conn),
@@ -726,17 +733,7 @@ fn a_large_full_scan_removes_the_expired_snapshots_before_it_loads() {
     let store = SqliteStore::open(&db.0, keep(1)).unwrap();
     store.save_project(&project(1, "/work/app", &[])).unwrap();
     let count = 25_000;
-    for (snapshot, base) in [(10, 100), (20, 200), (30, 300)] {
-        let stored = store
-            .persist(scan_with_references(snapshot, base, count))
-            .unwrap();
-        assert_eq!(u64::from(stored.stats.references), count);
-        let id = codeskimr_domain::SnapshotId::new(snapshot);
-        assert_eq!(
-            u64::from(store.usage_count(id, SymbolId::new(base + 2)).unwrap()),
-            count
-        );
-    }
+    persist_counted(&store, &[(10, 100), (20, 200), (30, 300)], count);
     let conn = Connection::open(&db.0).unwrap();
     assert_eq!(rows_of(&conn, "snapshots"), 1);
     assert_eq!(rows_of(&conn, "symbol_references"), 25_000);
