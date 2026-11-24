@@ -45,7 +45,6 @@ Option 2.
 - Blueprint 6.2 changes ("one database per workspace" becomes this decision) and `docs/storage.md` is rewritten for the two schemas; label `blueprint-change`.
 - A project file can be thrown away and rebuilt by a scan; the catalog cannot be rebuilt, because it holds the user's own input (project list, layers, consents, notes). Backing up the user's data means backing up the catalog. Copying one project file alone is not a backup of the project's notes.
 - Foreign keys across the two files do not exist; the router keeps them by the order of operations in the decision above.
-
 - Annotations and alerts live in the catalog, so they survive a re-scan and are removed with the project by `project_id`.
 - Total disk use can be a little higher (each file has its own free pages); the retention count applies per project as before.
 - The number of open files is bounded: the router keeps at most `store.open_project_files` project files open (a setting in `config/default.toml`, least recently used closed first, never one with a running write or scan). The path of a database file is shown in the UI and the CLI but is not part of exports or MCP answers.
