@@ -13,6 +13,7 @@ use codeskimr_domain::{
 };
 use rusqlite::{Connection, OptionalExtension, Row, params};
 
+use crate::catalog::rows_of_snapshot;
 use crate::codec::{Cols, column_int, id_from, ordinals, small_from};
 use crate::consts::{
     FIRST_PROJECT_ID, ID_STEP, NO_BRANCH, NO_CREDENTIAL, SOURCE_FOLDER, SOURCE_GIT,
@@ -380,9 +381,8 @@ fn load_latest_state_with(
 /// The files the scan of `snapshot` left out for good. A row with a code that this version does
 /// not know any more is left out: the next scan then looks at the file again.
 fn load_skipped(conn: &Connection, snapshot: i64) -> StorageResult<Vec<SkippedFile>> {
-    let mut statement = conn.prepare_cached(sql::SKIPPED_FILES)?;
-    let rows = statement.query_map(params![snapshot], |row| {
-        let cols = Cols::new(row);
+    let snapshot = SnapshotId::new(id_from(snapshot)?);
+    let rows = rows_of_snapshot(conn, sql::SKIPPED_FILES, snapshot, |cols| {
         Ok((
             cols.take::<String>()?,
             cols.take::<String>()?,
@@ -391,8 +391,7 @@ fn load_skipped(conn: &Connection, snapshot: i64) -> StorageResult<Vec<SkippedFi
         ))
     })?;
     let mut skipped = Vec::new();
-    for row in rows {
-        let (path, language, hash, id) = row?;
+    for (path, language, hash, id) in rows {
         let Some(code) = ErrorCode::ALL.iter().copied().find(|code| code.id() == id) else {
             continue;
         };

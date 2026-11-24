@@ -28,7 +28,7 @@ fn project_ids(conn: &Connection) -> StorageResult<Vec<ProjectId>> {
 }
 
 /// Runs a statement of one snapshot and reads every row with `read`.
-fn rows_of_snapshot<T>(
+pub(crate) fn rows_of_snapshot<T>(
     conn: &Connection,
     statement: &str,
     snapshot: SnapshotId,
