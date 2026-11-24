@@ -355,6 +355,29 @@ describe("ScanScreen", () => {
     stop();
   });
 
+  it("calls the scan of a project that was never scanned the first one", async () => {
+    serve({
+      "projects.list": () => answer([{ ...ROW, scan: null }]),
+      "status.info": () => answer(STATUS),
+    });
+    setLanguage("en");
+    const stop = await shown();
+    FakeSocket.last?.send(RUNNING);
+    await screen.findByText("Scan running");
+    expect(document.body).toHaveTextContent("shop · full (first scan)");
+    stop();
+  });
+
+  it("calls the running scan of a project that was scanned before incremental", async () => {
+    setLanguage("en");
+    const stop = await shown();
+    FakeSocket.last?.send(RUNNING);
+    await screen.findByText("Scan running");
+    expect(document.body).toHaveTextContent("shop · incremental");
+    expect(screen.queryByText(/first scan/)).toBeNull();
+    stop();
+  });
+
   it("shows a share only for a stage that counts, and a moving bar for one that cannot", async () => {
     setLanguage("en");
     const stop = await shown();

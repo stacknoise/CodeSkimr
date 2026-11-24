@@ -30,7 +30,7 @@ import { LeftOut } from "./LeftOut";
 import { Pipeline } from "./Pipeline";
 import { Progress } from "./Progress";
 import { Recent } from "./Recent";
-import { latestRun, scanSeconds } from "./run";
+import { latestRun } from "./run";
 import type { BudgetTargets, Run } from "./types";
 import styles from "./ScanScreen.module.css";
 
@@ -65,9 +65,15 @@ export function positionText(row: ProjectRow): string | null {
   return parts.length === 0 ? null : parts.join(BRANCH_COMMIT_JOIN);
 }
 
+function duration(run: Run | undefined): number | null {
+  return run?.endedAt == null
+    ? null
+    : Math.max(run.endedAt - run.startedAt - run.packLoadMs, 0) / MS_PER_SECOND;
+}
+
 /** Lines per second of a finished full scan, else `null`. */
 function linesPerSecond(row: ProjectRow | undefined, run: Run | undefined): number | null {
-  const took = scanSeconds(run);
+  const took = duration(run);
   const full = row?.scan?.mode === SCAN_MODE.full;
   return run?.state === STATE.done && full && took !== null && took > 0 ? row.loc / took : null;
 }
@@ -79,7 +85,7 @@ function measured(row: ProjectRow | undefined, run: Run | undefined): Measured {
   if (start != null) {
     result.cold_start = start;
   }
-  const took = scanSeconds(run);
+  const took = duration(run);
   if (run?.state === STATE.done && row?.scan?.mode === SCAN_MODE.incremental && took !== null) {
     result.incremental_rescan = took * MS_PER_SECOND;
   }
@@ -162,7 +168,7 @@ function Meta(props: { project: ProjectRow; run: Run | undefined }) {
       {props.project.name} ·{" "}
       <Show when={positionText(props.project)}>{(place) => <>{place()} · </>}</Show>
       {modeText(props.project, props.run)}
-      <Show when={scanSeconds(props.run)}>
+      <Show when={duration(props.run)}>
         {(took) => (
           <>
             {" "}
