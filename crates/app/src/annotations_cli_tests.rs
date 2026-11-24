@@ -44,6 +44,7 @@ impl World {
             credential: None,
             json: false,
             watch: false,
+            name: None,
         };
         let global = GlobalOptions::default();
         let session =

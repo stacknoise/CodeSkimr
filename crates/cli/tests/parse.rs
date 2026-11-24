@@ -34,6 +34,7 @@ fn scan_takes_a_source_a_branch_and_the_json_switch() {
             json: true,
             watch: false,
             credential: None,
+            name: None,
         })
     );
 }

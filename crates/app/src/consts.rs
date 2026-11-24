@@ -99,6 +99,13 @@ pub const MAX_PARALLEL_SCANS: usize = 4;
 pub const MAX_GIT_URL_CHARS: usize = 2048;
 /// Longest branch name that is accepted, in characters.
 pub const MAX_BRANCH_CHARS: usize = 255;
+/// The longest display name of a project, in characters.
+pub const MAX_PROJECT_NAME_CHARS: usize = 80;
+/// Folder names that tell little on their own; a project in such a folder is named after the
+/// folder above it as well (`webshop/src`).
+pub const GENERIC_FOLDER_NAMES: &[&str] = &["src", "source", "sources", "lib", "www"];
+/// Joins the parent folder name and a generic folder name in the default project name.
+pub const NAME_PART_SEPARATOR: char = '/';
 /// A Git address or branch name that starts with this could be read as an option by `git` or `ssh`.
 pub const OPTION_MARKER: char = '-';
 /// Characters that no branch name may hold (`git check-ref-format`), besides whitespace and

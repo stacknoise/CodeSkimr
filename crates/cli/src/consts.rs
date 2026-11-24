@@ -76,6 +76,10 @@ pub const ARG_HOST: &str = "host";
 pub const VALUE_HOST: &str = "URL";
 /// Argument id and long flag of the credential of a Git source.
 pub const ARG_CREDENTIAL: &str = "credential";
+/// Argument id and long flag of the display name of a project (`scan --name`).
+pub const ARG_NAME: &str = "name";
+/// Placeholder shown for the display name.
+pub const VALUE_NAME: &str = "NAME";
 
 /// Sub-command that lists the error codes or explains one.
 pub const COMMAND_CODES: &str = "codes";

@@ -14,6 +14,7 @@ error-CFG-103 = A configuration file or flag sets a setting that does not exist.
 error-CFG-104 = The file `.codeskimr.toml` in the project folder could not be written. Check that the folder is writable.
 error-CFG-105 = Level 2 is not switched on in your configuration file. CodeSkimr never changes that switch itself.
 error-PRJ-101 = The source is neither an existing folder nor a valid Git URL.
+error-PRJ-102 = The display name is empty, has control or invisible characters or is too long.
 error-PRJ-201 = The project is not registered. Scan its folder first with `codeskimr scan`.
 error-PRJ-301 = A project with the same source is already registered.
 error-PRJ-302 = A scan for this project is already running.

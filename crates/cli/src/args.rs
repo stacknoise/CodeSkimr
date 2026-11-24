@@ -60,6 +60,8 @@ pub struct ScanArgs {
     pub watch: bool,
     /// Name of the stored credential that logs in to a Git source.
     pub credential: Option<String>,
+    /// Display name of the project; it also renames a project that is registered already.
+    pub name: Option<String>,
 }
 
 /// Arguments of `codeskimr mcp`.

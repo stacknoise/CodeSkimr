@@ -143,3 +143,34 @@
     font-size: 12px;
     color: var(--ink);
 }
+
+.rename {
+    display: flex;
+    gap: var(--space-8);
+    align-items: center;
+}
+
+.renameInput {
+    height: 30px;
+    min-width: 0;
+    flex: 1 1 160px;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    color: var(--ink);
+    padding: 0 var(--space-10);
+    font: 13px var(--font-sans);
+}
+
+.pencil {
+    border: 0;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0 var(--space-4);
+    font: 12px var(--font-sans);
+}
+
+.pencil:hover {
+    color: var(--accent);
+}

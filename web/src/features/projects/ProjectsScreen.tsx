@@ -14,6 +14,7 @@ import {
   projects,
   projectsLoaded,
   refreshProjects,
+  cancelRename,
   removeProject,
   rescanProject,
 } from "./projects";
@@ -140,6 +141,8 @@ export function ProjectsScreen() {
   const selection = useSelection(projects, activeProject());
   onMount(() => void refreshProjects());
   onCleanup(closeRemoveQuestion);
+  // An open name edit does not wait for the next visit.
+  onCleanup(cancelRename);
   useToolsCheck(selection.selected);
   useLevel2States(selection.selected);
   const selectedRow = () => projects().find((row) => row.id === selection.selected());

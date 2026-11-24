@@ -9,9 +9,9 @@ use clap::{Arg, ArgAction, ArgMatches, Command};
 use codeskimr_codes::i18n::{
     CLI_ABOUT, CLI_ARG_BRANCH, CLI_ARG_CONFIG, CLI_ARG_CONSOLE, CLI_ARG_DATA_DIR,
     CLI_ARG_EXPORT_PROJECT, CLI_ARG_HTML, CLI_ARG_JSON, CLI_ARG_LANGUAGES, CLI_ARG_NO_BROWSER,
-    CLI_ARG_PATHS, CLI_ARG_PRINT_URL, CLI_ARG_PROJECT, CLI_ARG_SCAN_CREDENTIAL, CLI_ARG_SET,
-    CLI_ARG_SOURCE, CLI_ARG_WATCH, CLI_CMD_CHECK, CLI_CMD_EXPORT, CLI_CMD_MCP, CLI_CMD_OPEN,
-    CLI_CMD_SCAN, CLI_CMD_SERVE,
+    CLI_ARG_PATHS, CLI_ARG_PRINT_URL, CLI_ARG_PROJECT, CLI_ARG_SCAN_CREDENTIAL, CLI_ARG_SCAN_NAME,
+    CLI_ARG_SET, CLI_ARG_SOURCE, CLI_ARG_WATCH, CLI_CMD_CHECK, CLI_CMD_EXPORT, CLI_CMD_MCP,
+    CLI_CMD_OPEN, CLI_CMD_SCAN, CLI_CMD_SERVE,
 };
 use codeskimr_i18n::Messages;
 
@@ -23,11 +23,12 @@ use crate::codes;
 use crate::consent;
 use crate::consts::{
     ARG_BRANCH, ARG_CONFIG, ARG_CONSOLE, ARG_CREDENTIAL, ARG_DATA_DIR, ARG_EXPORT_PROJECT,
-    ARG_HTML, ARG_JSON, ARG_LANGUAGES, ARG_NO_BROWSER, ARG_PATHS, ARG_PRINT_URL, ARG_PROJECT,
-    ARG_SET, ARG_SOURCE, ARG_WATCH, BINARY_NAME, COMMAND_ALERTS, COMMAND_ANNOTATIONS,
+    ARG_HTML, ARG_JSON, ARG_LANGUAGES, ARG_NAME, ARG_NO_BROWSER, ARG_PATHS, ARG_PRINT_URL,
+    ARG_PROJECT, ARG_SET, ARG_SOURCE, ARG_WATCH, BINARY_NAME, COMMAND_ALERTS, COMMAND_ANNOTATIONS,
     COMMAND_CHECK, COMMAND_CODES, COMMAND_CREDENTIAL, COMMAND_EXPORT, COMMAND_LEVEL2, COMMAND_MCP,
     COMMAND_OPEN, COMMAND_SCAN, COMMAND_SERVE, OVERRIDE_SEPARATOR, VALUE_BRANCH, VALUE_DIR,
-    VALUE_EXPORT_PROJECT, VALUE_FILE, VALUE_ID, VALUE_OVERRIDE, VALUE_PATH, VALUE_SOURCE, VERSION,
+    VALUE_EXPORT_PROJECT, VALUE_FILE, VALUE_ID, VALUE_NAME, VALUE_OVERRIDE, VALUE_PATH,
+    VALUE_SOURCE, VERSION,
 };
 use crate::credential;
 use crate::error::CliError;
@@ -139,6 +140,12 @@ fn scan_command(messages: &Messages, language: &str) -> Result<Command, CliError
                 .long(ARG_CREDENTIAL)
                 .value_name(VALUE_ID)
                 .help(say(CLI_ARG_SCAN_CREDENTIAL)?),
+        )
+        .arg(
+            Arg::new(ARG_NAME)
+                .long(ARG_NAME)
+                .value_name(VALUE_NAME)
+                .help(say(CLI_ARG_SCAN_NAME)?),
         ))
 }
 
@@ -240,6 +247,7 @@ fn scan_args(scan: &ArgMatches) -> ScanArgs {
         json: scan.get_flag(ARG_JSON),
         watch: scan.get_flag(ARG_WATCH),
         credential: scan.get_one::<String>(ARG_CREDENTIAL).cloned(),
+        name: scan.get_one::<String>(ARG_NAME).cloned(),
     }
 }
 

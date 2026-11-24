@@ -37,6 +37,7 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | `APP-603` | das Programm konnte sich nicht im Hintergrund starten oder sein Tray-Symbol nicht anzeigen | mit `--console` starten, dann bleibt es im Fenster; das Log liegt im Datenordner (`codeskimr.log`) |
 | `APP-604` | das Konsolenfenster für die Bestätigung von Ebene 2 ließ sich nicht starten | den angezeigten Befehl kopieren und in einem Terminal ausführen |
 | `APP-602` | die im Programm enthaltenen Sprachpakete konnten nicht in den Datenordner geschrieben werden | Platz schaffen und Rechte des Datenordners prüfen; ein Ordner `languages/` neben dem Programm (mit mindestens einem `<Sprache>/language.toml`) wird stattdessen genutzt ([Installation](installation.md#bauen)) |
+| `PRJ-102` | der Anzeigename eines Projekts ist leer, enthält Steuer- oder unsichtbare Zeichen oder ist länger als 80 Zeichen | kürzeren Namen ohne Zeilenumbruch eingeben |
 | `PRJ-101` | die Quelle ist weder ein vorhandener Ordner noch eine gültige Git-Adresse, oder die Adresse enthält Geheimnisse oder Leerzeichen oder beginnt mit einem Bindestrich, oder der Branchname ist ungültig, oder der Ordner ist relativ | absoluten Pfad angeben; Geheimnisse aus der Adresse nehmen ([Quellen und Zugangsdaten](quellen-und-zugangsdaten.md)) |
 | `PRJ-201` | kein solches Projekt | zuerst eintragen und scannen |
 | `PRJ-302` | ein Scan dieses Projekts läuft schon (auch beim Entfernen des Projekts) | abwarten oder abbrechen |
