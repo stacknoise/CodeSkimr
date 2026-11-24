@@ -177,6 +177,16 @@ pub const SNAPSHOT_CONTENT_DELETE: &[&str] = &[
     "DELETE FROM snapshot_statistics WHERE snapshot_id = ?1",
     "DELETE FROM files WHERE snapshot_id = ?1",
 ];
+/// The big tables of a snapshot, deleted a part at a time when a project is removed: snapshot and
+/// the number of rows of one part, less one. Each deletes the first rows in the order of the primary
+/// key, so that a statement holds the store only for the time of that part, not of all rows.
+pub const SNAPSHOT_PART_DELETE: &[&str] = &[
+    "DELETE FROM search_index WHERE snapshot_id = ?1 AND symbol_id <= COALESCE((SELECT symbol_id FROM search_index WHERE snapshot_id = ?1 ORDER BY symbol_id LIMIT 1 OFFSET ?2), 9223372036854775807)",
+    "DELETE FROM usage_counts WHERE snapshot_id = ?1 AND symbol_id <= COALESCE((SELECT symbol_id FROM usage_counts WHERE snapshot_id = ?1 ORDER BY symbol_id LIMIT 1 OFFSET ?2), 9223372036854775807)",
+    "DELETE FROM type_summary WHERE snapshot_id = ?1 AND symbol_id <= COALESCE((SELECT symbol_id FROM type_summary WHERE snapshot_id = ?1 ORDER BY symbol_id LIMIT 1 OFFSET ?2), 9223372036854775807)",
+    "DELETE FROM symbol_statistics WHERE snapshot_id = ?1 AND symbol_id <= COALESCE((SELECT symbol_id FROM symbol_statistics WHERE snapshot_id = ?1 ORDER BY symbol_id LIMIT 1 OFFSET ?2), 9223372036854775807)",
+    "DELETE FROM coupling_rows WHERE snapshot_id = ?1 AND symbol_id <= COALESCE((SELECT symbol_id FROM coupling_rows WHERE snapshot_id = ?1 ORDER BY symbol_id LIMIT 1 OFFSET ?2), 9223372036854775807)",
+];
 /// Empties the layer graph of a snapshot before it is built again for other layers: snapshot.
 pub const LAYER_GRAPH_DELETE: &str = "DELETE FROM layer_graph WHERE snapshot_id = ?1";
 /// The read models of a snapshot, emptied before they are built again: snapshot.

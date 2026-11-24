@@ -3,7 +3,14 @@ import { Icon } from "../../shared/ui/Icon";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { RENAME_ICON, RENAME_ICON_SIZE } from "./consts";
-import { cancelRename, renamingProject, saveRename, startRename, typeRename } from "./projects";
+import {
+  cancelRename,
+  renameSaving,
+  renamingProject,
+  saveRename,
+  startRename,
+  typeRename,
+} from "./projects";
 import styles from "./ProjectTable.module.css";
 
 /** The name of a project row with its rename button. While the name is edited the input, "Save" and
@@ -28,8 +35,13 @@ export function RenameField(props: { id: number; name: string }) {
           spellcheck={false}
           autocomplete="off"
         />
-        <button type="submit" class={styles.action}>
-          {t(I18N_KEYS.PROJECTS_RENAME_SAVE)}
+        <button
+          type="submit"
+          class={styles.action}
+          disabled={renameSaving()}
+          aria-busy={renameSaving()}
+        >
+          {renameSaving() ? t(I18N_KEYS.PROJECTS_RENAME_SAVING) : t(I18N_KEYS.PROJECTS_RENAME_SAVE)}
         </button>
         <button type="button" class={styles.action} onClick={cancelRename}>
           {t(I18N_KEYS.PROJECTS_RENAME_CANCEL)}

@@ -158,6 +158,10 @@ pub const REMOVAL_FILES_PER_SLICE: usize = 500;
 /// Pause between two slices of a removal, in milliseconds. A write of another process waits with
 /// growing pauses of up to 100 ms, so a shorter pause would hardly ever let it in.
 pub const REMOVAL_PAUSE_MS: u64 = 150;
+/// How many rows of one of the big tables of a snapshot a removal deletes in one write: a write
+/// that deletes rows with their indexes takes about 7 microseconds a row, so this is about a tenth
+/// of a second, the time another writer (a rename) waits at most.
+pub const REMOVAL_ROWS_PER_PART: usize = 10_000;
 
 /// Position of the kind in a row of `REFERENCE_TARGETS`.
 pub const REFERENCE_KIND_COLUMN: usize = 2;
