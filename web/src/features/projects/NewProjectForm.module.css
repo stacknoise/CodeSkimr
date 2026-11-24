@@ -35,6 +35,17 @@
     flex: 1 1 380px;
 }
 
+.name {
+    height: 36px;
+    width: 200px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    color: var(--ink);
+    padding: 0 var(--space-12);
+    font: 13px var(--font-sans);
+}
+
 .branch {
     width: 110px;
     padding: 0 var(--space-10);

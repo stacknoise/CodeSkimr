@@ -82,6 +82,7 @@ cli-arg-user = Benutzername, der zum Geheimnis gehört
 cli-arg-provider = Die Plattform, bei der angemeldet wird
 cli-arg-client-id = Kennung der OAuth-Anwendung, die bei der Plattform registriert ist
 cli-arg-host = Adresse einer selbst betriebenen Installation, zum Beispiel https://git.example.com
+cli-arg-scan-name = Anzeigename des Projekts; benennt auch ein schon eingetragenes Projekt um
 cli-arg-scan-credential = Name gespeicherter Zugangsdaten, mit denen die Git-Quelle angemeldet wird (siehe Befehl credential)
 cli-credential-stored = Zugangsdaten { $id } gespeichert.
 cli-credential-deleted = Zugangsdaten { $id } entfernt.

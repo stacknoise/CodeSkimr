@@ -195,6 +195,14 @@ description = "The given source is neither an existing folder nor a valid Git UR
 since = "0.1.0"
 
 [[codes]]
+id = "PRJ-102"
+name = "project_name_invalid"
+severity = "error"
+retryable = false
+description = "The display name of a project is empty, has control characters or is too long."
+since = "1.0.0"
+
+[[codes]]
 id = "PRJ-201"
 name = "project_not_found"
 severity = "error"

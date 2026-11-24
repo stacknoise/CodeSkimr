@@ -46,6 +46,7 @@ pub(crate) fn session(folder: &Path, locations: &Locations) -> Session {
         credential: None,
         json: false,
         watch: false,
+        name: None,
     };
     scan::open(
         scan::prepare(&args).unwrap(),

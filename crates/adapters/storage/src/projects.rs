@@ -92,6 +92,20 @@ impl SqliteStore {
         .map_err(CodedError::from)
     }
 
+    /// Gives the project a new display name; source, scans and layers stay as they are.
+    ///
+    /// # Errors
+    /// `PRJ-201` if the project does not exist, otherwise a coded `STO` failure.
+    pub fn rename_project(&self, id: ProjectId, name: ProjectName) -> Result<Project, CodedError> {
+        self.write(|tx| {
+            let mut project = load_project(tx, id)?;
+            project.name = name;
+            save(tx, &project)?;
+            Ok(project)
+        })
+        .map_err(CodedError::from)
+    }
+
     /// The project registered for `source`, or a new one with the next free id, in one
     /// transaction: two processes that register at the same time never get the same id.
     ///

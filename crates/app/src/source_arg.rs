@@ -9,10 +9,11 @@ use codeskimr_domain::{BranchName, CredentialId, FolderPath, GitUrl, ProjectName
 
 use crate::consts::{
     AUTHORITY_END, BRANCH_FORBIDDEN, BRANCH_FORBIDDEN_ENDS, BRANCH_FORBIDDEN_PARTS,
-    BRANCH_SEPARATOR, DEFAULT_BRANCH, GIT_URL_PREFIXES, GIT_URL_SUFFIX, HTTP_SCHEME,
-    MAX_BRANCH_CHARS, MAX_GIT_URL_CHARS, NO_SCHEME, OPTION_MARKER, PASSWORD_SEPARATOR,
-    QUERY_MARKERS, SCHEME_SEPARATOR, SCP_PATH_SEPARATOR, TRANSPORT_HELPER_MARKER,
-    URL_PATH_SEPARATOR, USERINFO_MARKER, VERBATIM_PREFIX, VERBATIM_UNC, is_reserved_credential,
+    BRANCH_SEPARATOR, DEFAULT_BRANCH, GENERIC_FOLDER_NAMES, GIT_URL_PREFIXES, GIT_URL_SUFFIX,
+    HTTP_SCHEME, MAX_BRANCH_CHARS, MAX_GIT_URL_CHARS, MAX_PROJECT_NAME_CHARS, NAME_PART_SEPARATOR,
+    NO_SCHEME, OPTION_MARKER, PASSWORD_SEPARATOR, QUERY_MARKERS, SCHEME_SEPARATOR,
+    SCP_PATH_SEPARATOR, TRANSPORT_HELPER_MARKER, URL_PATH_SEPARATOR, USERINFO_MARKER,
+    VERBATIM_PREFIX, VERBATIM_UNC, is_reserved_credential,
 };
 
 /// Why an argument is not a source.
@@ -24,11 +25,16 @@ pub enum SourceError {
     HasCredentials,
     /// A credential was named for a folder, or its name is empty.
     CredentialNotUsable,
+    /// The display name is empty, has control characters or is too long.
+    NameInvalid,
 }
 
 impl From<SourceError> for CodedError {
-    fn from(_: SourceError) -> Self {
-        invalid()
+    fn from(error: SourceError) -> Self {
+        match error {
+            SourceError::NameInvalid => CodedError::new(ErrorCode::ProjectNameInvalid),
+            _ => invalid(),
+        }
     }
 }
 
@@ -39,6 +45,8 @@ pub struct SourceSpec {
     pub source: ProjectSource,
     /// Display name of the project.
     pub name: ProjectName,
+    /// The user chose the name; a project that is registered already takes it over.
+    pub named: bool,
 }
 
 impl SourceSpec {
@@ -53,6 +61,17 @@ impl SourceSpec {
 }
 
 impl SourceSpec {
+    /// The same source under a name the user chose.
+    ///
+    /// # Errors
+    /// [`SourceError::NameInvalid`] (`PRJ-102`) if the name is empty, has control characters or is
+    /// too long.
+    pub fn with_name(mut self, name: &str) -> Result<Self, SourceError> {
+        self.name = display_name(name)?;
+        self.named = true;
+        Ok(self)
+    }
+
     /// The same source, logging in with the stored credential `name`.
     ///
     /// # Errors
@@ -97,13 +116,41 @@ pub fn folder_spec(folder: &Path) -> Result<SourceSpec, CodedError> {
         return Err(invalid());
     }
     let text = display_path(&canonical.to_string_lossy());
-    let name = canonical
-        .file_name()
-        .map_or_else(|| text.clone(), |name| name.to_string_lossy().into_owned());
+    let name = default_folder_name(&canonical).unwrap_or_else(|| text.clone());
     Ok(SourceSpec {
         source: ProjectSource::Folder(FolderPath::new(text).map_err(|_| invalid())?),
         name: ProjectName::new(name).map_err(|_| invalid())?,
+        named: false,
     })
+}
+
+/// The display name that the user typed: trimmed, not empty, one line and not too long.
+///
+/// # Errors
+/// [`SourceError::NameInvalid`] (`PRJ-102`) otherwise.
+pub fn display_name(text: &str) -> Result<ProjectName, SourceError> {
+    let text = text.trim();
+    if text.chars().count() > MAX_PROJECT_NAME_CHARS || text.chars().any(char::is_control) {
+        return Err(SourceError::NameInvalid);
+    }
+    ProjectName::new(text).map_err(|_| SourceError::NameInvalid)
+}
+
+/// The default name of a folder: its own name, or with the parent's name in front if the folder
+/// is called something like `src`, which would name many projects alike.
+fn default_folder_name(folder: &Path) -> Option<String> {
+    let own = folder.file_name()?.to_string_lossy().into_owned();
+    let generic = GENERIC_FOLDER_NAMES
+        .iter()
+        .any(|name| name.eq_ignore_ascii_case(&own));
+    let parent = folder.parent().and_then(Path::file_name);
+    match parent {
+        Some(parent) if generic => Some(format!(
+            "{}{NAME_PART_SEPARATOR}{own}",
+            parent.to_string_lossy()
+        )),
+        _ => Some(own),
+    }
 }
 
 /// Windows answers `canonicalize` with a `\\?\C:\…` path; the plain form is what users know.
@@ -167,6 +214,25 @@ fn has_transport_helper(url: &str) -> bool {
     head.contains(TRANSPORT_HELPER_MARKER)
 }
 
+/// The default name of a repository: the last part of its address without `.git`.
+fn git_default_name(url: &str) -> &str {
+    url.trim_end_matches(URL_PATH_SEPARATOR)
+        .trim_end_matches(GIT_URL_SUFFIX)
+        .rsplit([URL_PATH_SEPARATOR, SCP_PATH_SEPARATOR])
+        .next()
+        .unwrap_or(url)
+}
+
+/// The name a project gets if the user chose none: what [`classify`] makes of its source.
+#[must_use]
+pub fn default_name(source: &ProjectSource) -> Option<ProjectName> {
+    let name = match source {
+        ProjectSource::Folder(folder) => default_folder_name(Path::new(folder.as_str()))?,
+        ProjectSource::Git { url, .. } => git_default_name(url.as_str()).to_owned(),
+    };
+    ProjectName::new(name).ok()
+}
+
 fn git_spec(url: &str, branch: &str) -> Result<SourceSpec, SourceError> {
     if has_credentials(url) {
         return Err(SourceError::HasCredentials);
@@ -179,12 +245,7 @@ fn git_spec(url: &str, branch: &str) -> Result<SourceSpec, SourceError> {
         return Err(SourceError::NotASource);
     }
     let rejected = |_| SourceError::NotASource;
-    let name = url
-        .trim_end_matches(URL_PATH_SEPARATOR)
-        .trim_end_matches(GIT_URL_SUFFIX)
-        .rsplit([URL_PATH_SEPARATOR, SCP_PATH_SEPARATOR])
-        .next()
-        .unwrap_or(url);
+    let name = git_default_name(url);
     Ok(SourceSpec {
         source: ProjectSource::Git {
             url: GitUrl::new(url).map_err(rejected)?,
@@ -192,6 +253,7 @@ fn git_spec(url: &str, branch: &str) -> Result<SourceSpec, SourceError> {
             credential: None,
         },
         name: ProjectName::new(name).map_err(rejected)?,
+        named: false,
     })
 }
 
@@ -236,6 +298,28 @@ mod tests {
         assert_eq!(name_of("https://example.com/org/repo.git"), "repo");
         assert_eq!(name_of("git@example.com:org/tool.git"), "tool");
         assert_eq!(name_of("https://example.com/org/plain/"), "plain");
+    }
+
+    #[test]
+    fn a_generic_folder_name_gets_the_name_of_its_parent_in_front() {
+        let root = tempfile::tempdir().unwrap();
+        let generic = root.path().join("shop").join("SRC");
+        let plain = root.path().join("shop").join("billing");
+        fs::create_dir_all(&generic).unwrap();
+        fs::create_dir_all(&plain).unwrap();
+        let name = |folder: &Path| folder_spec(folder).unwrap().name.to_string();
+        assert_eq!(name(&generic), "shop/SRC");
+        assert_eq!(name(&plain), "billing");
+    }
+
+    #[test]
+    fn a_chosen_name_is_trimmed_and_checked() {
+        let spec = classify("https://example.com/org/repo.git", None).unwrap();
+        let named = spec.clone().with_name("  Shop  ").unwrap();
+        assert_eq!((named.name.as_str(), named.named), ("Shop", true));
+        for bad in ["", "   ", "a\nb", &"x".repeat(MAX_PROJECT_NAME_CHARS + 1)] {
+            assert_eq!(spec.clone().with_name(bad), Err(SourceError::NameInvalid));
+        }
     }
 
     #[test]

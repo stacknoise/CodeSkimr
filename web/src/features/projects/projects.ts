@@ -26,6 +26,55 @@ const [checkedTools, setCheckedTools] = createSignal<ReadonlyMap<number, ToolsIn
 const [checking, setChecking] = createSignal<ReadonlySet<number>>(new Set());
 const [lastSeconds, setLastSeconds] = createSignal<ReadonlyMap<number, number>>(new Map());
 
+/** The project whose name is being edited and what has been typed so far. It lives here, not in
+ * the row: the list is read again while a scan runs and would drop the input of a row. */
+const [renaming, setRenaming] = createSignal<{ id: number; text: string } | null>(null);
+
+/** The name edit that is open, or `null`. */
+export const renamingProject = renaming;
+/** Opens the name edit of a project with its current name. */
+export function startRename(id: number, current: string): void {
+  setRenaming({ id, text: current });
+}
+/** Keeps what the user typed. */
+export function typeRename(text: string): void {
+  setRenaming((open) => (open === null ? null : { ...open, text }));
+}
+/** Closes the name edit without saving. */
+export function cancelRename(): void {
+  setRenaming(null);
+}
+
+/** Saves the typed name of the open edit; an empty name goes back to the suggested one. Returns
+ * whether it worked; a failure stays on the screen and the edit stays open. */
+export async function saveRename(): Promise<boolean> {
+  const open = renaming();
+  if (open === null) {
+    return false;
+  }
+  setActionFailure(null);
+  try {
+    await runCommand(COMMAND.rename, { project: open.id, name: open.text });
+    setRenaming(null);
+    return true;
+  } catch (error) {
+    setActionFailure(failed(error));
+    return false;
+  } finally {
+    await refreshProjects();
+  }
+}
+
+/** The name that a source would get, or `null` if the text is no source (yet) or unanswered. */
+export async function suggestName(source: string): Promise<string | null> {
+  try {
+    const answer = await runCommand<{ name: string | null }>(COMMAND.suggestName, { source });
+    return answer.name;
+  } catch {
+    return null;
+  }
+}
+
 /** Ids of the projects that existed when the user added a new one; `null` while none is added. */
 let knownAtAdd: ReadonlySet<number> | null = null;
 
@@ -122,11 +171,17 @@ export async function addProject(
   source: string,
   branch: string,
   credential?: string,
+  name?: string,
 ): Promise<boolean> {
   setAdding(true);
   setActionFailure(null);
   knownAtAdd = new Set(rows().map((row) => row.id));
-  const input = credential ? { source, branch, credential } : { source, branch };
+  const input = {
+    source,
+    branch,
+    ...(credential ? { credential } : {}),
+    ...(name ? { name } : {}),
+  };
   try {
     remember(await whileReading(() => runCommand<Scanned>(COMMAND.add, input)));
     return true;

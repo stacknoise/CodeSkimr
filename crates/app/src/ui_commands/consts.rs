@@ -10,6 +10,18 @@ pub const PROJECTS_ADD: &str = "projects.add";
 pub const PROJECTS_RESCAN: &str = "projects.rescan";
 /// Id of the command that removes a project from the app.
 pub const PROJECTS_REMOVE: &str = "projects.remove";
+/// Id of the command that renames a project.
+pub const PROJECTS_RENAME: &str = "projects.rename";
+/// Title key of `projects.rename`.
+pub const RENAME_TITLE: &str = i18n::COMMAND_PROJECTS_RENAME_TITLE;
+/// Description key of `projects.rename`.
+pub const RENAME_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_RENAME_DESCRIPTION;
+/// Id of the command that tells the name a source would get.
+pub const PROJECTS_SUGGEST_NAME: &str = "projects.suggest_name";
+/// Title key of `projects.suggest_name`.
+pub const SUGGEST_NAME_TITLE: &str = i18n::COMMAND_PROJECTS_SUGGEST_NAME_TITLE;
+/// Description key of `projects.suggest_name`.
+pub const SUGGEST_NAME_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_SUGGEST_NAME_DESCRIPTION;
 /// Id of the command that tells whether a folder dialog exists on this machine.
 pub const PROJECTS_FOLDER_DIALOG: &str = "projects.folder_dialog";
 /// Id of the command that shows the folder dialog.

@@ -7,6 +7,8 @@ export const COMMAND = {
   add: "projects.add",
   rescan: "projects.rescan",
   remove: "projects.remove",
+  rename: "projects.rename",
+  suggestName: "projects.suggest_name",
   tools: "projects.tools",
 } as const;
 

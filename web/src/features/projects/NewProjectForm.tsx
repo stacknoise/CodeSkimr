@@ -9,7 +9,7 @@ import { BrowseButton, BrowseWaiting, useBrowse } from "./BrowseButton";
 import { failureText } from "./failure";
 import { readFolderDialog } from "./folderDialog";
 import { credentialNames, refreshCredentials } from "./credentials";
-import { addProject, projectAdding, projectsFailure, type Failure } from "./projects";
+import { addProject, projectAdding, projectsFailure, suggestName, type Failure } from "./projects";
 import styles from "./NewProjectForm.module.css";
 
 /** Props of the form: the source field belongs to the screen, which fills it on a drop and
@@ -148,8 +148,54 @@ function GitFields(props: {
   );
 }
 
+/** The display name: filled with the name that the source would get until the user types one.
+ * Only a typed name is sent, so adding a known source again never resets its name. */
+function useName(source: () => string) {
+  const [name, setName] = createSignal("");
+  const [typed, setTyped] = createSignal(false);
+  let asked = 0;
+  createEffect(() => {
+    const text = source().trim();
+    const ticket = ++asked;
+    if (text === "") {
+      setTyped(false);
+    }
+    void (text === "" ? Promise.resolve(null) : suggestName(text)).then((suggested) => {
+      if (ticket === asked && !typed()) {
+        setName(suggested ?? "");
+      }
+    });
+  });
+  const type = (value: string) => {
+    setTyped(value !== "");
+    setName(value);
+  };
+  const sent = () => (typed() ? name().trim() : "");
+  return { name, type, sent };
+}
+
+/** The optional display name next to the source. */
+function NameField(props: { value: string; onType: (value: string) => void }) {
+  return (
+    <>
+      <label for="project-name" class={styles.branchLabel}>
+        {t(I18N_KEYS.PROJECTS_FIELD_NAME)}
+      </label>
+      <input
+        id="project-name"
+        class={styles.name}
+        value={props.value}
+        title={t(I18N_KEYS.PROJECTS_NAME_HINT)}
+        onInput={(event) => props.onType(event.currentTarget.value)}
+        spellcheck={false}
+        autocomplete="off"
+      />
+    </>
+  );
+}
+
 /** Sends the form: the source, and for a Git source the branch and the stored login. */
-function useSubmit(props: NewProjectFormProps, kind: () => SourceKind) {
+function useSubmit(props: NewProjectFormProps, kind: () => SourceKind, name: () => string) {
   let branch = DEFAULT_BRANCH;
   const [credential, setCredential] = createSignal("");
   const submit = async (event: SubmitEvent) => {
@@ -159,7 +205,10 @@ function useSubmit(props: NewProjectFormProps, kind: () => SourceKind) {
     }
     const git = kind() === SOURCE_KIND.git;
     const source = props.source.trim();
-    if (await addProject(source, git ? branch.trim() : DEFAULT_BRANCH, git ? credential() : "")) {
+    const given = name();
+    if (
+      await addProject(source, git ? branch.trim() : DEFAULT_BRANCH, git ? credential() : "", given)
+    ) {
       props.onSource("");
     }
   };
@@ -177,7 +226,8 @@ function useSubmit(props: NewProjectFormProps, kind: () => SourceKind) {
 export function NewProjectForm(props: NewProjectFormProps) {
   const [kind, setKind] = useKind(() => props.source);
   const browse = useBrowse(props);
-  const { submit, gitFields } = useSubmit(props, kind);
+  const name = useName(() => props.source);
+  const { submit, gitFields } = useSubmit(props, kind, name.sent);
   onMount(() => {
     void refreshCredentials();
     void readFolderDialog();
@@ -191,6 +241,7 @@ export function NewProjectForm(props: NewProjectFormProps) {
       </Show>
       <BrowseWaiting />
       <Show when={kind() === SOURCE_KIND.git}>{gitFields()}</Show>
+      <NameField value={name.name()} onType={name.type} />
       <button type="submit" class={styles.button} disabled={projectAdding()}>
         {projectAdding() ? t(I18N_KEYS.PROJECTS_ADDING) : t(I18N_KEYS.PROJECTS_ADD_AND_SCAN)}
       </button>
