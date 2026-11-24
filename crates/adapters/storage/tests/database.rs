@@ -741,6 +741,35 @@ fn a_large_full_scan_removes_the_expired_snapshots_before_it_loads() {
 }
 
 #[test]
+fn a_large_full_scan_keeps_the_rows_a_retained_incremental_scan_shares() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(2)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    full_then_incremental(&store);
+    persist_counted(&store, &[(30, 300)], 25_000);
+    let conn = Connection::open(&db.0).unwrap();
+    assert_eq!(rows_of(&conn, "snapshots"), 2);
+    // Snapshot 10 expired, but snapshot 20 still shares the file a.cs with it.
+    assert_eq!(rows_of(&conn, "symbol_rows"), 2 + 1 + 2);
+    assert_eq!(rows_of(&conn, "symbol_references"), 1 + 1 + 25_000);
+}
+
+#[test]
+fn the_usage_counts_of_a_full_scan_leave_out_the_test_references() {
+    let store = common::registered_store();
+    let mut scan = scan_with_references(10, 100, 10);
+    scan.references
+        .extend((0..4).map(|offset| codeskimr_domain::Reference {
+            kind: ReferenceKind::Test,
+            ..reference(900_000 + offset, 100, 101, 102)
+        }));
+    let stored = store.persist(scan).unwrap();
+    let id = codeskimr_domain::SnapshotId::new(10);
+    assert_eq!(store.usage_count(id, SymbolId::new(102)).unwrap(), 10);
+    assert_eq!(stored.stats.references, 14);
+}
+
+#[test]
 fn symbols_that_level_two_created_are_pruned_with_their_file() {
     use codeskimr_application::ports::Level2Replacement;
     use codeskimr_domain::{FileId, SnapshotId, SymbolOrigin};

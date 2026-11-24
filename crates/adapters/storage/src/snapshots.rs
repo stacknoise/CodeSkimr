@@ -132,7 +132,7 @@ pub(crate) fn write_snapshot(
 fn finish_read_models(conn: &Connection, data: &SnapshotData) -> StorageResult<SnapshotStats> {
     let header = &data.snapshot;
     let layers = load_layers(conn, header.project)?;
-    let tests = if header.mode == ScanMode::Full {
+    let tests = if header.mode == ScanMode::Full && data.dropped_references.is_empty() {
         read_models::rebuild_loaded(conn, header.id, &layers, &data.references)?
     } else {
         read_models::rebuild(conn, header.id, &layers)?
@@ -234,12 +234,10 @@ fn prune_before_load(conn: &Connection, data: &SnapshotData, keep: u32) -> Stora
         return Ok(false);
     }
     let project = column_int(header.project.get())?;
-    let expired: i64 = conn.query_row(
-        sql::SNAPSHOTS_EXPIRED_COUNT,
-        params![project, keep],
-        |row| row.get(0),
-    )?;
-    if expired == 0 {
+    let expired = conn
+        .prepare_cached(sql::SNAPSHOTS_EXPIRED)?
+        .exists(params![project, keep])?;
+    if !expired {
         return Ok(false);
     }
     for drop in sql::REFERENCE_INDEXES_DROP {
