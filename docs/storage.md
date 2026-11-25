@@ -39,7 +39,7 @@ Blueprint 6.2, ADR 0095.
 
 A scan of 500,000 references or more is written with a page cache of 1 GiB instead of 64 MiB (`LOAD_CACHE_SIZE_KIB`), and the size it had comes back when the write ends, also after a failure. The cache is a limit: pages are taken as they are used. Its reason is that the rows of a large scan land in the three reference indexes of all stored snapshots; on a test load of 6 million references into a database of 18 million, 1 GiB and 2 GiB cut the write from 96 s to 56 s and 59 s. The cache counts against the memory ceiling of the scan (`scan.max_memory_mb`).
 
-Finding the slow step of a large write: with `CODESKIMR_LOG=info` every step of writing a snapshot logs `persist_step` with `step` (`header`, `prune_before_load`, `facts`, `reference_indexes`, `details`, `integrity`, `read_models`, `prune`) and `elapsed_ms`. `references` (the insert), `reference_indexes` and `fingerprints` are parts of `facts`, and `prune_before_load` only runs for a large full scan when snapshots beyond the retention exist.
+Finding the slow step of a large write: with `CODESKIMR_LOG=info` every step of writing a snapshot logs `persist_step` with `step` (`header`, `prune_before_load`, `facts`, `reference_indexes`, `details`, `integrity`, `read_models`, `prune`, then `commit` after the transaction ends) and `elapsed_ms`. `commit` is the time the commit took, which moves the write-ahead log into the file. `references` (the insert), `reference_indexes` and `fingerprints` are parts of `facts`, and `prune_before_load` only runs for a large full scan when snapshots beyond the retention exist.
 
 ## Known limits
 
