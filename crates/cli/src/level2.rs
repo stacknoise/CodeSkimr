@@ -1,5 +1,6 @@
 //! The lines of a scan summary that tell what level 2 did for each language (ADR 0033).
 
+use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
     CLI_LEVEL2_REASON_CANCELLED, CLI_LEVEL2_REASON_FAILED, CLI_LEVEL2_REASON_NO_PROJECT_FILE,
     CLI_LEVEL2_REASON_NOT_CONFIRMED, CLI_LEVEL2_REASON_NOT_PERMITTED, CLI_LEVEL2_REASON_STALE,
@@ -103,8 +104,20 @@ fn reason_text(
         Level2Reason::Cancelled => CLI_LEVEL2_REASON_CANCELLED,
         Level2Reason::Failed(code) => {
             args.set(arg::CODE, code.clone());
+            args.set(arg::MESSAGE, error_text(messages, language, code)?);
             CLI_LEVEL2_REASON_FAILED
         }
     };
     messages.format(language, key, Some(&args))
+}
+
+/// The text of the registered error code `code`; empty for a code this version does not know.
+fn error_text(messages: &Messages, language: &str, code: &str) -> Result<String, I18nError> {
+    ErrorCode::ALL
+        .iter()
+        .find(|known| known.id() == code)
+        .map_or_else(
+            || Ok(String::new()),
+            |known| messages.format(language, known.message_key(), None),
+        )
 }
