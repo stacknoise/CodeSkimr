@@ -193,3 +193,19 @@ fn php_is_coloured_by_its_own_pack() {
     assert_eq!(texts(&code, &spans, TokenClass::Number), ["1"]);
     assert_eq!(texts(&code, &spans, TokenClass::String), ["'x'"]);
 }
+
+#[test]
+fn types_and_escaped_strings_are_coloured_in_go_php_and_ruby() {
+    let go = ["type Box struct{}", "var s = \"a\\n\""];
+    let spans = run("a.go", &go);
+    assert!(texts(&go, &spans, TokenClass::Type).contains(&"Box".to_owned()));
+    assert_eq!(texts(&go, &spans, TokenClass::String), ["\"a\\n\""]);
+    let php = ["<?php", "class Box {}", "$s = \"a\\n\";"];
+    let spans = run("a.php", &php);
+    assert_eq!(texts(&php, &spans, TokenClass::Type), ["Box"]);
+    assert_eq!(texts(&php, &spans, TokenClass::String), ["\"a\\n\""]);
+    let rb = ["class Box", "end", "x = \"a\\n\""];
+    let spans = run("a.rb", &rb);
+    assert_eq!(texts(&rb, &spans, TokenClass::Type), ["Box"]);
+    assert_eq!(texts(&rb, &spans, TokenClass::String), ["\"a\\n\""]);
+}
