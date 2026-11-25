@@ -335,7 +335,8 @@ impl Scanner {
             return;
         };
         let lines: Vec<LanguageLine> = pass
-            .languages()
+            .languages_in(snapshot.project)
+            .into_iter()
             .map(|language| LanguageLine {
                 language: language.clone(),
                 outcome,

@@ -635,6 +635,24 @@ mod cases {
     }
 
     #[test]
+    fn the_languages_to_report_are_those_with_files() {
+        let (pass, _) = pass_for(
+            Setup {
+                files: vec![file(1, "a.c", "c")],
+                indexers: vec![("c", "scip-clang"), ("java", "scip-java")],
+                ..Setup::default()
+            },
+            &CancelToken::new(),
+        );
+        let found: Vec<String> = pass
+            .languages_in(snapshot().project)
+            .into_iter()
+            .map(|language| language.as_str().to_owned())
+            .collect();
+        assert_eq!(found, vec!["c".to_owned()]);
+    }
+
+    #[test]
     fn a_file_that_changed_since_the_scan_keeps_level_one() {
         let outcome = run(Setup {
             files: vec![file(1, "a.cs", "csharp"), file(2, "b.cs", "csharp")],
