@@ -18,7 +18,7 @@ use super::{RunPermit, ToolVersion};
 pub use crate::consts::{PLACEHOLDER_OUTPUT, PLACEHOLDER_PROJECT};
 
 /// One program the user has to install: the indexer itself or a tool of the language's toolchain.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ToolSpec {
     /// Name of the executable, looked up in the `PATH` of the user (never in the project).
     pub program: String,
@@ -29,7 +29,7 @@ pub struct ToolSpec {
 }
 
 /// How to run the indexer of one language, from `[indexer]` of the language pack.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct IndexerSpec {
     /// Name of the indexer for messages, such as `scip-dotnet`.
     pub name: String,

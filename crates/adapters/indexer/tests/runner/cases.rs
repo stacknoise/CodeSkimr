@@ -42,7 +42,6 @@ fn spec(mode: &str) -> IndexerSpec {
             version_args: vec!["--version".to_owned()],
             min_version: ToolVersion::parse("1.0.0").unwrap(),
         },
-        toolchain: Vec::new(),
         args: vec![
             mode.to_owned(),
             "{output}".to_owned(),
@@ -56,12 +55,8 @@ fn spec(mode: &str) -> IndexerSpec {
         ],
         env: vec![("FIXED_BY_PACK".to_owned(), "yes".to_owned())],
         memory_env: vec![("HEAP_BY_PACK".to_owned(), "--heap={heap_mb}".to_owned())],
-        memory_markers: Vec::new(),
-        project_files: Vec::new(),
         install_hint: "install it".to_owned(),
-        symbol_kinds: Vec::new(),
-        separator: String::new(),
-        library_root: String::new(),
+        ..IndexerSpec::default()
     }
 }
 
