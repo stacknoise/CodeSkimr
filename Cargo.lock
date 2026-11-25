@@ -548,7 +548,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_i18n"
-version = "1.0.0"
+version = "1.0.0-rc.15"
 dependencies = [
  "codeskimr_codegen",
  "codeskimr_codes",
