@@ -118,6 +118,8 @@ pub const SKIP_NOT_PERMITTED: &str = "not_permitted";
 pub const SKIP_NOT_CONFIRMED: &str = "not_confirmed";
 /// Label of `SkipReason::ToolsUnavailable`.
 pub const SKIP_TOOLS_UNAVAILABLE: &str = "tools_unavailable";
+/// Label of `SkipReason::NoProjectFile`.
+pub const SKIP_NO_PROJECT_FILE: &str = "no_project_file";
 /// Label of `SkipReason::Stale`.
 pub const SKIP_STALE: &str = "stale";
 /// Label of `SkipReason::Cancelled`.

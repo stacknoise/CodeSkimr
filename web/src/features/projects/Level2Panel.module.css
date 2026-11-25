@@ -128,3 +128,139 @@
     border-color: var(--accent);
     color: var(--accent-fg);
 }
+
+.report {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+}
+
+.group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+.groupTitle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-8);
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.badgeFailed,
+.badgeSkipped,
+.badgeChecked {
+    padding: 1px var(--space-8);
+    border-radius: var(--radius-badge);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.badgeFailed {
+    background: var(--bad-bg);
+    color: var(--bad);
+}
+
+.badgeSkipped {
+    background: var(--line-soft);
+    color: var(--ink-2);
+}
+
+.badgeChecked {
+    background: var(--good-bg);
+    color: var(--good);
+}
+
+.rows {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--line);
+    border-left-width: 3px;
+    border-radius: var(--radius-panel);
+}
+
+.rowsFailed {
+    border-color: var(--bad);
+}
+
+.rowsSkipped {
+    border-left-color: var(--warn);
+}
+
+.rowsChecked {
+    border-left-color: var(--good);
+}
+
+.reportRow {
+    display: grid;
+    grid-template-columns: 100px minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--space-12);
+    padding: var(--space-12);
+}
+
+.reportRow + .reportRow {
+    border-top: 1px solid var(--line);
+}
+
+.reason {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.reason p {
+    margin: 0;
+}
+
+.todo {
+    color: var(--ink-2);
+}
+
+.codeTag {
+    color: var(--muted);
+    font: 12px var(--font-mono);
+}
+
+.link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font: 600 12px var(--font-sans);
+    cursor: pointer;
+}
+
+.link:disabled {
+    color: var(--muted);
+    cursor: default;
+}
+
+.chips {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-8);
+    padding: var(--space-12);
+}
+
+.chip {
+    padding: 2px var(--space-8);
+    border-radius: var(--radius-badge);
+    background: var(--good-bg);
+    color: var(--good);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+@media (max-width: 640px) {
+    .reportRow {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

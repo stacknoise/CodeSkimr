@@ -61,12 +61,14 @@ mod cases {
             line("rust", 2, None),
             line("go", 0, Some(Level2Reason::NotConfirmed)),
             line("java", 0, Some(Level2Reason::Failed("RES-502".to_owned()))),
+            line("python", 0, Some(Level2Reason::NoProjectFile)),
         ];
         let en = text("en", all.clone());
         assert!(contains(&en, &["Level 2", "csharp", "checked", "4 files"]));
         assert!(contains(&en, &["rust", "2 changed"]));
         assert!(contains(&en, &["go", "skipped", "confirmed"]));
         assert!(contains(&en, &["java", "skipped", "RES-502"]));
+        assert!(contains(&en, &["python", "skipped", "project file"]));
         let de = text("de", all);
         assert!(contains(
             &de,
@@ -74,6 +76,7 @@ mod cases {
         ));
         assert!(contains(&de, &["go", "übersprungen", "bestätigt"]));
         assert!(contains(&de, &["java", "RES-502"]));
+        assert!(contains(&de, &["python", "übersprungen", "Projektdatei"]));
     }
 
     fn with_stage_times() -> ScanSummary {

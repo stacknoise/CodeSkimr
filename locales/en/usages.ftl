@@ -79,6 +79,6 @@ usages-layer-none-title = No layer assigned to this symbol
 usages-report-checked = Level 2 checked { $language }: { $files } files.
 usages-report-partial = Level 2 checked { $language } in part: { $files } files, { $stale } changed since the run and keep level 1.
 usages-report-skipped = Level 2 skipped { $language }: { $reason }.
-usages-report-failed = Level 2 failed for { $language } ({ $code }). Results of an earlier run may remain for unchanged files.
+usages-report-failed = Level 2 failed for { $language } ({ $code }): { $text } Results of an earlier run may remain for unchanged files.
 usages-report-no-indexer = Level 2 has no indexer for { $language }, so these usages stay at level 1.
 usages-report-none = No level 2 run is stored for this project. These usages are at level 1.

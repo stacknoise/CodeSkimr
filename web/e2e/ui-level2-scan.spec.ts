@@ -107,11 +107,9 @@ test.describe("the scan section (keyboard, ADR 0072)", () => {
   test("shows the report and scans stage 1 only on request", async ({ page, harness }) => {
     const fake = await serveScan(page, true);
     const panel = await openProject(page, harness, "lvsreport");
-    await expect(panel.getByText("C#: checked, 328 files, 3 changed since")).toBeVisible();
-    await expect(
-      panel.getByText(/TypeScript: skipped, not started again because of the pause/),
-    ).toBeVisible();
-    await expect(panel.getByText("Java: failed (RES-501)")).toBeVisible();
+    await expect(panel.getByText("C# · 328 files · 3 outdated")).toBeVisible();
+    await expect(panel.getByText(/not started again because of the pause/)).toBeVisible();
+    await expect(panel.getByText("RES-501")).toBeVisible();
     await showTab(page, "Overview");
     await expect(page.getByText(/Stage 2 \(browser\)/)).toBeVisible();
 
@@ -193,7 +191,7 @@ for (const theme of THEMES) {
       const fake = await serveScan(page, true);
       const panel = await openProject(page, harness, `lvsshot${theme}`);
       fake.running = true;
-      await expect(panel.getByText("Java: failed (RES-501)")).toBeVisible();
+      await expect(panel.getByText("RES-501")).toBeVisible();
       await panel.evaluate((el) => el.scrollIntoView({ block: "center" }));
       await shot(page, SHOTS, `scan-report-${theme}`, info);
       await send(fake, `lvsshot${theme}`, {

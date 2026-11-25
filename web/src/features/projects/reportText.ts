@@ -1,10 +1,14 @@
-import { t } from "../../shared/i18n/i18n";
+import { codeText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import {
+  FAILED_TODO,
+  NO_PROJECT_FILE_TEXT,
   ORIGIN_TEXT,
   OUTCOME,
   outcomeCounts,
   reasonKey,
+  SKIP_REASON,
+  SKIP_TODO,
   staleFiles,
   type LanguageReport,
   type ScanReport,
@@ -40,22 +44,60 @@ export function level2Summary(report: ScanReport): string[] {
   return lines;
 }
 
-/** The sentence about one language in the report of the second pass. */
-export function languageLine(line: LanguageReport): string {
+/** What the person can press next to a language of the report. */
+export const REPORT_ACTION = { rescan: "rescan", tools: "tools" } as const;
+
+/** One language of the report as the screen shows it: what happened, what to do, and the button. */
+export interface ReportRow {
+  language: string;
+  /** The text of the reason or of the error. */
+  text: string;
+  /** The error code of a failed language. */
+  code: string | null;
+  /** The sentence "What to do". */
+  todo: string;
+  action: (typeof REPORT_ACTION)[keyof typeof REPORT_ACTION];
+}
+
+function skippedText(line: LanguageReport): string {
+  const key =
+    line.reason === SKIP_REASON.noProjectFile
+      ? (NO_PROJECT_FILE_TEXT[line.language] ?? reasonKey(line.reason))
+      : reasonKey(line.reason);
+  return key === null ? (line.reason ?? "") : t(key);
+}
+
+/** The row of a language that failed or was skipped. */
+export function reportRow(line: LanguageReport): ReportRow {
   const language = languageName(line.language);
-  if (line.outcome === OUTCOME.checked) {
-    const files = line.files ?? 0;
-    const stale = line.stale ?? 0;
-    return stale > 0
-      ? t(I18N_KEYS.PROJECTS_REPORT_CHECKED_STALE, { language, files, stale })
-      : t(I18N_KEYS.PROJECTS_REPORT_CHECKED, { language, files });
-  }
   if (line.outcome === OUTCOME.failed) {
-    return t(I18N_KEYS.PROJECTS_REPORT_FAILED, { language, code: line.code ?? "" });
+    const code = line.code ?? "";
+    const todo = FAILED_TODO[code] ?? I18N_KEYS.PROJECTS_REPORT_TODO_RETRY;
+    return {
+      language,
+      text: codeText(code),
+      code,
+      todo: t(I18N_KEYS.PROJECTS_REPORT_TODO, { text: t(todo) }),
+      action: REPORT_ACTION.rescan,
+    };
   }
-  const key = reasonKey(line.reason);
-  return t(I18N_KEYS.PROJECTS_REPORT_SKIPPED, {
+  const todo = SKIP_TODO[line.reason ?? ""] ?? I18N_KEYS.PROJECTS_REPORT_TODO_RETRY;
+  return {
     language,
-    reason: key === null ? (line.reason ?? "") : t(key),
-  });
+    text: skippedText(line),
+    code: null,
+    todo: t(I18N_KEYS.PROJECTS_REPORT_TODO, { text: t(todo) }),
+    action:
+      line.reason === SKIP_REASON.toolsUnavailable ? REPORT_ACTION.tools : REPORT_ACTION.rescan,
+  };
+}
+
+/** The chip of a checked language. */
+export function checkedChip(line: LanguageReport): string {
+  const language = languageName(line.language);
+  const files = line.files ?? 0;
+  const stale = line.stale ?? 0;
+  return stale > 0
+    ? t(I18N_KEYS.PROJECTS_REPORT_CHIP_STALE, { language, files, stale })
+    : t(I18N_KEYS.PROJECTS_REPORT_CHIP, { language, files });
 }
