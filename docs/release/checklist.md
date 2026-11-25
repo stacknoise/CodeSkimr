@@ -16,7 +16,7 @@ Only the product owner creates the tag and publishes the release (`docs/release.
 - [x] Manual (de and en) is checked against the program: every command and option in the text exists in `codeskimr --help`, every link works, screenshots match the screens.
 - [ ] The release notes are no longer the preview notes: `docs/release/notes-de.md` and `notes-en.md` (the text of the release page) are the notes for 1.0 (accuracy statement confirmed by the product owner, 2026-11-20).
 - [ ] README and the release notes (`docs/release/`) say what is in this release and what is not (known limits, signing, installers).
-- [ ] Single files exist for all three systems with `.sha256` and provenance attestation (decision on #327: unsigned, language packs embedded); signing is the first task after 1.0.
+- [ ] Single files exist for all three systems with `.sha256` and provenance attestation (decision on #327: unsigned, language packs embedded); signing is planned, date open.
 - [x] Product page (repository `stacknoise/homepage`) uses the same texts and version.
 
 ## Release workflow and clean-install probe

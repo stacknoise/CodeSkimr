@@ -11,7 +11,7 @@ CodeSkimr wird als **eine einzelne Datei je System** ausgeliefert (Windows x86_6
 3. Starten. Linux und macOS: vorher `chmod +x <Datei>`. Dann `./codeskimr-<Version>-<System> serve`; unter Windows `.\codeskimr-<Version>-windows-x86_64.exe serve`. Sie können die Datei in `codeskimr` umbenennen und in einen Ordner Ihres Suchpfads legen.
    Welche Version läuft, zeigt `codeskimr --version` in der Konsole und der Bildschirm „Einstellungen“ unter der Überschrift.
 
-Die Dateien sind **noch nicht signiert** (die Signierung kommt als Erstes nach 1.0). Deshalb warnt das Betriebssystem beim ersten Start:
+Die Dateien sind **noch nicht signiert** (die Signierung ist geplant, der Zeitpunkt ist offen). Deshalb warnt das Betriebssystem beim ersten Start:
 
 - **Windows (SmartScreen):** „Der Computer wurde durch Windows geschützt“ → „Weitere Informationen“ → „Trotzdem ausführen“.
 - **macOS (Gatekeeper):** Meldung, die Datei könne nicht geprüft werden. Einmal `xattr -d com.apple.quarantine <Datei>` im Terminal ausführen, dann starten (oder in den Systemeinstellungen unter „Datenschutz & Sicherheit“ „Trotzdem öffnen“ wählen).
