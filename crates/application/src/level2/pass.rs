@@ -10,8 +10,8 @@ use std::sync::Arc;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    FileId, FolderPath, LanguageId, Level2Stage, Principal, Project, Reference, RelativePath,
-    Snapshot, SourceFile, Span, Symbol,
+    FileId, FolderPath, LanguageId, Level2Stage, Principal, Project, ProjectId, Reference,
+    RelativePath, Snapshot, SourceFile, Span, Symbol,
 };
 
 use super::authorize_run;
@@ -87,7 +87,7 @@ impl Level2Pass {
             Ok(scan) => scan,
             Err(cause) => {
                 return Level2Result {
-                    reports: self.skip_all(&Skipped::Failed(cause.code())),
+                    reports: self.skip_all(snapshot.project, &Skipped::Failed(cause.code())),
                     snapshot: snapshot.clone(),
                 };
             }
@@ -161,10 +161,24 @@ impl Level2Pass {
             }));
     }
 
-    fn skip_all(&self, reason: &Skipped) -> Vec<LanguageReport> {
-        self.indexers
-            .iter()
-            .map(|(language, _)| LanguageReport {
+    /// The languages that have an indexer and files in the latest snapshot of `project`. If the
+    /// files cannot be read, all languages with an indexer, so that no skip goes unreported.
+    #[must_use]
+    pub fn languages_in(&self, project: ProjectId) -> Vec<&LanguageId> {
+        let present: Option<HashSet<LanguageId>> = self
+            .projects
+            .latest_files(project)
+            .ok()
+            .map(|files| files.into_iter().map(|file| file.language).collect());
+        self.languages()
+            .filter(|language| present.as_ref().is_none_or(|set| set.contains(*language)))
+            .collect()
+    }
+
+    fn skip_all(&self, project: ProjectId, reason: &Skipped) -> Vec<LanguageReport> {
+        self.languages_in(project)
+            .into_iter()
+            .map(|language| LanguageReport {
                 language: language.clone(),
                 outcome: Level2Outcome::Skipped(reason.clone()),
             })
