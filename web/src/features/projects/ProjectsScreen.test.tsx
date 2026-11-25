@@ -529,6 +529,23 @@ describe("ProjectsScreen", () => {
     expect(trigger).toHaveFocus();
   });
 
+  it("opens the modal window New project empty and gives the focus back to New", async () => {
+    serve({ "projects.list": () => answer([ROW]) });
+    render(() => <ProjectsScreen />);
+    const open = await screen.findByRole("button", { name: "New" });
+    open.focus();
+    fireEvent.click(open);
+    const field = screen.getByLabelText(SOURCE_LABEL);
+    expect(screen.getByRole("dialog")).toHaveAttribute("aria-modal", "true");
+    expect(field).toHaveValue("");
+    fireEvent.input(field, { target: { value: "/work/typed" } });
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(open).toHaveFocus();
+    fireEvent.click(open);
+    expect(screen.getByLabelText(SOURCE_LABEL)).toHaveValue("");
+  });
+
   it("closes the window New project with its Cancel button", async () => {
     serve({ "projects.list": () => answer([ROW]) });
     render(() => <ProjectsScreen />);

@@ -21,6 +21,10 @@ describe("pathOf", () => {
 });
 
 describe("readDrop", () => {
+  it("ignores text that is neither a path nor an address", () => {
+    expect(readDrop(data({ "text/plain": "TypeScript · 1 hour ago" }))).toEqual({ kind: "empty" });
+  });
+
   it("reads the first address of a list and skips its comments", () => {
     const dropped = readDrop(
       data({ "text/uri-list": "# comment\nfile:///work/app\nfile:///other" }),

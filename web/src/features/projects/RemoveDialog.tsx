@@ -1,11 +1,12 @@
-import { onCleanup, onMount, Show } from "solid-js";
+import { Show } from "solid-js";
 import { Portal } from "solid-js/web";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { useKeydown } from "../../shared/keys/keydown";
 import { useLayer } from "../../shared/keys/layers";
+import { useDialogFocus } from "../../shared/ui/dialogFocus";
 import { CANCEL_KEY } from "../scan/consts";
-import { FOCUSABLE, REMOVE_DIALOG_TITLE_ID, REMOVE_MARKS, SOURCE_KIND, TAB_KEY } from "./consts";
+import { REMOVE_DIALOG_TITLE_ID, REMOVE_MARKS, SOURCE_KIND } from "./consts";
 import { size } from "./format";
 import type { ProjectRow } from "./types";
 import styles from "./RemoveDialog.module.css";
@@ -60,33 +61,6 @@ function Effects(props: { row: ProjectRow }) {
   );
 }
 
-/** Keeps Tab inside the dialog: from the last button it goes to the first, and back. */
-function trapTab(event: KeyboardEvent, dialog: HTMLElement | undefined): void {
-  if (event.key !== TAB_KEY || dialog === undefined) {
-    return;
-  }
-  const buttons = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE));
-  const first = buttons[0];
-  const last = buttons[buttons.length - 1];
-  const edge = event.shiftKey ? first : last;
-  if (first !== undefined && last !== undefined && document.activeElement === edge) {
-    event.preventDefault();
-    (event.shiftKey ? last : first).focus();
-  }
-}
-
-/** Focus of the dialog: it starts on "Cancel", stays inside, and goes back to where it was. */
-function useFocus(dialog: () => HTMLElement | undefined, cancel: () => HTMLElement | undefined) {
-  const before = document.activeElement;
-  useKeydown((event) => trapTab(event, dialog()));
-  onMount(() => cancel()?.focus());
-  onCleanup(() => {
-    if (before instanceof HTMLElement && before.isConnected) {
-      before.focus();
-    }
-  });
-}
-
 /** The dialog "Remove project" (mock 24, D1): it says what goes and what stays. Esc and "Cancel"
  * close it, the focus starts on "Cancel", so a stray Enter removes nothing. */
 export function RemoveDialog(props: { row: ProjectRow; onYes: () => void; onNo: () => void }) {
@@ -98,7 +72,7 @@ export function RemoveDialog(props: { row: ProjectRow; onYes: () => void; onNo: 
       props.onNo();
     }
   });
-  useFocus(
+  useDialogFocus(
     () => dialog,
     () => cancel,
   );

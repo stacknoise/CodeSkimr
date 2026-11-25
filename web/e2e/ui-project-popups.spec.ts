@@ -1,4 +1,4 @@
-// The small window "New project" and the dialog "Remove project" (mock 24, variants C and D1) in
+// The modal window "New project" and the dialog "Remove project" (mock 24, variants C and D1) in
 // the real application: they open, Esc closes them first, and the removal dialog starts on
 // "Cancel". `UPDATE_SCREENSHOTS=1` writes the screens (1440 x 900, all three themes) to
 // docs/screenshots/new-project-popup/.
@@ -40,6 +40,7 @@ for (const theme of THEMES) {
       const window = page.getByRole("dialog", { name: "New project" });
       await expect(window).toBeVisible();
       await expect(page.getByLabel("Folder", { exact: true })).toBeFocused();
+      await expect(page.getByLabel("Folder", { exact: true })).toHaveValue("");
       await page.getByLabel("Folder", { exact: true }).fill(folder);
       await expect(page.getByLabel(/^Display name/)).not.toHaveValue("");
       await shot(page, SHOTS, `new-project-${theme}`, info);

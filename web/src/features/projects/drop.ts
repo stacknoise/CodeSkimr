@@ -1,4 +1,13 @@
-import { DRIVE_PATH, DROP, DROP_TYPES, FILE_SCHEME, LINE_BREAK, URI_COMMENT } from "./consts";
+import {
+  DRIVE_PATH,
+  DROP,
+  DROP_TYPES,
+  FILE_SCHEME,
+  FOLDER_PATH,
+  GIT_ADDRESS,
+  LINE_BREAK,
+  URI_COMMENT,
+} from "./consts";
 
 /** What a drop on the window carried. */
 export type Dropped =
@@ -26,9 +35,10 @@ function firstLine(text: string): string {
  * address in some systems and only an opaque file entry in others. */
 export function readDrop(data: DataTransfer): Dropped {
   for (const type of DROP_TYPES) {
-    const line = firstLine(data.getData(type));
-    if (line !== "") {
-      return { kind: DROP.text, text: pathOf(line) };
+    const line = pathOf(firstLine(data.getData(type)));
+    // Only something that looks like a path or an address goes into the field.
+    if (FOLDER_PATH.test(line) || GIT_ADDRESS.test(line)) {
+      return { kind: DROP.text, text: line };
     }
   }
   return data.files.length > 0 || data.items.length > 0

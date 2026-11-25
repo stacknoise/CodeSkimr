@@ -1,5 +1,7 @@
 import { createEffect, createSignal, For, onCleanup, onMount, Show, type JSX } from "solid-js";
+import { Portal } from "solid-js/web";
 import { t } from "../../shared/i18n/i18n";
+import { useDialogFocus } from "../../shared/ui/dialogFocus";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
 import { SETTINGS_ROUTE } from "../../app/consts";
@@ -284,45 +286,64 @@ function Foot(props: { onClose: (() => void) | undefined }) {
   );
 }
 
-/** The small window "New project" at the button "New" (mock 24, variant C): source, name, and for
+/** The fields of the window: source with "Browse", name, and the Git fields of a Git source. */
+function Body(props: {
+  form: NewProjectFormProps;
+  kind: SourceKind;
+  name: ReturnType<typeof useName>;
+  gitFields: () => JSX.Element;
+}) {
+  const browse = useBrowse(props.form);
+  return (
+    <div class={styles.body}>
+      <SourceField {...props.form} onSource={browse.typed} kind={props.kind}>
+        <Show when={props.kind === SOURCE_KIND.folder}>
+          <BrowseButton onPicked={browse.picked} />
+        </Show>
+      </SourceField>
+      <BrowseWaiting />
+      <Show when={browse.taken()}>
+        <p class={styles.message}>{t(I18N_KEYS.PROJECTS_BROWSE_DONE)}</p>
+      </Show>
+      <NameField value={props.name.name()} onType={props.name.type} />
+      <Show when={props.kind === SOURCE_KIND.git}>{props.gitFields()}</Show>
+      <Messages notice={props.form.notice} />
+    </div>
+  );
+}
+
+/** The modal window "New project" (mock 24, variant C as a centred dialog): source, name, and for
  * a Git source branch and login. Esc and "Cancel" close it; with no project it stays open. */
 export function NewProjectForm(props: NewProjectFormProps) {
   const [kind, setKind] = useKind(() => props.source);
-  const browse = useBrowse(props);
   const name = useName(() => props.source);
   const { submit, gitFields } = useSubmit(props, kind, name.sent);
   onMount(() => {
     void refreshCredentials();
     void readFolderDialog();
   });
+  let dialog: HTMLFormElement | undefined;
+  useDialogFocus(() => dialog);
   return (
-    <form
-      class={cx(styles.form, props.dragging && styles.dragging)}
-      role="dialog"
-      aria-labelledby={NEW_PROJECT_TITLE_ID}
-      onSubmit={submit}
-    >
-      <div class={styles.head}>
-        <h2 id={NEW_PROJECT_TITLE_ID} class={styles.title}>
-          {t(I18N_KEYS.PROJECTS_NEW_TITLE)}
-        </h2>
-        <KindSwitch kind={kind()} onKind={setKind} />
-      </div>
-      <div class={styles.body}>
-        <SourceField {...props} onSource={browse.typed} kind={kind()}>
-          <Show when={kind() === SOURCE_KIND.folder}>
-            <BrowseButton onPicked={browse.picked} />
-          </Show>
-        </SourceField>
-        <BrowseWaiting />
-        <Show when={browse.taken()}>
-          <p class={styles.message}>{t(I18N_KEYS.PROJECTS_BROWSE_DONE)}</p>
-        </Show>
-        <NameField value={name.name()} onType={name.type} />
-        <Show when={kind() === SOURCE_KIND.git}>{gitFields()}</Show>
-        <Messages notice={props.notice} />
-      </div>
-      <Foot onClose={props.onClose} />
-    </form>
+    <Portal>
+      <div class={styles.scrim} />
+      <form
+        ref={dialog}
+        class={cx(styles.form, props.dragging && styles.dragging)}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={NEW_PROJECT_TITLE_ID}
+        onSubmit={submit}
+      >
+        <div class={styles.head}>
+          <h2 id={NEW_PROJECT_TITLE_ID} class={styles.title}>
+            {t(I18N_KEYS.PROJECTS_NEW_TITLE)}
+          </h2>
+          <KindSwitch kind={kind()} onKind={setKind} />
+        </div>
+        <Body form={props} kind={kind()} name={name} gitFields={gitFields} />
+        <Foot onClose={props.onClose} />
+      </form>
+    </Portal>
   );
 }

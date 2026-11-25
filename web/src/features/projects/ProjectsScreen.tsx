@@ -95,10 +95,15 @@ function useForm() {
     setOpen(true);
     queueMicrotask(() => input?.focus());
   };
+  // Closing the window empties the field, so it always opens empty.
+  const close = () => {
+    setOpen(false);
+    setSource("");
+  };
   useLayer(open);
   useKeydown((event) => {
     if (open() && event.key === CANCEL_KEY) {
-      setOpen(false);
+      close();
     }
   });
   const drop = useDropSource(setSource, show);
@@ -110,7 +115,7 @@ function useForm() {
     source,
     onSource,
     open,
-    setOpen,
+    close,
     show,
     drop,
     setInput: (el: HTMLInputElement) => (input = el),
@@ -127,7 +132,7 @@ function useScreen(form: ReturnType<typeof useForm>) {
   useToolsCheck(selection.selected);
   useLevel2States(selection.selected);
   // A project that was chosen or whose scan started closes the form.
-  createEffect(on(selection.selected, () => form.setOpen(false), { defer: true }));
+  createEffect(on(selection.selected, form.close, { defer: true }));
   useProjectKeys({
     newProject: form.show,
     rescan: selection.act((id) => void rescanProject(id)),
@@ -146,7 +151,7 @@ function FormWindow(props: { form: ReturnType<typeof useForm>; closable: boolean
       setInput={props.form.setInput}
       dragging={props.form.drop.dragging()}
       notice={props.form.drop.notice()}
-      onClose={props.closable ? () => props.form.setOpen(false) : undefined}
+      onClose={props.closable ? props.form.close : undefined}
     />
   );
 }

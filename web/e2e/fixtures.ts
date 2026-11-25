@@ -134,9 +134,13 @@ export async function leaveScanScreen(page: Page, name: string): Promise<void> {
 /** The label of the source field of the window "New project". */
 export const SOURCE_LABEL = /^(Folder|Repository address)$/;
 
-/** Opens the form "New project": it is open on its own only while the list is empty. */
+/** Opens the window "New project": it is open on its own while the list is empty, and then its
+ * background covers the button "New". */
 export async function openNewForm(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "New", exact: true }).click();
+  const window = page.getByRole("dialog", { name: "New project" });
+  if (!(await window.isVisible())) {
+    await page.getByRole("button", { name: "New", exact: true }).click();
+  }
 }
 
 /** Shows the explorer for the project whose page is shown. */
