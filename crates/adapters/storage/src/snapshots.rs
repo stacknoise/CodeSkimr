@@ -10,7 +10,7 @@ use codeskimr_domain::{
     CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats, SourceFile,
     SymbolId,
 };
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use rusqlite::{Connection, params};
 
@@ -19,7 +19,7 @@ use crate::codec::column_int;
 use crate::consts::{
     BULK_FINGERPRINTS_MIN, BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR,
     LARGE_LOAD_REFERENCES_MIN, LOAD_CACHE_SIZE_KIB, LOG_CACHE_NOT_RESTORED, LOG_PERSIST_STEP,
-    PRAGMA_CACHE_SIZE, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON, STEP_DETAILS, STEP_FACTS,
+    PRAGMA_CACHE_SIZE, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON, STEP_COMMIT, STEP_DETAILS, STEP_FACTS,
     STEP_FINGERPRINTS, STEP_HEADER, STEP_INTEGRITY, STEP_PRUNE, STEP_PRUNE_BEFORE,
     STEP_READ_MODELS, STEP_REFERENCE_INDEXES, STEP_REFERENCES,
 };
@@ -37,12 +37,22 @@ use crate::store::ProjectDb;
 
 impl SnapshotStore for ProjectDb {
     fn persist(&self, data: SnapshotData) -> Result<Snapshot, CodedError> {
-        self.write(|tx| {
-            let stored = write_snapshot(tx, &data, self.retention().get())?;
-            self.forget_builds();
-            Ok(stored)
-        })
-        .map_err(CodedError::from)
+        let started = Instant::now();
+        let mut inside = Duration::ZERO;
+        let stored = self
+            .write(|tx| {
+                let stored = write_snapshot(tx, &data, self.retention().get())?;
+                self.forget_builds();
+                inside = started.elapsed();
+                Ok(stored)
+            })
+            .map_err(CodedError::from)?;
+        // What the commit took (it moves the write-ahead log into the file), so a slow end of a
+        // large write can be told from the steps before it.
+        let elapsed_ms =
+            u64::try_from(started.elapsed().saturating_sub(inside).as_millis()).unwrap_or(u64::MAX);
+        tracing::info!(event = LOG_PERSIST_STEP, step = STEP_COMMIT, elapsed_ms);
+        Ok(stored)
     }
 
     fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError> {
