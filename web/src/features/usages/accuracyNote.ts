@@ -1,4 +1,4 @@
-import { t } from "../../shared/i18n/i18n";
+import { codeText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { OUTCOME, reasonKey } from "../../shared/project/report";
 import { languageName } from "../projects/format";
@@ -23,7 +23,7 @@ export function accuracyNote(answer: UsagesAnswer): string | null {
     return t(I18N_KEYS.USAGES_REPORT_NO_INDEXER, { language });
   }
   if (line.outcome === OUTCOME.failed) {
-    return t(I18N_KEYS.USAGES_REPORT_FAILED, { language, code: line.code ?? "" });
+    return t(I18N_KEYS.USAGES_REPORT_FAILED, { language, code: line.code ?? "", text: codeText(line.code) });
   }
   if (line.outcome === OUTCOME.skipped) {
     const key = reasonKey(line.reason);

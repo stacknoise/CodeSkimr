@@ -67,7 +67,7 @@ describe("the report of the last scan", () => {
     const panel = await selected();
     expect(within(panel).getByText("C#: checked, 328 files, 3 changed since")).toBeInTheDocument();
     expect(within(panel).getByText(/TypeScript: skipped, a tool is missing/)).toBeInTheDocument();
-    expect(within(panel).getByText("Java: failed (RES-501)")).toBeInTheDocument();
+    expect(within(panel).getByText(/^Java: failed \(RES-501\)/)).toBeInTheDocument();
     expect(within(panel).getByText(/Results of an earlier run may remain/)).toBeInTheDocument();
     await chooseTab(/Overview/);
     expect(screen.getByText(/Stage 2 \(browser\)/)).toBeInTheDocument();

@@ -1,4 +1,4 @@
-import { t } from "../../shared/i18n/i18n";
+import { codeText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import {
   ORIGIN_TEXT,
@@ -51,7 +51,7 @@ export function languageLine(line: LanguageReport): string {
       : t(I18N_KEYS.PROJECTS_REPORT_CHECKED, { language, files });
   }
   if (line.outcome === OUTCOME.failed) {
-    return t(I18N_KEYS.PROJECTS_REPORT_FAILED, { language, code: line.code ?? "" });
+    return t(I18N_KEYS.PROJECTS_REPORT_FAILED, { language, code: line.code ?? "", text: codeText(line.code) });
   }
   const key = reasonKey(line.reason);
   return t(I18N_KEYS.PROJECTS_REPORT_SKIPPED, {

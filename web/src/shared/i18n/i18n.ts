@@ -94,6 +94,14 @@ export function errorText(code: ErrorCode): string {
   return lookup(ERROR_CODES[code].messageKey) ?? code;
 }
 
+/** The user-facing text of an error code given as a plain string, such as a code stored in a
+ * report; empty if the code is absent or not registered. */
+export function codeText(code: string | null | undefined): string {
+  return code !== undefined && code !== null && code in ERROR_CODES
+    ? errorText(code as ErrorCode)
+    : "";
+}
+
 /** The text of a message whose key is not known at build time, such as the key a language pack
  * names for a tool; the key itself if there is no text. */
 export function textOf(key: string): string {
