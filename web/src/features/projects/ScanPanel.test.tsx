@@ -124,6 +124,7 @@ describe("the languages of the report", () => {
   it("lists a language without an indexer in its own group, not in the report", async () => {
     const row = projectRow({
       report: REPORT,
+      tools: { checked_at: 1_700_000_000, languages: [], tools: [] },
       languages: [info("csharp"), info("c"), info("ruby")],
     });
     const panel = await selected(row);
@@ -158,6 +159,12 @@ describe("the languages of the report", () => {
     const group = panel.querySelector("[data-group=no-level2]") as HTMLElement;
     expect(within(group).getByText("C")).toBeInTheDocument();
     expect(within(group).queryByText("Java")).not.toBeInTheDocument();
+  });
+
+  it("says nothing about languages without stage 2 until the check of the tools is loaded", async () => {
+    const row = projectRow({ report: REPORT, tools: null, languages: [info("csharp"), info("c")] });
+    const panel = await selected(row);
+    expect(panel.querySelector("[data-group=no-level2]")).toBeNull();
   });
 
   it("says once that stage 2 is off instead of one row with a button for each language", async () => {

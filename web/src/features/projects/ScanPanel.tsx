@@ -235,8 +235,9 @@ function Report(props: { row: ProjectRow }) {
   // A language that the check of the tools lists has an indexer: it is missing from the report
   // only because it came after the last stage 2 run, so it is not said to have no stage 2.
   const withIndexer = () => new Set(props.row.tools?.languages.map((line) => line.language));
+  // Until the check of the tools is loaded the screen cannot tell, so it says nothing yet.
   const uncovered = () =>
-    props.row.languages
+    (props.row.tools === null ? [] : props.row.languages)
       .filter((info) => !covered().has(info.language) && !withIndexer().has(info.language))
       .map((info) => languageName(info.language));
   return (
