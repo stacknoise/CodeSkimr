@@ -19,7 +19,7 @@ Everything runs on your machine. The server listens on `127.0.0.1` only; your co
 
 ## Install
 
-Releases carry one single file per system (Windows x86_64, Linux x86_64, macOS Apple Silicon) with a SHA-256 sum and a GitHub provenance attestation; UI and language packs are inside. The files are not signed yet (first task after 1.0); the manual chapter "Installation" explains the SmartScreen and Gatekeeper warnings. Otherwise build from source:
+Releases carry one single file per system (Windows x86_64, Linux x86_64, macOS Apple Silicon) with a SHA-256 sum and a GitHub provenance attestation; UI and language packs are inside. The files are not signed yet (signing is planned, date open); the manual chapter "Installation" explains the SmartScreen and Gatekeeper warnings. Otherwise build from source:
 
 ```
 cd web && npm ci && npm run build && cd ..
