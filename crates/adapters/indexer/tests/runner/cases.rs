@@ -55,6 +55,7 @@ fn spec(mode: &str) -> IndexerSpec {
             ("FAKE_TOKEN_HOME".to_owned(), HOME_TOOL_DIR.to_owned()),
         ],
         env: vec![("FIXED_BY_PACK".to_owned(), "yes".to_owned())],
+        project_files: Vec::new(),
         install_hint: "install it".to_owned(),
         symbol_kinds: Vec::new(),
         separator: String::new(),

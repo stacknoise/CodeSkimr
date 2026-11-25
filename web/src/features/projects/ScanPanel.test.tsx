@@ -65,10 +65,16 @@ function rescanBody(): unknown {
 describe("the report of the last scan", () => {
   it("says at which stage the last scan ran and who started it, and what stage 2 did", async () => {
     const panel = await selected();
-    expect(within(panel).getByText("C#: checked, 328 files, 3 changed since")).toBeInTheDocument();
-    expect(within(panel).getByText(/TypeScript: skipped, a tool is missing/)).toBeInTheDocument();
-    expect(within(panel).getByText(/^Java: failed \(RES-501\)/)).toBeInTheDocument();
-    expect(within(panel).getByText(/Results of an earlier run may remain/)).toBeInTheDocument();
+    expect(within(panel).getByText("C# · 328 files · 3 outdated")).toBeInTheDocument();
+    expect(
+      within(panel).getByText(/the indexer or a tool it needs is missing/),
+    ).toBeInTheDocument();
+    expect(
+      within(panel).getByText(/The SCIP index is larger than the configured limit/),
+    ).toBeInTheDocument();
+    expect(within(panel).getByText("RES-501")).toBeInTheDocument();
+    expect(within(panel).getByText(/Install or update the tool/)).toBeInTheDocument();
+    expect(within(panel).getByRole("button", { name: "Go to Tools" })).toBeInTheDocument();
     await chooseTab(/Overview/);
     expect(screen.getByText(/Stage 2 \(browser\)/)).toBeInTheDocument();
     expect(screen.getByText(/Exact check \(stage 2\) failed for Java \(RES-501\)/)).toBeVisible();
@@ -77,8 +83,9 @@ describe("the report of the last scan", () => {
   it("says the same in German", async () => {
     setLanguage("de");
     const panel = await selected();
-    expect(within(panel).getByText(/C#: geprüft, 328 Dateien, 3 seitdem geändert/)).toBeVisible();
-    expect(within(panel).getByText(/TypeScript: übersprungen, ein Werkzeug fehlt/)).toBeVisible();
+    expect(within(panel).getByText("C# · 328 Dateien · 3 veraltet")).toBeVisible();
+    expect(within(panel).getByText(/der Indexer oder ein Werkzeug dazu fehlt/)).toBeVisible();
+    expect(within(panel).getByText(/Werkzeug installieren oder aktualisieren/)).toBeVisible();
   });
 
   it("says that no stage 2 run is stored when only stage 1 ran", async () => {

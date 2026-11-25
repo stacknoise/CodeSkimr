@@ -24,6 +24,7 @@ mod cases {
                 version_args: vec![TOKEN.to_owned()],
                 min_version: ToolVersion::default(),
             },
+            project_files: Vec::new(),
             install_hint: "no hint".to_owned(),
             symbol_kinds: Vec::new(),
             separator: String::new(),

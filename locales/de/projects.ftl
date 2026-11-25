@@ -160,10 +160,44 @@ projects-report-checked = { $language }: geprüft, { $files } Dateien
 projects-report-checked-stale = { $language }: geprüft, { $files } Dateien, { $stale } seitdem geändert
 projects-report-skipped = { $language }: übersprungen, { $reason }
 projects-report-failed = { $language }: fehlgeschlagen ({ $code }) – { $text }
+projects-report-group-failed = Fehlgeschlagen
+projects-report-group-failed-count = { $count ->
+    [one] 1 Sprache braucht Aufmerksamkeit
+   *[other] { $count } Sprachen brauchen Aufmerksamkeit
+  }
+projects-report-group-skipped = Übersprungen
+projects-report-group-skipped-count = { $count ->
+    [one] 1 Sprache, Voraussetzung fehlt
+   *[other] { $count } Sprachen, Voraussetzung fehlt
+  }
+projects-report-group-checked = Geprüft
+projects-report-group-checked-count = { $count ->
+    [one] 1 Sprache
+   *[other] { $count } Sprachen
+  }
+projects-report-chip = { $language } · { $files } Dateien
+projects-report-chip-stale = { $language } · { $files } Dateien · { $stale } veraltet
+projects-report-todo = Was tun: { $text }
+projects-report-action-rescan = Erneut prüfen
+projects-report-action-tools = Zu Werkzeuge
+projects-report-todo-not-permitted = Stufe 2 im Browser oder im Terminal starten, nicht im Watch-Modus oder per MCP.
+projects-report-todo-not-confirmed = Stufe 2 oben einschalten und bestätigen, dann erneut scannen.
+projects-report-todo-tools-unavailable = Werkzeug installieren oder aktualisieren (siehe Reiter Werkzeuge).
+projects-report-todo-no-project-file = Liegt die Datei in einem Unterordner, diesen Ordner als eigenes Projekt hinzufügen.
+projects-report-todo-stale = Neu scannen.
+projects-report-todo-retry = Erneut prüfen.
+projects-report-todo-later = Später erneut scannen.
+projects-report-todo-RES-504 = Speichergrenze erhöhen (level2.max_memory_mb in der Konfiguration), dann erneut prüfen.
+projects-report-todo-RES-502 = Zeitgrenze erhöhen (level2.timeout_seconds in der Konfiguration), dann erneut prüfen.
+projects-report-todo-RES-503 = Ausgabegrenze erhöhen (level2.max_output_bytes in der Konfiguration), dann erneut prüfen.
+projects-report-todo-RES-601 = Protokoll ansehen (Umgebungsvariable CODESKIMR_LOG=info beim Scan), dann erneut prüfen.
 projects-report-failed-note = Der letzte Lauf ist fehlgeschlagen. Für Dateien, die sich nicht geändert haben, können Ergebnisse eines früheren Laufs bleiben.
 projects-report-reason-not-permitted = dieser Scan-Weg darf keine Indexer starten
 projects-report-reason-not-confirmed = Stufe 2 ist für dieses Projekt nicht bestätigt
-projects-report-reason-tools-unavailable = ein Werkzeug fehlt
+projects-report-reason-tools-unavailable = der Indexer oder ein Werkzeug dazu fehlt, ist zu alt oder startet nicht
+projects-report-reason-no-project-file = im Projektordner fehlt eine Projektdatei, die der Indexer braucht
+projects-report-reason-no-project-file-rust = keine Cargo.toml im Projektordner gefunden
+projects-report-reason-no-project-file-csharp = keine .sln, .slnx oder .csproj im Projektordner gefunden
 projects-report-reason-stale = alle Dateien haben sich seit dem Lauf geändert
 projects-report-reason-cancelled = abgebrochen
 projects-report-reason-busy = nicht erneut gestartet, weil ein anderer Lauf von Stufe 2 aktiv war; frühere geprüfte Ergebnisse bleiben bestehen
@@ -181,7 +215,7 @@ projects-level2-full-rescan-hint = Liest alle Dateien neu ein, nicht nur die Än
 projects-level2-scan-title = Scan
 projects-level2-finished = Stufe 2 ist beendet: { $checked } geprüft, { $skipped } übersprungen, { $failed } fehlgeschlagen.
 projects-level2-not-started-not-permitted = Stufe 2 wurde nicht gestartet: Dieses Programm darf hier keine Indexer starten. Stufe 1 ist gespeichert.
-projects-level2-not-started-not-confirmed = Stufe 2 wurde nicht gestartet: Stufe 2 ist für dieses Projekt nicht bestätigt. Oben einschalten, dann erneut scannen. Stufe 1 ist gespeichert.
+projects-level2-not-started-not-confirmed = Stufe 2 wurde nicht gestartet: Stufe 2 ist für dieses Projekt nicht bestätigt (im Reiter „Genaue Prüfung“ bestätigen). Oben einschalten, dann erneut scannen. Stufe 1 ist gespeichert.
 projects-level2-not-started-busy = Stufe 2 wurde nicht gestartet: Ein anderer Lauf von Stufe 2 ist aktiv. Stufe 1 ist gespeichert; scanne erneut, wenn der Lauf beendet ist.
 projects-level2-not-started-paused = Stufe 2 wurde nicht gestartet: Nach einem Lauf gilt eine Pause. Stufe 1 ist gespeichert; scanne in einer Minute erneut.
 projects-browse = Durchsuchen …

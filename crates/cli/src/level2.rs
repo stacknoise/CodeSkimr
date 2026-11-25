@@ -1,10 +1,10 @@
 //! The lines of a scan summary that tell what level 2 did for each language (ADR 0033).
 
 use codeskimr_codes::i18n::{
-    CLI_LEVEL2_REASON_CANCELLED, CLI_LEVEL2_REASON_FAILED, CLI_LEVEL2_REASON_NOT_CONFIRMED,
-    CLI_LEVEL2_REASON_NOT_PERMITTED, CLI_LEVEL2_REASON_STALE, CLI_LEVEL2_REASON_UNAVAILABLE,
-    CLI_SCAN_LEVEL2_CHECKED, CLI_SCAN_LEVEL2_OUTSIDE_SCAN, CLI_SCAN_LEVEL2_PARTIAL,
-    CLI_SCAN_LEVEL2_SKIPPED,
+    CLI_LEVEL2_REASON_CANCELLED, CLI_LEVEL2_REASON_FAILED, CLI_LEVEL2_REASON_NO_PROJECT_FILE,
+    CLI_LEVEL2_REASON_NOT_CONFIRMED, CLI_LEVEL2_REASON_NOT_PERMITTED, CLI_LEVEL2_REASON_STALE,
+    CLI_LEVEL2_REASON_UNAVAILABLE, CLI_SCAN_LEVEL2_CHECKED, CLI_SCAN_LEVEL2_OUTSIDE_SCAN,
+    CLI_SCAN_LEVEL2_PARTIAL, CLI_SCAN_LEVEL2_SKIPPED,
 };
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde::Serialize;
@@ -21,6 +21,8 @@ pub enum Level2Reason {
     NotConfirmed,
     /// The indexer or its toolchain is missing or too old.
     Unavailable,
+    /// The project folder holds none of the files the indexer needs.
+    NoProjectFile,
     /// Every file changed since the scan.
     Stale,
     /// The scan was cancelled.
@@ -96,6 +98,7 @@ fn reason_text(
         Level2Reason::NotPermitted => CLI_LEVEL2_REASON_NOT_PERMITTED,
         Level2Reason::NotConfirmed => CLI_LEVEL2_REASON_NOT_CONFIRMED,
         Level2Reason::Unavailable => CLI_LEVEL2_REASON_UNAVAILABLE,
+        Level2Reason::NoProjectFile => CLI_LEVEL2_REASON_NO_PROJECT_FILE,
         Level2Reason::Stale => CLI_LEVEL2_REASON_STALE,
         Level2Reason::Cancelled => CLI_LEVEL2_REASON_CANCELLED,
         Level2Reason::Failed(code) => {

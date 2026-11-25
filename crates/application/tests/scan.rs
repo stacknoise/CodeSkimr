@@ -2080,6 +2080,7 @@ fn rust_indexer() -> IndexerSpec {
         env_allow: Vec::new(),
         home_dirs: Vec::new(),
         env: Vec::new(),
+        project_files: Vec::new(),
         install_hint: String::new(),
         symbol_kinds: Vec::new(),
         separator: String::new(),

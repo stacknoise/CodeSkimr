@@ -473,6 +473,7 @@ fn reason_of(skipped: &Skipped) -> Level2Reason {
         Skipped::NotPermitted => Level2Reason::NotPermitted,
         Skipped::NotConfirmed => Level2Reason::NotConfirmed,
         Skipped::Unavailable(_) => Level2Reason::Unavailable,
+        Skipped::NoProjectFile => Level2Reason::NoProjectFile,
         Skipped::Stale => Level2Reason::Stale,
         Skipped::Cancelled => Level2Reason::Cancelled,
         Skipped::Failed(code) => Level2Reason::Failed(code.id().to_owned()),

@@ -15,7 +15,7 @@ use tempfile::TempDir;
 
 use crate::consts::{
     EXCERPT_BYTES, HOME_DIR_NAME, INDEX_FILE_NAME, LOG_CODE, LOG_EXCERPT, LOG_INDEXER,
-    OUTPUT_DIR_PREFIX, PATH_ENV, SCRATCH_DIR_NAME, SURVIVED_CODE,
+    OUTPUT_DIR_PREFIX, PATH_ENV, PROJECT_FILE_WILDCARD, SCRATCH_DIR_NAME, SURVIVED_CODE,
 };
 use crate::env::{self, Environment, Folders};
 use crate::error::{FailureReason, IndexerError};
@@ -338,6 +338,24 @@ impl IndexRunner for ProcessIndexRunner {
         resolve(program, &path, &self.data_dir).map(|found| found.to_string_lossy().into_owned())
     }
 
+    fn has_project_file(&self, spec: &IndexerSpec, root: &Path) -> bool {
+        if spec.project_files.is_empty() {
+            return true;
+        }
+        let Ok(entries) = std::fs::read_dir(root) else {
+            // A folder that cannot be listed is left to the run, which reports what is wrong.
+            return true;
+        };
+        entries
+            .filter_map(Result::ok)
+            .map(|entry| entry.file_name().to_string_lossy().into_owned())
+            .any(|name| {
+                spec.project_files
+                    .iter()
+                    .any(|wanted| matches_project_file(wanted, &name))
+            })
+    }
+
     fn run(&self, job: &IndexJob<'_>, cancel: &CancelToken) -> Result<IndexArtifact, CodedError> {
         self.execute(job, cancel).map_err(|error| {
             Self::log(job.spec, &error);
@@ -346,9 +364,24 @@ impl IndexRunner for ProcessIndexRunner {
     }
 }
 
+/// Whether the file name `name` is the one `wanted` names; `*` at the start matches any prefix.
+fn matches_project_file(wanted: &str, name: &str) -> bool {
+    wanted
+        .strip_prefix(PROJECT_FILE_WILDCARD)
+        .map_or_else(|| wanted == name, |suffix| name.ends_with(suffix))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::substitute;
+    use super::{matches_project_file, substitute};
+
+    #[test]
+    fn a_project_file_matches_by_name_or_suffix() {
+        assert!(matches_project_file("Cargo.toml", "Cargo.toml"));
+        assert!(!matches_project_file("Cargo.toml", "cargo.lock"));
+        assert!(matches_project_file("*.sln", "App.sln"));
+        assert!(!matches_project_file("*.sln", "App.slnx"));
+    }
 
     #[test]
     fn placeholders_are_replaced_in_one_pass() {

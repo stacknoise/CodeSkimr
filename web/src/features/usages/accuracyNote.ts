@@ -23,7 +23,11 @@ export function accuracyNote(answer: UsagesAnswer): string | null {
     return t(I18N_KEYS.USAGES_REPORT_NO_INDEXER, { language });
   }
   if (line.outcome === OUTCOME.failed) {
-    return t(I18N_KEYS.USAGES_REPORT_FAILED, { language, code: line.code ?? "", text: codeText(line.code) });
+    return t(I18N_KEYS.USAGES_REPORT_FAILED, {
+      language,
+      code: line.code ?? "",
+      text: codeText(line.code),
+    });
   }
   if (line.outcome === OUTCOME.skipped) {
     const key = reasonKey(line.reason);
