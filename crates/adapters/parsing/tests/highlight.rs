@@ -99,3 +99,97 @@ fn a_missing_languages_folder_gives_no_runs() {
         0
     );
 }
+
+#[test]
+fn c_is_coloured_by_its_own_pack() {
+    let code = [
+        "#include <stdio.h>",
+        "/* note */",
+        "static int add(int a) {",
+        "    return a + 42; // done",
+        "}",
+        "const char *s = \"x\\n\";",
+    ];
+    let spans = run("kernel/main.c", &code);
+    assert_eq!(
+        texts(&code, &spans, TokenClass::Comment),
+        ["/* note */", "// done"]
+    );
+    assert_eq!(
+        texts(&code, &spans, TokenClass::Keyword),
+        ["static", "return", "const"]
+    );
+    assert_eq!(texts(&code, &spans, TokenClass::Number), ["42"]);
+    assert_eq!(texts(&code, &spans, TokenClass::Function), ["add"]);
+    assert_eq!(
+        texts(&code, &spans, TokenClass::Type),
+        ["int", "int", "char"]
+    );
+    assert!(texts(&code, &spans, TokenClass::String).contains(&"<stdio.h>".to_owned()));
+}
+
+#[test]
+fn cpp_is_coloured_by_its_own_pack() {
+    let code = [
+        "class Box { public: int size() const; };",
+        "int main() { return 7; /* x */ }",
+    ];
+    let spans = run("a.cpp", &code);
+    assert_eq!(texts(&code, &spans, TokenClass::Comment), ["/* x */"]);
+    assert_eq!(texts(&code, &spans, TokenClass::Number), ["7"]);
+    let keywords = texts(&code, &spans, TokenClass::Keyword);
+    assert!(keywords.contains(&"class".to_owned()) && keywords.contains(&"public".to_owned()));
+    assert!(texts(&code, &spans, TokenClass::Function).contains(&"main".to_owned()));
+}
+
+#[test]
+fn go_is_coloured_by_its_own_pack() {
+    let code = [
+        "package main",
+        "// note",
+        "func add(a int) int { return a + 1 }",
+        "var s = \"x\"",
+    ];
+    let spans = run("main.go", &code);
+    assert_eq!(texts(&code, &spans, TokenClass::Comment), ["// note"]);
+    assert_eq!(
+        texts(&code, &spans, TokenClass::Keyword),
+        ["package", "func", "return", "var"]
+    );
+    assert_eq!(texts(&code, &spans, TokenClass::Function), ["add"]);
+    assert_eq!(texts(&code, &spans, TokenClass::Number), ["1"]);
+    assert_eq!(texts(&code, &spans, TokenClass::String), ["\"x\""]);
+}
+
+#[test]
+fn ruby_is_coloured_by_its_own_pack() {
+    let code = ["# note", "def add(a)", "  a + 1 if a", "end", "x = \"s\""];
+    let spans = run("a.rb", &code);
+    assert_eq!(texts(&code, &spans, TokenClass::Comment), ["# note"]);
+    assert_eq!(
+        texts(&code, &spans, TokenClass::Keyword),
+        ["def", "if", "end"]
+    );
+    assert_eq!(texts(&code, &spans, TokenClass::Function), ["add"]);
+    assert_eq!(texts(&code, &spans, TokenClass::Number), ["1"]);
+    assert_eq!(texts(&code, &spans, TokenClass::String), ["\"s\""]);
+}
+
+#[test]
+fn php_is_coloured_by_its_own_pack() {
+    let code = [
+        "<?php",
+        "// note",
+        "function add($a) { return $a + 1; }",
+        "$s = 'x';",
+    ];
+    let spans = run("a.php", &code);
+    assert_eq!(texts(&code, &spans, TokenClass::Comment), ["// note"]);
+    assert_eq!(
+        texts(&code, &spans, TokenClass::Keyword),
+        ["function", "return"]
+    );
+    assert_eq!(texts(&code, &spans, TokenClass::Function), ["add"]);
+    assert_eq!(texts(&code, &spans, TokenClass::Number), ["1"]);
+    assert_eq!(texts(&code, &spans, TokenClass::String), ["'x'"]);
+}
