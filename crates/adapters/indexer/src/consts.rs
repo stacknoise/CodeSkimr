@@ -126,3 +126,10 @@ pub const KILL_POLL: Duration = Duration::from_millis(10);
 pub const SURVIVED_CODE: &str = "indexer-survived-kill";
 /// Start of a project file name that matches any prefix (`*.sln`).
 pub const PROJECT_FILE_WILDCARD: char = '*';
+/// Placeholder in a `memory_env` value of a pack: the heap share of the memory limit, in megabytes.
+pub const PLACEHOLDER_HEAP_MB: &str = "{heap_mb}";
+/// The share of the memory limit, in percent, that a managed heap may use; the rest is for the
+/// runtime itself and its other processes.
+pub const HEAP_SHARE_PERCENT: u64 = 75;
+/// Bytes in a megabyte.
+pub const BYTES_PER_MB: u64 = 1024 * 1024;

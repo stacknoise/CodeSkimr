@@ -50,6 +50,10 @@ pub struct IndexerSpec {
     /// Variables set to a fixed value, such as the switch that stops `rustup` from installing a
     /// toolchain by itself.
     pub env: Vec<(String, String)>,
+    /// Variables whose value depends on the memory limit of the run: `{heap_mb}` in the value is
+    /// replaced by the share of the limit that a managed heap may use (Node.js stops with
+    /// "heap out of memory" at about 4 GB unless it is told more).
+    pub memory_env: Vec<(String, String)>,
     /// File names that the indexer needs in the project folder (`Cargo.toml`); a name that starts
     /// with `*` matches a file name ending in the rest (`*.sln`). Empty: the indexer needs none.
     pub project_files: Vec<String>,

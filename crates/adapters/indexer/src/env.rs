@@ -235,6 +235,7 @@ mod home_dir_tests {
                 .map(|(name, folder)| ((*name).to_owned(), (*folder).to_owned()))
                 .collect(),
             env: Vec::new(),
+            memory_env: Vec::new(),
             project_files: Vec::new(),
             install_hint: String::new(),
             symbol_kinds: Vec::new(),

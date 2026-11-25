@@ -109,6 +109,9 @@ pub struct IndexerManifest {
     pub name: String,
     /// How the user installs the indexer.
     pub install_hint: String,
+    /// Variables set from the memory limit; `{heap_mb}` in a value is the heap share of the limit.
+    #[serde(default)]
+    pub memory_env: BTreeMap<String, String>,
     /// File names the indexer needs in the project folder; `*` at the start matches any prefix.
     #[serde(default)]
     pub project_files: Vec<String>,
@@ -239,6 +242,11 @@ impl IndexerManifest {
             home_dirs: self.home_dirs()?,
             env: self
                 .env
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect(),
+            memory_env: self
+                .memory_env
                 .iter()
                 .map(|(k, v)| (k.clone(), v.clone()))
                 .collect(),

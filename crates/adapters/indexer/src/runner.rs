@@ -14,8 +14,9 @@ use codeskimr_codes::Coded;
 use tempfile::TempDir;
 
 use crate::consts::{
-    EXCERPT_BYTES, HOME_DIR_NAME, INDEX_FILE_NAME, LOG_CODE, LOG_EXCERPT, LOG_INDEXER,
-    OUTPUT_DIR_PREFIX, PATH_ENV, PROJECT_FILE_WILDCARD, SCRATCH_DIR_NAME, SURVIVED_CODE,
+    BYTES_PER_MB, EXCERPT_BYTES, HEAP_SHARE_PERCENT, HOME_DIR_NAME, INDEX_FILE_NAME, LOG_CODE,
+    LOG_EXCERPT, LOG_INDEXER, OUTPUT_DIR_PREFIX, PATH_ENV, PLACEHOLDER_HEAP_MB,
+    PROJECT_FILE_WILDCARD, SCRATCH_DIR_NAME, SURVIVED_CODE,
 };
 use crate::env::{self, Environment, Folders};
 use crate::error::{FailureReason, IndexerError};
@@ -264,7 +265,7 @@ fn launch_of(
     Ok(Launch {
         program: program_of(job, environment)?,
         args: args_of(job, output),
-        env: environment.clone(),
+        env: with_memory_env(job, environment),
         cwd: job.permit.project_root().to_path_buf(),
         limits: Limits {
             timeout: job.limits.timeout,
@@ -274,6 +275,23 @@ fn launch_of(
         watch_dir: Some(output.dir.path().to_path_buf()),
         note_dir: Some(output.dir.path().to_path_buf()),
     })
+}
+
+/// The heap share of a memory limit, in megabytes.
+fn heap_mb(max_memory_bytes: u64) -> u64 {
+    (max_memory_bytes / BYTES_PER_MB).saturating_mul(HEAP_SHARE_PERCENT) / 100
+}
+
+/// The environment with the variables that the pack derives from the memory limit of the run.
+fn with_memory_env(job: &IndexJob<'_>, environment: &Environment) -> Environment {
+    let heap = heap_mb(job.limits.max_memory_bytes).to_string();
+    let mut result = environment.clone();
+    for (name, value) in &job.spec.memory_env {
+        result.retain(|(existing, _)| !existing.to_string_lossy().eq_ignore_ascii_case(name));
+        let text = substitute(value, &[(PLACEHOLDER_HEAP_MB, heap.as_str())]);
+        result.push((OsString::from(name), OsString::from(text)));
+    }
+    result
 }
 
 /// Replaces the placeholders in one pass, so that a value that holds the text of a placeholder
@@ -350,32 +368,18 @@ impl IndexRunner for ProcessIndexRunner {
     }
 }
 
-/// Whether one of the `wanted` files lies in `root`, in a folder above it (the indexers look
-/// upwards, too) or in a folder directly below it (rust-analyzer looks there). A folder that cannot
-/// be listed counts as a find: the run then reports what is wrong.
+/// Whether one of the `wanted` files lies in `root` or in a folder above it (the indexers look
+/// upwards, too). A folder that cannot be listed counts as a find: the run then reports what is
+/// wrong.
 fn project_file_near(wanted: &[String], root: &Path) -> bool {
-    let holds = |dir: &Path| -> Option<bool> {
-        let names: Vec<String> = std::fs::read_dir(dir)
-            .ok()?
-            .filter_map(Result::ok)
-            .map(|entry| entry.file_name().to_string_lossy().into_owned())
-            .collect();
-        Some(
-            names
-                .iter()
-                .any(|name| wanted.iter().any(|want| matches_project_file(want, name))),
-        )
-    };
-    let below = std::fs::read_dir(root)
-        .into_iter()
-        .flatten()
-        .filter_map(Result::ok)
-        .map(|entry| entry.path())
-        .filter(|path| path.is_dir());
-    root.ancestors()
-        .map(Path::to_path_buf)
-        .chain(below)
-        .any(|dir| holds(&dir).unwrap_or(true))
+    root.ancestors().any(|dir| {
+        std::fs::read_dir(dir).map_or(true, |entries| {
+            entries
+                .filter_map(Result::ok)
+                .map(|entry| entry.file_name().to_string_lossy().into_owned())
+                .any(|name| wanted.iter().any(|want| matches_project_file(want, &name)))
+        })
+    })
 }
 
 /// Whether the file name `name` is the one `wanted` names; `*` at the start matches any prefix.
@@ -387,19 +391,20 @@ fn matches_project_file(wanted: &str, name: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{matches_project_file, project_file_near, substitute};
+    use super::{heap_mb, matches_project_file, project_file_near, substitute};
 
     fn wanted(names: &[&str]) -> Vec<String> {
         names.iter().map(|name| (*name).to_owned()).collect()
     }
 
     #[test]
-    fn a_project_file_is_found_in_the_folder_and_one_level_below() {
+    fn a_project_file_in_a_subfolder_does_not_count() {
         let dir = tempfile::tempdir().expect("temporary folder");
         let root = dir.path().join("project");
         std::fs::create_dir_all(root.join("cli")).expect("folders");
-        assert!(!project_file_near(&wanted(&["Cargo.toml"]), &root));
         std::fs::write(root.join("cli").join("Cargo.toml"), "").expect("file");
+        assert!(!project_file_near(&wanted(&["Cargo.toml"]), &root));
+        std::fs::write(root.join("Cargo.toml"), "").expect("file");
         assert!(project_file_near(&wanted(&["Cargo.toml"]), &root));
     }
 
@@ -411,6 +416,12 @@ mod tests {
         assert!(!project_file_near(&wanted(&["*.sln"]), &root));
         std::fs::write(dir.path().join("work").join("App.sln"), "").expect("file");
         assert!(project_file_near(&wanted(&["*.sln"]), &root));
+    }
+
+    #[test]
+    fn the_heap_is_three_quarters_of_the_limit() {
+        assert_eq!(heap_mb(16 * 1024 * 1024 * 1024), 12_288);
+        assert_eq!(heap_mb(4096 * 1024 * 1024), 3072);
     }
 
     #[test]

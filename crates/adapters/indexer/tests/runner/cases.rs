@@ -55,6 +55,7 @@ fn spec(mode: &str) -> IndexerSpec {
             ("FAKE_TOKEN_HOME".to_owned(), HOME_TOOL_DIR.to_owned()),
         ],
         env: vec![("FIXED_BY_PACK".to_owned(), "yes".to_owned())],
+        memory_env: vec![("HEAP_BY_PACK".to_owned(), "--heap={heap_mb}".to_owned())],
         project_files: Vec::new(),
         install_hint: "install it".to_owned(),
         symbol_kinds: Vec::new(),
@@ -251,6 +252,8 @@ fn the_environment_holds_no_secret_and_nothing_unlisted() {
     assert!(!text.contains(SECRET), "{text}");
     assert!(text.contains("EXTRA_ALLOWED=fine"));
     assert!(text.contains("FIXED_BY_PACK=yes"));
+    // 75 % of the limit of 2 GiB.
+    assert!(text.contains("HEAP_BY_PACK=--heap=1536"), "{text}");
     assert!(text.contains("PATH="));
     for name in [
         "GITHUB_TOKEN",
