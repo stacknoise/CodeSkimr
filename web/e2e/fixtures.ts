@@ -131,15 +131,20 @@ export async function leaveScanScreen(page: Page, name: string): Promise<void> {
   });
 }
 
+/** How long the button "New" may be covered before the window is taken as open on its own. */
+const NEW_CLICK_MS = 1500;
+
 /** The label of the source field of the window "New project". */
 export const SOURCE_LABEL = /^(Folder|Repository address)$/;
 
-/** Opens the window "New project": it is open on its own while the list is empty, and then its
- * background covers the button "New". */
+/** Opens the window "New project": it is open on its own while the list is empty (it appears when
+ * the list has been read), and then its background covers the button "New". */
 export async function openNewForm(page: Page): Promise<void> {
   const window = page.getByRole("dialog", { name: "New project" });
-  if (!(await window.isVisible())) {
-    await page.getByRole("button", { name: "New", exact: true }).click();
+  try {
+    await page.getByRole("button", { name: "New", exact: true }).click({ timeout: NEW_CLICK_MS });
+  } catch (error) {
+    await expect(window, String(error)).toBeVisible();
   }
 }
 
