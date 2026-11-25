@@ -62,6 +62,7 @@ fn plan(indexer: &str, toolchain: &str, requirement: Option<&str>) -> ToolPlan {
             home_dirs: Vec::new(),
             env: Vec::new(),
             memory_env: Vec::new(),
+            memory_markers: Vec::new(),
             project_files: Vec::new(),
             install_hint: "install it".to_owned(),
             symbol_kinds: Vec::new(),

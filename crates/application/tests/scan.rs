@@ -2081,6 +2081,7 @@ fn rust_indexer() -> IndexerSpec {
         home_dirs: Vec::new(),
         env: Vec::new(),
         memory_env: Vec::new(),
+        memory_markers: Vec::new(),
         project_files: Vec::new(),
         install_hint: String::new(),
         symbol_kinds: Vec::new(),

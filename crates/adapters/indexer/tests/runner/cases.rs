@@ -56,6 +56,7 @@ fn spec(mode: &str) -> IndexerSpec {
         ],
         env: vec![("FIXED_BY_PACK".to_owned(), "yes".to_owned())],
         memory_env: vec![("HEAP_BY_PACK".to_owned(), "--heap={heap_mb}".to_owned())],
+        memory_markers: Vec::new(),
         project_files: Vec::new(),
         install_hint: "install it".to_owned(),
         symbol_kinds: Vec::new(),
@@ -517,6 +518,17 @@ fn a_failing_indexer_is_reported_with_its_redacted_output() {
     assert!(excerpt.contains("restore failed"), "{excerpt}");
     assert!(!excerpt.contains(SECRET), "{excerpt}");
     assert!(!format!("{error:?}").contains(SECRET));
+}
+
+#[test]
+fn a_failed_run_whose_output_names_a_memory_marker_is_a_memory_limit() {
+    let fixture = Fixture::new();
+    let marked = IndexerSpec {
+        memory_markers: vec!["restore failed".to_owned()],
+        ..spec("fail")
+    };
+    let result = fixture.run_with(&marked, limits(), &CancelToken::new());
+    assert_eq!(code_of(result), ErrorCode::IndexerMemoryLimit);
 }
 
 #[test]

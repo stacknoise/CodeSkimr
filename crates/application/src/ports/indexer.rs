@@ -54,6 +54,10 @@ pub struct IndexerSpec {
     /// replaced by the share of the limit that a managed heap may use (Node.js stops with
     /// "heap out of memory" at about 4 GB unless it is told more).
     pub memory_env: Vec<(String, String)>,
+    /// Texts of the console output of a failed run that say the indexer ran out of memory by its
+    /// own count (Node.js: "JavaScript heap out of memory"); such a run ends as a memory limit,
+    /// not as a plain failure. Empty: a failed run stays a failure.
+    pub memory_markers: Vec<String>,
     /// File names that the indexer needs in the project folder (`Cargo.toml`); a name that starts
     /// with `*` matches a file name ending in the rest (`*.sln`). Empty: the indexer needs none.
     pub project_files: Vec<String>,

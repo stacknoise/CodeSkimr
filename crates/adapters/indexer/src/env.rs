@@ -236,6 +236,7 @@ mod home_dir_tests {
                 .collect(),
             env: Vec::new(),
             memory_env: Vec::new(),
+            memory_markers: Vec::new(),
             project_files: Vec::new(),
             install_hint: String::new(),
             symbol_kinds: Vec::new(),
