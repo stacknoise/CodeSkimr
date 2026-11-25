@@ -134,6 +134,32 @@ describe("the languages of the report", () => {
     expect(within(group).queryByText("C#")).not.toBeInTheDocument();
   });
 
+  it("does not call a language without stage 2 when its indexer only came after the run", async () => {
+    const tools = {
+      checked_at: 1_700_000_000,
+      languages: [{ language: "java", level2_ready: false }],
+      tools: [],
+    };
+    const row = projectRow({
+      report: REPORT,
+      tools,
+      languages: [info("csharp"), info("java"), info("c")],
+    });
+    const panel = await selected({
+      ...row,
+      report: {
+        ...REPORT,
+        level2: {
+          ...REPORT.level2!,
+          languages: REPORT.level2!.languages.filter((line) => line.language !== "java"),
+        },
+      },
+    });
+    const group = panel.querySelector("[data-group=no-level2]") as HTMLElement;
+    expect(within(group).getByText("C")).toBeInTheDocument();
+    expect(within(group).queryByText("Java")).not.toBeInTheDocument();
+  });
+
   it("says once that stage 2 is off instead of one row with a button for each language", async () => {
     const off = {
       ...REPORT,
