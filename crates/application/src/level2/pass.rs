@@ -163,6 +163,7 @@ impl Level2Pass {
 
     /// The languages that have an indexer and files in the latest snapshot of `project`. If the
     /// files cannot be read, all languages with an indexer, so that no skip goes unreported.
+    #[must_use]
     pub fn languages_in(&self, project: ProjectId) -> Vec<&LanguageId> {
         let present: Option<HashSet<LanguageId>> = self
             .projects
