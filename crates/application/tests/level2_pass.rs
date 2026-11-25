@@ -326,6 +326,13 @@ mod cases {
         }
     }
 
+    /// Whether the folder holds the file the indexer needs.
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum ProjectFile {
+        Present,
+        Missing,
+    }
+
     /// Everything a case may change.
     struct Setup {
         files: Vec<SourceFile>,
@@ -333,7 +340,7 @@ mod cases {
         indexers: Vec<(&'static str, &'static str)>,
         status: IndexerStatus,
         run_fails: Option<ErrorCode>,
-        no_project_file: bool,
+        project_file: ProjectFile,
         import_fails: Option<ErrorCode>,
         cancel_in_import: bool,
         files_fail: bool,
@@ -351,7 +358,7 @@ mod cases {
                 indexers: vec![("csharp", "scip-dotnet")],
                 status: IndexerStatus::ready(),
                 run_fails: None,
-                no_project_file: false,
+                project_file: ProjectFile::Present,
                 import_fails: None,
                 cancel_in_import: false,
                 files_fail: false,
@@ -402,7 +409,7 @@ mod cases {
                 runs: Mutex::default(),
                 status: setup.status.clone(),
                 fails: setup.run_fails,
-                has_project_file: !setup.no_project_file,
+                has_project_file: setup.project_file == ProjectFile::Present,
             }),
             importer: Arc::new(Importer {
                 seen: Mutex::default(),
@@ -565,7 +572,7 @@ mod cases {
     #[test]
     fn a_folder_without_the_project_file_starts_nothing() {
         let outcome = run(Setup {
-            no_project_file: true,
+            project_file: ProjectFile::Missing,
             ..Setup::default()
         });
         assert_eq!(outcome.runs, 0);
