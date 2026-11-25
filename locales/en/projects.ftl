@@ -173,6 +173,16 @@ projects-report-group-checked-count = { $count ->
     [one] 1 language
    *[other] { $count } languages
   }
+projects-report-group-no-level2 = No stage 2 available
+projects-report-group-no-level2-count = { $count ->
+    [one] 1 language, there is no exact check for it yet
+   *[other] { $count } languages, there is no exact check for them yet
+  }
+projects-report-no-level2-note = Their references stay approximations from stage 1.
+projects-report-switched-off = Stage 2 is off or not confirmed for this project. Switch it on above and confirm it to check { $count ->
+    [one] 1 language
+   *[other] { $count } languages
+  }: { $languages }.
 projects-report-chip = { $language } · { $files } files
 projects-report-chip-stale = { $language } · { $files } files · { $stale } outdated
 projects-report-todo = What to do: { $text }
