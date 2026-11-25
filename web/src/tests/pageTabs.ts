@@ -15,3 +15,6 @@ export async function chooseTab(name: RegExp): Promise<void> {
 export const TAB_LEVEL2 = /Exact check|Genaue Prüfung/;
 export const TAB_SCAN = /^(Scan)$/;
 export const TAB_TOOLS = /^(Tools|Werkzeuge)$/;
+
+/** The label of the source field of the window "New project". */
+export const SOURCE_LABEL = /^(Folder|Repository address)$/;

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
+import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { activeProject, openProject } from "../../shared/project/active";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,6 +15,7 @@ import {
   renamingProject,
 } from "./projects";
 import { UNCHECKED, rescanAsked, rescanned } from "../../tests/scanned";
+import { SOURCE_LABEL } from "../../tests/pageTabs";
 import type { ProjectRow } from "./types";
 
 const ROW: ProjectRow = {
@@ -47,7 +48,7 @@ describe("ProjectsScreen", () => {
     serve({ "projects.list": () => answer([]) });
     render(() => <ProjectsScreen />);
     expect(await screen.findByText("No projects yet")).toBeInTheDocument();
-    expect(screen.getByLabelText("New project")).toBeInTheDocument();
+    expect(screen.getByLabelText(SOURCE_LABEL)).toBeInTheDocument();
   });
 
   it("lists the projects and shows the page of the selected one", async () => {
@@ -160,7 +161,7 @@ describe("ProjectsScreen", () => {
     render(() => <ProjectsScreen />);
     const field = await screen.findByPlaceholderText(/Paste a folder path/);
     fireEvent.input(field, { target: { value: "/work/shop/src" } });
-    const name = await screen.findByLabelText("Display name");
+    const name = await screen.findByLabelText(/^Display name/);
     await waitFor(() => expect((name as HTMLInputElement).value).toBe("shop/src"));
     fireEvent.click(screen.getByRole("button", { name: "Add and scan" }));
     await waitFor(() => expect((field as HTMLInputElement).value).toBe(""));
@@ -390,7 +391,7 @@ describe("ProjectsScreen", () => {
     serve({ "projects.list": () => answer([ROW]) });
     render(() => <ProjectsScreen />);
     fireEvent.click(await screen.findByRole("button", { name: "Remove project shop" }));
-    expect(screen.getByText(/Scans, results and notes of the project are deleted/)).toBeVisible();
+    expect(screen.getByText(/The project file .*is deleted/)).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.getByRole("button", { name: "Remove project shop" })).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith("projects.remove"))).toBe(
@@ -496,6 +497,45 @@ describe("ProjectsScreen", () => {
       ),
     );
     expect(activeProject()).toBe(1);
+  });
+
+  it("puts the focus on Cancel in the removal dialog and closes it on Esc", async () => {
+    serve({ "projects.list": () => answer([ROW]) });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove project shop" }));
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+  });
+
+  it("keeps Tab inside the removal dialog and gives the focus back when it closes", async () => {
+    serve({ "projects.list": () => answer([ROW]) });
+    render(() => <ProjectsScreen />);
+    const trigger = await screen.findByRole("button", { name: "Remove project shop" });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    const remove = screen.getByRole("button", { name: "Remove for good" });
+    expect(cancel).toHaveFocus();
+    fireEvent.keyDown(document, { key: "Tab" });
+    remove.focus();
+    fireEvent.keyDown(document, { key: "Tab" });
+    expect(cancel).toHaveFocus();
+    fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+    expect(remove).toHaveFocus();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("closes the window New project with its Cancel button", async () => {
+    serve({ "projects.list": () => answer([ROW]) });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "New" }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("shows why a removal failed and keeps the project", async () => {

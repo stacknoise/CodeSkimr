@@ -10,6 +10,7 @@ import {
   test,
   watchPolicy,
   openNewForm,
+  SOURCE_LABEL,
 } from "./fixtures";
 
 /** A scan in a debug build loads the language packs and takes a few seconds. */
@@ -37,7 +38,7 @@ test.describe("the project list", () => {
 
     await openNewForm(page);
 
-    await page.getByLabel("New project").fill(folder);
+    await page.getByLabel(SOURCE_LABEL).fill(folder);
     await page.getByRole("button", { name: "Add and scan" }).click();
     await leaveScanScreen(page, name);
 
@@ -65,7 +66,7 @@ test.describe("the project list", () => {
     const { copy } = keepLaunchFile(await harness.launchFile());
     await page.goto(`file://${copy}`);
     await openNewForm(page);
-    await page.getByLabel("New project").fill("relative/folder");
+    await page.getByLabel(SOURCE_LABEL).fill("relative/folder");
     await page.getByRole("button", { name: "Add and scan" }).click();
     await expect(page.getByRole("alert")).toContainText("neither an existing folder");
   });
@@ -75,6 +76,6 @@ test.describe("the project list", () => {
     await page.goto(`file://${copy}`);
     await expect(page.getByText("● Connected")).toBeVisible();
     await page.keyboard.press("n");
-    await expect(page.getByLabel("New project")).toBeFocused();
+    await expect(page.getByLabel(SOURCE_LABEL)).toBeFocused();
   });
 });

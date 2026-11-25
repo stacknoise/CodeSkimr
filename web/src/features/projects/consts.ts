@@ -298,5 +298,16 @@ export const TAB_STEP: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1 }
 export const TAB_IN = 0;
 export const TAB_OUT = -1;
 
+/** The signs of the dialog "Remove project": what goes, what stays, and the warning. */
+export const REMOVE_MARKS = { goes: "−", stays: "✓", warning: "!" } as const;
+
+/** The id of the title of the dialog "Remove project" and of the window "New project". */
+export const REMOVE_DIALOG_TITLE_ID = "remove-title";
+export const NEW_PROJECT_TITLE_ID = "new-project-title";
+
+/** Tab, and what a dialog lets the Tab key reach. */
+export const TAB_KEY = "Tab";
+export const FOCUSABLE = "button:not(:disabled)";
+
 /** How project names are compared for the list: without regard to case and accents, digits as numbers. */
 export const NAME_ORDER: Intl.CollatorOptions = { sensitivity: "base", numeric: true };

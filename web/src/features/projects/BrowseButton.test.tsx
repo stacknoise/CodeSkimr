@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { describe, expect, it } from "vitest";
 import { answer, serve, useServerSession } from "../../tests/commands";
 import { ProjectsScreen } from "./ProjectsScreen";
+import { SOURCE_LABEL } from "../../tests/pageTabs";
 
 useServerSession();
 
@@ -18,7 +19,7 @@ describe("the Browse button of the new-project form", () => {
   it("is not there without a folder dialog on the machine of the app", async () => {
     dialog(false, () => answer({ path: null }));
     render(() => <ProjectsScreen />);
-    await screen.findByLabelText("New project");
+    await screen.findByLabelText(SOURCE_LABEL);
     expect(screen.queryByRole("button", { name: "Browse …" })).toBeNull();
   });
 

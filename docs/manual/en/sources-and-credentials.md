@@ -60,7 +60,7 @@ codeskimr scan https://github.com/org/private-repo --credential work-github
 
 ### In the browser
 
-On the project screen, the form "New project" has a field **Login**. "Store a new login" opens three fields (name, user name, token or password); the secret is a password field, goes to the keystore of the computer that runs the server and is emptied from the page at once. The new name is selected for the project you add next. Only names that a project already uses, or that you stored in this tab, are offered; the browser never reads a stored secret back. Logins from `credential login` (OAuth) are done on the command line.
+On the project screen, the window "New project" has a field **Login**. "Store a new login" opens three fields (name, user name, token or password); the secret is a password field, goes to the keystore of the computer that runs the server and is emptied from the page at once. The new name is selected for the project you add next. Only names that a project already uses, or that you stored in this tab, are offered; the browser never reads a stored secret back. Logins from `credential login` (OAuth) are done on the command line.
 
 ### What CodeSkimr does with the secret
 

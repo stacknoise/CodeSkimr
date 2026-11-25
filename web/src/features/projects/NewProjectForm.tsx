@@ -1,4 +1,4 @@
-import { createEffect, createSignal, For, onCleanup, onMount, Show } from "solid-js";
+import { createEffect, createSignal, For, onCleanup, onMount, Show, type JSX } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
@@ -9,6 +9,7 @@ import {
   FOLDER_PATH,
   GIT_ADDRESS,
   NETWORK_PATH,
+  NEW_PROJECT_TITLE_ID,
   SOURCE_KIND,
   SUGGEST_DELAY_MS,
   type SourceKind,
@@ -28,53 +29,73 @@ export interface NewProjectFormProps {
   setInput: (element: HTMLInputElement) => void;
   dragging: boolean;
   notice: string | null;
+  /** Closes the window; absent while the list is empty, when the window stays. */
+  onClose?: (() => void) | undefined;
 }
 
-/** The choice between a folder and a Git repository; the other fields follow it. */
-function KindSelect(props: { kind: SourceKind; onKind: (kind: SourceKind) => void }) {
+/** The choice between a folder and a Git repository (mock 24); the other fields follow it. */
+function KindSwitch(props: { kind: SourceKind; onKind: (kind: SourceKind) => void }) {
+  const choices = [
+    [SOURCE_KIND.folder, I18N_KEYS.PROJECTS_SOURCE_FOLDER],
+    [SOURCE_KIND.git, I18N_KEYS.PROJECTS_SOURCE_GIT],
+  ] as const;
   return (
-    <select
-      class={styles.credential}
+    <div
+      class={styles.segment}
+      role="radiogroup"
       aria-label={t(I18N_KEYS.PROJECTS_FIELD_SOURCE_KIND)}
-      value={props.kind}
-      onChange={(event) => props.onKind(event.currentTarget.value as SourceKind)}
     >
-      <option value={SOURCE_KIND.folder}>{t(I18N_KEYS.PROJECTS_SOURCE_FOLDER)}</option>
-      <option value={SOURCE_KIND.git}>{t(I18N_KEYS.PROJECTS_SOURCE_GIT)}</option>
-    </select>
+      <For each={choices}>
+        {([kind, text]) => (
+          <button
+            type="button"
+            role="radio"
+            aria-checked={props.kind === kind}
+            class={cx(styles.choice, props.kind === kind && styles.chosen)}
+            onClick={() => props.onKind(kind)}
+          >
+            {t(text)}
+          </button>
+        )}
+      </For>
+    </div>
   );
 }
 
-/** The source field with its label (mock 1). */
-function SourceField(props: NewProjectFormProps & { kind: SourceKind }) {
+/** The source field with its label: "Folder" or "Repository address". */
+function SourceField(props: NewProjectFormProps & { kind: SourceKind; children: JSX.Element }) {
+  const git = () => props.kind === SOURCE_KIND.git;
   return (
-    <>
-      <label for="source" class={styles.title}>
-        {t(I18N_KEYS.PROJECTS_NEW_TITLE)}
+    <div class={styles.field}>
+      <label for="source" class={styles.label}>
+        {t(git() ? I18N_KEYS.PROJECTS_FIELD_ADDRESS : I18N_KEYS.PROJECTS_SOURCE_FOLDER)}
       </label>
-      <input
-        id="source"
-        ref={props.setInput}
-        class={styles.source}
-        value={props.source}
-        placeholder={t(
-          props.kind === SOURCE_KIND.git
-            ? I18N_KEYS.PROJECTS_SOURCE_PLACEHOLDER_GIT
-            : I18N_KEYS.PROJECTS_SOURCE_PLACEHOLDER_FOLDER,
-        )}
-        onInput={(event) => props.onSource(event.currentTarget.value)}
-        spellcheck={false}
-        autocomplete="off"
-      />
-    </>
+      <div class={styles.pair}>
+        <input
+          id="source"
+          ref={props.setInput}
+          class={styles.source}
+          value={props.source}
+          placeholder={t(
+            git()
+              ? I18N_KEYS.PROJECTS_SOURCE_PLACEHOLDER_GIT
+              : I18N_KEYS.PROJECTS_SOURCE_PLACEHOLDER_FOLDER,
+          )}
+          onInput={(event) => props.onSource(event.currentTarget.value)}
+          spellcheck={false}
+          autocomplete="off"
+        />
+        {props.children}
+      </div>
+    </div>
   );
 }
 
 /** The branch field; the form reads the value when it is sent. */
 function BranchField(props: { onBranch: (value: string) => void }) {
   return (
-    <>
-      <label for="branch" class={styles.branchLabel}>
+    <div class={styles.field}>
+      <label for="branch" class={styles.label}>
         {t(I18N_KEYS.PROJECTS_FIELD_BRANCH)}
       </label>
       <input
@@ -85,15 +106,15 @@ function BranchField(props: { onBranch: (value: string) => void }) {
         spellcheck={false}
         autocomplete="off"
       />
-    </>
+    </div>
   );
 }
 
 /** The choice of a stored credential (or none). */
 function CredentialSelect(props: { value: string; onChange: (id: string) => void }) {
   return (
-    <>
-      <label for="credential" class={styles.branchLabel}>
+    <div class={styles.field}>
+      <label for="credential" class={styles.label}>
         {t(I18N_KEYS.PROJECTS_CREDENTIAL_LABEL)}
       </label>
       <select
@@ -105,7 +126,7 @@ function CredentialSelect(props: { value: string; onChange: (id: string) => void
         <option value="">{t(I18N_KEYS.PROJECTS_CREDENTIAL_NONE)}</option>
         <For each={credentialNames()}>{(id) => <option value={id}>{id}</option>}</For>
       </select>
-    </>
+    </div>
   );
 }
 
@@ -154,8 +175,10 @@ function GitFields(props: {
 }) {
   return (
     <>
-      <BranchField onBranch={props.onBranch} />
-      <CredentialSelect value={props.credential} onChange={props.onCredential} />
+      <div class={styles.pair}>
+        <BranchField onBranch={props.onBranch} />
+        <CredentialSelect value={props.credential} onChange={props.onCredential} />
+      </div>
       <button type="button" class={styles.link} onClick={() => navigate(SETTINGS_ROUTE.path)}>
         {t(I18N_KEYS.PROJECTS_CREDENTIAL_SETTINGS)}
       </button>
@@ -198,9 +221,10 @@ function useName(source: () => string) {
 /** The optional display name next to the source. */
 function NameField(props: { value: string; onType: (value: string) => void }) {
   return (
-    <>
-      <label for="project-name" class={styles.branchLabel}>
-        {t(I18N_KEYS.PROJECTS_FIELD_NAME)}
+    <div class={styles.field}>
+      <label for="project-name" class={styles.label}>
+        {t(I18N_KEYS.PROJECTS_FIELD_NAME)}{" "}
+        <span class={styles.optional}>({t(I18N_KEYS.PROJECTS_FIELD_OPTIONAL)})</span>
       </label>
       <input
         id="project-name"
@@ -211,7 +235,7 @@ function NameField(props: { value: string; onType: (value: string) => void }) {
         spellcheck={false}
         autocomplete="off"
       />
-    </>
+    </div>
   );
 }
 
@@ -243,7 +267,25 @@ function useSubmit(props: NewProjectFormProps, kind: () => SourceKind, name: () 
   return { submit, gitFields };
 }
 
-/** The inline form "New project" (mock 1): source, branch and the button. */
+/** The foot of the window: the keys, "Cancel" and the button that adds. */
+function Foot(props: { onClose: (() => void) | undefined }) {
+  return (
+    <div class={styles.foot}>
+      <span class={styles.keys}>{t(I18N_KEYS.PROJECTS_NEW_KEYS)}</span>
+      <Show when={props.onClose}>
+        <button type="button" class={styles.cancel} onClick={() => props.onClose?.()}>
+          {t(I18N_KEYS.PROJECTS_REMOVE_CANCEL)}
+        </button>
+      </Show>
+      <button type="submit" class={styles.button} disabled={projectAdding()}>
+        {projectAdding() ? t(I18N_KEYS.PROJECTS_ADDING) : t(I18N_KEYS.PROJECTS_ADD_AND_SCAN)}
+      </button>
+    </div>
+  );
+}
+
+/** The small window "New project" at the button "New" (mock 24, variant C): source, name, and for
+ * a Git source branch and login. Esc and "Cancel" close it; with no project it stays open. */
 export function NewProjectForm(props: NewProjectFormProps) {
   const [kind, setKind] = useKind(() => props.source);
   const browse = useBrowse(props);
@@ -254,22 +296,33 @@ export function NewProjectForm(props: NewProjectFormProps) {
     void readFolderDialog();
   });
   return (
-    <form class={cx(styles.form, props.dragging && styles.dragging)} onSubmit={submit}>
-      <KindSelect kind={kind()} onKind={setKind} />
-      <SourceField {...props} onSource={browse.typed} kind={kind()} />
-      <Show when={kind() === SOURCE_KIND.folder}>
-        <BrowseButton onPicked={browse.picked} />
-      </Show>
-      <BrowseWaiting />
-      <Show when={kind() === SOURCE_KIND.git}>{gitFields()}</Show>
-      <NameField value={name.name()} onType={name.type} />
-      <button type="submit" class={styles.button} disabled={projectAdding()}>
-        {projectAdding() ? t(I18N_KEYS.PROJECTS_ADDING) : t(I18N_KEYS.PROJECTS_ADD_AND_SCAN)}
-      </button>
-      <Show when={browse.taken()}>
-        <p class={styles.message}>{t(I18N_KEYS.PROJECTS_BROWSE_DONE)}</p>
-      </Show>
-      <Messages notice={props.notice} />
+    <form
+      class={cx(styles.form, props.dragging && styles.dragging)}
+      role="dialog"
+      aria-labelledby={NEW_PROJECT_TITLE_ID}
+      onSubmit={submit}
+    >
+      <div class={styles.head}>
+        <h2 id={NEW_PROJECT_TITLE_ID} class={styles.title}>
+          {t(I18N_KEYS.PROJECTS_NEW_TITLE)}
+        </h2>
+        <KindSwitch kind={kind()} onKind={setKind} />
+      </div>
+      <div class={styles.body}>
+        <SourceField {...props} onSource={browse.typed} kind={kind()}>
+          <Show when={kind() === SOURCE_KIND.folder}>
+            <BrowseButton onPicked={browse.picked} />
+          </Show>
+        </SourceField>
+        <BrowseWaiting />
+        <Show when={browse.taken()}>
+          <p class={styles.message}>{t(I18N_KEYS.PROJECTS_BROWSE_DONE)}</p>
+        </Show>
+        <NameField value={name.name()} onType={name.type} />
+        <Show when={kind() === SOURCE_KIND.git}>{gitFields()}</Show>
+        <Messages notice={props.notice} />
+      </div>
+      <Foot onClose={props.onClose} />
     </form>
   );
 }

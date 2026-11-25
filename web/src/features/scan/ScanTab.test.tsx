@@ -10,7 +10,7 @@ import { refreshStatus } from "../status/status";
 import { listenToScans, resetRuns } from "./events";
 import { ProjectsScreen } from "../projects/ProjectsScreen";
 import { Performance } from "../status/Performance";
-import { chooseProject, chooseTab, TAB_SCAN } from "../../tests/pageTabs";
+import { chooseProject, chooseTab, TAB_SCAN, SOURCE_LABEL } from "../../tests/pageTabs";
 
 const ROW: ProjectRow = {
   id: 1,
@@ -315,9 +315,9 @@ describe("the tab Scan", () => {
     FakeSocket.last?.send(RUNNING);
     await screen.findByRole("button", { name: /Cancel/ });
     fireEvent.click(screen.getByRole("button", { name: "New" }));
-    expect(screen.getByLabelText("New project")).toBeInTheDocument();
+    expect(screen.getByLabelText(SOURCE_LABEL)).toBeInTheDocument();
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(screen.queryByLabelText("New project")).toBeNull();
+    expect(screen.queryByLabelText(SOURCE_LABEL)).toBeNull();
     await cancelsOnlyOnSecondEsc();
     stop();
   });

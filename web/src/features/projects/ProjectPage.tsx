@@ -54,11 +54,7 @@ function sourceLine(row: ProjectRow): string {
  * was interrupted can only be removed again. */
 function Icons(props: { row: ProjectRow; onRemove: (id: number) => Promise<boolean> }) {
   const remove = () => (
-    <RemoveAction
-      id={props.row.id}
-      name={props.row.name}
-      onRemove={() => props.onRemove(props.row.id)}
-    />
+    <RemoveAction row={props.row} onRemove={() => props.onRemove(props.row.id)} />
   );
   return (
     <Switch>
