@@ -1,4 +1,5 @@
-import { createSignal } from "solid-js";
+import { createMemo, createRoot, createSignal } from "solid-js";
+import { currentLanguage } from "../../shared/i18n/i18n";
 import { ApiError } from "../../shared/api/client";
 import { runCommand } from "../../shared/api/commands";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
@@ -7,6 +8,7 @@ import { PROJECTS_ROUTE } from "../../app/consts";
 import { closeProject } from "../../shared/project/active";
 import { pollUnanswered } from "../../shared/api/poll";
 import { COMMAND, POLL_MS } from "./consts";
+import { byName } from "./order";
 import { showScan } from "./page";
 import { forgetLevel2 } from "./level2";
 import { keepRunningOnly, noteLevel2Start, resetLevel2Runs } from "./level2run";
@@ -91,8 +93,8 @@ export async function suggestName(source: string): Promise<string | null> {
 /** Ids of the projects that existed when the user added a new one; `null` while none is added. */
 let knownAtAdd: ReadonlySet<number> | null = null;
 
-/** The registered projects. */
-export const projects = rows;
+/** The registered projects in the order of the list: alphabetical by shown name. */
+export const projects = createRoot(() => createMemo(() => byName(rows(), currentLanguage())));
 /** Whether the list has been read at least once. */
 export const projectsLoaded = loaded;
 /** The failure of the last action, else the one of the last read; `null` if both worked. */
