@@ -107,6 +107,8 @@ pub const LOG_ALERTS_CHECKED: &str = "alerts_checked";
 pub const LOG_ALERT_STEP_FAILED: &str = "alert_step_failed";
 /// Log event: the report of a scan could not be stored (`PRJ-502`).
 pub const LOG_REPORT_NOT_STORED: &str = "scan_report_not_stored";
+/// Log event: the stored report could not be read, so a run for one language starts from none.
+pub const LOG_REPORT_NOT_READ: &str = "scan_report_not_read";
 /// Log event: the id sequence could not be moved up to the store before level 2 ran.
 pub const LOG_IDS_NOT_CAUGHT_UP: &str = "ids_not_caught_up";
 /// Log event: a snapshot stores fewer ambiguous places than its references show (ADR 0086).

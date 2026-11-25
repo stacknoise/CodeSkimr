@@ -2,7 +2,9 @@
 
 use std::sync::Arc;
 
-use codeskimr_codes::ErrorCode;
+use codeskimr_codes::{Coded, ErrorCode};
+
+use crate::consts::LOG_REPORT_NOT_READ;
 use codeskimr_domain::{ScanLevel, ScanOrigin, Snapshot};
 
 use crate::level2::{LanguageReport, Level2Outcome, Skipped};
@@ -83,11 +85,11 @@ impl ReportStep {
     /// The lines of the stored report with those of `fresh` in place of the same languages: a run
     /// for one language leaves what the report says about the others as it is.
     fn merged(&self, snapshot: &Snapshot, fresh: Vec<LanguageLine>) -> Vec<LanguageLine> {
-        let mut lines = self
-            .store
-            .report(snapshot.project)
-            .ok()
-            .flatten()
+        let stored = self.store.report(snapshot.project).unwrap_or_else(|cause| {
+            tracing::warn!(event = LOG_REPORT_NOT_READ, code = cause.code().id());
+            None
+        });
+        let mut lines = stored
             .and_then(|report| report.level2)
             .map(|level2| level2.languages)
             .unwrap_or_default();
