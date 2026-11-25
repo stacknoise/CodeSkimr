@@ -1,11 +1,11 @@
-import { onMount, Show } from "solid-js";
+import { onCleanup, onMount, Show } from "solid-js";
 import { Portal } from "solid-js/web";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { useKeydown } from "../../shared/keys/keydown";
 import { useLayer } from "../../shared/keys/layers";
 import { CANCEL_KEY } from "../scan/consts";
-import { REMOVE_MARKS, SOURCE_KIND } from "./consts";
+import { FOCUSABLE, REMOVE_DIALOG_TITLE_ID, REMOVE_MARKS, SOURCE_KIND, TAB_KEY } from "./consts";
 import { size } from "./format";
 import type { ProjectRow } from "./types";
 import styles from "./RemoveDialog.module.css";
@@ -38,7 +38,7 @@ function Head(props: { row: ProjectRow }) {
         {REMOVE_MARKS.warning}
       </span>
       <div>
-        <h2 id="remove-title" class={styles.title}>
+        <h2 id={REMOVE_DIALOG_TITLE_ID} class={styles.title}>
           {t(I18N_KEYS.PROJECTS_REMOVE_TITLE, { name: props.row.name })}
         </h2>
         <p class={styles.place}>{props.row.location}</p>
@@ -60,9 +60,37 @@ function Effects(props: { row: ProjectRow }) {
   );
 }
 
+/** Keeps Tab inside the dialog: from the last button it goes to the first, and back. */
+function trapTab(event: KeyboardEvent, dialog: HTMLElement | undefined): void {
+  if (event.key !== TAB_KEY || dialog === undefined) {
+    return;
+  }
+  const buttons = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE));
+  const first = buttons[0];
+  const last = buttons[buttons.length - 1];
+  const edge = event.shiftKey ? first : last;
+  if (first !== undefined && last !== undefined && document.activeElement === edge) {
+    event.preventDefault();
+    (event.shiftKey ? last : first).focus();
+  }
+}
+
+/** Focus of the dialog: it starts on "Cancel", stays inside, and goes back to where it was. */
+function useFocus(dialog: () => HTMLElement | undefined, cancel: () => HTMLElement | undefined) {
+  const before = document.activeElement;
+  useKeydown((event) => trapTab(event, dialog()));
+  onMount(() => cancel()?.focus());
+  onCleanup(() => {
+    if (before instanceof HTMLElement && before.isConnected) {
+      before.focus();
+    }
+  });
+}
+
 /** The dialog "Remove project" (mock 24, D1): it says what goes and what stays. Esc and "Cancel"
  * close it, the focus starts on "Cancel", so a stray Enter removes nothing. */
 export function RemoveDialog(props: { row: ProjectRow; onYes: () => void; onNo: () => void }) {
+  let dialog: HTMLDivElement | undefined;
   let cancel: HTMLButtonElement | undefined;
   useLayer(() => true);
   useKeydown((event) => {
@@ -70,15 +98,19 @@ export function RemoveDialog(props: { row: ProjectRow; onYes: () => void; onNo: 
       props.onNo();
     }
   });
-  onMount(() => cancel?.focus());
+  useFocus(
+    () => dialog,
+    () => cancel,
+  );
   return (
     <Portal>
       <div class={styles.scrim} onClick={props.onNo} />
       <div
+        ref={dialog}
         class={styles.dialog}
         role="alertdialog"
         aria-modal="true"
-        aria-labelledby="remove-title"
+        aria-labelledby={REMOVE_DIALOG_TITLE_ID}
       >
         <Head row={props.row} />
         <Effects row={props.row} />

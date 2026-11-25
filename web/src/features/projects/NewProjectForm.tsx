@@ -9,6 +9,7 @@ import {
   FOLDER_PATH,
   GIT_ADDRESS,
   NETWORK_PATH,
+  NEW_PROJECT_TITLE_ID,
   SOURCE_KIND,
   SUGGEST_DELAY_MS,
   type SourceKind,
@@ -298,11 +299,11 @@ export function NewProjectForm(props: NewProjectFormProps) {
     <form
       class={cx(styles.form, props.dragging && styles.dragging)}
       role="dialog"
-      aria-labelledby="new-project-title"
+      aria-labelledby={NEW_PROJECT_TITLE_ID}
       onSubmit={submit}
     >
       <div class={styles.head}>
-        <h2 id="new-project-title" class={styles.title}>
+        <h2 id={NEW_PROJECT_TITLE_ID} class={styles.title}>
           {t(I18N_KEYS.PROJECTS_NEW_TITLE)}
         </h2>
         <KindSwitch kind={kind()} onKind={setKind} />

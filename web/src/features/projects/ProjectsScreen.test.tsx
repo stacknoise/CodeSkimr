@@ -511,6 +511,26 @@ describe("ProjectsScreen", () => {
     expect(screen.queryByRole("alertdialog")).toBeNull();
   });
 
+  it("keeps Tab inside the removal dialog and gives the focus back when it closes", async () => {
+    serve({ "projects.list": () => answer([ROW]) });
+    render(() => <ProjectsScreen />);
+    const trigger = await screen.findByRole("button", { name: "Remove project shop" });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    const remove = screen.getByRole("button", { name: "Remove for good" });
+    expect(cancel).toHaveFocus();
+    fireEvent.keyDown(document, { key: "Tab" });
+    remove.focus();
+    fireEvent.keyDown(document, { key: "Tab" });
+    expect(cancel).toHaveFocus();
+    fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+    expect(remove).toHaveFocus();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(trigger).toHaveFocus();
+  });
+
   it("closes the window New project with its Cancel button", async () => {
     serve({ "projects.list": () => answer([ROW]) });
     render(() => <ProjectsScreen />);
