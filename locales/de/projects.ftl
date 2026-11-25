@@ -30,7 +30,7 @@ projects-column-loc = LOC
 projects-column-last-scan = Letzter Scan
 projects-column-status = Status
 projects-column-actions = Aktionen
-projects-hint-keys = Enter öffnet · R scannt neu · N neues Projekt
+projects-hint-keys = Enter öffnet · R zeigt den Scan · N neues Projekt
 
 projects-source-placeholder = Ordner-Pfad oder Git-URL einfügen – oder Ordner hierher ziehen
 projects-source-folder = Ordner
@@ -42,8 +42,6 @@ projects-scan-full = vollständig
 projects-scan-incremental = inkrementell
 projects-scan-seconds = { $seconds } s
 projects-scan-time = { $mode } · { $seconds }
-projects-rescan = { $name } neu scannen
-projects-rescan-tip = Neu scannen
 projects-adding = Scanne …
 projects-drop-without-path = Der Browser verrät den Pfad eines abgelegten Ordners nicht. Füge den Pfad stattdessen in das Feld ein.
 projects-load-failed = Die Projektliste konnte nicht geladen werden.

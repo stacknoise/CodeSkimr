@@ -52,13 +52,15 @@ test.describe("the project list", () => {
     await expect(page.getByRole("main").getByText(/^1 project · 1 type/)).toBeVisible();
     expect(await violations()).toEqual([]);
 
-    // The list survives a reload, and the key R scans the project again.
+    // The list survives a reload, and the key R shows the tab "Scan" of the project.
     await page.reload();
     await expect(page.getByRole("button", { name: `Open ${name}` })).toBeVisible();
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("r");
-    // Starting a scan shows the tab "Scan"; its header says what kind of scan runs. A scan
+    await expect(page.getByRole("tab", { name: "Scan", selected: true })).toBeVisible();
+    // The button of the tab starts the scan; its header says what kind of scan runs. A scan
     // without changes is over at once (ADR 0093).
+    await page.getByRole("button", { name: "Scan again" }).click();
     await expect(page.getByText(/· incremental/).first()).toBeVisible({ timeout: SCAN_MS });
   });
 

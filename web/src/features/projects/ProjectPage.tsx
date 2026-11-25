@@ -21,7 +21,6 @@ import {
   PART_SEPARATOR,
   PROJECT_TAB,
   PROJECT_TABS,
-  RESCAN_ICON,
   SOURCE_KIND,
   type ProjectTab,
 } from "./consts";
@@ -29,7 +28,7 @@ import { Level2Panel } from "./Level2Panel";
 import { Level2Switch } from "./Level2Switch";
 import { Overview } from "./Overview";
 import { projectTab, showTab } from "./page";
-import { projectsScanning, renamingProject, rescanProject } from "./projects";
+import { projectsScanning, renamingProject } from "./projects";
 import { RemoveAction, removeQuestionOpen } from "./RemoveAction";
 import { interruptedNow, removingNow } from "./removing";
 import { RenameButton, RenameField } from "./RenameForm";
@@ -67,27 +66,12 @@ function Icons(props: { row: ProjectRow; onRemove: (id: number) => Promise<boole
   );
 }
 
-/** "Scan again" or, while a scan runs, "Cancel" with the key Esc; and "Open in explorer". */
+/** While a scan runs "Cancel" with the key Esc; and "Open in explorer". Scanning again is done in the tab "Scan". */
 function Actions(props: { row: ProjectRow; running: boolean }) {
-  const busy = () => props.running || props.row.running || projectsScanning().has(props.row.id);
   return (
     <>
       <Show when={!removingNow(props.row)}>
-        <Show
-          when={props.running}
-          fallback={
-            <button
-              type="button"
-              class={styles.button}
-              disabled={busy()}
-              aria-label={t(I18N_KEYS.PROJECTS_RESCAN, { name: props.row.name })}
-              title={t(I18N_KEYS.PROJECTS_RESCAN_TIP)}
-              onClick={() => void rescanProject(props.row.id)}
-            >
-              <Icon name={RESCAN_ICON} /> {t(I18N_KEYS.PROJECTS_LEVEL2_RESCAN)}
-            </button>
-          }
-        >
+        <Show when={props.running}>
           <button type="button" class={styles.button} onClick={() => void cancelScan(props.row.id)}>
             {t(I18N_KEYS.SCAN_ACTION_CANCEL)}{" "}
             <kbd class={styles.kbd}>{t(I18N_KEYS.SCAN_CANCEL_KEY)}</kbd>

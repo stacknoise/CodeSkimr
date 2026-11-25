@@ -4,7 +4,7 @@ import { KEY, PRESSABLE_TAGS, STEP_DOWN, STEP_UP } from "./consts";
 /** What the keys of the project list do. */
 export interface ProjectKeys {
   newProject: () => void;
-  rescan: () => void;
+  showScan: () => void;
   open: () => void;
   move: (step: number) => void;
 }
@@ -39,8 +39,8 @@ function dispatch(key: string, keys: ProjectKeys): boolean {
     case KEY.newProject:
       keys.newProject();
       return true;
-    case KEY.rescan:
-      keys.rescan();
+    case KEY.showScan:
+      keys.showScan();
       return true;
     case KEY.open.toLowerCase():
       keys.open();

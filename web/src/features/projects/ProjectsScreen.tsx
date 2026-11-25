@@ -7,7 +7,9 @@ import { CANCEL_KEY } from "../scan/consts";
 import { EXPLORER_ROUTE } from "../../app/consts";
 import { navigate } from "../../app/router";
 import { activeProject, closeProject, openProject } from "../../shared/project/active";
+import { PROJECT_TAB } from "./consts";
 import { useProjectKeys } from "./keys";
+import { selectProject } from "./page";
 import { level2Of, loadLevel2 } from "./level2";
 import { FailureNotice, NewProjectForm } from "./NewProjectForm";
 import {
@@ -18,7 +20,6 @@ import {
   cancelRename,
   cancelRenameOf,
   removeProject,
-  rescanProject,
 } from "./projects";
 import { ProjectList } from "./ProjectList";
 import { ProjectPage } from "./ProjectPage";
@@ -95,10 +96,15 @@ function useForm() {
     setOpen(true);
     queueMicrotask(() => input?.focus());
   };
+  // Closing the window empties the field, so it always opens empty.
+  const close = () => {
+    setOpen(false);
+    setSource("");
+  };
   useLayer(open);
   useKeydown((event) => {
     if (open() && event.key === CANCEL_KEY) {
-      setOpen(false);
+      close();
     }
   });
   const drop = useDropSource(setSource, show);
@@ -110,7 +116,7 @@ function useForm() {
     source,
     onSource,
     open,
-    setOpen,
+    close,
     show,
     drop,
     setInput: (el: HTMLInputElement) => (input = el),
@@ -127,10 +133,10 @@ function useScreen(form: ReturnType<typeof useForm>) {
   useToolsCheck(selection.selected);
   useLevel2States(selection.selected);
   // A project that was chosen or whose scan started closes the form.
-  createEffect(on(selection.selected, () => form.setOpen(false), { defer: true }));
+  createEffect(on(selection.selected, form.close, { defer: true }));
   useProjectKeys({
     newProject: form.show,
-    rescan: selection.act((id) => void rescanProject(id)),
+    showScan: selection.act((id) => selectProject(id, PROJECT_TAB.scan)),
     open: selection.act(openInExplorer),
     move: selection.move,
   });
@@ -146,7 +152,7 @@ function FormWindow(props: { form: ReturnType<typeof useForm>; closable: boolean
       setInput={props.form.setInput}
       dragging={props.form.drop.dragging()}
       notice={props.form.drop.notice()}
-      onClose={props.closable ? () => props.form.setOpen(false) : undefined}
+      onClose={props.closable ? props.form.close : undefined}
     />
   );
 }

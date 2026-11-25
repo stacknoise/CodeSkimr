@@ -686,8 +686,6 @@ export const I18N_KEYS = {
   PROJECTS_SCAN_INCREMENTAL: "projects-scan-incremental",
   PROJECTS_SCAN_SECONDS: "projects-scan-seconds",
   PROJECTS_SCAN_TIME: "projects-scan-time",
-  PROJECTS_RESCAN: "projects-rescan",
-  PROJECTS_RESCAN_TIP: "projects-rescan-tip",
   PROJECTS_ADDING: "projects-adding",
   PROJECTS_DROP_WITHOUT_PATH: "projects-drop-without-path",
   PROJECTS_LOAD_FAILED: "projects-load-failed",

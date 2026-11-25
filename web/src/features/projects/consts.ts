@@ -134,7 +134,7 @@ export const URI_COMMENT = "#";
 /** Keys of the screen. */
 export const KEY = {
   newProject: "n",
-  rescan: "r",
+  showScan: "r",
   open: "Enter",
   down: "ArrowDown",
   up: "ArrowUp",
@@ -305,9 +305,14 @@ export const REMOVE_MARKS = { goes: "−", stays: "✓", warning: "!" } as const
 export const REMOVE_DIALOG_TITLE_ID = "remove-title";
 export const NEW_PROJECT_TITLE_ID = "new-project-title";
 
-/** Tab, and what a dialog lets the Tab key reach. */
-export const TAB_KEY = "Tab";
-export const FOCUSABLE = "button:not(:disabled)";
-
 /** How project names are compared for the list: without regard to case and accents, digits as numbers. */
 export const NAME_ORDER: Intl.CollatorOptions = { sensitivity: "base", numeric: true };
+
+/** The drag events the screen listens to on the window. */
+export const DRAG_EVENT = {
+  over: "dragover",
+  drop: "drop",
+  leave: "dragleave",
+  start: "dragstart",
+  end: "dragend",
+} as const;

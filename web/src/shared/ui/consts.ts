@@ -84,3 +84,8 @@ export const SLOW_LOAD_DELAY_MS = 1000;
 
 /** The states of a try to copy to the clipboard. */
 export const COPY = { copied: "copied", failed: "failed" } as const;
+
+/** Tab, and what a dialog lets the Tab key reach. */
+export const TAB_KEY = "Tab";
+export const FOCUSABLE =
+  "button:not(:disabled):not([tabindex='-1']), input:not(:disabled):not([tabindex='-1']), select:not(:disabled):not([tabindex='-1'])";
