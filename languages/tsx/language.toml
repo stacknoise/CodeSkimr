@@ -95,6 +95,8 @@ env_allow = ["NODE_PATH", "NVM_DIR", "VOLTA_HOME", "FNM_DIR", "NPM_CONFIG_CACHE"
 home_dirs = { NPM_CONFIG_CACHE = ".npm" }
 # Node stops at about 4 GB of heap on its own, whatever level2.max_memory_mb allows.
 memory_env = { NODE_OPTIONS = "--max-old-space-size={heap_mb}" }
+# Node says this and stops when its own heap is full, which is not the limit of the run.
+memory_markers = ["JavaScript heap out of memory"]
 
 [indexer.tool]
 program = "scip-typescript"

@@ -18,7 +18,7 @@ use super::{RunPermit, ToolVersion};
 pub use crate::consts::{PLACEHOLDER_OUTPUT, PLACEHOLDER_PROJECT};
 
 /// One program the user has to install: the indexer itself or a tool of the language's toolchain.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ToolSpec {
     /// Name of the executable, looked up in the `PATH` of the user (never in the project).
     pub program: String,
@@ -29,7 +29,7 @@ pub struct ToolSpec {
 }
 
 /// How to run the indexer of one language, from `[indexer]` of the language pack.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct IndexerSpec {
     /// Name of the indexer for messages, such as `scip-dotnet`.
     pub name: String,
@@ -54,6 +54,10 @@ pub struct IndexerSpec {
     /// replaced by the share of the limit that a managed heap may use (Node.js stops with
     /// "heap out of memory" at about 4 GB unless it is told more).
     pub memory_env: Vec<(String, String)>,
+    /// Texts of the console output of a failed run that say the indexer ran out of memory by its
+    /// own count (Node.js: "JavaScript heap out of memory"); such a run ends as a memory limit,
+    /// not as a plain failure. Empty: a failed run stays a failure.
+    pub memory_markers: Vec<String>,
     /// File names that the indexer needs in the project folder (`Cargo.toml`); a name that starts
     /// with `*` matches a file name ending in the rest (`*.sln`). Empty: the indexer needs none.
     pub project_files: Vec<String>,

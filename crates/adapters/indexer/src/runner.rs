@@ -122,7 +122,7 @@ impl ProcessIndexRunner {
         output: OutputDir,
     ) -> Result<IndexArtifact, IndexerError> {
         let (error, survived) = match run_guarded(launch, cancel) {
-            Ok(finished) => return self.finish(&finished, output),
+            Ok(finished) => return self.finish(job.spec, &finished, output),
             Err(RunError::Io(cause)) => (io_failure(&cause), false),
             Err(RunError::Watch { cause, survived }) => (io_failure(&cause), survived),
             Err(RunError::Stopped { stop, survived }) => (stopped(stop), survived),
@@ -142,11 +142,15 @@ impl ProcessIndexRunner {
 
     fn finish(
         &self,
+        spec: &IndexerSpec,
         finished: &Finished,
         output: OutputDir,
     ) -> Result<IndexArtifact, IndexerError> {
         let index = output.index();
         if !finished.success {
+            if ran_out_of_memory(spec, finished) {
+                return Err(IndexerError::MemoryLimit);
+            }
             return Err(failed(
                 FailureReason::Exit(finished.code),
                 self.excerpt(finished),
@@ -174,6 +178,14 @@ impl ProcessIndexRunner {
         }
         tracing::warn!({ LOG_INDEXER } = %spec.name, { LOG_CODE } = error.code().id(), { LOG_EXCERPT } = %excerpt);
     }
+}
+
+/// Whether the console of a failed run says that the indexer used up its own memory budget.
+fn ran_out_of_memory(spec: &IndexerSpec, finished: &Finished) -> bool {
+    let console = [finished.stdout_text(), finished.stderr_text()].concat();
+    spec.memory_markers
+        .iter()
+        .any(|marker| console.contains(marker.as_str()))
 }
 
 fn io_failure(cause: &std::io::Error) -> IndexerError {

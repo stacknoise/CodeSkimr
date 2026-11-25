@@ -227,20 +227,11 @@ mod home_dir_tests {
         IndexerSpec {
             name: "x".to_owned(),
             indexer: tool,
-            toolchain: Vec::new(),
-            args: Vec::new(),
-            env_allow: Vec::new(),
             home_dirs: home_dirs
                 .iter()
                 .map(|(name, folder)| ((*name).to_owned(), (*folder).to_owned()))
                 .collect(),
-            env: Vec::new(),
-            memory_env: Vec::new(),
-            project_files: Vec::new(),
-            install_hint: String::new(),
-            symbol_kinds: Vec::new(),
-            library_root: String::new(),
-            separator: String::new(),
+            ..IndexerSpec::default()
         }
     }
 

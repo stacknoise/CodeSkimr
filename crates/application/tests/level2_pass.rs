@@ -70,17 +70,7 @@ mod cases {
                 version_args: Vec::new(),
                 min_version: ToolVersion::parse("1.0").unwrap(),
             },
-            toolchain: Vec::new(),
-            args: Vec::new(),
-            env_allow: Vec::new(),
-            home_dirs: Vec::new(),
-            env: Vec::new(),
-            memory_env: Vec::new(),
-            project_files: Vec::new(),
-            install_hint: String::new(),
-            symbol_kinds: Vec::new(),
-            separator: String::new(),
-            library_root: String::new(),
+            ..IndexerSpec::default()
         }
     }
 

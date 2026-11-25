@@ -24,17 +24,10 @@ mod cases {
                 version_args: vec![TOKEN.to_owned()],
                 min_version: ToolVersion::default(),
             },
-            memory_env: Vec::new(),
-            project_files: Vec::new(),
             install_hint: "no hint".to_owned(),
-            symbol_kinds: Vec::new(),
-            separator: String::new(),
-            library_root: String::new(),
             env: vec![("A".to_owned(), "b".to_owned())],
-            toolchain: Vec::new(),
             args: vec!["--out".to_owned()],
-            env_allow: Vec::new(),
-            home_dirs: Vec::new(),
+            ..IndexerSpec::default()
         }
     }
 

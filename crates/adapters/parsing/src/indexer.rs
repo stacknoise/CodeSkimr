@@ -112,6 +112,9 @@ pub struct IndexerManifest {
     /// Variables set from the memory limit; `{heap_mb}` in a value is the heap share of the limit.
     #[serde(default)]
     pub memory_env: BTreeMap<String, String>,
+    /// Texts of the console output of a failed run that mean the indexer ran out of memory.
+    #[serde(default)]
+    pub memory_markers: Vec<String>,
     /// File names the indexer needs in the project folder; `*` at the start matches any prefix.
     #[serde(default)]
     pub project_files: Vec<String>,
@@ -240,16 +243,9 @@ impl IndexerManifest {
             args: self.args.clone(),
             env_allow: self.env_allow.clone(),
             home_dirs: self.home_dirs()?,
-            env: self
-                .env
-                .iter()
-                .map(|(k, v)| (k.clone(), v.clone()))
-                .collect(),
-            memory_env: self
-                .memory_env
-                .iter()
-                .map(|(k, v)| (k.clone(), v.clone()))
-                .collect(),
+            env: pairs(&self.env),
+            memory_env: pairs(&self.memory_env),
+            memory_markers: self.memory_markers.clone(),
             project_files: self.project_files.clone(),
             install_hint: self.install_hint.clone(),
             symbol_kinds: self.symbol_kinds()?,
@@ -257,4 +253,9 @@ impl IndexerManifest {
             library_root: self.library_root.clone(),
         })
     }
+}
+
+/// The entries of a table as pairs, in the order of the names.
+fn pairs(table: &BTreeMap<String, String>) -> Vec<(String, String)> {
+    table.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
 }
