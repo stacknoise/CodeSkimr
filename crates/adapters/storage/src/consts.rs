@@ -243,6 +243,8 @@ pub const STEP_INTEGRITY: &str = "integrity";
 pub const STEP_READ_MODELS: &str = "read_models";
 /// Step: delete the snapshots beyond the retention.
 pub const STEP_PRUNE: &str = "prune";
+/// Step: commit the transaction of a snapshot write.
+pub const STEP_COMMIT: &str = "commit";
 /// Step: build the reference indexes after a bulk load.
 pub const STEP_REFERENCE_INDEXES: &str = "reference_indexes";
 /// Step: insert the references of a snapshot.
