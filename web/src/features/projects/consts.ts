@@ -307,3 +307,12 @@ export const NEW_PROJECT_TITLE_ID = "new-project-title";
 
 /** How project names are compared for the list: without regard to case and accents, digits as numbers. */
 export const NAME_ORDER: Intl.CollatorOptions = { sensitivity: "base", numeric: true };
+
+/** The drag events the screen listens to on the window. */
+export const DRAG_EVENT = {
+  over: "dragover",
+  drop: "drop",
+  leave: "dragleave",
+  start: "dragstart",
+  end: "dragend",
+} as const;

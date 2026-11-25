@@ -87,4 +87,5 @@ export const COPY = { copied: "copied", failed: "failed" } as const;
 
 /** Tab, and what a dialog lets the Tab key reach. */
 export const TAB_KEY = "Tab";
-export const FOCUSABLE = "button:not(:disabled), input, select";
+export const FOCUSABLE =
+  "button:not(:disabled):not([tabindex='-1']), input:not(:disabled):not([tabindex='-1']), select:not(:disabled):not([tabindex='-1'])";
