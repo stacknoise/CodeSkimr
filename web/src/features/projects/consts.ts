@@ -308,3 +308,6 @@ export const NEW_PROJECT_TITLE_ID = "new-project-title";
 /** Tab, and what a dialog lets the Tab key reach. */
 export const TAB_KEY = "Tab";
 export const FOCUSABLE = "button:not(:disabled)";
+
+/** How project names are compared for the list: without regard to case and accents, digits as numbers. */
+export const NAME_ORDER: Intl.CollatorOptions = { sensitivity: "base", numeric: true };

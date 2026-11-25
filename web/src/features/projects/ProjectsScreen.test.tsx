@@ -304,11 +304,11 @@ describe("ProjectsScreen", () => {
 
   it("scans the selected project again on R and moves with the arrow keys", async () => {
     serve({
-      "projects.list": () => answer([ROW, { ...ROW, id: 2, name: "other" }]),
+      "projects.list": () => answer([ROW, { ...ROW, id: 2, name: "zeta" }]),
       "projects.rescan": () => answer(rescanned(2)),
     });
     render(() => <ProjectsScreen />);
-    await screen.findByText("other");
+    await screen.findByText("zeta");
     fireEvent.keyDown(document, { key: "ArrowDown" });
     fireEvent.keyDown(document, { key: "ArrowDown" });
     fireEvent.keyDown(document, { key: "r" });
