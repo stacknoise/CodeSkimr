@@ -214,6 +214,7 @@ mod tests {
                 Level2Outcome::Skipped(Skipped::Unavailable(vec![problem])),
             ),
             report("java", Level2Outcome::Skipped(Skipped::NotConfirmed)),
+            report("go", Level2Outcome::Skipped(Skipped::NoProjectFile)),
             report(
                 "rust",
                 Level2Outcome::Skipped(Skipped::Failed(ErrorCode::ScanReportNotStored)),
@@ -232,6 +233,7 @@ mod tests {
             [
                 LanguageOutcome::Skipped(SkipReason::ToolsUnavailable),
                 LanguageOutcome::Skipped(SkipReason::NotConfirmed),
+                LanguageOutcome::Skipped(SkipReason::NoProjectFile),
                 LanguageOutcome::Failed(ErrorCode::ScanReportNotStored),
             ]
         );

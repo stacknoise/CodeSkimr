@@ -21,6 +21,7 @@ const REPORT: ScanReport = {
       { language: "csharp", outcome: "checked", files: 328, stale: 3 },
       { language: "typescript", outcome: "skipped", reason: "tools_unavailable" },
       { language: "java", outcome: "failed", code: "RES-501" },
+      { language: "rust", outcome: "skipped", reason: "no_project_file" },
     ],
   },
 };
@@ -78,6 +79,20 @@ describe("the report of the last scan", () => {
     await chooseTab(/Overview/);
     expect(screen.getByText(/Stage 2 \(browser\)/)).toBeInTheDocument();
     expect(screen.getByText(/Exact check \(stage 2\) failed for Java \(RES-501\)/)).toBeVisible();
+  });
+
+  it("names the missing project file and what to do", async () => {
+    const panel = await selected();
+    expect(within(panel).getByText(/no Cargo.toml found in the project folder/)).toBeVisible();
+    expect(within(panel).getByText(/add that folder as a project of its own/)).toBeVisible();
+  });
+
+  it("groups failed, skipped and checked languages in this order", async () => {
+    const panel = await selected();
+    const groups = [...panel.querySelectorAll("[data-group]")].map((el) =>
+      el.getAttribute("data-group"),
+    );
+    expect(groups).toEqual(["failed", "skipped", "checked"]);
   });
 
   it("says the same in German", async () => {

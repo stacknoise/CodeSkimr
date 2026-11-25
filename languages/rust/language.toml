@@ -88,8 +88,8 @@ env_allow = ["CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"]
 home_dirs = { CARGO_HOME = ".cargo", RUSTUP_HOME = ".rustup" }
 # The rustup proxy would download the toolchain that a `rust-toolchain.toml` of the project names.
 env = { RUSTUP_AUTO_INSTALL = "0" }
-# rust-analyzer finds the workspace from a manifest in the project folder.
-project_files = ["Cargo.toml"]
+# rust-analyzer finds the workspace from a manifest in the project folder, above it or directly below it.
+project_files = ["Cargo.toml", "rust-project.json"]
 
 # rust-analyzer gives the library and the build script of a package one module symbol (`crate/`). A use that
 # the folders do not place belongs to the file of this name (ADR 0061).

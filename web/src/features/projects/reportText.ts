@@ -7,6 +7,7 @@ import {
   OUTCOME,
   outcomeCounts,
   reasonKey,
+  SKIP_REASON,
   SKIP_TODO,
   staleFiles,
   type LanguageReport,
@@ -60,7 +61,7 @@ export interface ReportRow {
 
 function skippedText(line: LanguageReport): string {
   const key =
-    line.reason === "no_project_file"
+    line.reason === SKIP_REASON.noProjectFile
       ? (NO_PROJECT_FILE_TEXT[line.language] ?? reasonKey(line.reason))
       : reasonKey(line.reason);
   return key === null ? (line.reason ?? "") : t(key);
@@ -86,7 +87,8 @@ export function reportRow(line: LanguageReport): ReportRow {
     text: skippedText(line),
     code: null,
     todo: t(I18N_KEYS.PROJECTS_REPORT_TODO, { text: t(todo) }),
-    action: line.reason === "tools_unavailable" ? REPORT_ACTION.tools : REPORT_ACTION.rescan,
+    action:
+      line.reason === SKIP_REASON.toolsUnavailable ? REPORT_ACTION.tools : REPORT_ACTION.rescan,
   };
 }
 

@@ -339,21 +339,7 @@ impl IndexRunner for ProcessIndexRunner {
     }
 
     fn has_project_file(&self, spec: &IndexerSpec, root: &Path) -> bool {
-        if spec.project_files.is_empty() {
-            return true;
-        }
-        let Ok(entries) = std::fs::read_dir(root) else {
-            // A folder that cannot be listed is left to the run, which reports what is wrong.
-            return true;
-        };
-        entries
-            .filter_map(Result::ok)
-            .map(|entry| entry.file_name().to_string_lossy().into_owned())
-            .any(|name| {
-                spec.project_files
-                    .iter()
-                    .any(|wanted| matches_project_file(wanted, &name))
-            })
+        spec.project_files.is_empty() || project_file_near(&spec.project_files, root)
     }
 
     fn run(&self, job: &IndexJob<'_>, cancel: &CancelToken) -> Result<IndexArtifact, CodedError> {
@@ -362,6 +348,34 @@ impl IndexRunner for ProcessIndexRunner {
             CodedError::caused_by(error)
         })
     }
+}
+
+/// Whether one of the `wanted` files lies in `root`, in a folder above it (the indexers look
+/// upwards, too) or in a folder directly below it (rust-analyzer looks there). A folder that cannot
+/// be listed counts as a find: the run then reports what is wrong.
+fn project_file_near(wanted: &[String], root: &Path) -> bool {
+    let holds = |dir: &Path| -> Option<bool> {
+        let names: Vec<String> = std::fs::read_dir(dir)
+            .ok()?
+            .filter_map(Result::ok)
+            .map(|entry| entry.file_name().to_string_lossy().into_owned())
+            .collect();
+        Some(
+            names
+                .iter()
+                .any(|name| wanted.iter().any(|want| matches_project_file(want, name))),
+        )
+    };
+    let below = std::fs::read_dir(root)
+        .into_iter()
+        .flatten()
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| path.is_dir());
+    root.ancestors()
+        .map(Path::to_path_buf)
+        .chain(below)
+        .any(|dir| holds(&dir).unwrap_or(true))
 }
 
 /// Whether the file name `name` is the one `wanted` names; `*` at the start matches any prefix.
@@ -373,7 +387,40 @@ fn matches_project_file(wanted: &str, name: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{matches_project_file, substitute};
+    use super::{matches_project_file, project_file_near, substitute};
+
+    fn wanted(names: &[&str]) -> Vec<String> {
+        names.iter().map(|name| (*name).to_owned()).collect()
+    }
+
+    #[test]
+    fn a_project_file_is_found_in_the_folder_and_one_level_below() {
+        let dir = tempfile::tempdir().expect("temporary folder");
+        let root = dir.path().join("project");
+        std::fs::create_dir_all(root.join("cli")).expect("folders");
+        assert!(!project_file_near(&wanted(&["Cargo.toml"]), &root));
+        std::fs::write(root.join("cli").join("Cargo.toml"), "").expect("file");
+        assert!(project_file_near(&wanted(&["Cargo.toml"]), &root));
+    }
+
+    #[test]
+    fn a_project_file_is_found_by_suffix_and_above_the_folder() {
+        let dir = tempfile::tempdir().expect("temporary folder");
+        let root = dir.path().join("work").join("project");
+        std::fs::create_dir_all(&root).expect("folders");
+        assert!(!project_file_near(&wanted(&["*.sln"]), &root));
+        std::fs::write(dir.path().join("work").join("App.sln"), "").expect("file");
+        assert!(project_file_near(&wanted(&["*.sln"]), &root));
+    }
+
+    #[test]
+    fn an_empty_folder_has_no_project_file() {
+        let dir = tempfile::tempdir().expect("temporary folder");
+        assert!(!project_file_near(
+            &wanted(&["Cargo.toml", "*.csproj"]),
+            dir.path()
+        ));
+    }
 
     #[test]
     fn a_project_file_matches_by_name_or_suffix() {

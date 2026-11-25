@@ -54,12 +54,18 @@ export const ORIGIN_TEXT: Record<ScanOrigin, MessageKey> = {
   mcp: I18N_KEYS.PROJECTS_REPORT_ORIGIN_MCP,
 };
 
+/** The reasons of the report that the screens treat specially. */
+export const SKIP_REASON = {
+  noProjectFile: "no_project_file",
+  toolsUnavailable: "tools_unavailable",
+} as const;
+
 /** The texts of the reasons why a language was skipped, by the key of the report. */
 export const REASON_TEXT: Record<string, MessageKey> = {
   not_permitted: I18N_KEYS.PROJECTS_REPORT_REASON_NOT_PERMITTED,
   not_confirmed: I18N_KEYS.PROJECTS_REPORT_REASON_NOT_CONFIRMED,
-  tools_unavailable: I18N_KEYS.PROJECTS_REPORT_REASON_TOOLS_UNAVAILABLE,
-  no_project_file: I18N_KEYS.PROJECTS_REPORT_REASON_NO_PROJECT_FILE,
+  [SKIP_REASON.toolsUnavailable]: I18N_KEYS.PROJECTS_REPORT_REASON_TOOLS_UNAVAILABLE,
+  [SKIP_REASON.noProjectFile]: I18N_KEYS.PROJECTS_REPORT_REASON_NO_PROJECT_FILE,
   stale: I18N_KEYS.PROJECTS_REPORT_REASON_STALE,
   cancelled: I18N_KEYS.PROJECTS_REPORT_REASON_CANCELLED,
   busy: I18N_KEYS.PROJECTS_REPORT_REASON_BUSY,
@@ -95,8 +101,8 @@ export const NO_PROJECT_FILE_TEXT: Record<string, MessageKey> = {
 export const SKIP_TODO: Record<string, MessageKey> = {
   not_permitted: I18N_KEYS.PROJECTS_REPORT_TODO_NOT_PERMITTED,
   not_confirmed: I18N_KEYS.PROJECTS_REPORT_TODO_NOT_CONFIRMED,
-  tools_unavailable: I18N_KEYS.PROJECTS_REPORT_TODO_TOOLS_UNAVAILABLE,
-  no_project_file: I18N_KEYS.PROJECTS_REPORT_TODO_NO_PROJECT_FILE,
+  [SKIP_REASON.toolsUnavailable]: I18N_KEYS.PROJECTS_REPORT_TODO_TOOLS_UNAVAILABLE,
+  [SKIP_REASON.noProjectFile]: I18N_KEYS.PROJECTS_REPORT_TODO_NO_PROJECT_FILE,
   stale: I18N_KEYS.PROJECTS_REPORT_TODO_STALE,
   cancelled: I18N_KEYS.PROJECTS_REPORT_TODO_RETRY,
   busy: I18N_KEYS.PROJECTS_REPORT_TODO_LATER,
