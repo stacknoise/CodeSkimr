@@ -297,3 +297,6 @@ export const TAB_STEP: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1 }
 /** `tabindex` of the selected tab and of the others (the arrow keys reach them). */
 export const TAB_IN = 0;
 export const TAB_OUT = -1;
+
+/** The signs of the dialog "Remove project": what goes, what stays, and the warning. */
+export const REMOVE_MARKS = { goes: "−", stays: "✓", warning: "!" } as const;

@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import { answer, serve, useServerSession } from "../../tests/commands";
 import { ProjectsScreen } from "./ProjectsScreen";
 
+/** The label of the source field of the window "New project". */
+const SOURCE_LABEL = /^(Folder|Repository address)$/;
+
 useServerSession();
 
 /** A server that has the dialog or not, and answers `pick` with what the test gives. */
@@ -18,7 +21,7 @@ describe("the Browse button of the new-project form", () => {
   it("is not there without a folder dialog on the machine of the app", async () => {
     dialog(false, () => answer({ path: null }));
     render(() => <ProjectsScreen />);
-    await screen.findByLabelText("New project");
+    await screen.findByLabelText(SOURCE_LABEL);
     expect(screen.queryByRole("button", { name: "Browse …" })).toBeNull();
   });
 

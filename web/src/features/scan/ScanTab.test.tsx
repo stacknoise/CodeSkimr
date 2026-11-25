@@ -12,6 +12,9 @@ import { ProjectsScreen } from "../projects/ProjectsScreen";
 import { Performance } from "../status/Performance";
 import { chooseProject, chooseTab, TAB_SCAN } from "../../tests/pageTabs";
 
+/** The label of the source field of the window "New project". */
+const SOURCE_LABEL = /^(Folder|Repository address)$/;
+
 const ROW: ProjectRow = {
   id: 1,
   name: "shop",
@@ -315,9 +318,9 @@ describe("the tab Scan", () => {
     FakeSocket.last?.send(RUNNING);
     await screen.findByRole("button", { name: /Cancel/ });
     fireEvent.click(screen.getByRole("button", { name: "New" }));
-    expect(screen.getByLabelText("New project")).toBeInTheDocument();
+    expect(screen.getByLabelText(SOURCE_LABEL)).toBeInTheDocument();
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(screen.queryByLabelText("New project")).toBeNull();
+    expect(screen.queryByLabelText(SOURCE_LABEL)).toBeNull();
     await cancelsOnlyOnSecondEsc();
     stop();
   });

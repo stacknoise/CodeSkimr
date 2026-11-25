@@ -60,7 +60,7 @@ codeskimr scan https://github.com/org/private-repo --credential work-github
 
 ### Im Browser
 
-Auf der Projektseite hat das Formular „Neues Projekt“ ein Feld **Zugangsdaten**. „Neue Zugangsdaten speichern“ öffnet drei Felder (Name, Benutzername, Token oder Passwort); das Geheimnis ist ein Passwortfeld, geht in den Schlüsselspeicher des Rechners, auf dem der Server läuft, und wird sofort aus der Seite entfernt. Der neue Name ist für das nächste Projekt vorgewählt. Angeboten werden nur Namen, die ein Projekt schon benutzt oder die Sie in diesem Tab gespeichert haben; der Browser liest nie ein gespeichertes Geheimnis zurück. Anmeldungen mit `credential login` (OAuth) machen Sie auf der Kommandozeile.
+Auf der Projektseite hat das Fenster „Neues Projekt“ ein Feld **Zugangsdaten**. „Neue Zugangsdaten speichern“ öffnet drei Felder (Name, Benutzername, Token oder Passwort); das Geheimnis ist ein Passwortfeld, geht in den Schlüsselspeicher des Rechners, auf dem der Server läuft, und wird sofort aus der Seite entfernt. Der neue Name ist für das nächste Projekt vorgewählt. Angeboten werden nur Namen, die ein Projekt schon benutzt oder die Sie in diesem Tab gespeichert haben; der Browser liest nie ein gespeichertes Geheimnis zurück. Anmeldungen mit `credential login` (OAuth) machen Sie auf der Kommandozeile.
 
 ### Was CodeSkimr mit dem Geheimnis tut
 

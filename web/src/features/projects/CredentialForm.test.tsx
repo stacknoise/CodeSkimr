@@ -95,7 +95,7 @@ describe("the login of a Git project", () => {
     await screen.findByPlaceholderText(/Paste a folder path/);
     expect(screen.queryByLabelText("Login")).toBeNull();
     expect(screen.queryByLabelText("Branch")).toBeNull();
-    fireEvent.change(screen.getByLabelText("Source"), { target: { value: "git" } });
+    fireEvent.click(screen.getByRole("radio", { name: "Git" }));
     expect(await screen.findByLabelText("Login")).toBeInTheDocument();
     expect(screen.getByLabelText("Branch")).toBeInTheDocument();
   });

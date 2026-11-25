@@ -5,6 +5,8 @@ import { cx } from "../../shared/ui/cx";
 import { REMOVE_ICON } from "./consts";
 import { markRemoving } from "./removing";
 import { Icon, type IconName } from "../../shared/ui/Icon";
+import { RemoveDialog } from "./RemoveDialog";
+import type { ProjectRow } from "./types";
 import styles from "./ProjectTable.module.css";
 
 /** A button of the row that does not select the row. */
@@ -37,28 +39,6 @@ function RowButton(props: {
   );
 }
 
-/** The second step: the question and the two answers. */
-function Confirm(props: { name: string; onYes: () => void; onNo: () => void }) {
-  return (
-    <span class={styles.ask} role="group" aria-label={t(I18N_KEYS.PROJECTS_REMOVE_ASK)}>
-      <span class={styles.question}>
-        {t(I18N_KEYS.PROJECTS_REMOVE_QUESTION, { name: props.name })}
-      </span>
-      <RowButton
-        label={t(I18N_KEYS.PROJECTS_REMOVE_CONFIRM)}
-        text={t(I18N_KEYS.PROJECTS_REMOVE_CONFIRM)}
-        danger
-        onClick={props.onYes}
-      />
-      <RowButton
-        label={t(I18N_KEYS.PROJECTS_REMOVE_CANCEL)}
-        text={t(I18N_KEYS.PROJECTS_REMOVE_CANCEL)}
-        onClick={props.onNo}
-      />
-    </span>
-  );
-}
-
 /** The project whose question is open. It lives outside the row: while a scan runs, the list is
  * read again and the row is built anew, which must not close the question. */
 const [askingFor, setAskingFor] = createSignal<number | null>(null);
@@ -86,28 +66,22 @@ async function removeProject(id: number, onRemove: () => Promise<boolean>): Prom
   }
 }
 
-/** "Remove" of a project row, with a second step: the first click asks, the second one removes.
- * Removing deletes what the app stored about the project, never its files. */
-export function RemoveAction(props: {
-  id: number;
-  name: string;
-  onRemove: () => Promise<boolean>;
-}) {
-  const asking = () => askingFor() === props.id;
-  const remove = () => removeProject(props.id, props.onRemove);
+/** "Remove" of a project: the button opens the dialog (mock 24, D1) that names the consequences;
+ * its red button removes. Removing deletes what the app stored about the project, never its files. */
+export function RemoveAction(props: { row: ProjectRow; onRemove: () => Promise<boolean> }) {
+  const asking = () => askingFor() === props.row.id;
+  const remove = () => removeProject(props.row.id, props.onRemove);
   return (
-    <Show
-      when={asking()}
-      fallback={
-        <RowButton
-          label={t(I18N_KEYS.PROJECTS_REMOVE, { name: props.name })}
-          text={t(I18N_KEYS.PROJECTS_REMOVE_BUTTON)}
-          icon={REMOVE_ICON}
-          onClick={() => setAskingFor(props.id)}
-        />
-      }
-    >
-      <Confirm name={props.name} onYes={() => void remove()} onNo={() => closeRemoveQuestion()} />
-    </Show>
+    <>
+      <RowButton
+        label={t(I18N_KEYS.PROJECTS_REMOVE, { name: props.row.name })}
+        text={t(I18N_KEYS.PROJECTS_REMOVE_BUTTON)}
+        icon={REMOVE_ICON}
+        onClick={() => setAskingFor(props.row.id)}
+      />
+      <Show when={asking()}>
+        <RemoveDialog row={props.row} onYes={() => void remove()} onNo={closeRemoveQuestion} />
+      </Show>
+    </>
   );
 }

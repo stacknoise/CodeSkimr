@@ -137,8 +137,22 @@ function useScreen(form: ReturnType<typeof useForm>) {
   return selection;
 }
 
-/** Screen 1, the projects (blueprint B.1, mock 23, ADR 0096): the list on the left, the form
- * "New project" and the page of the selected project on the right. */
+/** The small window "New project"; with no project it cannot be closed. */
+function FormWindow(props: { form: ReturnType<typeof useForm>; closable: boolean }) {
+  return (
+    <NewProjectForm
+      source={props.form.source()}
+      onSource={props.form.onSource}
+      setInput={props.form.setInput}
+      dragging={props.form.drop.dragging()}
+      notice={props.form.drop.notice()}
+      onClose={props.closable ? () => props.form.setOpen(false) : undefined}
+    />
+  );
+}
+
+/** Screen 1, the projects (blueprint B.1, mock 23, ADR 0096): the list on the left with the small
+ * window "New project" at its button (mock 24), and the page of the selected project on the right. */
 export function ProjectsScreen() {
   const form = useForm();
   const selection = useScreen(form);
@@ -155,17 +169,11 @@ export function ProjectsScreen() {
           onNew={form.show}
         />
         <p class={styles.hint}>{t(I18N_KEYS.PROJECTS_HINT_KEYS)}</p>
+        <Show when={formShown()}>
+          <FormWindow form={form} closable={projects().length > 0} />
+        </Show>
       </div>
       <div class={styles.main}>
-        <Show when={formShown()}>
-          <NewProjectForm
-            source={form.source()}
-            onSource={form.onSource}
-            setInput={form.setInput}
-            dragging={form.drop.dragging()}
-            notice={form.drop.notice()}
-          />
-        </Show>
         <Show when={!formShown()}>
           <FailureNotice />
         </Show>

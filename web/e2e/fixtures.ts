@@ -131,6 +131,9 @@ export async function leaveScanScreen(page: Page, name: string): Promise<void> {
   });
 }
 
+/** The label of the source field of the window "New project". */
+export const SOURCE_LABEL = /^(Folder|Repository address)$/;
+
 /** Opens the form "New project": it is open on its own only while the list is empty. */
 export async function openNewForm(page: Page): Promise<void> {
   await page.getByRole("button", { name: "New", exact: true }).click();
@@ -149,7 +152,7 @@ export async function showTab(page: Page, name: string | RegExp): Promise<void> 
 /** Fills the form "New project" with the folder and sends it. */
 export async function submitFolder(page: Page, folder: string): Promise<void> {
   await openNewForm(page);
-  await page.getByLabel("New project").fill(folder);
+  await page.getByLabel(SOURCE_LABEL).fill(folder);
   await page.getByRole("button", { name: "Add and scan" }).click();
 }
 
