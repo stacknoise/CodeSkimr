@@ -2,7 +2,9 @@
 
 use std::sync::Arc;
 
-use codeskimr_codes::ErrorCode;
+use codeskimr_codes::{Coded, ErrorCode};
+
+use crate::consts::LOG_REPORT_NOT_READ;
 use codeskimr_domain::{ScanLevel, ScanOrigin, Snapshot};
 
 use crate::level2::{LanguageReport, Level2Outcome, Skipped};
@@ -35,8 +37,9 @@ impl ReportStep {
         snapshot: &Snapshot,
         origin: ScanOrigin,
         level2: Option<&[LanguageReport]>,
+        partial: bool,
     ) -> Result<(), ErrorCode> {
-        self.store_lines(snapshot, origin, level2.map(lines_of))
+        self.store_lines(snapshot, origin, level2.map(lines_of), partial)
     }
 
     /// Like [`ReportStep::store`], with the lines of the second pass already made.
@@ -48,7 +51,12 @@ impl ReportStep {
         snapshot: &Snapshot,
         origin: ScanOrigin,
         lines: Option<Vec<LanguageLine>>,
+        partial: bool,
     ) -> Result<(), ErrorCode> {
+        let lines = match lines {
+            Some(fresh) if partial => Some(self.merged(snapshot, fresh)),
+            other => other,
+        };
         let checked = lines.as_deref().is_some_and(any_checked);
         let write = ReportWrite {
             project: snapshot.project,
@@ -70,6 +78,28 @@ impl ReportStep {
         self.store
             .store_report(&write)
             .map_err(|_| ErrorCode::ScanReportNotStored)
+    }
+}
+
+impl ReportStep {
+    /// The lines of the stored report with those of `fresh` in place of the same languages: a run
+    /// for one language leaves what the report says about the others as it is.
+    fn merged(&self, snapshot: &Snapshot, fresh: Vec<LanguageLine>) -> Vec<LanguageLine> {
+        let stored = self.store.report(snapshot.project).unwrap_or_else(|cause| {
+            tracing::warn!(event = LOG_REPORT_NOT_READ, code = cause.code().id());
+            None
+        });
+        let mut lines = stored
+            .and_then(|report| report.level2)
+            .map(|level2| level2.languages)
+            .unwrap_or_default();
+        for line in fresh {
+            match lines.iter_mut().find(|old| old.language == line.language) {
+                Some(old) => *old = line,
+                None => lines.push(line),
+            }
+        }
+        lines
     }
 }
 
@@ -119,7 +149,8 @@ mod tests {
     use crate::error::CodedError;
     use crate::ports::{ReportWrite, ScanReport, ToolIssue, ToolProblem};
 
-    struct Keep(Mutex<Vec<ReportWrite>>);
+    /// What was written, and the lines of the second pass that the store already holds.
+    struct Keep(Mutex<Vec<ReportWrite>>, Vec<LanguageLine>);
 
     impl ScanReportStore for Keep {
         fn store_report(&self, write: &ReportWrite) -> Result<(), CodedError> {
@@ -128,7 +159,19 @@ mod tests {
         }
 
         fn report(&self, _: ProjectId) -> Result<Option<ScanReport>, CodedError> {
-            Ok(None)
+            let held = |languages: &Vec<LanguageLine>| ScanReport {
+                level2: Some(Level2Report {
+                    languages: languages.clone(),
+                    at: Timestamp(900),
+                    origin: ScanOrigin::Terminal,
+                }),
+                last: LastScan {
+                    level: ScanLevel::One,
+                    at: Timestamp(900),
+                    origin: ScanOrigin::Terminal,
+                },
+            };
+            Ok((!self.1.is_empty()).then(|| held(&self.1)))
         }
     }
 
@@ -159,9 +202,9 @@ mod tests {
     }
 
     fn stored(level2: Option<&[LanguageReport]>) -> ReportWrite {
-        let keep = Arc::new(Keep(Mutex::default()));
+        let keep = Arc::new(Keep(Mutex::default(), Vec::new()));
         let step = ReportStep::new(keep.clone(), Arc::new(Noon));
-        step.store(&snapshot(), ScanOrigin::Browser, level2)
+        step.store(&snapshot(), ScanOrigin::Browser, level2, false)
             .unwrap();
         let writes = keep.0.lock().unwrap();
         writes[0].clone()
@@ -237,5 +280,36 @@ mod tests {
                 LanguageOutcome::Failed(ErrorCode::ScanReportNotStored),
             ]
         );
+    }
+
+    #[test]
+    fn a_run_for_one_language_replaces_only_its_line() {
+        let held = |language: &str| LanguageLine {
+            language: LanguageId::new(language).unwrap(),
+            outcome: LanguageOutcome::Skipped(SkipReason::NotConfirmed),
+        };
+        let seeded = Arc::new(Keep(Mutex::default(), vec![held("c"), held("java")]));
+        let step = ReportStep::new(seeded.clone(), Arc::new(Noon));
+        let checked = report(
+            "c",
+            Level2Outcome::Checked {
+                files: 3,
+                stale: 0,
+                mapped: 0,
+                dropped: 0,
+                outside_scan: 0,
+            },
+        );
+        step.store(&snapshot(), ScanOrigin::Browser, Some(&[checked]), true)
+            .unwrap();
+        let write = seeded.0.lock().unwrap()[0].clone();
+        let languages = write.level2.unwrap().languages;
+        assert_eq!(languages.len(), 2);
+        assert!(matches!(
+            languages[0].outcome,
+            LanguageOutcome::Checked { files: 3, .. }
+        ));
+        assert!(matches!(languages[1].outcome, LanguageOutcome::Skipped(_)));
+        assert_eq!(write.last.level, ScanLevel::Two);
     }
 }

@@ -25,8 +25,8 @@ use codeskimr_cli::{
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    FolderPath, Permission, Principal, Project, ProjectId, ProjectSource, ScanMode, ScanOrigin,
-    SkipReason, Snapshot,
+    FolderPath, LanguageId, Permission, Principal, Project, ProjectId, ProjectSource, ScanMode,
+    ScanOrigin, SkipReason, Snapshot,
 };
 use codeskimr_storage::SqliteStore;
 
@@ -220,6 +220,7 @@ impl Session {
                     snapshot: ran.snapshot,
                     root: ran.root,
                     cancel,
+                    only: run.language,
                 },
                 (run.guard, run.runs),
             )
@@ -247,6 +248,7 @@ impl Session {
                     &handoff.snapshot,
                     origin,
                     LanguageOutcome::Skipped(reason),
+                    handoff.only.as_ref(),
                 );
                 Level2Start::NotStarted(reason)
             }
@@ -285,6 +287,7 @@ impl Session {
         (guard, slot): (ScanGuard, RunSlot),
     ) -> Level2Start {
         let snapshot = handoff.snapshot.clone();
+        let only = handoff.only.clone();
         let session = Arc::new(self);
         let worker = Arc::clone(&session);
         let spawned = std::thread::Builder::new()
@@ -298,6 +301,7 @@ impl Session {
                     root: &handoff.root,
                     cancel: &handoff.cancel,
                     origin: ScanOrigin::Browser,
+                    only: handoff.only.as_ref(),
                 });
                 // Level 2 replaced references, so the numbers are counted again (ADR 0091).
                 worker.count_statistics(&handoff.snapshot);
@@ -310,6 +314,7 @@ impl Session {
             &snapshot,
             ScanOrigin::Browser,
             LanguageOutcome::Failed(ErrorCode::UnexpectedInternalError),
+            only.as_ref(),
         );
         Level2Start::NotStarted(SkipReason::Busy)
     }
@@ -390,12 +395,16 @@ struct Level2Handoff {
     snapshot: Snapshot,
     root: FolderPath,
     cancel: CancelToken,
+    /// The one language to check, `None` for all.
+    only: Option<LanguageId>,
 }
 
 /// What the browser hands to a scan: the registry places and what the caller wants.
 pub struct BrowserRun {
     /// Whether level 2 should follow level 1 (the command input `level2`).
     pub level2: bool,
+    /// Limits level 2 to this language (the command input `language`).
+    pub language: Option<LanguageId>,
     /// Receives the token that cancels the scan, and level 2 after it.
     pub on_token: Box<dyn FnOnce(CancelToken)>,
     /// Marks the project as scanning; it moves into the task of level 2.

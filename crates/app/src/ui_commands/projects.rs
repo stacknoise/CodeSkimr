@@ -13,7 +13,7 @@ use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Req
 use codeskimr_application::report_view::ReportView;
 use codeskimr_application::tools::ToolsView;
 use codeskimr_codes::Coded;
-use codeskimr_domain::{Permission, ProjectId, ProjectSource, ScanMode, Snapshot};
+use codeskimr_domain::{LanguageId, Permission, ProjectId, ProjectSource, ScanMode, Snapshot};
 use serde::{Deserialize, Serialize};
 
 use super::Context;
@@ -425,14 +425,14 @@ impl Command for AddProject {
         let id = session.project().id;
         let scan = session.scan_in_browser(
             ScanMode::Full,
-            context.browser_run(id, request.input.level2)?,
+            context.browser_run(id, (request.input.level2, None))?,
         )?;
         Ok(Scanned::of(id, &scan))
     }
 }
 
 /// The input of `projects.rescan`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct RescanInput {
     /// Id of the project.
     pub project: u64,
@@ -444,6 +444,10 @@ pub struct RescanInput {
     /// incrementally if the project has been scanned before.
     #[serde(default)]
     pub full: bool,
+    /// Checks only this language in level 2 (the button of a row of the report); left out
+    /// checks every language that has files.
+    #[serde(default)]
+    pub language: Option<String>,
 }
 
 /// Scans a registered project again, incrementally if it has been scanned before, or completely
@@ -482,7 +486,14 @@ impl Command for RescanProject {
             (context.events.clone(), &context.secrets),
         )?
         .with_tools(Arc::clone(&context.tools));
-        let run = context.browser_run(id, request.input.level2)?;
+        let language = request
+            .input
+            .language
+            .as_deref()
+            .map(LanguageId::new)
+            .transpose()
+            .map_err(CodedError::caused_by)?;
+        let run = context.browser_run(id, (request.input.level2, language))?;
         let mode = if scanned_before && !request.input.full {
             ScanMode::Incremental
         } else {

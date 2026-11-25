@@ -116,6 +116,16 @@ describe("the report of the last scan", () => {
   });
 });
 
+describe("the button of a row of the report", () => {
+  it("checks only the language of its row again", async () => {
+    const panel = await selected();
+    const failed = panel.querySelector("[data-group=failed]") as HTMLElement;
+    fireEvent.click(within(failed).getByRole("button", { name: "Check again" }));
+    await rescanAsked();
+    expect(rescanBody()).toEqual({ project: 4, language: "java" });
+  });
+});
+
 describe("the scan buttons", () => {
   it("scans with stage 2 by default and says that build tools run", async () => {
     const panel = await scanTab();

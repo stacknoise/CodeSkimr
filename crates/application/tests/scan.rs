@@ -2547,6 +2547,7 @@ fn run_level_two(
         root: finished.root(),
         cancel,
         origin: ScanOrigin::Browser,
+        only: None,
     })
 }
 
