@@ -134,7 +134,7 @@ export const URI_COMMENT = "#";
 /** Keys of the screen. */
 export const KEY = {
   newProject: "n",
-  rescan: "r",
+  showScan: "r",
   open: "Enter",
   down: "ArrowDown",
   up: "ArrowUp",

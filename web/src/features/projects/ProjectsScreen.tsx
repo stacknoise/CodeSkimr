@@ -7,7 +7,9 @@ import { CANCEL_KEY } from "../scan/consts";
 import { EXPLORER_ROUTE } from "../../app/consts";
 import { navigate } from "../../app/router";
 import { activeProject, closeProject, openProject } from "../../shared/project/active";
+import { PROJECT_TAB } from "./consts";
 import { useProjectKeys } from "./keys";
+import { selectProject } from "./page";
 import { level2Of, loadLevel2 } from "./level2";
 import { FailureNotice, NewProjectForm } from "./NewProjectForm";
 import {
@@ -18,7 +20,6 @@ import {
   cancelRename,
   cancelRenameOf,
   removeProject,
-  rescanProject,
 } from "./projects";
 import { ProjectList } from "./ProjectList";
 import { ProjectPage } from "./ProjectPage";
@@ -135,7 +136,7 @@ function useScreen(form: ReturnType<typeof useForm>) {
   createEffect(on(selection.selected, form.close, { defer: true }));
   useProjectKeys({
     newProject: form.show,
-    rescan: selection.act((id) => void rescanProject(id)),
+    showScan: selection.act((id) => selectProject(id, PROJECT_TAB.scan)),
     open: selection.act(openInExplorer),
     move: selection.move,
   });

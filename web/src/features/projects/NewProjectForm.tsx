@@ -256,7 +256,9 @@ function useSubmit(props: NewProjectFormProps, kind: () => SourceKind, name: () 
     if (
       await addProject(source, git ? branch.trim() : DEFAULT_BRANCH, git ? credential() : "", given)
     ) {
+      // The window closes (and empties the field) once the project is added.
       props.onSource("");
+      props.onClose?.();
     }
   };
   const gitFields = () => (

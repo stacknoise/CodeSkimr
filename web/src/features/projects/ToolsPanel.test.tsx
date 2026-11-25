@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
-import { chooseProject, chooseTab, TAB_TOOLS } from "../../tests/pageTabs";
+import { chooseProject, chooseTab, TAB_SCAN, TAB_TOOLS } from "../../tests/pageTabs";
 import { rescanAsked, rescanned } from "../../tests/scanned";
 import { refreshProjects } from "./projects";
 import { ProjectsScreen } from "./ProjectsScreen";
@@ -248,7 +248,8 @@ describe("the tools of a project", () => {
     await chooseProject();
     await chooseTab(TAB_TOOLS);
     await screen.findByRole("status");
-    fireEvent.keyDown(document, { key: "r" });
+    await chooseTab(TAB_SCAN);
+    fireEvent.click(screen.getByRole("button", { name: "Scan again" }));
     await rescanAsked();
     await waitFor(() => expect(screen.getAllByText("2 tools missing").length).toBeGreaterThan(0));
     await chooseTab(TAB_TOOLS);

@@ -4,7 +4,7 @@
 // the screens to docs/screenshots/scan-progress/.
 import path from "node:path";
 import type { Page, WebSocketRoute } from "@playwright/test";
-import { expect, selectScannedProject, shot, test } from "./fixtures";
+import { expect, selectScannedProject, shot, showTab, test } from "./fixtures";
 
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/scan-progress");
 const VIEWPORT = { width: 1440, height: 900 };
@@ -63,6 +63,7 @@ for (const theme of THEMES) {
       const held = await holdRescan(page);
       await selectScannedProject(page, harness, name, SOURCE);
       held.armed = true;
+      await showTab(page, "Scan");
       await page.getByRole("button", { name: "Scan again" }).first().click();
       await expect(page.getByRole("tab", { name: "Scan" })).toHaveAttribute(
         "aria-selected",

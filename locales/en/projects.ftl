@@ -30,7 +30,7 @@ projects-column-loc = LOC
 projects-column-last-scan = Last scan
 projects-column-status = Status
 projects-column-actions = Actions
-projects-hint-keys = Enter opens · R rescans · N new project
+projects-hint-keys = Enter opens · R shows the scan · N new project
 
 projects-source-placeholder = Paste a folder path or Git URL – or drop a folder here
 projects-source-folder = Folder
@@ -42,8 +42,6 @@ projects-scan-full = full
 projects-scan-incremental = incremental
 projects-scan-seconds = { $seconds } s
 projects-scan-time = { $mode } · { $seconds }
-projects-rescan = Scan { $name } again
-projects-rescan-tip = Scan again
 projects-adding = Scanning …
 projects-drop-without-path = The browser does not reveal the path of a dropped folder. Paste the path into the field instead.
 projects-load-failed = The project list could not be loaded.

@@ -143,6 +143,21 @@ describe("ProjectsScreen", () => {
     await waitFor(() => expect(field).not.toBeInTheDocument());
   });
 
+  it("closes the window New project once a project is added to a list that is not empty", async () => {
+    serve({
+      "projects.list": () => answer([ROW]),
+      "projects.add": () => answer(rescanned(2)),
+    });
+    render(() => <ProjectsScreen />);
+    await screen.findByRole("button", { name: "Open shop" });
+    fireEvent.click(screen.getByRole("button", { name: "New" }));
+    fireEvent.input(screen.getByPlaceholderText(/Paste a folder path/), {
+      target: { value: "/work/other" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add and scan" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New project" })).toBeNull());
+  });
+
   it("fills the display name from the source and sends it only when the user typed one", async () => {
     serve({
       "projects.list": () => answer([]),
@@ -302,34 +317,25 @@ describe("ProjectsScreen", () => {
     expect(await screen.findByText(/does not reveal the path/)).toBeInTheDocument();
   });
 
-  it("scans the selected project again on R and moves with the arrow keys", async () => {
-    serve({
-      "projects.list": () => answer([ROW, { ...ROW, id: 2, name: "zeta" }]),
-      "projects.rescan": () => answer(rescanned(2)),
-    });
+  it("shows the tab Scan of the selected project on R and moves with the arrow keys", async () => {
+    serve({ "projects.list": () => answer([ROW, { ...ROW, id: 2, name: "zeta" }]) });
     render(() => <ProjectsScreen />);
     await screen.findByText("zeta");
     fireEvent.keyDown(document, { key: "ArrowDown" });
     fireEvent.keyDown(document, { key: "ArrowDown" });
     fireEvent.keyDown(document, { key: "r" });
-    await rescanAsked();
-    const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith("projects.rescan"));
-    expect(JSON.parse(call?.[1].body)).toEqual({ project: 2 });
+    expect(projectTab()).toBe("scan");
+    expect(screen.getByRole("region", { name: "zeta" })).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith("projects.rescan"))).toBe(
+      false,
+    );
   });
 
-  it("shows the tab Scan of the project when a scan is started", async () => {
-    serve({
-      "projects.list": () => answer([ROW]),
-      "projects.rescan": () => answer(rescanned(1)),
-    });
+  it("has no scan button in the head of the page", async () => {
+    serve({ "projects.list": () => answer([ROW]) });
     render(() => <ProjectsScreen />);
     await screen.findByRole("button", { name: "Open shop" });
-    fireEvent.keyDown(document, { key: "r" });
-    await rescanAsked();
-    expect(currentPath()).toBe("/");
-    expect(projectTab()).toBe("scan");
-    const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith("projects.rescan"));
-    expect(activeProject()).toBe(JSON.parse(call?.[1].body).project);
+    expect(screen.queryByRole("button", { name: "Scan shop again" })).toBeNull();
   });
 
   it("ignores the report of a project that was known before when a new one is added", async () => {
