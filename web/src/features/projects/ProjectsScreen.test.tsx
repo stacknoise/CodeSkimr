@@ -15,10 +15,8 @@ import {
   renamingProject,
 } from "./projects";
 import { UNCHECKED, rescanAsked, rescanned } from "../../tests/scanned";
+import { SOURCE_LABEL } from "../../tests/pageTabs";
 import type { ProjectRow } from "./types";
-
-/** The label of the source field of the window "New project". */
-const SOURCE_LABEL = /^(Folder|Repository address)$/;
 
 const ROW: ProjectRow = {
   id: 1,

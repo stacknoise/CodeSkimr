@@ -10,10 +10,7 @@ import { refreshStatus } from "../status/status";
 import { listenToScans, resetRuns } from "./events";
 import { ProjectsScreen } from "../projects/ProjectsScreen";
 import { Performance } from "../status/Performance";
-import { chooseProject, chooseTab, TAB_SCAN } from "../../tests/pageTabs";
-
-/** The label of the source field of the window "New project". */
-const SOURCE_LABEL = /^(Folder|Repository address)$/;
+import { chooseProject, chooseTab, TAB_SCAN, SOURCE_LABEL } from "../../tests/pageTabs";
 
 const ROW: ProjectRow = {
   id: 1,

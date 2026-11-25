@@ -2,9 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { describe, expect, it } from "vitest";
 import { answer, serve, useServerSession } from "../../tests/commands";
 import { ProjectsScreen } from "./ProjectsScreen";
-
-/** The label of the source field of the window "New project". */
-const SOURCE_LABEL = /^(Folder|Repository address)$/;
+import { SOURCE_LABEL } from "../../tests/pageTabs";
 
 useServerSession();
 
