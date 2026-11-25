@@ -15,7 +15,7 @@ use tempfile::TempDir;
 
 use crate::consts::{
     BYTES_PER_MB, EXCERPT_BYTES, HEAP_SHARE_PERCENT, HOME_DIR_NAME, INDEX_FILE_NAME, LOG_CODE,
-    LOG_EXCERPT, LOG_INDEXER, OUTPUT_DIR_PREFIX, PATH_ENV, PLACEHOLDER_HEAP_MB,
+    LOG_EXCERPT, LOG_INDEXER, OUTPUT_DIR_PREFIX, PATH_ENV, PERCENT, PLACEHOLDER_HEAP_MB,
     PROJECT_FILE_WILDCARD, SCRATCH_DIR_NAME, SURVIVED_CODE,
 };
 use crate::env::{self, Environment, Folders};
@@ -279,7 +279,7 @@ fn launch_of(
 
 /// The heap share of a memory limit, in megabytes.
 fn heap_mb(max_memory_bytes: u64) -> u64 {
-    (max_memory_bytes / BYTES_PER_MB).saturating_mul(HEAP_SHARE_PERCENT) / 100
+    (max_memory_bytes / BYTES_PER_MB).saturating_mul(HEAP_SHARE_PERCENT) / PERCENT
 }
 
 /// The environment with the variables that the pack derives from the memory limit of the run.

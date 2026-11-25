@@ -133,3 +133,5 @@ pub const PLACEHOLDER_HEAP_MB: &str = "{heap_mb}";
 pub const HEAP_SHARE_PERCENT: u64 = 75;
 /// Bytes in a megabyte.
 pub const BYTES_PER_MB: u64 = 1024 * 1024;
+/// Divisor that turns a share in percent into a fraction.
+pub const PERCENT: u64 = 100;
