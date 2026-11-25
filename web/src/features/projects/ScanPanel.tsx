@@ -101,7 +101,7 @@ export function ScanMessages(props: { row: ProjectRow }) {
 }
 
 /** The button next to a language that failed or was skipped. */
-function RowAction(props: { row: ProjectRow; action: ReportRow["action"] }) {
+function RowAction(props: { row: ProjectRow; action: ReportRow["action"]; language: string }) {
   const busy = () => props.row.running || projectsScanning().has(props.row.id);
   return props.action === REPORT_ACTION.tools ? (
     <button type="button" class={styles.link} onClick={() => showTab(PROJECT_TAB.tools)}>
@@ -112,7 +112,7 @@ function RowAction(props: { row: ProjectRow; action: ReportRow["action"] }) {
       type="button"
       class={styles.link}
       disabled={busy()}
-      onClick={() => void rescanProject(props.row.id)}
+      onClick={() => void rescanProject(props.row.id, true, false, props.language)}
     >
       {t(I18N_KEYS.PROJECTS_REPORT_ACTION_RESCAN)}
     </button>
@@ -132,7 +132,7 @@ function ReportLine(props: { row: ProjectRow; line: LanguageReport }) {
         </p>
         <p class={styles.todo}>{entry().todo}</p>
       </div>
-      <RowAction row={props.row} action={entry().action} />
+      <RowAction row={props.row} action={entry().action} language={props.line.language} />
     </li>
   );
 }

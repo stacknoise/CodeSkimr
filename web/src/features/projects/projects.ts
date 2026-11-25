@@ -240,8 +240,14 @@ function mark(project: number, on: boolean): void {
 /** Scans a project again, incrementally if it was scanned before. A scan from the browser runs
  * stage 2 after stage 1 where it is confirmed; `level2: false` makes this one scan stage 1 only
  * (ADR 0072, decision 1). `full: true` reads every file again instead of the changes only, as
- * `codeskimr scan` does. */
-export async function rescanProject(project: number, level2 = true, full = false): Promise<void> {
+ * `codeskimr scan` does. With `language`, stage 2 checks only that language and leaves what the
+ * report says about the others as it is. */
+export async function rescanProject(
+  project: number,
+  level2 = true,
+  full = false,
+  language?: string,
+): Promise<void> {
   if (scanning().has(project)) {
     return;
   }
@@ -256,6 +262,7 @@ export async function rescanProject(project: number, level2 = true, full = false
           project,
           ...(level2 ? {} : { level2 }),
           ...(full ? { full } : {}),
+          ...(language === undefined ? {} : { language }),
         }),
       ),
     );

@@ -68,7 +68,7 @@ use codeskimr_application::level2::ConfirmationDesk;
 use codeskimr_application::ports::{IndexRunner, ProjectToolCheck};
 use codeskimr_application::registry::{Command, Registry};
 use codeskimr_cli::GlobalOptions;
-use codeskimr_domain::Author;
+use codeskimr_domain::{Author, LanguageId};
 use codeskimr_parsing::{Blake3Digest, TreeSitterHighlighter};
 use codeskimr_server::CommandApi;
 use codeskimr_source::FolderText;
@@ -142,12 +142,13 @@ impl Context {
     fn browser_run(
         &self,
         id: codeskimr_domain::ProjectId,
-        level2: Option<bool>,
+        (level2, language): (Option<bool>, Option<LanguageId>),
     ) -> Result<BrowserRun, CodedError> {
         let guard = self.running.start(id)?;
         let running = self.running.clone();
         Ok(BrowserRun {
             level2: level2.unwrap_or(true),
+            language,
             on_token: Box::new(move |token| running.attach(id, token)),
             guard,
             runs: self.level2_runs.clone(),

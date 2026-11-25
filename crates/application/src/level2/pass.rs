@@ -83,16 +83,34 @@ impl Level2Pass {
         root: &FolderPath,
         cancel: &CancelToken,
     ) -> Level2Result {
+        self.run_only(principal, (snapshot, root), cancel, None)
+    }
+
+    /// Like [`Level2Pass::run`], but with `only` set it covers that language alone: the others
+    /// are neither run nor reported.
+    #[must_use]
+    pub fn run_only(
+        &self,
+        principal: &Principal,
+        (snapshot, root): (&Snapshot, &FolderPath),
+        cancel: &CancelToken,
+        only: Option<&LanguageId>,
+    ) -> Level2Result {
         let scan = match self.load(principal, snapshot, root, cancel) {
             Ok(scan) => scan,
             Err(cause) => {
                 return Level2Result {
-                    reports: self.skip_all(snapshot.project, &Skipped::Failed(cause.code())),
+                    reports: self.skip_all(snapshot.project, only, &Skipped::Failed(cause.code())),
                     snapshot: snapshot.clone(),
                 };
             }
         };
-        let present: HashSet<&LanguageId> = scan.files.iter().map(|file| &file.language).collect();
+        let present: HashSet<&LanguageId> = scan
+            .files
+            .iter()
+            .map(|file| &file.language)
+            .filter(|language| only.is_none_or(|one| one == *language))
+            .collect();
         let mut result = Level2Result {
             reports: Vec::new(),
             snapshot: snapshot.clone(),
@@ -164,19 +182,25 @@ impl Level2Pass {
     /// The languages that have an indexer and files in the latest snapshot of `project`. If the
     /// files cannot be read, all languages with an indexer, so that no skip goes unreported.
     #[must_use]
-    pub fn languages_in(&self, project: ProjectId) -> Vec<&LanguageId> {
+    pub fn languages_in(&self, project: ProjectId, only: Option<&LanguageId>) -> Vec<&LanguageId> {
         let present: Option<HashSet<LanguageId>> = self
             .projects
             .latest_files(project)
             .ok()
             .map(|files| files.into_iter().map(|file| file.language).collect());
         self.languages()
+            .filter(|language| only.is_none_or(|one| one == *language))
             .filter(|language| present.as_ref().is_none_or(|set| set.contains(*language)))
             .collect()
     }
 
-    fn skip_all(&self, project: ProjectId, reason: &Skipped) -> Vec<LanguageReport> {
-        self.languages_in(project)
+    fn skip_all(
+        &self,
+        project: ProjectId,
+        only: Option<&LanguageId>,
+        reason: &Skipped,
+    ) -> Vec<LanguageReport> {
+        self.languages_in(project, only)
             .into_iter()
             .map(|language| LanguageReport {
                 language: language.clone(),

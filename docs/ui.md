@@ -28,7 +28,7 @@ Since ADR 0096 the screen is a narrow list (`ProjectList`) and the page of the s
 
 ## Projects (screen 1, WP-44, before ADR 0096)
 
-The screen calls four commands over `POST /api/v1/commands/{id}` (`shared/api/commands.ts`): `projects.list`, `projects.add`, `projects.rescan` and `projects.remove` (see `docs/server.md`). `projects.rescan` scans the changes since the last scan; with `full: true` (the button "Full scan" of the scan section) it reads every file again, as `codeskimr scan` does.
+The screen calls four commands over `POST /api/v1/commands/{id}` (`shared/api/commands.ts`): `projects.list`, `projects.add`, `projects.rescan` and `projects.remove` (see `docs/server.md`). `projects.rescan` scans the changes since the last scan; with `full: true` (the button "Full scan" of the scan section) it reads every file again, as `codeskimr scan` does. With `language` (the button "Check again" in a row of the stage 2 report) level 2 runs for that language alone, and the report keeps what it said about the others.
 
 - `projects.ts` keeps the list, the failure of the last action and the scans started in this tab. While a scan runs, the list is read every 1.5 s, so a running scan shows up as "scan running".
 - Keys: `N` focuses the source field, arrow keys move the selection, `Enter` opens the project (it becomes the active project, `shared/project/active.ts`, and the explorer is shown), `R` scans it again. Typing in a field and Ctrl, Alt or Meta combinations never trigger them.

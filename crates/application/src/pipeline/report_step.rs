@@ -35,8 +35,9 @@ impl ReportStep {
         snapshot: &Snapshot,
         origin: ScanOrigin,
         level2: Option<&[LanguageReport]>,
+        partial: bool,
     ) -> Result<(), ErrorCode> {
-        self.store_lines(snapshot, origin, level2.map(lines_of))
+        self.store_lines(snapshot, origin, level2.map(lines_of), partial)
     }
 
     /// Like [`ReportStep::store`], with the lines of the second pass already made.
@@ -48,7 +49,12 @@ impl ReportStep {
         snapshot: &Snapshot,
         origin: ScanOrigin,
         lines: Option<Vec<LanguageLine>>,
+        partial: bool,
     ) -> Result<(), ErrorCode> {
+        let lines = match lines {
+            Some(fresh) if partial => Some(self.merged(snapshot, fresh)),
+            other => other,
+        };
         let checked = lines.as_deref().is_some_and(any_checked);
         let write = ReportWrite {
             project: snapshot.project,
@@ -70,6 +76,28 @@ impl ReportStep {
         self.store
             .store_report(&write)
             .map_err(|_| ErrorCode::ScanReportNotStored)
+    }
+}
+
+impl ReportStep {
+    /// The lines of the stored report with those of `fresh` in place of the same languages: a run
+    /// for one language leaves what the report says about the others as it is.
+    fn merged(&self, snapshot: &Snapshot, fresh: Vec<LanguageLine>) -> Vec<LanguageLine> {
+        let mut lines = self
+            .store
+            .report(snapshot.project)
+            .ok()
+            .flatten()
+            .and_then(|report| report.level2)
+            .map(|level2| level2.languages)
+            .unwrap_or_default();
+        for line in fresh {
+            match lines.iter_mut().find(|old| old.language == line.language) {
+                Some(old) => *old = line,
+                None => lines.push(line),
+            }
+        }
+        lines
     }
 }
 
@@ -161,7 +189,7 @@ mod tests {
     fn stored(level2: Option<&[LanguageReport]>) -> ReportWrite {
         let keep = Arc::new(Keep(Mutex::default()));
         let step = ReportStep::new(keep.clone(), Arc::new(Noon));
-        step.store(&snapshot(), ScanOrigin::Browser, level2)
+        step.store(&snapshot(), ScanOrigin::Browser, level2, false)
             .unwrap();
         let writes = keep.0.lock().unwrap();
         writes[0].clone()
@@ -237,5 +265,64 @@ mod tests {
                 LanguageOutcome::Failed(ErrorCode::ScanReportNotStored),
             ]
         );
+    }
+
+    /// A store that already holds a report with lines for C and Java.
+    struct Seeded(Mutex<Vec<ReportWrite>>);
+
+    impl ScanReportStore for Seeded {
+        fn store_report(&self, write: &ReportWrite) -> Result<(), CodedError> {
+            self.0.lock().unwrap().push(write.clone());
+            Ok(())
+        }
+
+        fn report(&self, _: ProjectId) -> Result<Option<ScanReport>, CodedError> {
+            let line = |language: &str, outcome| LanguageLine {
+                language: LanguageId::new(language).unwrap(),
+                outcome,
+            };
+            Ok(Some(ScanReport {
+                last: LastScan {
+                    at: Timestamp(900),
+                    level: ScanLevel::One,
+                    origin: ScanOrigin::Browser,
+                },
+                level2: Some(Level2Report {
+                    at: Timestamp(900),
+                    origin: ScanOrigin::Browser,
+                    languages: vec![
+                        line("c", LanguageOutcome::Skipped(SkipReason::NotConfirmed)),
+                        line("java", LanguageOutcome::Skipped(SkipReason::NotConfirmed)),
+                    ],
+                }),
+            }))
+        }
+    }
+
+    #[test]
+    fn a_run_for_one_language_replaces_only_its_line() {
+        let seeded = Arc::new(Seeded(Mutex::default()));
+        let step = ReportStep::new(seeded.clone(), Arc::new(Noon));
+        let checked = report(
+            "c",
+            Level2Outcome::Checked {
+                files: 3,
+                stale: 0,
+                mapped: 0,
+                dropped: 0,
+                outside_scan: 0,
+            },
+        );
+        step.store(&snapshot(), ScanOrigin::Browser, Some(&[checked]), true)
+            .unwrap();
+        let write = seeded.0.lock().unwrap()[0].clone();
+        let languages = write.level2.unwrap().languages;
+        assert_eq!(languages.len(), 2);
+        assert!(matches!(
+            languages[0].outcome,
+            LanguageOutcome::Checked { files: 3, .. }
+        ));
+        assert!(matches!(languages[1].outcome, LanguageOutcome::Skipped(_)));
+        assert_eq!(write.last.level, ScanLevel::Two);
     }
 }

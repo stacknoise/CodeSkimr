@@ -5,8 +5,8 @@ use std::time::Duration;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    AlertTrigger, FolderPath, Permission, Principal, Project, ProjectId, ProjectSource, ScanMode,
-    ScanOrigin, Snapshot,
+    AlertTrigger, FolderPath, LanguageId, Permission, Principal, Project, ProjectId, ProjectSource,
+    ScanMode, ScanOrigin, Snapshot,
 };
 
 use super::flow::{Chain, Halt, Pipeline, Single, StageContext};
@@ -261,7 +261,7 @@ impl Scanner {
             self.created(&snapshot, (loading, false));
         }
         let mut warnings = persisted.warnings;
-        warnings.extend(self.store_report(&snapshot, job.origin(), level2.as_deref()));
+        warnings.extend(self.store_report(&snapshot, job.origin(), level2.as_deref(), false));
         JobResult::Finished(job.finish(
             snapshot,
             level2.unwrap_or_default(),
@@ -317,12 +317,22 @@ impl Scanner {
         if let Err(cause) = self.catch_up(project_of_snapshot(run.snapshot.id)) {
             tracing::warn!(event = LOG_IDS_NOT_CAUGHT_UP, code = cause.code().id());
         }
-        let done = pass.run(run.principal, run.snapshot, run.root, run.cancel);
+        let done = pass.run_only(
+            run.principal,
+            (run.snapshot, run.root),
+            run.cancel,
+            run.only,
+        );
         if done.snapshot != *run.snapshot {
             self.created(&done.snapshot, (Duration::ZERO, false));
         }
         // A failure to store is logged by `store_report`; the run itself has ended.
-        self.store_report(&done.snapshot, run.origin, Some(&done.reports));
+        self.store_report(
+            &done.snapshot,
+            run.origin,
+            Some(&done.reports),
+            run.only.is_some(),
+        );
         self.finished_level2(run.snapshot, tally(&done.reports));
         done.reports
     }
@@ -330,12 +340,18 @@ impl Scanner {
     /// Stores that level 2 did not run for any language, with `outcome` for each (a skip reason
     /// such as `busy` or `paused`, or the code of a failure), and tells the event bus that the
     /// run is over.
-    pub fn skip_level2(&self, snapshot: &Snapshot, origin: ScanOrigin, outcome: LanguageOutcome) {
+    pub fn skip_level2(
+        &self,
+        snapshot: &Snapshot,
+        origin: ScanOrigin,
+        outcome: LanguageOutcome,
+        only: Option<&LanguageId>,
+    ) {
         let Some(pass) = &self.level2 else {
             return;
         };
         let lines: Vec<LanguageLine> = pass
-            .languages_in(snapshot.project)
+            .languages_in(snapshot.project, only)
             .into_iter()
             .map(|language| LanguageLine {
                 language: language.clone(),
@@ -345,7 +361,7 @@ impl Scanner {
         let count = u32::try_from(lines.len()).unwrap_or(u32::MAX);
         let failed = matches!(outcome, LanguageOutcome::Failed(_));
         if let Some(step) = &self.reports
-            && let Err(code) = step.store_lines(snapshot, origin, Some(lines))
+            && let Err(code) = step.store_lines(snapshot, origin, Some(lines), only.is_some())
         {
             tracing::warn!(event = LOG_REPORT_NOT_STORED, code = code.id());
         }
@@ -369,9 +385,10 @@ impl Scanner {
         snapshot: &Snapshot,
         origin: ScanOrigin,
         level2: Option<&[LanguageReport]>,
+        partial: bool,
     ) -> Option<ScanWarning> {
         let step = self.reports.as_ref()?;
-        let code = step.store(snapshot, origin, level2).err()?;
+        let code = step.store(snapshot, origin, level2, partial).err()?;
         tracing::warn!(event = LOG_REPORT_NOT_STORED, code = code.id());
         Some(ScanWarning { code, count: 1 })
     }
@@ -428,6 +445,8 @@ pub struct Level2Run<'a> {
     pub cancel: &'a CancelToken,
     /// The channel that started the scan.
     pub origin: ScanOrigin,
+    /// The one language to check again; `None` checks every language with files.
+    pub only: Option<&'a LanguageId>,
 }
 
 /// Languages checked, skipped and failed.

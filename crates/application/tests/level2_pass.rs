@@ -645,11 +645,34 @@ mod cases {
             &CancelToken::new(),
         );
         let found: Vec<String> = pass
-            .languages_in(snapshot().project)
+            .languages_in(snapshot().project, None)
             .into_iter()
             .map(|language| language.as_str().to_owned())
             .collect();
         assert_eq!(found, vec!["c".to_owned()]);
+    }
+
+    #[test]
+    fn a_run_for_one_language_leaves_the_others_alone() {
+        let (pass, fakes) = pass_for(
+            Setup {
+                files: vec![file(1, "a.ts", "typescript"), file(2, "b.py", "python")],
+                indexers: vec![("typescript", "scip-typescript"), ("python", "scip-python")],
+                ..Setup::default()
+            },
+            &CancelToken::new(),
+        );
+        let root = FolderPath::new("/work").unwrap();
+        let only = LanguageId::new("python").unwrap();
+        let result = pass.run_only(
+            &Principal::local_owner(),
+            (&snapshot(), &root),
+            &CancelToken::new(),
+            Some(&only),
+        );
+        assert_eq!(*fakes.runner.runs.lock().unwrap(), 1);
+        assert_eq!(result.reports.len(), 1);
+        assert_eq!(result.reports[0].language, only);
     }
 
     #[test]
