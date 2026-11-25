@@ -297,3 +297,6 @@ export const TAB_STEP: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1 }
 /** `tabindex` of the selected tab and of the others (the arrow keys reach them). */
 export const TAB_IN = 0;
 export const TAB_OUT = -1;
+
+/** How project names are compared for the list: without regard to case and accents, digits as numbers. */
+export const NAME_ORDER: Intl.CollatorOptions = { sensitivity: "base", numeric: true };

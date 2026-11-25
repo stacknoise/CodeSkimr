@@ -1,0 +1,10 @@
+import { NAME_ORDER } from "./consts";
+import type { ProjectRow } from "./types";
+
+/** The projects in the order of the list: by shown name, without regard to case; projects with the
+ * same name keep a stable order by id. */
+export function byName(rows: readonly ProjectRow[]): ProjectRow[] {
+  return [...rows].sort(
+    (a, b) => a.name.localeCompare(b.name, undefined, NAME_ORDER) || a.id - b.id,
+  );
+}
