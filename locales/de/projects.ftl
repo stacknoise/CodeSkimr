@@ -173,6 +173,16 @@ projects-report-group-checked-count = { $count ->
     [one] 1 Sprache
    *[other] { $count } Sprachen
   }
+projects-report-group-no-level2 = Keine Stufe 2 verfügbar
+projects-report-group-no-level2-count = { $count ->
+    [one] 1 Sprache, dafür gibt es noch keine genaue Prüfung
+   *[other] { $count } Sprachen, dafür gibt es noch keine genaue Prüfung
+  }
+projects-report-no-level2-note = Ihre Verweise bleiben Näherungen aus Stufe 1.
+projects-report-switched-off = Stufe 2 ist für dieses Projekt aus oder nicht bestätigt. Oben einschalten und bestätigen, um { $count ->
+    [one] 1 Sprache
+   *[other] { $count } Sprachen
+  } genau zu prüfen: { $languages }.
 projects-report-chip = { $language } · { $files } Dateien
 projects-report-chip-stale = { $language } · { $files } Dateien · { $stale } veraltet
 projects-report-todo = Was tun: { $text }

@@ -10,7 +10,7 @@ import { refreshProjects } from "./projects";
 import { ProjectsScreen } from "./ProjectsScreen";
 import { chooseProject, chooseTab, TAB_LEVEL2, TAB_SCAN } from "../../tests/pageTabs";
 import { projectRow } from "../../tests/projectRow";
-import type { ProjectRow } from "./types";
+import type { LanguageInfo, ProjectRow } from "./types";
 
 const REPORT: ScanReport = {
   last_scan: { at: 1_700_000_000, level: "2", origin: "browser" },
@@ -113,6 +113,44 @@ describe("the report of the last scan", () => {
     expect(within(panel).getByText(/No stage 2 run is stored/)).toBeInTheDocument();
     await chooseTab(/Overview/);
     expect(screen.getByText(/Stage 1 \(browser\)/)).toBeInTheDocument();
+  });
+});
+
+function info(language: string): LanguageInfo {
+  return { language, files: 3, loc: 30, symbols: 5, parse_micros: null, tier: "full" };
+}
+
+describe("the languages of the report", () => {
+  it("lists a language without an indexer in its own group, not in the report", async () => {
+    const row = projectRow({
+      report: REPORT,
+      languages: [info("csharp"), info("c"), info("ruby")],
+    });
+    const panel = await selected(row);
+    const group = panel.querySelector("[data-group=no-level2]") as HTMLElement;
+    expect(within(group).getByText("No stage 2 available")).toBeInTheDocument();
+    expect(within(group).getByText("C")).toBeInTheDocument();
+    expect(within(group).getByText("Ruby")).toBeInTheDocument();
+    expect(within(group).queryByText("C#")).not.toBeInTheDocument();
+  });
+
+  it("says once that stage 2 is off instead of one row with a button for each language", async () => {
+    const off = {
+      ...REPORT,
+      level2: {
+        ...REPORT.level2!,
+        languages: [
+          { language: "python", outcome: "skipped" as const, reason: "not_confirmed" },
+          { language: "rust", outcome: "skipped" as const, reason: "not_confirmed" },
+        ],
+      },
+    };
+    const panel = await selected({ ...ROW, report: off });
+    const hint = panel.querySelector("[data-group=switched-off]") as HTMLElement;
+    expect(hint).toHaveTextContent("Stage 2 is off or not confirmed");
+    expect(hint).toHaveTextContent("2 languages: Python, Rust");
+    expect(panel.querySelector("[data-group=skipped]")).toBeNull();
+    expect(within(panel).queryByRole("button", { name: "Check again" })).not.toBeInTheDocument();
   });
 });
 

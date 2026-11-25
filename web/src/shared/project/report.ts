@@ -58,6 +58,7 @@ export const ORIGIN_TEXT: Record<ScanOrigin, MessageKey> = {
 export const SKIP_REASON = {
   noProjectFile: "no_project_file",
   toolsUnavailable: "tools_unavailable",
+  notConfirmed: "not_confirmed",
 } as const;
 
 /** The texts of the reasons why a language was skipped, by the key of the report. */

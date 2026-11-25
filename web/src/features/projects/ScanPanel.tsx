@@ -1,7 +1,12 @@
 import { createEffect, For, on, Show } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
-import { ORIGIN_TEXT, OUTCOME, type LanguageReport } from "../../shared/project/report";
+import {
+  ORIGIN_TEXT,
+  OUTCOME,
+  SKIP_REASON,
+  type LanguageReport,
+} from "../../shared/project/report";
 import { cx } from "../../shared/ui/cx";
 import { cancelScan } from "../scan/cancel";
 import {
@@ -182,12 +187,55 @@ function CheckedGroup(props: { lines: LanguageReport[] }) {
   );
 }
 
+/** The languages of the project that no indexer covers, as chips: they are not in the report,
+ * and their references stay approximations of stage 1. */
+function NoLevel2Group(props: { languages: string[] }) {
+  return (
+    <Show when={props.languages.length > 0}>
+      <section class={styles.group} data-group="no-level2">
+        <h3 class={styles.groupTitle}>
+          <span class={styles.badgeSkipped}>{t(I18N_KEYS.PROJECTS_REPORT_GROUP_NO_LEVEL2)}</span>
+          {t(I18N_KEYS.PROJECTS_REPORT_GROUP_NO_LEVEL2_COUNT, { count: props.languages.length })}
+        </h3>
+        <p class={styles.text}>{t(I18N_KEYS.PROJECTS_REPORT_NO_LEVEL2_NOTE)}</p>
+        <ul class={cx(styles.rows, styles.rowsChecked, styles.chips)}>
+          <For each={props.languages}>{(name) => <li class={styles.chip}>{name}</li>}</For>
+        </ul>
+      </section>
+    </Show>
+  );
+}
+
+/** The one hint for the languages that stage 2 would check if it were switched on. */
+function SwitchedOff(props: { lines: LanguageReport[] }) {
+  return (
+    <Show when={props.lines.length > 0}>
+      <p class={styles.text} data-group="switched-off">
+        {t(I18N_KEYS.PROJECTS_REPORT_SWITCHED_OFF, {
+          count: props.lines.length,
+          languages: props.lines.map((line) => languageName(line.language)).join(", "),
+        })}
+      </p>
+    </Show>
+  );
+}
+
 /** What stage 2 did in the last run that stored a report, grouped by outcome: failed first, then
  * skipped, then checked (mock 25, variant B). */
 function Report(props: { row: ProjectRow }) {
   const second = () => props.row.report?.level2 ?? null;
   const lines = (outcome: LanguageReport["outcome"]) =>
     second()?.languages.filter((line) => line.outcome === outcome) ?? [];
+  // A language that is off because stage 2 is not switched on or confirmed has one hint for all,
+  // not a row with a button each.
+  const off = (line: LanguageReport) => line.reason === SKIP_REASON.notConfirmed;
+  const skipped = () => lines(OUTCOME.skipped).filter((line) => !off(line));
+  const switchedOff = () => lines(OUTCOME.skipped).filter(off);
+  const covered = () => new Set(second()?.languages.map((line) => line.language));
+  const uncovered = () =>
+    props.row.languages
+      .filter((info) => !covered().has(info.language))
+      .map((info) => languageName(info.language));
   return (
     <Show
       when={second()}
@@ -206,8 +254,10 @@ function Report(props: { row: ProjectRow }) {
             })}
           </p>
           <Group row={props.row} kind={OUTCOME.failed} lines={lines(OUTCOME.failed)} />
-          <Group row={props.row} kind={OUTCOME.skipped} lines={lines(OUTCOME.skipped)} />
+          <SwitchedOff lines={switchedOff()} />
+          <Group row={props.row} kind={OUTCOME.skipped} lines={skipped()} />
           <CheckedGroup lines={lines(OUTCOME.checked)} />
+          <NoLevel2Group languages={uncovered()} />
         </div>
       )}
     </Show>
