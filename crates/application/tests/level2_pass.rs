@@ -634,15 +634,24 @@ mod cases {
         assert_eq!(outcome.result.reports.len(), 1);
     }
 
+    /// A pass over `files`, with these (language, indexer) pairs.
+    fn pass_over(
+        files: Vec<SourceFile>,
+        indexers: Vec<(&'static str, &'static str)>,
+    ) -> (Level2Pass, Fakes) {
+        let setup = Setup {
+            files,
+            indexers,
+            ..Setup::default()
+        };
+        pass_for(setup, &CancelToken::new())
+    }
+
     #[test]
     fn the_languages_to_report_are_those_with_files() {
-        let (pass, _) = pass_for(
-            Setup {
-                files: vec![file(1, "a.c", "c")],
-                indexers: vec![("c", "scip-clang"), ("java", "scip-java")],
-                ..Setup::default()
-            },
-            &CancelToken::new(),
+        let (pass, _) = pass_over(
+            vec![file(1, "a.c", "c")],
+            vec![("c", "scip-clang"), ("java", "scip-java")],
         );
         let found: Vec<String> = pass
             .languages_in(snapshot().project, None)
@@ -654,13 +663,9 @@ mod cases {
 
     #[test]
     fn a_run_for_one_language_leaves_the_others_alone() {
-        let (pass, fakes) = pass_for(
-            Setup {
-                files: vec![file(1, "a.ts", "typescript"), file(2, "b.py", "python")],
-                indexers: vec![("typescript", "scip-typescript"), ("python", "scip-python")],
-                ..Setup::default()
-            },
-            &CancelToken::new(),
+        let (pass, fakes) = pass_over(
+            vec![file(1, "a.ts", "typescript"), file(2, "b.py", "python")],
+            vec![("typescript", "scip-typescript"), ("python", "scip-python")],
         );
         let root = FolderPath::new("/work").unwrap();
         let only = LanguageId::new("python").unwrap();

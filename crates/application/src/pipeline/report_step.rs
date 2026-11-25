@@ -149,7 +149,8 @@ mod tests {
     use crate::error::CodedError;
     use crate::ports::{ReportWrite, ScanReport, ToolIssue, ToolProblem};
 
-    struct Keep(Mutex<Vec<ReportWrite>>);
+    /// What was written, and the lines of the second pass that the store already holds.
+    struct Keep(Mutex<Vec<ReportWrite>>, Vec<LanguageLine>);
 
     impl ScanReportStore for Keep {
         fn store_report(&self, write: &ReportWrite) -> Result<(), CodedError> {
@@ -158,7 +159,19 @@ mod tests {
         }
 
         fn report(&self, _: ProjectId) -> Result<Option<ScanReport>, CodedError> {
-            Ok(None)
+            let held = |languages: &Vec<LanguageLine>| ScanReport {
+                level2: Some(Level2Report {
+                    languages: languages.clone(),
+                    at: Timestamp(900),
+                    origin: ScanOrigin::Terminal,
+                }),
+                last: LastScan {
+                    level: ScanLevel::One,
+                    at: Timestamp(900),
+                    origin: ScanOrigin::Terminal,
+                },
+            };
+            Ok((!self.1.is_empty()).then(|| held(&self.1)))
         }
     }
 
@@ -189,7 +202,7 @@ mod tests {
     }
 
     fn stored(level2: Option<&[LanguageReport]>) -> ReportWrite {
-        let keep = Arc::new(Keep(Mutex::default()));
+        let keep = Arc::new(Keep(Mutex::default(), Vec::new()));
         let step = ReportStep::new(keep.clone(), Arc::new(Noon));
         step.store(&snapshot(), ScanOrigin::Browser, level2, false)
             .unwrap();
@@ -269,41 +282,13 @@ mod tests {
         );
     }
 
-    /// A store that already holds a report with lines for C and Java.
-    struct Seeded(Mutex<Vec<ReportWrite>>);
-
-    impl ScanReportStore for Seeded {
-        fn store_report(&self, write: &ReportWrite) -> Result<(), CodedError> {
-            self.0.lock().unwrap().push(write.clone());
-            Ok(())
-        }
-
-        fn report(&self, _: ProjectId) -> Result<Option<ScanReport>, CodedError> {
-            let line = |language: &str, outcome| LanguageLine {
-                language: LanguageId::new(language).unwrap(),
-                outcome,
-            };
-            Ok(Some(ScanReport {
-                last: LastScan {
-                    at: Timestamp(900),
-                    level: ScanLevel::One,
-                    origin: ScanOrigin::Browser,
-                },
-                level2: Some(Level2Report {
-                    at: Timestamp(900),
-                    origin: ScanOrigin::Browser,
-                    languages: vec![
-                        line("c", LanguageOutcome::Skipped(SkipReason::NotConfirmed)),
-                        line("java", LanguageOutcome::Skipped(SkipReason::NotConfirmed)),
-                    ],
-                }),
-            }))
-        }
-    }
-
     #[test]
     fn a_run_for_one_language_replaces_only_its_line() {
-        let seeded = Arc::new(Seeded(Mutex::default()));
+        let held = |language: &str| LanguageLine {
+            language: LanguageId::new(language).unwrap(),
+            outcome: LanguageOutcome::Skipped(SkipReason::NotConfirmed),
+        };
+        let seeded = Arc::new(Keep(Mutex::default(), vec![held("c"), held("java")]));
         let step = ReportStep::new(seeded.clone(), Arc::new(Noon));
         let checked = report(
             "c",
