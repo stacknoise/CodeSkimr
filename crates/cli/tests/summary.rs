@@ -67,7 +67,7 @@ mod cases {
         assert!(contains(&en, &["Level 2", "csharp", "checked", "4 files"]));
         assert!(contains(&en, &["rust", "2 changed"]));
         assert!(contains(&en, &["go", "skipped", "confirmed"]));
-        assert!(contains(&en, &["java", "skipped", "RES-502"]));
+        assert!(contains(&en, &["java", "skipped", "RES-502", "time"]));
         assert!(contains(&en, &["python", "skipped", "project file"]));
         let de = text("de", all);
         assert!(contains(
@@ -75,7 +75,7 @@ mod cases {
             &["Stufe 2", "csharp", "geprüft", "4 Dateien"]
         ));
         assert!(contains(&de, &["go", "übersprungen", "bestätigt"]));
-        assert!(contains(&de, &["java", "RES-502"]));
+        assert!(contains(&de, &["java", "RES-502", "Zeitlimit"]));
         assert!(contains(&de, &["python", "übersprungen", "Projektdatei"]));
     }
 
