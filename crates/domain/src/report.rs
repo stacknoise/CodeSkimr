@@ -2,8 +2,8 @@
 
 use crate::consts::{
     LEVEL_ONE, LEVEL_TWO, OUTCOME_CHECKED, OUTCOME_FAILED, OUTCOME_SKIPPED, SKIP_BUSY,
-    SKIP_CANCELLED, SKIP_NOT_CONFIRMED, SKIP_NOT_PERMITTED, SKIP_PAUSED, SKIP_STALE,
-    SKIP_TOOLS_UNAVAILABLE, STAGE_LEVEL2_IMPORTING, STAGE_LEVEL2_RUNNING,
+    SKIP_CANCELLED, SKIP_NO_PROJECT_FILE, SKIP_NOT_CONFIRMED, SKIP_NOT_PERMITTED, SKIP_PAUSED,
+    SKIP_STALE, SKIP_TOOLS_UNAVAILABLE, STAGE_LEVEL2_IMPORTING, STAGE_LEVEL2_RUNNING,
 };
 use crate::vocabulary::labeled_enum;
 
@@ -26,6 +26,8 @@ labeled_enum!(
         NotConfirmed => SKIP_NOT_CONFIRMED,
         /// The indexer or its toolchain is missing or does not fit.
         ToolsUnavailable => SKIP_TOOLS_UNAVAILABLE,
+        /// The project folder holds none of the files the indexer needs to find the project.
+        NoProjectFile => SKIP_NO_PROJECT_FILE,
         /// Every file changed since the snapshot, so no index fits.
         Stale => SKIP_STALE,
         /// The run was cancelled before the language was stored.

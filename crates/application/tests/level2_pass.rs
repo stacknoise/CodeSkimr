@@ -75,6 +75,8 @@ mod cases {
             env_allow: Vec::new(),
             home_dirs: Vec::new(),
             env: Vec::new(),
+            memory_env: Vec::new(),
+            project_files: Vec::new(),
             install_hint: String::new(),
             symbol_kinds: Vec::new(),
             separator: String::new(),
@@ -200,11 +202,16 @@ mod cases {
         runs: Mutex<u32>,
         status: IndexerStatus,
         fails: Option<ErrorCode>,
+        has_project_file: bool,
     }
 
     impl IndexRunner for Runner {
         fn check(&self, _: &IndexerSpec) -> IndexerStatus {
             self.status.clone()
+        }
+
+        fn has_project_file(&self, _: &IndexerSpec, _: &std::path::Path) -> bool {
+            self.has_project_file
         }
 
         fn run(&self, _: &IndexJob<'_>, _: &CancelToken) -> Result<IndexArtifact, CodedError> {
@@ -320,6 +327,13 @@ mod cases {
         }
     }
 
+    /// Whether the folder holds the file the indexer needs.
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum ProjectFile {
+        Present,
+        Missing,
+    }
+
     /// Everything a case may change.
     struct Setup {
         files: Vec<SourceFile>,
@@ -327,6 +341,7 @@ mod cases {
         indexers: Vec<(&'static str, &'static str)>,
         status: IndexerStatus,
         run_fails: Option<ErrorCode>,
+        project_file: ProjectFile,
         import_fails: Option<ErrorCode>,
         cancel_in_import: bool,
         files_fail: bool,
@@ -344,6 +359,7 @@ mod cases {
                 indexers: vec![("csharp", "scip-dotnet")],
                 status: IndexerStatus::ready(),
                 run_fails: None,
+                project_file: ProjectFile::Present,
                 import_fails: None,
                 cancel_in_import: false,
                 files_fail: false,
@@ -394,6 +410,7 @@ mod cases {
                 runs: Mutex::default(),
                 status: setup.status.clone(),
                 fails: setup.run_fails,
+                has_project_file: setup.project_file == ProjectFile::Present,
             }),
             importer: Arc::new(Importer {
                 seen: Mutex::default(),
@@ -551,6 +568,16 @@ mod cases {
         let outcome = run_with(Setup::default(), reader, &CancelToken::new());
         assert_eq!(outcome.runs, 0);
         assert_level_one_stays(&outcome, &Skipped::NotPermitted);
+    }
+
+    #[test]
+    fn a_folder_without_the_project_file_starts_nothing() {
+        let outcome = run(Setup {
+            project_file: ProjectFile::Missing,
+            ..Setup::default()
+        });
+        assert_eq!(outcome.runs, 0);
+        assert_level_one_stays(&outcome, &Skipped::NoProjectFile);
     }
 
     #[test]

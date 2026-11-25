@@ -79,6 +79,6 @@ usages-layer-none-title = Diesem Symbol ist keine Schicht zugeordnet
 usages-report-checked = Stufe 2 hat { $language } geprüft: { $files } Dateien.
 usages-report-partial = Stufe 2 hat { $language } teilweise geprüft: { $files } Dateien, { $stale } seit dem Lauf geändert und bleiben bei Stufe 1.
 usages-report-skipped = Stufe 2 hat { $language } übersprungen: { $reason }.
-usages-report-failed = Stufe 2 ist für { $language } fehlgeschlagen ({ $code }). Für unveränderte Dateien können Ergebnisse eines früheren Laufs bleiben.
+usages-report-failed = Stufe 2 ist für { $language } fehlgeschlagen ({ $code }): { $text } Für unveränderte Dateien können Ergebnisse eines früheren Laufs bleiben.
 usages-report-no-indexer = Für { $language } gibt es keinen Indexer, diese Verwendungen bleiben bei Stufe 1.
 usages-report-none = Für dieses Projekt ist kein Lauf von Stufe 2 gespeichert. Diese Verwendungen sind auf Stufe 1.

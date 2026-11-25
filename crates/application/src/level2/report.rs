@@ -14,6 +14,8 @@ pub enum Skipped {
     NotConfirmed,
     /// The indexer or its toolchain is missing or too old.
     Unavailable(Vec<ToolProblem>),
+    /// The project folder holds none of the files that the indexer needs (`Cargo.toml`, a solution).
+    NoProjectFile,
     /// Every file changed since the snapshot was written, so no index fits.
     Stale,
     /// The scan was cancelled; the references stay as level 1 made them.
@@ -30,6 +32,7 @@ impl Skipped {
             Self::NotPermitted => Some(SkipReason::NotPermitted),
             Self::NotConfirmed => Some(SkipReason::NotConfirmed),
             Self::Unavailable(_) => Some(SkipReason::ToolsUnavailable),
+            Self::NoProjectFile => Some(SkipReason::NoProjectFile),
             Self::Stale => Some(SkipReason::Stale),
             Self::Cancelled => Some(SkipReason::Cancelled),
             Self::Failed(_) => None,

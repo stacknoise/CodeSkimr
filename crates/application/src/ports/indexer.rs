@@ -50,6 +50,13 @@ pub struct IndexerSpec {
     /// Variables set to a fixed value, such as the switch that stops `rustup` from installing a
     /// toolchain by itself.
     pub env: Vec<(String, String)>,
+    /// Variables whose value depends on the memory limit of the run: `{heap_mb}` in the value is
+    /// replaced by the share of the limit that a managed heap may use (Node.js stops with
+    /// "heap out of memory" at about 4 GB unless it is told more).
+    pub memory_env: Vec<(String, String)>,
+    /// File names that the indexer needs in the project folder (`Cargo.toml`); a name that starts
+    /// with `*` matches a file name ending in the rest (`*.sln`). Empty: the indexer needs none.
+    pub project_files: Vec<String>,
     /// How the user installs the indexer, shown when it is missing.
     pub install_hint: String,
     /// What the index says a definition is, by the name of its SCIP kind (`SymbolInformation.kind`),
@@ -221,6 +228,12 @@ pub trait IndexRunner: Send + Sync {
     /// not found, or if the runner cannot tell.
     fn locate(&self, _program: &str) -> Option<String> {
         None
+    }
+
+    /// Whether the project folder holds a file that `spec` needs (`IndexerSpec::project_files`);
+    /// true if the spec names none or the runner cannot tell.
+    fn has_project_file(&self, _spec: &IndexerSpec, _root: &Path) -> bool {
+        true
     }
 
     /// Runs the indexer once and returns its index file.

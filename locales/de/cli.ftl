@@ -96,6 +96,7 @@ cli-scan-level2-outside-scan = Stufe 2: { $language } Verwendungen von Code in O
 cli-level2-reason-not-permitted = dieser Aufrufer darf keine Indexer starten
 cli-level2-reason-not-confirmed = für dieses Projekt nicht aktiviert und bestätigt
 cli-level2-reason-unavailable = Indexer oder Werkzeugkette fehlt oder ist zu alt
+cli-level2-reason-no-project-file = im Projektordner fehlt die Projektdatei, die der Indexer braucht (z. B. Cargo.toml oder .sln)
 cli-level2-reason-stale = alle Dateien seit dem Scan geändert
 cli-level2-reason-cancelled = Scan abgebrochen
 cli-level2-reason-failed = fehlgeschlagen, { $code }

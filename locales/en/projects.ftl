@@ -157,11 +157,45 @@ projects-report-none = No stage 2 run is stored for this project yet.
 projects-report-checked = { $language }: checked, { $files } files
 projects-report-checked-stale = { $language }: checked, { $files } files, { $stale } changed since
 projects-report-skipped = { $language }: skipped, { $reason }
-projects-report-failed = { $language }: failed ({ $code })
+projects-report-failed = { $language }: failed ({ $code }) – { $text }
+projects-report-group-failed = Failed
+projects-report-group-failed-count = { $count ->
+    [one] 1 language needs attention
+   *[other] { $count } languages need attention
+  }
+projects-report-group-skipped = Skipped
+projects-report-group-skipped-count = { $count ->
+    [one] 1 language, a requirement is missing
+   *[other] { $count } languages, a requirement is missing
+  }
+projects-report-group-checked = Checked
+projects-report-group-checked-count = { $count ->
+    [one] 1 language
+   *[other] { $count } languages
+  }
+projects-report-chip = { $language } · { $files } files
+projects-report-chip-stale = { $language } · { $files } files · { $stale } outdated
+projects-report-todo = What to do: { $text }
+projects-report-action-rescan = Check again
+projects-report-action-tools = Go to Tools
+projects-report-todo-not-permitted = Start stage 2 from the browser or the terminal, not in watch mode or through MCP.
+projects-report-todo-not-confirmed = Switch stage 2 on above and confirm it, then scan again.
+projects-report-todo-tools-unavailable = Install or update the tool (see the Tools tab).
+projects-report-todo-no-project-file = If the file lies in a subfolder, add that folder as a project of its own.
+projects-report-todo-stale = Scan again.
+projects-report-todo-retry = Check again.
+projects-report-todo-later = Scan again later.
+projects-report-todo-RES-504 = Raise the memory limit (level2.max_memory_mb in the configuration), then check again.
+projects-report-todo-RES-502 = Raise the time limit (level2.timeout_seconds in the configuration), then check again.
+projects-report-todo-RES-503 = Raise the output limit (level2.max_output_bytes in the configuration), then check again.
+projects-report-todo-RES-601 = Look at the log (set the environment variable CODESKIMR_LOG=info for the scan), then check again.
 projects-report-failed-note = The last run failed. Results of an earlier run may remain for files that did not change.
 projects-report-reason-not-permitted = this way of scanning may not run indexers
 projects-report-reason-not-confirmed = level 2 is not confirmed for this project
-projects-report-reason-tools-unavailable = a tool is missing
+projects-report-reason-tools-unavailable = the indexer or a tool it needs is missing, too old or does not start
+projects-report-reason-no-project-file = the project folder lacks a project file that the indexer needs
+projects-report-reason-no-project-file-rust = no Cargo.toml found in the project folder or above it
+projects-report-reason-no-project-file-csharp = no .sln, .slnx or .csproj found in the project folder or above it
 projects-report-reason-stale = every file changed since the run
 projects-report-reason-cancelled = cancelled
 projects-report-reason-busy = not started again because another stage 2 run was going on; earlier checked results stay
@@ -179,7 +213,7 @@ projects-level2-full-rescan-hint = Reads every file again, not only the changes 
 projects-level2-scan-title = Scan
 projects-level2-finished = Stage 2 ended: { $checked } checked, { $skipped } skipped, { $failed } failed.
 projects-level2-not-started-not-permitted = Stage 2 did not start: this program may not run indexers here. Stage 1 is stored.
-projects-level2-not-started-not-confirmed = Stage 2 did not start: level 2 is not confirmed for this project. Switch it on above, then scan again. Stage 1 is stored.
+projects-level2-not-started-not-confirmed = Stage 2 did not start: level 2 is not confirmed for this project (confirm it in the "Exact check (stage 2)" tab). Switch it on above, then scan again. Stage 1 is stored.
 projects-level2-not-started-busy = Stage 2 did not start: another stage 2 run is going on. Stage 1 is stored; scan again when that run has ended.
 projects-level2-not-started-paused = Stage 2 did not start: after a run there is a pause. Stage 1 is stored; scan again in a minute.
 projects-browse = Browse …
