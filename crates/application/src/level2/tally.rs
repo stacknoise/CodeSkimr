@@ -41,14 +41,19 @@ impl Tally {
         }
     }
 
-    /// A workspace that did not run through; its files keep level 1 and the report counts it.
+    /// A workspace that did not run through (failed, or not run after a cancel); its files keep
+    /// level 1 and the report counts it.
     pub(super) fn failed(&mut self, reason: Skipped) {
         self.failed_workspaces = self.failed_workspaces.saturating_add(1);
         self.first_failure.get_or_insert(reason);
     }
 
-    /// The scan was cancelled: the workspaces after this one are not run.
-    pub(super) fn cancel(&mut self) {
+    /// The scan was cancelled: this workspace, which did not run through, and the `left` ones
+    /// after it, which are not run, count like failed ones.
+    pub(super) fn cancel(&mut self, left: usize) {
+        self.failed_workspaces = self
+            .failed_workspaces
+            .saturating_add(u64::try_from(left).unwrap_or(u64::MAX));
         self.cancelled = true;
     }
 

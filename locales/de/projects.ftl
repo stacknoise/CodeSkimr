@@ -153,8 +153,8 @@ projects-report-counts = { $checked } geprüft, { $skipped } übersprungen, { $f
 projects-report-stale = { $count } Dateien seitdem geändert
 projects-report-failed-workspaces =
     { $count ->
-        [one] 1 Workspace ist fehlgeschlagen und bleibt auf Stufe 1
-       *[other] { $count } Workspaces sind fehlgeschlagen und bleiben auf Stufe 1
+        [one] 1 Workspace ist nicht durchgelaufen und bleibt auf Stufe 1
+       *[other] { $count } Workspaces sind nicht durchgelaufen und bleiben auf Stufe 1
     }
 projects-report-failed-code = Stufe 2 fehlgeschlagen ({ $code })
 projects-report-title = Letzter Lauf von Stufe 2: { $time } ({ $origin })
@@ -191,8 +191,8 @@ projects-report-switched-off = Stufe 2 ist für dieses Projekt aus oder nicht be
 projects-report-chip = { $language } · { $files } Dateien
 projects-report-chip-failed-workspaces =
     { $count ->
-        [one] 1 Workspace fehlgeschlagen
-       *[other] { $count } Workspaces fehlgeschlagen
+        [one] 1 Workspace nicht durchgelaufen
+       *[other] { $count } Workspaces nicht durchgelaufen
     }
 projects-report-chip-stale = { $language } · { $files } Dateien · { $stale } veraltet
 projects-report-todo = Was tun: { $text }
