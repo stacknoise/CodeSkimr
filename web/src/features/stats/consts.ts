@@ -8,7 +8,7 @@ export const COMMAND = {
   lift: "unused.lift",
 } as const;
 
-/** How many characters of an ISO timestamp make the date: `2026-11-26`. */
+/** The locale whose short date is `2026-11-26`: the local date of today as the reason gets it. */
 export const DATE_LOCALE = "sv-SE";
 
 /** The views of the screen: the overview and one tab per ranking (ADR 0081). */
