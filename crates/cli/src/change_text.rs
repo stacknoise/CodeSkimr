@@ -20,7 +20,7 @@ use codeskimr_i18n::{FluentValue, I18nError, Messages};
 use serde_json::Value;
 
 use crate::consts::{LINE_BREAK, LIST_INDENT, MARKDOWN_MARKER, key};
-use crate::query_text::{
+use crate::speech::{
     Line, Speaker, child, count, entries, field, json_list, plain, section, text, texts,
     usage_line as query_usage_line,
 };

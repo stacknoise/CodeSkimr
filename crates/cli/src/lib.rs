@@ -20,6 +20,7 @@ mod query;
 mod query_text;
 mod render;
 mod scope;
+mod speech;
 mod warning;
 
 pub use args::{
