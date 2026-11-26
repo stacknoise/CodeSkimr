@@ -95,7 +95,7 @@ args = ["index", "--working-directory", "{project}", "--output", "{output}"]
 env_allow = ["DOTNET_ROOT", "DOTNET_CLI_HOME", "NUGET_PACKAGES"]
 home_dirs = { NUGET_PACKAGES = ".nuget/packages" }
 env = { DOTNET_NOLOGO = "1", DOTNET_CLI_TELEMETRY_OPTOUT = "1" }
-# scip-dotnet finds the projects from a solution or project file in its working folder (it does not search subfolders); without one at the root it runs in each outermost folder of C# files that holds one (ADR 0097).
+# scip-dotnet finds the projects from a solution or project file in its working folder (it does not search subfolders); without one at the root it runs in each outermost folder of C# files that holds one (ADR 0099).
 project_files = ["*.sln", "*.slnx", "*.csproj"]
 
 [indexer.tool]

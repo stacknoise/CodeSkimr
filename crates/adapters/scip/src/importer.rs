@@ -55,7 +55,7 @@ fn creation_of<'a>(request: &ImportRequest<'a>) -> Creation<'a> {
 }
 
 /// Puts the folder of the run in front of every document: the indexer named its files relative
-/// to the folder it ran in, the snapshot names them relative to the project (ADR 0097).
+/// to the folder it ran in, the snapshot names them relative to the project (ADR 0099).
 fn place_in_workspace(index: &mut ScipIndex, workspace: &RelativePath) {
     for document in &mut index.documents {
         let joined = [workspace.as_str(), document.path.as_str()].join(PATH_JOIN);

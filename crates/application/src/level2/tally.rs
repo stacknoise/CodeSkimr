@@ -1,4 +1,4 @@
-//! Putting the runs of several workspaces of one indexer together (ADR 0097).
+//! Putting the runs of several workspaces of one indexer together (ADR 0099).
 
 use codeskimr_domain::Snapshot;
 

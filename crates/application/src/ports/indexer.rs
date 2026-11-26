@@ -96,7 +96,7 @@ pub struct IndexJob<'a> {
     pub spec: &'a IndexerSpec,
     /// The limits of the run.
     pub limits: IndexLimits,
-    /// The folder below the project root in which the indexer runs (a workspace, ADR 0097); `None`
+    /// The folder below the project root in which the indexer runs (a workspace, ADR 0099); `None`
     /// is the project root itself. The index names its files relative to this folder.
     pub workspace: Option<&'a RelativePath>,
     /// Proof that consent and permission were checked, and the folder of the project the indexer
@@ -247,7 +247,7 @@ pub trait IndexRunner: Send + Sync {
     /// `files` of its languages (paths relative to `root`); `None` is the project root. A folder
     /// above or at the root that holds a project file gives one run for the whole project; else
     /// every outermost folder below the root that holds one and has source files gives one run
-    /// (a Cargo workspace or a solution in a subfolder, ADR 0097). Empty if there is nowhere the
+    /// (a Cargo workspace or a solution in a subfolder, ADR 0099). Empty if there is nowhere the
     /// indexer could find a project file.
     fn workspaces(
         &self,
