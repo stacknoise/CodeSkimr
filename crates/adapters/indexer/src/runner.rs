@@ -450,12 +450,15 @@ fn outermost_project_folders(
 
 /// Whether `folder` itself (not a folder above it) holds one of the `wanted` files.
 fn folder_holds(wanted: &[String], folder: &Path) -> bool {
-    std::fs::read_dir(folder).is_ok_and(|entries| {
-        entries
-            .filter_map(Result::ok)
-            .map(|entry| entry.file_name().to_string_lossy().into_owned())
-            .any(|name| wanted.iter().any(|want| matches_project_file(want, &name)))
-    })
+    std::fs::read_dir(folder).is_ok_and(|entries| lists_project_file(wanted, entries))
+}
+
+/// Whether one of the `entries` of a folder is a file that `wanted` names.
+fn lists_project_file(wanted: &[String], entries: std::fs::ReadDir) -> bool {
+    entries
+        .filter_map(Result::ok)
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .any(|name| wanted.iter().any(|want| matches_project_file(want, &name)))
 }
 
 /// Whether one of the `wanted` files lies in `root` or in a folder above it (the indexers look
@@ -463,12 +466,7 @@ fn folder_holds(wanted: &[String], folder: &Path) -> bool {
 /// wrong.
 fn project_file_near(wanted: &[String], root: &Path) -> bool {
     root.ancestors().any(|dir| {
-        std::fs::read_dir(dir).map_or(true, |entries| {
-            entries
-                .filter_map(Result::ok)
-                .map(|entry| entry.file_name().to_string_lossy().into_owned())
-                .any(|name| wanted.iter().any(|want| matches_project_file(want, &name)))
-        })
+        std::fs::read_dir(dir).map_or(true, |entries| lists_project_file(wanted, entries))
     })
 }
 
@@ -524,7 +522,8 @@ mod tests {
         std::fs::create_dir_all(dir.path().join("src")).expect("folders");
         let files = paths(&["src/a.rs"]);
         let refs: Vec<&codeskimr_domain::RelativePath> = files.iter().collect();
-        assert!(outermost_project_folders(&wanted(&["Cargo.toml"]), dir.path(), &refs).is_empty());
+        let found = outermost_project_folders(&wanted(&["Cargo.toml"]), dir.path(), &refs);
+        assert_eq!(found, Vec::<codeskimr_domain::RelativePath>::new());
     }
 
     #[test]

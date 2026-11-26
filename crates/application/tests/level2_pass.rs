@@ -668,17 +668,7 @@ mod cases {
         });
         assert_eq!(outcome.runs, 2);
         assert_eq!(outcome.imports, vec![vec!["cli/a.rs".to_owned()]]);
-        assert!(matches!(
-            outcome.result.reports.as_slice(),
-            [LanguageReport {
-                outcome: Level2Outcome::Checked {
-                    files: 1,
-                    stale: 1,
-                    ..
-                },
-                ..
-            }]
-        ));
+        assert_eq!(counted(&outcome.result), Some((1, 1, 4, 3, 2)));
     }
 
     #[test]
@@ -804,17 +794,7 @@ mod cases {
             ..Setup::default()
         });
         assert_eq!(outcome.imports, vec![vec!["a.cs".to_owned()]]);
-        assert!(matches!(
-            outcome.result.reports.as_slice(),
-            [LanguageReport {
-                outcome: Level2Outcome::Checked {
-                    files: 1,
-                    stale: 1,
-                    ..
-                },
-                ..
-            }]
-        ));
+        assert_eq!(counted(&outcome.result), Some((1, 1, 4, 3, 2)));
     }
 
     #[test]
