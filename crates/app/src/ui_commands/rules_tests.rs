@@ -107,7 +107,7 @@ fn a_project_without_a_scan_is_not_judged_but_says_whether_cycles_are_denied() {
     let project = Project {
         id: ProjectId::new(7),
         name: ProjectName::new("fresh").unwrap(),
-        source: ProjectSource::Folder(FolderPath::new(&fixture.folder()).unwrap()),
+        source: ProjectSource::Folder(FolderPath::new(fixture.folder()).unwrap()),
         layers: Vec::new(),
     };
     store.save_project(&project).unwrap();
