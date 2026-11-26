@@ -4,7 +4,9 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     ReferencePlace, ReferencePlaces, ReferenceSite, ReferenceSites,
 };
-use codeskimr_domain::{Confidence, QualifiedName, ReferenceKind, RelativePath, SnapshotId};
+use codeskimr_domain::{
+    Confidence, NamespaceGraph, QualifiedName, ReferenceKind, RelativePath, SnapshotId,
+};
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, SpanColumns, column_int};
@@ -106,5 +108,9 @@ impl ReferencePlaces for ProjectDb {
     ) -> Result<(), CodedError> {
         self.read(|conn| places(conn, snapshot, visit))
             .map_err(CodedError::from)
+    }
+
+    fn namespaces(&self, snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
+        self.namespace_graph(snapshot)
     }
 }

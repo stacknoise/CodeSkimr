@@ -1,6 +1,6 @@
 //! The stored references that leave the functions of some files (adapter: `codeskimr_storage`).
 
-use codeskimr_domain::{QualifiedName, RelativePath, SnapshotId, Span};
+use codeskimr_domain::{NamespaceGraph, QualifiedName, RelativePath, SnapshotId, Span};
 
 use crate::error::CodedError;
 
@@ -59,4 +59,11 @@ pub trait ReferencePlaces: Send + Sync {
         snapshot: SnapshotId,
         visit: &mut dyn FnMut(ReferencePlace),
     ) -> Result<(), CodedError>;
+
+    /// The namespaces of the snapshot and the references between them, not collapsed: the
+    /// modules of the cycle rule (ADR 0105).
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn namespaces(&self, snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError>;
 }

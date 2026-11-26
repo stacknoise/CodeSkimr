@@ -5,12 +5,22 @@ export interface PlaceOut {
   column: number;
 }
 
-/** One violation: the symbol that refers and the one it must not reach. */
+/** The ring of modules behind a cycle violation. */
+export interface RingOut {
+  modules: string[];
+  chain: string[];
+  weakest_count: number;
+  resolution_edges: number;
+}
+
+/** One violation: the symbol that refers and the one it must not reach. For a cycle, `from` and
+ * `to` are the ends of the weakest edge of the ring and `places` are its references. */
 export interface ViolationOut {
   from: string;
   to: string;
   old: boolean;
   places: PlaceOut[];
+  ring: RingOut | null;
 }
 
 /** What one layer that limits its use may use. */
@@ -22,7 +32,7 @@ export interface AllowedOut {
 /** One rule with its violations. */
 export interface RuleOut {
   id: string;
-  kind: "layers" | "forbid" | "public_api";
+  kind: "layers" | "cycles" | "forbid" | "public_api";
   from: string;
   to: string;
   internal: string[];

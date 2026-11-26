@@ -6,6 +6,7 @@
 mod access;
 mod alert;
 mod annotation;
+mod compare;
 mod consts;
 mod coupling;
 mod error;
@@ -46,6 +47,10 @@ pub use annotation::{
     Annotation, AnnotationContent, AnnotationId, AnnotationKind, AnnotationLimits,
     AnnotationTarget, AnnotationText, AnnotationTitle, Assignee, Author, NewAnnotation, TaskStatus,
 };
+pub use compare::{
+    ChangeReason, Comparison, ImpactCause, ImpactSubject, Matched, SymbolFact, SymbolIdentity,
+    compare_symbols, compares_kind,
+};
 pub use coupling::{SymbolPair, coupling, coupling_with};
 pub use error::ModelError;
 pub use file::{ContentHash, FileId, LanguageId, Loc, RelativePath, SourceFile};
@@ -65,7 +70,7 @@ pub use module_graph::{
     ModuleCoupling, ModuleCycle, ModuleRisk, RiskLimits, find_cycles, find_risks, module_coupling,
 };
 pub use namespace_graph::{
-    NamespaceEdge, NamespaceGraph, NamespaceNode, name_parts, namespace_graph,
+    NamespaceEdge, NamespaceGraph, NamespaceNode, NamespaceOwners, name_parts, namespace_graph,
 };
 pub use project::{
     BranchName, CredentialId, FolderPath, GitUrl, Layer, LayerName, Project, ProjectId,

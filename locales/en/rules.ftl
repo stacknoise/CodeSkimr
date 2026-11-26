@@ -37,7 +37,6 @@ rules-places = { $count ->
 rules-more = … { $count } more
 rules-show-all = Show all
 rules-show-less = Show fewer
-rules-cycles-pending = Cycles between modules are switched on in the project file. The check follows in a later version.
 rules-hold = Hold state
 rules-hold-hint = "Hold state": existing violations count as old burdens. The CI fails only for new ones.
 rules-hold-git = Folder projects only: a Git project has no project file to put the file next to.
@@ -49,3 +48,12 @@ rules-hold-failed = The state could not be held.
 rules-layers-title = Layers
 rules-layers-allowed = { $layer } → { $uses }
 rules-layers-nothing = nothing
+rules-cycles-title = No cycles between modules
+rules-cycles-spec = cycles = "deny"
+rules-ring-advice = Resolvable over { $edges ->
+    [one] 1 edge
+   *[other] { $edges } edges
+} with { $places ->
+    [one] 1 place
+   *[other] { $places } places
+}

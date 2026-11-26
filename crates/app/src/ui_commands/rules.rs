@@ -9,14 +9,16 @@ use codeskimr_application::config::{CycleRule, Rules};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{Clock, ReferencePlaces};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
-use codeskimr_application::rules::{BASELINE_FILE, Baseline, Outcome, RuleKind, report};
+use codeskimr_application::rules::{BASELINE_FILE, Baseline, Outcome, Ring, RuleKind, report};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Layer, Permission, Project, ProjectSource, SnapshotId, Timestamp};
+use codeskimr_domain::{
+    Layer, Permission, Project, ProjectSource, QualifiedName, SnapshotId, Timestamp,
+};
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
-    FORBID, LAYERS, PUBLIC_API, RULES_HOLD, RULES_HOLD_DESCRIPTION, RULES_HOLD_TITLE, RULES_SHOW,
-    RULES_SHOW_DESCRIPTION, RULES_SHOW_TITLE,
+    CYCLES, FORBID, LAYERS, PUBLIC_API, RULES_HOLD, RULES_HOLD_DESCRIPTION, RULES_HOLD_TITLE,
+    RULES_SHOW, RULES_SHOW_DESCRIPTION, RULES_SHOW_TITLE,
 };
 use super::explorer::ExplorerPorts;
 use super::layers::write_project_file;
@@ -52,6 +54,21 @@ pub struct ViolationOut {
     pub old: bool,
     /// Every place of the reference.
     pub places: Vec<PlaceOut>,
+    /// For a cycle, the ring behind it; `from` and `to` are then the ends of its weakest edge.
+    pub ring: Option<RingOut>,
+}
+
+/// The ring of modules behind a cycle violation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RingOut {
+    /// Every module of the ring, sorted.
+    pub modules: Vec<String>,
+    /// A way round the ring, starting with the weakest edge and ending where it starts.
+    pub chain: Vec<String>,
+    /// How many references the weakest edge has.
+    pub weakest_count: u32,
+    /// Over how many edges the ring is resolved.
+    pub resolution_edges: usize,
 }
 
 /// What one layer may use.
@@ -68,7 +85,7 @@ pub struct AllowedOut {
 pub struct RuleOut {
     /// The id of the rule, as the held state writes it.
     pub id: String,
-    /// `layers`, `forbid` or `public_api`.
+    /// `layers`, `cycles`, `forbid` or `public_api`.
     pub kind: &'static str,
     /// `forbid`: the module that must not use `to`. `public_api`: the module itself.
     pub from: String,
@@ -93,7 +110,7 @@ pub struct RulesOut {
     pub scanned: bool,
     /// Whether the state can be held: the project is a folder, so the file has a place.
     pub holdable: bool,
-    /// Whether the cycle rule is switched on in the project file (built in a later step).
+    /// Whether the cycle rule is switched on in the project file.
     pub cycles: bool,
     /// The day the state was held, `None` if it never was.
     pub held_on: Option<String>,
@@ -107,6 +124,16 @@ pub struct RulesOut {
     pub new: usize,
 }
 
+fn ring_out(ring: &Ring) -> RingOut {
+    let names = |list: &[QualifiedName]| list.iter().map(ToString::to_string).collect();
+    RingOut {
+        modules: names(&ring.modules),
+        chain: names(&ring.chain),
+        weakest_count: ring.weakest_count,
+        resolution_edges: ring.resolution_edges,
+    }
+}
+
 fn violations_of(outcome: &Outcome) -> Vec<ViolationOut> {
     outcome
         .violations
@@ -115,6 +142,7 @@ fn violations_of(outcome: &Outcome) -> Vec<ViolationOut> {
             from: violation.from.to_string(),
             to: violation.to.to_string(),
             old: violation.old,
+            ring: violation.ring.as_ref().map(ring_out),
             places: violation
                 .places
                 .iter()
@@ -141,6 +169,13 @@ type Shape<'a> = (
 /// The rules of the project file in the order of their outcomes: every `forbid` entry, then every
 /// `public_api` entry.
 fn shapes(rules: &Rules) -> Vec<Shape<'_>> {
+    let cycles = (rules.cycles == CycleRule::Deny).then_some((
+        CYCLES,
+        Default::default(),
+        Default::default(),
+        &[][..],
+        None,
+    ));
     let forbid = rules.forbid.iter().map(|rule| {
         let none: &[String] = &[];
         (
@@ -160,7 +195,7 @@ fn shapes(rules: &Rules) -> Vec<Shape<'_>> {
             None,
         )
     });
-    forbid.chain(public_api).collect()
+    cycles.into_iter().chain(forbid).chain(public_api).collect()
 }
 
 /// The layers that limit what they may use, as the layer rule states them.

@@ -12,3 +12,7 @@ pub const ID_SEPARATOR: &str = ":";
 pub const ID_ARROW: &str = ">";
 /// Id of the layer rule (ADR 0054), the one rule that the project file does not name.
 pub const ID_LAYERS: &str = "layers";
+/// Id of the kind `cycles`, the whole id of that rule.
+pub const ID_CYCLES: &str = "cycles";
+/// Joins the modules of a ring in the identity of a cycle violation.
+pub const ID_MODULES_JOIN: &str = ",";

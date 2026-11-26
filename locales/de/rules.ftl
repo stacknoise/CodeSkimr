@@ -37,7 +37,6 @@ rules-places = { $count ->
 rules-more = … { $count } weitere
 rules-show-all = Alle zeigen
 rules-show-less = Weniger zeigen
-rules-cycles-pending = Zyklen zwischen Modulen sind in der Projektdatei eingeschaltet. Die Prüfung folgt in einer späteren Version.
 rules-hold = Stand festhalten
 rules-hold-hint = „Stand festhalten“: Vorhandene Verstöße gelten als Altlast. Die CI schlägt nur bei neuen fehl.
 rules-hold-git = Nur für Ordnerprojekte: Ein Git-Projekt hat keine Projektdatei, neben die die Datei käme.
@@ -49,3 +48,12 @@ rules-hold-failed = Der Stand konnte nicht festgehalten werden.
 rules-layers-title = Schichten
 rules-layers-allowed = { $layer } → { $uses }
 rules-layers-nothing = nichts
+rules-cycles-title = Keine Zyklen zwischen Modulen
+rules-cycles-spec = cycles = "deny"
+rules-ring-advice = Auflösbar über { $edges ->
+    [one] 1 Kante
+   *[other] { $edges } Kanten
+} mit { $places ->
+    [one] 1 Stelle
+   *[other] { $places } Stellen
+}

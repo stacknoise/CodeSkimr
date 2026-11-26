@@ -169,6 +169,12 @@
     color: var(--muted);
 }
 
+.advice {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 12px;
+}
+
 .more {
     display: block;
     width: 100%;

@@ -78,9 +78,6 @@ function Answer(props: { data: RulesOut }) {
         <Summary data={props.data} />
         <For each={props.data.rules}>{(rule) => <RuleCard rule={rule} />}</For>
       </Show>
-      <Show when={props.data.cycles}>
-        <p class={styles.note}>{t(I18N_KEYS.RULES_CYCLES_PENDING)}</p>
-      </Show>
     </Show>
   );
 }

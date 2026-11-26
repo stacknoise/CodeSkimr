@@ -586,6 +586,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | `I18N` | translations | `i18n` |
 | `EXP` | export | `application` |
 | `ANN` | annotations and alerts (ADR 0068) | `application`, `storage` |
+| `CMP` | scan comparison and impact (ADR 0097) | `application`, `storage` |
 | `UI` | frontend | `web` |
 | `CHK` | convention-check findings (not failures, see 11.6) | `application` |
 
@@ -765,6 +766,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
   - excluded folders (`bin`, `obj`, `.git`, `node_modules`, `target`, `dist` …)
   - architecture rules (`rules.*`, ADR 0104 to 0107): `cycles` (`off`), `[[rules.forbid]]` and `[[rules.public_api]]` tables of the project file; they only report, so the project file may set them. Old violations are held in `.codeskimr-baseline.toml` next to it
   - annotations (`annotations.*`, ADR 0068): `dismissed_retention_days` (30), `max_text_chars` (4000), `max_title_chars` (500), `max_assignee_chars` (100), `max_name_chars` (500), `max_parameter_chars` (200), `max_parameters` (32), `default_page_size` (100), `max_page_size` (500)
+  - comparison of two scans (`compare.*`, ADR 0097): `max_symbols` (200, entries per list of symbols), `max_usages` (50, usages per symbol)
 - **Overrides,** applied in this order: user config file → the settings the UI saved in the data folder (ADR 0103; today the memory limit per indexer) → project config (`.codeskimr.toml` in the repository) → CLI flags. The project config may only lower `scan.max_source_mb`, `scan.parse_timeout_ms`, `scan.max_candidates` and `scan.max_memory_mb`, not raise them above the value of the defaults and the user file, so that a scanned repository cannot lift the protection of the scanning machine (ADR 0040).
 - **Typed config:** the config is deserialised into typed structs and validated at start-up. Invalid values produce `CFG-1xx` errors. There is no `config.get("string")` anywhere in the code.
 - **`consts.rs` / `consts.ts`:** technical constants that are not tunable. One file per crate or feature, never a global constants file.
@@ -1231,6 +1233,9 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-21 (`docs/error
 | ANN-201 | `annotation_not_found` | No annotation with this id exists. |
 | ANN-202 | `alert_not_found` | No alert with this id exists. |
 | ANN-301 | `critical_already_marked` | The symbol already has a critical mark; a symbol has at most one. |
+| CMP-101 | `comparison_order_invalid` | The base of a comparison is not an older snapshot than its target; the base is the older scan, the target the newer one (ADR 0097). |
+| CMP-201 | `snapshot_not_found` | A snapshot of the comparison does not exist or retention has removed it; only the retained scans of the project can be compared, and a project with one scan has nothing to compare (ADR 0097). |
+| CMP-301 | `naming_rules_differ` | The two snapshots were scanned with different naming rules, so their symbols cannot be matched by name; a full scan of the project writes a snapshot with the current rules and the comparison can be repeated (ADR 0097). |
 | UI-201 | `api_unreachable` | The UI cannot reach the local server. |
 | UI-901 | `unexpected_ui_error` | An uncaught exception was converted at a feature boundary (bug). |
 | CHK-101 | `literal_found` | A literal outside the allowed exceptions was found. |

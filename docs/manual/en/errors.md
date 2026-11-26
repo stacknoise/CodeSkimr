@@ -62,6 +62,9 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `RES-*` | level 2 (indexers): tool missing or too old (`RES-201`), index too large, timeout, output or memory limit (`RES-501` to `RES-504`), indexer failed (`RES-601`), index corrupt (`RES-101`), too few occurrences map (`RES-302`); level 1 stays in every case | see [Language indexers](indexers.md#errors) |
 | `SEC-301`, `SEC-403` | level 2 is not enabled and confirmed, or the caller may not confirm it | enable it and run `codeskimr level2 confirm <project>` in a terminal |
 | `PRJ-303` | not an error: you cancelled the scan | start it again |
+| `CMP-101` | the base of a comparison is not an older scan than its target | swap the two, or leave the choice out to compare the previous scan with the newest |
+| `CMP-201` | a scan of the comparison does not exist or retention has removed it, or the project has only one scan | list the scans with `codeskimr scans` and pick two that are still kept |
+| `CMP-301` | the two scans used different naming rules, so their symbols cannot be matched | run a full scan of the project and repeat the comparison |
 | `API-301` | the port is taken | `--set server.port=…` |
 | `API-401` | the installation token is missing or wrong | use `codeskimr open` for the browser |
 | `API-402` | `Host` or `Origin` is not this server | open the UI at `http://127.0.0.1:<port>` or `localhost` |

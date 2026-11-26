@@ -16,7 +16,7 @@ import {
   VISIBLE_PLACES,
   VISIBLE_VIOLATIONS,
 } from "./consts";
-import type { PlaceOut, RuleOut, ViolationOut } from "./types";
+import type { PlaceOut, RingOut, RuleOut, ViolationOut } from "./types";
 import styles from "./RulesScreen.module.css";
 
 /** `path:line` of a place, as an editor takes it. */
@@ -30,8 +30,42 @@ function placesText(violation: ViolationOut): string {
   return violation.places.length > VISIBLE_PLACES ? `${named}${PLACES_MORE}` : named;
 }
 
+/** The badge that says whether a violation is an old burden or new. */
+function Age(props: { old: boolean }) {
+  return (
+    <span class={props.old ? styles.badgeOld : styles.badgeNew}>
+      {props.old ? t(I18N_KEYS.RULES_VIOLATION_OLD) : t(I18N_KEYS.RULES_VIOLATION_NEW)}
+    </span>
+  );
+}
+
+/** One cycle: the way round the ring, its size, the weakest edge and where to cut it. */
+function CycleRow(props: { violation: ViolationOut; ring: RingOut }) {
+  return (
+    <li class={styles.violation}>
+      <span class={styles.symbol}>{props.ring.chain.join(` ${ARROW} `)}</span>
+      <span class={styles.advice}>
+        {t(I18N_KEYS.RULES_RING_ADVICE, {
+          edges: props.ring.resolution_edges,
+          places: props.violation.places.length,
+        })}
+      </span>
+      <Age old={props.violation.old} />
+    </li>
+  );
+}
+
 /** One violation: who reaches whom, how often, where, and whether it is an old burden. */
 function ViolationRow(props: { violation: ViolationOut }) {
+  return (
+    <Show when={props.violation.ring} fallback={<ReferenceRow violation={props.violation} />}>
+      {(ring) => <CycleRow violation={props.violation} ring={ring()} />}
+    </Show>
+  );
+}
+
+/** A reference that a rule forbids, from the symbol that refers to the one it reaches. */
+function ReferenceRow(props: { violation: ViolationOut }) {
   return (
     <li class={styles.violation}>
       <span class={styles.symbol}>{props.violation.from}</span>
@@ -43,9 +77,7 @@ function ViolationRow(props: { violation: ViolationOut }) {
         {t(I18N_KEYS.RULES_PLACES, { count: props.violation.places.length })}
       </span>
       <span class={styles.places}>{placesText(props.violation)}</span>
-      <span class={props.violation.old ? styles.badgeOld : styles.badgeNew}>
-        {props.violation.old ? t(I18N_KEYS.RULES_VIOLATION_OLD) : t(I18N_KEYS.RULES_VIOLATION_NEW)}
-      </span>
+      <Age old={props.violation.old} />
     </li>
   );
 }
@@ -69,6 +101,9 @@ function layersSpec(rule: RuleOut): string {
 function titleAndSpec(rule: RuleOut): { title: string; spec: string } {
   if (rule.kind === KIND.layers) {
     return { title: t(I18N_KEYS.RULES_LAYERS_TITLE), spec: layersSpec(rule) };
+  }
+  if (rule.kind === KIND.cycles) {
+    return { title: t(I18N_KEYS.RULES_CYCLES_TITLE), spec: t(I18N_KEYS.RULES_CYCLES_SPEC) };
   }
   if (rule.kind === KIND.forbid) {
     return {
