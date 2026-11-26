@@ -9,6 +9,7 @@ import { count } from "../projects/format";
 import { ASSESSMENTS, OPEN_ARROW, RATING_POOR, TAB, REASON_TEXT, SCROLL_NEAREST } from "./consts";
 import { mostUsages } from "./geometry";
 import type { RankingName, Row } from "./types";
+import { KeepButton } from "./KeepButton";
 import { UsageBar } from "./UsageBar";
 import styles from "./RankingTable.module.css";
 
@@ -103,12 +104,28 @@ function useInView(selected: () => boolean): (row: HTMLTableRowElement) => void 
   };
 }
 
+/** The cell with the arrow that opens the symbol in the explorer. */
+function OpenCell(props: { row: Row; onOpen: (row: Row) => void }) {
+  return (
+    <td class={styles.go}>
+      <button
+        type="button"
+        aria-label={t(I18N_KEYS.STATS_OPEN_EXPLORER_ROW, { name: props.row.name })}
+        onClick={() => props.onOpen(props.row)}
+      >
+        {OPEN_ARROW}
+      </button>
+    </td>
+  );
+}
+
 function TableRow(props: {
   row: Row;
   rank: number;
   ranking: RankingName;
   most: number;
   selected: boolean;
+  keep: KeepTarget;
   onSelect: (row: Row) => void;
   onOpen: (row: Row) => void;
 }) {
@@ -130,16 +147,35 @@ function TableRow(props: {
         {props.row.path}
       </td>
       <Values row={props.row} ranking={props.ranking} most={props.most} />
-      <td class={styles.go}>
-        <button
-          type="button"
-          aria-label={t(I18N_KEYS.STATS_OPEN_EXPLORER_ROW, { name: props.row.name })}
-          onClick={() => props.onOpen(props.row)}
-        >
-          {OPEN_ARROW}
-        </button>
-      </td>
+      <Show when={props.ranking === TAB.unused}>
+        <KeepButton row={props.row} project={props.keep.project} editable={props.keep.editable} />
+      </Show>
+      <OpenCell row={props.row} onOpen={props.onOpen} />
     </tr>
+  );
+}
+
+/** Where "Keep on purpose" writes to: the project, and whether it has a project file. */
+export interface KeepTarget {
+  project: number;
+  editable: boolean;
+}
+
+/** The header row of a ranking. */
+function Head(props: { ranking: RankingName }) {
+  return (
+    <thead>
+      <tr>
+        <th />
+        <th>{t(I18N_KEYS.STATS_COLUMN_NAME)}</th>
+        <th>{t(I18N_KEYS.STATS_COLUMN_FILE)}</th>
+        <For each={COLUMNS[props.ranking]}>{(column) => <th>{t(column)}</th>}</For>
+        <Show when={props.ranking === TAB.unused}>
+          <th />
+        </Show>
+        <th />
+      </tr>
+    </thead>
   );
 }
 
@@ -149,21 +185,14 @@ export function RankingTable(props: {
   ranking: RankingName;
   rows: Row[];
   selected: number | null;
+  keep: KeepTarget;
   onSelect: (row: Row) => void;
   onOpen: (row: Row) => void;
 }) {
   const most = () => mostUsages(props.rows);
   return (
     <table class={styles.table} aria-label={t(I18N_KEYS.STATS_TABLE_LABEL)}>
-      <thead>
-        <tr>
-          <th />
-          <th>{t(I18N_KEYS.STATS_COLUMN_NAME)}</th>
-          <th>{t(I18N_KEYS.STATS_COLUMN_FILE)}</th>
-          <For each={COLUMNS[props.ranking]}>{(column) => <th>{t(column)}</th>}</For>
-          <th />
-        </tr>
-      </thead>
+      <Head ranking={props.ranking} />
       <tbody>
         <For each={props.rows}>
           {(row, index) => (
@@ -173,6 +202,7 @@ export function RankingTable(props: {
               ranking={props.ranking}
               most={most()}
               selected={row.id === props.selected}
+              keep={props.keep}
               onSelect={props.onSelect}
               onOpen={props.onOpen}
             />

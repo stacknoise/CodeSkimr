@@ -49,7 +49,7 @@ pub use coupling::{SymbolPair, coupling, coupling_with};
 pub use error::ModelError;
 pub use file::{ContentHash, FileId, LanguageId, Loc, RelativePath, SourceFile};
 pub use fingerprint::{Fingerprint, FingerprintParams, Fingerprints, TokenId, winnow};
-pub use glob::glob_matches;
+pub use glob::{glob_matches, has_wildcard};
 pub use graph_layout::{
     Layout, LayoutEdge, LayoutGraph, LayoutNode, LayoutParams, NodeIndex, NodePlacement, NodeSize,
 };

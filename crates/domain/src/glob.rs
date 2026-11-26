@@ -4,6 +4,12 @@
 
 use crate::consts::{GLOB_ANY, GLOB_ONE};
 
+/// Whether `text` holds a wildcard, so that as a pattern it would match more than itself.
+#[must_use]
+pub fn has_wildcard(text: &str) -> bool {
+    text.contains([GLOB_ANY, GLOB_ONE])
+}
+
 /// Whether `text` matches the glob `pattern` as a whole.
 #[must_use]
 pub fn glob_matches(pattern: &str, text: &str) -> bool {

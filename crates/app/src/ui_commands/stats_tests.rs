@@ -12,7 +12,7 @@ const SHOP: &str = "namespace Demo;\n\npublic class Shop\n{\n    public int Tota
 const TEST: &str =
     "namespace Demo.Tests;\n\npublic class ShopChecks\n{\n    public void Runs() { }\n}\n";
 
-fn project(fixture: &Fixture) -> u64 {
+pub(super) fn project(fixture: &Fixture) -> u64 {
     let app = fixture.root.path().join("app");
     fs::write(app.join("Shop.cs"), SHOP).unwrap();
     fs::create_dir_all(app.join("tests")).unwrap();
@@ -20,7 +20,7 @@ fn project(fixture: &Fixture) -> u64 {
     fixture.scanned()
 }
 
-fn ranking(fixture: &Fixture, project: u64, extra: &Value) -> Value {
+pub(super) fn ranking(fixture: &Fixture, project: u64, extra: &Value) -> Value {
     let mut input = json!({ "project": project });
     for (key, value) in extra.as_object().unwrap() {
         input[key] = value.clone();
@@ -28,7 +28,7 @@ fn ranking(fixture: &Fixture, project: u64, extra: &Value) -> Value {
     fixture.call("stats.ranking", input).unwrap()
 }
 
-fn names(answer: &Value) -> Vec<&str> {
+pub(super) fn names(answer: &Value) -> Vec<&str> {
     answer["rows"]
         .as_array()
         .unwrap()

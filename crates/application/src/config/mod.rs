@@ -11,6 +11,7 @@ mod error;
 mod layer;
 mod layer_file;
 mod model;
+mod unused_file;
 mod validate;
 
 pub use consts::{MAX_INDEXER_MEMORY_MB, PROJECT_CONFIG_FILE};
@@ -23,6 +24,7 @@ pub use model::{
     Level2, McpLimits, MetricThresholds, Scan, Similarity, SnapshotRetention, Ui, Unused,
     UnusedIgnore, Watcher,
 };
+pub use unused_file::{unused_ignore_in, with_unused_ignore};
 
 use consts::NO_PREFIX;
 use std::collections::BTreeMap;

@@ -198,6 +198,8 @@ const COMMAND_IDS: [&str; 47] = [
     "tools.indexers",
     "ui_settings.get",
     "ui_settings.set_indexer_memory",
+    "unused.keep",
+    "unused.lift",
     "usages.code",
     "usages.query",
 ];

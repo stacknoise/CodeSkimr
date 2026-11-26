@@ -33,6 +33,11 @@ function row(id: number, name: string, patch: Partial<Row> = {}): Row {
   };
 }
 
+/** A symbol without usages that is very likely unused. */
+function unusedRow(id: number, name: string): Row {
+  return row(id, name, { certain: 0, total: 0, assessment: "likely", reason: "private" });
+}
+
 const UNUSED = { likely: 2, public: 3, approximate: 1, tests_hidden: 7, left_out: 0 };
 const OVERVIEW: Overview = {
   snapshot: 5,
@@ -72,11 +77,16 @@ beforeEach(() => {
   setLanguage("en");
 });
 
-function served(ranking: RankingAnswer = RANKING, overview: Overview = OVERVIEW) {
+function served(
+  ranking: RankingAnswer = RANKING,
+  overview: Overview = OVERVIEW,
+  more: Record<string, () => Response> = {},
+) {
   serve({
     "projects.list": () => answer([PROJECT_ROW]),
     "stats.overview": () => answer(overview),
     "stats.ranking": () => answer(ranking),
+    ...more,
   });
 }
 
@@ -305,18 +315,8 @@ describe("StatsScreen: rankings", () => {
   });
 
   it("lists the symbols the exception list leaves out, with the rule on request", async () => {
-    const orphan = row(2, "orphan", {
-      certain: 0,
-      total: 0,
-      assessment: "likely",
-      reason: "private",
-    });
-    const kept = row(9, "Migrate", {
-      certain: 0,
-      total: 0,
-      assessment: "likely",
-      reason: "private",
-    });
+    const orphan = unusedRow(2, "orphan");
+    const kept = unusedRow(9, "Migrate");
     const rule = { symbols: ["*.Migrate"], reason: "called by the migration tool" };
     served({
       ...RANKING,
@@ -331,6 +331,66 @@ describe("StatsScreen: rankings", () => {
     fireEvent.click(screen.getByRole("button", { name: "Show rule" }));
     expect(screen.getByText("*.Migrate")).toBeInTheDocument();
     expect(screen.getByText(/^1 symbol does not appear in the number above/)).toBeInTheDocument();
+  });
+
+  it("keeps a symbol on purpose with a reason and loads the statistics again", async () => {
+    const orphan = unusedRow(2, "orphan");
+    const ranked = { ...RANKING, rows: [orphan], total: 1, unused: UNUSED };
+    served(ranked, OVERVIEW, { "unused.keep": () => answer({ entries: 1 }) });
+    const table = await showRanking("No usage found");
+    fireEvent.click(within(table).getByRole("button", { name: "Keep orphan on purpose" }));
+    fireEvent.input(screen.getByRole("textbox", { name: "Reason" }), {
+      target: { value: "called by reflection" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(inputs("unused.keep")).toHaveLength(1));
+    expect(inputs("unused.keep")[0]).toMatchObject({ project: 1, symbol: "shop::orphan" });
+    expect(String(inputs("unused.keep")[0]?.reason)).toMatch(
+      /^called by reflection \(\d{4}-\d{2}-\d{2}\)$/,
+    );
+    await waitFor(() => expect(inputs("stats.ranking").length).toBeGreaterThan(1));
+  });
+
+  it("disables the keep button with a hint for a project that is not a folder", async () => {
+    const orphan = unusedRow(2, "orphan");
+    const ranked = { ...RANKING, rows: [orphan], total: 1, unused: UNUSED };
+    served(ranked, OVERVIEW, {
+      "projects.list": () => answer([{ ...PROJECT_ROW, kind: "git" }]),
+    });
+    const table = await showRanking("No usage found");
+    const button = within(table).getByRole("button", { name: "Keep orphan on purpose" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("title", expect.stringContaining("no project file"));
+  });
+
+  it("says why an exception could not be written", async () => {
+    const orphan = unusedRow(2, "orphan");
+    const ranked = { ...RANKING, rows: [orphan], total: 1, unused: UNUSED };
+    served(ranked, OVERVIEW, { "unused.keep": () => answer({ code: "CFG-102" }, 422) });
+    const table = await showRanking("No usage found");
+    fireEvent.click(within(table).getByRole("button", { name: "Keep orphan on purpose" }));
+    fireEvent.input(screen.getByRole("textbox", { name: "Reason" }), { target: { value: "x" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/could not be changed/);
+  });
+
+  it("lifts an exception with the entry as the list shows it", async () => {
+    const kept = unusedRow(9, "Migrate");
+    const rule = { symbols: ["*.Migrate"], reason: "called by the migration tool" };
+    const ranked = {
+      ...RANKING,
+      rows: [row(2, "orphan")],
+      total: 1,
+      unused: { ...UNUSED, left_out: 1 },
+      left_out: [{ row: kept, rule }],
+    };
+    served(ranked, OVERVIEW, { "unused.lift": () => answer({ entries: 0 }) });
+    await showRanking("No usage found");
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Lift the rule that leaves out Migrate" }),
+    );
+    await waitFor(() => expect(inputs("unused.lift")).toHaveLength(1));
+    expect(inputs("unused.lift")[0]).toEqual({ project: 1, paths: [], ...rule });
   });
 
   it("counts all the symbols the list leaves out, not only the ones it shows", async () => {
