@@ -1,8 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { UNCHECKED } from "../../tests/scanned";
+import { SETTINGS_TAB } from "../settings/consts";
 import { SettingsScreen } from "../settings/SettingsScreen";
+import { showSettingsTab } from "../settings/tab";
 import { ProjectsScreen } from "./ProjectsScreen";
 
 const SECRET = "ghp_CANARY-ui-8e1f";
@@ -60,6 +62,8 @@ function nowhere(spy: ReturnType<typeof vi.spyOn>): void {
 }
 
 describe("the login of a Git project", () => {
+  beforeEach(() => showSettingsTab(SETTINGS_TAB.access));
+
   it("stores a credential in the settings, forgets the secret and lists the name", async () => {
     serve({
       "projects.list": () => answer([]),

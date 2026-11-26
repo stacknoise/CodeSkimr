@@ -113,5 +113,30 @@ export const LIST_SEPARATOR = ", ";
 export const KEY_SEPARATOR = ".";
 
 /** Ids that tie a label to its field in the table of effective settings. */
-export const EFFECTIVE_SEARCH_ID = "effective-search";
 export const EFFECTIVE_ONLY_CHANGED_ID = "effective-only-changed";
+
+/** The tabs of the settings screen (ADR 0098), in the order of the tab bar. */
+export const SETTINGS_TAB = {
+  appearance: "appearance",
+  analysis: "analysis",
+  access: "access",
+  effective: "effective",
+  info: "info",
+} as const;
+/** One tab of the settings screen. */
+export type SettingsTab = (typeof SETTINGS_TAB)[keyof typeof SETTINGS_TAB];
+/** The tabs with their texts. */
+export const SETTINGS_TABS = [
+  { id: SETTINGS_TAB.appearance, label: I18N_KEYS.SETTINGS_TAB_APPEARANCE },
+  { id: SETTINGS_TAB.analysis, label: I18N_KEYS.SETTINGS_TAB_ANALYSIS },
+  { id: SETTINGS_TAB.access, label: I18N_KEYS.SETTINGS_TAB_ACCESS },
+  { id: SETTINGS_TAB.effective, label: I18N_KEYS.SETTINGS_TAB_EFFECTIVE },
+  { id: SETTINGS_TAB.info, label: I18N_KEYS.SETTINGS_TAB_INFO },
+] as const;
+/** Id prefix of the tab buttons and the id of the tab panel. */
+export const SETTINGS_TAB_ID_PREFIX = "settings-tab-";
+export const SETTINGS_PANEL_ID = "settings-panel";
+/** Id of the search field in the tab bar. */
+export const SETTINGS_SEARCH_ID = "settings-search";
+/** `tabindex` of the selected tab and of the others (the arrow keys reach them). */
+export const SETTINGS_TAB_STOP = { on: 0, off: -1 } as const;

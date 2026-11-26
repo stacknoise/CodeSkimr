@@ -38,7 +38,25 @@ The scan does not see calls through macros or reflection, entry points that a fr
 
 Constructors and members that override or implement another member are not listed at all: they are called through their type or through the member they stand in for, which the count of direct usages cannot show.
 
+Next to the assessment each row shows its **reason**, for example "private, no usage in its class or file" or "public: users outside the project are possible".
+
 Check before you delete.
+
+### Keeping symbols on purpose (exception list)
+
+What should stay goes into the `.codeskimr.toml` of the project, so that the whole team sees the same:
+
+```toml
+[[unused.ignore]]
+paths = ["Data/Migrations/**"]
+reason = "called by the migration tool"
+
+[[unused.ignore]]
+symbols = ["*.DesignTimeFactory"]
+reason = "only for dotnet ef"
+```
+
+`paths` are patterns on the file path, `symbols` patterns on the qualified name (`*` stands for any run of characters, `?` for exactly one). If an entry has both lists, both must match. The reason is mandatory. Such symbols are no longer in the number and the list; they stand below, in the group "Left out", with the rule to look at. This holds for folder projects; a Git project has no project file.
 
 ## Complexity
 

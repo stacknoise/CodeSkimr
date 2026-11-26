@@ -3,8 +3,8 @@
 use codeskimr_domain::{
     Assessment, Confidence, FileId, KindGroup, LanguageId, Measures, ModelError, Position,
     QualifiedName, Ranking, RankingQuery, Reference, ReferenceId, ReferenceKind, RelativePath,
-    ReverseIndex, Span, SymbolFacts, SymbolId, SymbolKind, SymbolName, UsageOrder, UsageTally,
-    Visibility, complexity_histogram, mark_tests, rank,
+    ReverseIndex, Span, SymbolFacts, SymbolId, SymbolKind, SymbolName, UnusedReason, UsageOrder,
+    UsageTally, Visibility, complexity_histogram, mark_tests, rank,
 };
 
 fn fact(id: u64, kind: SymbolKind, name: &str, path: &str) -> Result<SymbolFacts, ModelError> {
@@ -196,6 +196,25 @@ fn the_assessment_depends_on_visibility_and_on_the_language() {
     assert_eq!(
         Assessment::of(Some(Visibility::Private), true),
         Assessment::Approximate
+    );
+}
+
+#[test]
+fn the_reason_agrees_with_the_assessment() {
+    let cases = [
+        (Some(Visibility::Private), false, UnusedReason::Private),
+        (Some(Visibility::Internal), false, UnusedReason::Internal),
+        (Some(Visibility::Protected), false, UnusedReason::Internal),
+        (Some(Visibility::Public), false, UnusedReason::Public),
+        (None, false, UnusedReason::Public),
+        (Some(Visibility::Private), true, UnusedReason::Approximate),
+    ];
+    for (visibility, approximate, reason) in cases {
+        assert_eq!(UnusedReason::of(visibility, approximate), reason);
+    }
+    assert_eq!(
+        "internal".parse::<UnusedReason>(),
+        Ok(UnusedReason::Internal)
     );
 }
 

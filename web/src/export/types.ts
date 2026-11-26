@@ -33,6 +33,8 @@ export interface StoredUsages {
 export interface ExportData {
   format: number;
   snapshot: number;
+  /** The number of the scan inside the project (1 for the first). */
+  scan_number: number;
   project: ExportProject;
   outline: Outline;
   symbols: Record<string, SymbolInfo>;

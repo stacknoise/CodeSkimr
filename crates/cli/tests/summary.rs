@@ -51,6 +51,18 @@ mod cases {
     }
 
     #[test]
+    fn the_summary_names_the_scan_inside_the_project_not_the_raw_id() {
+        // A snapshot id carries the project number above the counter (ADR 0095, #747).
+        let mut raw = summary(Vec::new());
+        raw.snapshot = (2 << 33) + 1;
+        let messages = Messages::load().unwrap();
+        let en = scan_finished(&messages, "en", &raw).unwrap();
+        let de = scan_finished(&messages, "de", &raw).unwrap();
+        assert!(en.contains("snapshot 1."), "{en}");
+        assert!(de.contains("Snapshot 1."), "{de}");
+    }
+
+    #[test]
     fn without_level_two_the_summary_stays_two_lines() {
         assert_eq!(text("en", Vec::new()), Vec::<String>::new());
     }
