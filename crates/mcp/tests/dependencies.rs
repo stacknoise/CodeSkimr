@@ -347,7 +347,9 @@ fn the_module_level_takes_no_other_target() {
     unknown.level = Some("package".to_owned());
     let mut direction = of_modules();
     direction.direction = Some("incoming".to_owned());
-    for args in [other, unknown, direction] {
+    let mut depth = of_symbol("1");
+    depth.depth = Some(2);
+    for args in [other, unknown, direction, depth] {
         let error = tools().get_dependencies(&owner(), &args).unwrap_err();
         assert_eq!(error.code(), ErrorCode::ToolArgumentsInvalid);
     }

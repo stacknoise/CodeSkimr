@@ -57,7 +57,7 @@ impl Tools {
             .namespace_graph(scope.snapshot.id)?
             .collapsed(depth);
         let report = ModuleReport::of(&graph, &scope.project.layers);
-        let shown = report.kept(limit.value as usize);
+        let shown = report.kept(usize::try_from(limit.value).unwrap_or(usize::MAX));
         to_json(&ModulesAnswer {
             snapshot: scope.info,
             level: LEVEL_MODULE,
