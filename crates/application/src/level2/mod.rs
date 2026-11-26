@@ -12,6 +12,7 @@ mod pass;
 mod pause;
 mod renumber;
 mod report;
+mod tally;
 mod window;
 
 use std::path::Path;

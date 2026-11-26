@@ -13,6 +13,7 @@ use crate::consts::{FIRST_LINE, MAX_REFERENCES_PER_IMPORT};
 use crate::create::Creation;
 use crate::decode::read_index;
 use crate::mapping::{SnapshotView, import_with_sites};
+use crate::model::ScipIndex;
 
 /// Imports SCIP indexes. `text` gives the lines of the project files, which the conversion of
 /// UTF-16 and UTF-32 columns needs.
@@ -53,10 +54,26 @@ fn creation_of<'a>(request: &ImportRequest<'a>) -> Creation<'a> {
     }
 }
 
+/// Puts the folder of the run in front of every document: the indexer named its files relative
+/// to the folder it ran in, the snapshot names them relative to the project (ADR 0100).
+fn place_in_workspace(index: &mut ScipIndex, workspace: &RelativePath) {
+    // A document whose path cannot be placed is dropped, never mapped onto a file of the root.
+    index.documents.retain_mut(|document| {
+        document
+            .path
+            .in_folder(workspace)
+            .map(|path| document.path = path)
+            .is_some()
+    });
+}
+
 impl ReferenceImporter for ScipImporter {
     fn import(&self, request: &ImportRequest<'_>) -> Result<Imported, CodedError> {
         let mut index =
             read_index(request.index, request.max_index_bytes).map_err(CodedError::caused_by)?;
+        if let Some(workspace) = request.workspace {
+            place_in_workspace(&mut index, workspace);
+        }
         let known: HashSet<&RelativePath> = request.files.iter().map(|file| &file.path).collect();
         // Only files of the snapshot are read, and only up to the limit: the paths come from a
         // process that ran project code.

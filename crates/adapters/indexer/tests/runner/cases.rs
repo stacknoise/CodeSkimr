@@ -189,10 +189,21 @@ impl Fixture {
         limits: IndexLimits,
         cancel: &CancelToken,
     ) -> Result<codeskimr_application::ports::IndexArtifact, CodedError> {
+        self.run_in(spec, limits, cancel, None)
+    }
+
+    fn run_in(
+        &self,
+        spec: &IndexerSpec,
+        limits: IndexLimits,
+        cancel: &CancelToken,
+        workspace: Option<&codeskimr_domain::RelativePath>,
+    ) -> Result<codeskimr_application::ports::IndexArtifact, CodedError> {
         let job = IndexJob {
             language: &self.language,
             spec,
             limits,
+            workspace,
             permit: &self.permit,
         };
         self.runner.run(&job, cancel)
@@ -700,4 +711,38 @@ fn a_link_in_place_of_the_index_is_not_an_index() {
     let fixture = Fixture::new();
     let error = fixture.run("link-index").unwrap_err();
     assert_eq!(failure_reason(&error), Some(FailureReason::NoIndex));
+}
+
+#[test]
+fn a_workspace_below_the_project_is_the_folder_of_the_run() {
+    let fixture = Fixture::new();
+    std::fs::create_dir(fixture.project.path().join("cli")).unwrap();
+    let folder = codeskimr_domain::RelativePath::new("cli").unwrap();
+    let artifact = fixture
+        .run_in(&spec("ok"), limits(), &CancelToken::new(), Some(&folder))
+        .unwrap();
+    assert_eq!(std::fs::read(artifact.path()).unwrap(), b"index");
+}
+
+#[test]
+fn a_workspace_that_is_no_folder_of_the_project_is_refused() {
+    let fixture = Fixture::new();
+    let gone = codeskimr_domain::RelativePath::new("gone").unwrap();
+    let error = fixture
+        .run_in(&spec("ok"), limits(), &CancelToken::new(), Some(&gone))
+        .unwrap_err();
+    assert_eq!(failure_reason(&error), Some(FailureReason::Workspace));
+}
+
+#[cfg(unix)]
+#[test]
+fn a_workspace_that_is_a_link_out_of_the_project_is_refused() {
+    let fixture = Fixture::new();
+    let outside = tempfile::tempdir().unwrap();
+    std::os::unix::fs::symlink(outside.path(), fixture.project.path().join("out")).unwrap();
+    let folder = codeskimr_domain::RelativePath::new("out").unwrap();
+    let error = fixture
+        .run_in(&spec("ok"), limits(), &CancelToken::new(), Some(&folder))
+        .unwrap_err();
+    assert_eq!(failure_reason(&error), Some(FailureReason::Workspace));
 }
