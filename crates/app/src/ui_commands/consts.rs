@@ -330,6 +330,16 @@ pub const LAYERS_GET: &str = "layers.get";
 pub const LAYERS_GET_TITLE: &str = i18n::COMMAND_LAYERS_GET_TITLE;
 /// Description key of `layers.get`.
 pub const LAYERS_GET_DESCRIPTION: &str = i18n::COMMAND_LAYERS_GET_DESCRIPTION;
+/// Kind of a rule in the answer of `rules.show`: modules that must not use each other.
+pub const FORBID: &str = "forbid";
+/// Kind of a rule in the answer of `rules.show`: the inside of a module is closed.
+pub const PUBLIC_API: &str = "public_api";
+/// Id of the command that shows the architecture rules of a project and their violations.
+pub const RULES_SHOW: &str = "rules.show";
+/// Title key of `rules.show`.
+pub const RULES_SHOW_TITLE: &str = i18n::COMMAND_RULES_SHOW_TITLE;
+/// Description key of `rules.show`.
+pub const RULES_SHOW_DESCRIPTION: &str = i18n::COMMAND_RULES_SHOW_DESCRIPTION;
 /// Id of the command that keeps a symbol on purpose (an entry of `[[unused.ignore]]`).
 pub const UNUSED_KEEP: &str = "unused.keep";
 /// Title key of `unused.keep`.

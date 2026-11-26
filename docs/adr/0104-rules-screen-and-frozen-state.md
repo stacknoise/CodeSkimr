@@ -20,4 +20,4 @@ The layer rule exists (`CHK-103`, ADR 0054, ADR 0082), but its violations are vi
 
 - No behaviour changes for projects without `rules`.
 - The page and `codeskimr rules` need a scanned project; `codeskimr check` stays a check of files without a store.
-- Steps: 1 the rules of the project file, the evaluation of "forbid" and "public interface" and the baseline in the core; 2 the doors (UI command, command line, MCP); 3 the screen; 4 the cycle rule once the cycle detection of the module graph (ADR 0108) is in; 5 holding the state in the UI.
+- Steps: 1 the rules of the project file, the evaluation of "forbid" and "public interface" and the baseline in the core; 2 the doors, first the UI command `rules.show` (built), then `codeskimr rules` and the MCP tool; 3 the screen; 4 the cycle rule once the cycle detection of the module graph (ADR 0108) is in; 5 holding the state in the UI.
