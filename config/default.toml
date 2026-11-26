@@ -184,6 +184,17 @@ max_parallel_runs = 1
 # At least 10.
 ui_cooldown_seconds = 60
 
+# Most memory, in megabytes, per indexer, by the name of the indexer (the `name` under `[indexer]` of the
+# language pack; TypeScript, JavaScript and TSX share scip-typescript, Java and Kotlin share scip-java).
+# 0 means the indexer follows max_memory_mb above. A large TypeScript project needs far more than the
+# other indexers do (ADR 0100). Read from the user config file and command line flags only.
+[level2.indexer_memory_mb]
+rust-analyzer = 0
+scip-dotnet = 0
+scip-java = 0
+scip-python = 0
+scip-typescript = 0
+
 # Local server (blueprint 10.3, S-04). It listens on the loopback address 127.0.0.1 only.
 [server]
 # TCP port of the local server. A port that is already taken fails with API-301.

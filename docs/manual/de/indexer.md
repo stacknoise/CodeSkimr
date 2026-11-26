@@ -78,12 +78,26 @@ Jeder Lauf ist begrenzt; ein Indexer, der eine Grenze überschreitet, wird samt 
 |---|---|---|
 | `timeout_seconds` | 900 | `RES-502` |
 | `max_memory_mb` (ganzer Prozessbaum) | 4096 | `RES-504` |
+| `indexer_memory_mb.<Indexer>` (Speichergrenze eines einzelnen Indexers, im Abschnitt `[level2.indexer_memory_mb]`; `0` folgt `max_memory_mb`) | 0 | `RES-504` |
 | `max_output_bytes` (Konsole und Dateien) | 512 MiB | `RES-503` |
 | `max_index_bytes` (größter gelesener Index) | 256 MiB | `RES-501` |
 | `min_mapped` (Anteil der Projekt-Vorkommen, der zuordenbar sein muss) | 0,5 | `RES-302` |
 | `max_created_symbols` (Höchstzahl der Symbole, die Ebene 2 selbst anlegt, z. B. durch Makros erzeugte Typen) | 100000 | `RES-303` |
 
+Ein großes TypeScript-Projekt braucht viel mehr Speicher als die anderen Indexer. Deshalb können Sie einem Indexer über seinen Namen eine eigene Grenze geben (`rust-analyzer`, `scip-dotnet`, `scip-java`, `scip-python`, `scip-typescript`; TypeScript, JavaScript und TSX teilen sich `scip-typescript`, Java und Kotlin `scip-java`), zum Beispiel in Ihrer Benutzerkonfiguration:
+
+```toml
+[level2.indexer_memory_mb]
+scip-typescript = 12288
+```
+
+Bei Node.js (`scip-typescript`) bestimmt die Grenze auch den Heap des Prozesses. Ein Name, der nicht in der Liste steht, wird beim Lesen der Konfiguration abgelehnt, ein Tippfehler fällt also auf.
+
 Der Indexer bekommt eine geleerte Umgebung mit Positivliste (kein Token und kein Geheimnis von CodeSkimr erreicht ihn), läuft in einer eigenen Prozessgruppe, und seine Ausgabe wird geschwärzt, bevor sie protokolliert wird. **Das Netzwerk ist nicht gesperrt**, weil die Paketwiederherstellung es braucht; das ist das wichtigste Restrisiko und der Grund für die Bestätigung.
+
+## Projekte mit mehreren Workspaces
+
+Manche Indexer brauchen eine Projektdatei in ihrem Arbeitsordner (`Cargo.toml` für rust-analyzer, eine Solution oder `.csproj` für scip-dotnet). Liegt eine im Projektordner oder darüber, läuft der Indexer einmal dort. Sonst sucht CodeSkimr die äußersten Ordner unterhalb des Projektordners, die eine solche Datei enthalten und Quelldateien dieser Sprache haben (ein Cargo-Workspace in `cli/`, eine Solution in einem Unterordner), und startet den Indexer in jedem einmal. Der Lauf meldet die Summe. Scheitert ein Workspace, zählen die anderen trotzdem; die Dateien des gescheiterten behalten Ebene 1 und erscheinen im Bericht als veraltet.
 
 ## Nach einer Änderung
 

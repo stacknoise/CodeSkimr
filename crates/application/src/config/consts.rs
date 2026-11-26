@@ -21,6 +21,10 @@ pub const NO_PREFIX: &str = "";
 /// Smallest allowed share (instability).
 /// Shortest pause after a level 2 run of the browser, in seconds (`level2.ui_cooldown_seconds`).
 pub const UI_COOLDOWN_MIN_SECONDS: u32 = 10;
+/// Value of `level2.indexer_memory_mb.<indexer>` that means "use `level2.max_memory_mb`".
+pub const MEMORY_FOLLOWS_GLOBAL: u32 = 0;
+/// The name that stands for no indexer in particular (the global limits).
+pub const NO_INDEXER: &str = "";
 /// Most level 2 runs at the same time that the configuration may allow.
 pub const MAX_PARALLEL_RUNS_LIMIT: u32 = 8;
 
