@@ -41,7 +41,10 @@ rules-cycles-pending = Cycles between modules are switched on in the project fil
 rules-hold = Hold state
 rules-hold-hint = "Hold state": existing violations count as old burdens. The CI fails only for new ones.
 rules-hold-git = Folder projects only: a Git project has no project file to put the file next to.
-rules-hold-done = State held on { $date }: { $count } violations now count as old burdens. Commit the file .codeskimr-baseline.toml.
+rules-hold-done = { $count ->
+    [one] State held on { $date }: 1 violation now counts as an old burden. Commit the file .codeskimr-baseline.toml.
+   *[other] State held on { $date }: { $count } violations now count as old burdens. Commit the file .codeskimr-baseline.toml.
+}
 rules-hold-failed = The state could not be held.
 rules-layers-title = Layers
 rules-layers-allowed = { $layer } → { $uses }

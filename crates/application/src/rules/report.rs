@@ -38,7 +38,8 @@ impl RulesReport {
     }
 }
 
-/// Evaluates the `layers` and `rules` over `snapshot` and judges the result against `baseline`, if there is one.
+/// Evaluates the `layers` and `rules` over `snapshot` and judges the result against `baseline`, if
+/// there is one.
 ///
 /// # Errors
 /// A coded failure of the `STO` group.

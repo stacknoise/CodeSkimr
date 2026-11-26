@@ -222,7 +222,10 @@ cli-cmd-context = Give signature, callers, dependencies, affected files and note
 cli-cmd-unused = List the symbols for which no usage was found, with the reason for each (the answer of find_unused)
 cli-cmd-rules = Judge the architecture rules of the project file against the newest scan; fails only for violations that the held state does not have (the answer of check_rules)
 cli-query-rules-head = Rules: { $new } new, { $held } held as old burdens, { $resolved } resolved.
-cli-query-rules-held = State held on { $date }: { $entries } violations now count as old burdens. Commit the file .codeskimr-baseline.toml.
+cli-query-rules-held = { $entries ->
+    [one] State held on { $date }: 1 violation now counts as an old burden. Commit the file .codeskimr-baseline.toml.
+   *[other] State held on { $date }: { $entries } violations now count as old burdens. Commit the file .codeskimr-baseline.toml.
+}
 cli-query-rules-none = The project file declares no architecture rules.
 cli-query-rules-rule = { $rule }: { $new } new of { $total }
 cli-query-rules-line = { $from } -> { $to }  { $path }:{ $line }:{ $column }  ({ $held ->

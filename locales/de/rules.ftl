@@ -41,7 +41,10 @@ rules-cycles-pending = Zyklen zwischen Modulen sind in der Projektdatei eingesch
 rules-hold = Stand festhalten
 rules-hold-hint = „Stand festhalten“: Vorhandene Verstöße gelten als Altlast. Die CI schlägt nur bei neuen fehl.
 rules-hold-git = Nur für Ordnerprojekte: Ein Git-Projekt hat keine Projektdatei, neben die die Datei käme.
-rules-hold-done = Stand festgehalten am { $date }: { $count } Verstöße gelten jetzt als Altlast. Die Datei .codeskimr-baseline.toml gehört ins Repository.
+rules-hold-done = { $count ->
+    [one] Stand festgehalten am { $date }: 1 Verstoß gilt jetzt als Altlast. Die Datei .codeskimr-baseline.toml gehört ins Repository.
+   *[other] Stand festgehalten am { $date }: { $count } Verstöße gelten jetzt als Altlast. Die Datei .codeskimr-baseline.toml gehört ins Repository.
+}
 rules-hold-failed = Der Stand konnte nicht festgehalten werden.
 rules-layers-title = Schichten
 rules-layers-allowed = { $layer } → { $uses }

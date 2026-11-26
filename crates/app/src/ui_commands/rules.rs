@@ -1,15 +1,17 @@
 //! The command behind the screen "Rules": the architecture rules of the project file with their
 //! violations, judged against the held state (ADR 0104).
 
+use std::path::Path;
 use std::sync::Arc;
 
 use codeskimr_application::access;
 use codeskimr_application::config::{CycleRule, Rules};
 use codeskimr_application::error::CodedError;
+use codeskimr_application::ports::{Clock, ReferencePlaces};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
-use codeskimr_application::rules::{Outcome, RuleKind, report};
+use codeskimr_application::rules::{BASELINE_FILE, Baseline, Outcome, RuleKind, report};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Layer, Permission, ProjectSource};
+use codeskimr_domain::{Layer, Permission, Project, ProjectSource, SnapshotId, Timestamp};
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
@@ -19,11 +21,7 @@ use super::consts::{
 use super::explorer::ExplorerPorts;
 use super::layers::write_project_file;
 use crate::clock::SystemClock;
-use crate::rules_check::{StoredRules, files_of};
-use codeskimr_application::ports::Clock;
-use codeskimr_application::rules::{BASELINE_FILE, Baseline, RulesChecks};
-use codeskimr_domain::{Project, SnapshotId, Timestamp};
-use std::path::Path;
+use crate::rules_check::{files_of, rules_of};
 
 /// The input of `rules.show`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -292,7 +290,7 @@ pub struct Held {
 /// - `CFG-101` / `CFG-102` if the project file or the held state cannot be read, a coded failure
 ///   of the `STO` group, `CFG-104` if the file cannot be written.
 pub(crate) fn hold(
-    checks: &dyn RulesChecks,
+    references: &dyn ReferencePlaces,
     project: &Project,
     snapshot: SnapshotId,
     now: Timestamp,
@@ -300,7 +298,8 @@ pub(crate) fn hold(
     let ProjectSource::Folder(folder) = &project.source else {
         return Err(CodedError::new(ErrorCode::ProjectSourceInvalid));
     };
-    let answer = checks.check(project, snapshot)?;
+    let rules = rules_of(&project.source)?;
+    let answer = report(&rules, &project.layers, None, references, snapshot)?;
     let held_on = now.iso_date();
     let state = Baseline::holding(&held_on, &answer.outcomes);
     write_project_file(
@@ -339,8 +338,15 @@ impl Command for RulesHold {
     fn execute(&self, request: Request<'_, Self>) -> Result<Held, CodedError> {
         access::require(request.principal, Permission::Manage)?;
         let (project, snapshot) = self.ports.project_and_newest(request.input.project)?;
+        if !matches!(project.source, ProjectSource::Folder(_)) {
+            return Err(CodedError::new(ErrorCode::ProjectSourceInvalid));
+        }
         let snapshot = snapshot.ok_or_else(|| CodedError::new(ErrorCode::ProjectNotScanned))?;
-        let checks = StoredRules::new(Arc::clone(&self.ports.references));
-        hold(&checks, &project, snapshot.id, SystemClock.now())
+        hold(
+            self.ports.references.as_ref(),
+            &project,
+            snapshot.id,
+            SystemClock.now(),
+        )
     }
 }

@@ -206,3 +206,35 @@ fn only_a_scanned_folder_project_can_hold_and_only_with_the_right_to_manage() {
             .exists()
     );
 }
+
+#[test]
+fn a_git_project_cannot_hold_and_is_not_holdable() {
+    let fixture = Fixture::installed(None);
+    let store =
+        codeskimr_storage::SqliteStore::open(&fixture.locations.database(), NonZeroU32::MIN)
+            .unwrap();
+    let project = codeskimr_domain::Project {
+        id: codeskimr_domain::ProjectId::new(7),
+        name: codeskimr_domain::ProjectName::new("remote").unwrap(),
+        source: codeskimr_domain::ProjectSource::Git {
+            url: codeskimr_domain::GitUrl::new("https://example.org/demo.git").unwrap(),
+            branch: codeskimr_domain::BranchName::new("main").unwrap(),
+            credential: None,
+        },
+        layers: Vec::new(),
+    };
+    store.save_project(&project).unwrap();
+    assert_eq!(show(&fixture, 7)["holdable"], false);
+    assert_eq!(hold(&fixture, 7), Err("PRJ-101"));
+}
+
+#[test]
+fn a_broken_old_state_is_replaced_not_read() {
+    let (fixture, id) = with_rules(FORBID);
+    let file = fixture.root.path().join("app/.codeskimr-baseline.toml");
+    fs::write(&file, "held_on = [").unwrap();
+    let broken = fixture.call("rules.show", json!({ "project": id }));
+    assert_eq!(broken, Err("CFG-102"));
+    hold(&fixture, id).unwrap();
+    assert_eq!(show(&fixture, id)["new"], 0);
+}

@@ -29,7 +29,6 @@ use crate::annotations_cli::Surroundings;
 use crate::clock::SystemClock;
 use crate::consts::NEW_VIOLATIONS;
 use crate::mcp::project_tools;
-use crate::rules_check::StoredRules;
 use crate::ui_commands::hold;
 use crate::wiring::{build_analysis, open_store};
 use crate::{config_files, export, principal};
@@ -240,8 +239,12 @@ fn held(session: &Session, principal: Principal) -> Result<Value, QueryFailure> 
         .store
         .latest_snapshot(id)?
         .ok_or_else(|| CodedError::new(ErrorCode::ProjectNotScanned))?;
-    let checks = StoredRules::new(session.store.clone());
-    let written = hold(&checks, &project, snapshot.id, SystemClock.now())?;
+    let written = hold(
+        session.store.as_ref(),
+        &project,
+        snapshot.id,
+        SystemClock.now(),
+    )?;
     serde_json::to_value(written)
         .map_err(|_| QueryFailure::from(CodedError::new(ErrorCode::UnexpectedInternalError)))
 }
