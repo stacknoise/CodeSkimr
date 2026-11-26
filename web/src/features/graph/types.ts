@@ -29,7 +29,7 @@ export interface LayerBand {
 }
 
 /** What a box stands for. */
-export type Level = "layers" | "namespaces" | "types";
+export type Level = "layers" | "namespaces" | "types" | "modules";
 
 /** One dependency between two layers. */
 export interface LayerLink {
@@ -73,3 +73,58 @@ export interface Size {
   width: number;
   height: number;
 }
+
+/** One row of the table of modules (`ModuleRow` in crates/app/src/ui_commands/graph_modules.rs). */
+export interface ModuleRow {
+  name: string;
+  layer: string | null;
+  incoming: number;
+  outgoing: number;
+  /** Stability in thousandths, `null` for a module without any dependency. */
+  stability: number | null;
+  types: number;
+  in_cycle: boolean;
+  violations: number;
+}
+
+/** A dependency between two modules. */
+export interface ModuleEdge {
+  from: string;
+  to: string;
+  count: number;
+}
+
+/** A ring of modules and the edges that end it. */
+export interface ModuleCycle {
+  modules: string[];
+  edges: ModuleEdge[];
+  resolution: ModuleEdge[];
+}
+
+/** A dependency between two modules that breaks the layering. */
+export interface ModuleViolation {
+  edge: ModuleEdge;
+  from_layer: string;
+  to_layer: string;
+}
+
+/** A module that stands out. */
+export interface ModuleRisk {
+  module: string;
+  incoming: number;
+  stability: number;
+  depends_on: string;
+  depends_on_stability: number;
+}
+
+/** What the tab "Modules" shows beside the picture. */
+export interface ModulesInfo {
+  modules: ModuleRow[];
+  modules_more: number;
+  cycles: ModuleCycle[];
+  violations: ModuleViolation[];
+  risks: ModuleRisk[];
+}
+
+/** The answer of `graph.modules`: the picture as of `graph.layers`, and the numbers. */
+export type ModulesData = GraphData & ModulesInfo;
