@@ -44,7 +44,7 @@ Check before you delete.
 
 ### Keeping symbols on purpose (exception list)
 
-What should stay goes into the `.codeskimr.toml` of the project, so that the whole team sees the same:
+The button "Keep on purpose" in a row asks for a reason and writes the symbol into the exception list; "Lift" in the group "Left out" takes the entry out again. The button writes an entry with the qualified name and the reason, followed by the date, so that the list reads like a record. A symbol whose name holds `*` or `?` cannot be kept by button (the entry would cover more); write such an entry by hand. What should stay can also go into the `.codeskimr.toml` of the project directly, so that the whole team sees the same:
 
 ```toml
 [[unused.ignore]]
