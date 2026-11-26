@@ -16,7 +16,7 @@ pub struct ImportRequest<'a> {
     /// The folder of the project; the importer reads the lines of the files from there to convert
     /// the columns of the index.
     pub root: &'a FolderPath,
-    /// The folder below `root` in which the indexer ran (ADR 0099); `None` is `root` itself. The
+    /// The folder below `root` in which the indexer ran (ADR 0100); `None` is `root` itself. The
     /// index names its documents relative to it, so the import puts this folder in front.
     pub workspace: Option<&'a RelativePath>,
     /// The files whose hash is still the one of the snapshot, of the languages of the indexer.

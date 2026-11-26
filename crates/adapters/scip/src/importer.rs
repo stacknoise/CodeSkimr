@@ -55,7 +55,7 @@ fn creation_of<'a>(request: &ImportRequest<'a>) -> Creation<'a> {
 }
 
 /// Puts the folder of the run in front of every document: the indexer named its files relative
-/// to the folder it ran in, the snapshot names them relative to the project (ADR 0099).
+/// to the folder it ran in, the snapshot names them relative to the project (ADR 0100).
 fn place_in_workspace(index: &mut ScipIndex, workspace: &RelativePath) {
     // A document whose path cannot be placed is dropped, never mapped onto a file of the root.
     index.documents.retain_mut(|document| {

@@ -1,4 +1,4 @@
-//! Placing a relative path in a folder (workspaces of level 2, ADR 0099).
+//! Placing a relative path in a folder (workspaces of level 2, ADR 0100).
 
 use codeskimr_domain::{ModelError, RelativePath};
 

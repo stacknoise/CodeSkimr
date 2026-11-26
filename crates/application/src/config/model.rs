@@ -280,7 +280,7 @@ pub struct Level2 {
     /// may start another one from the browser (ADR 0072).
     pub ui_cooldown_seconds: u32,
     /// Most memory in megabytes per indexer, by the name of the indexer; `0` means the indexer
-    /// follows `max_memory_mb` (ADR 0099).
+    /// follows `max_memory_mb` (ADR 0100).
     pub indexer_memory_mb: BTreeMap<String, u32>,
 }
 
@@ -443,7 +443,7 @@ impl Level2 {
     }
 
     /// The limits of one run of the indexer called `indexer`: its own memory limit if
-    /// `indexer_memory_mb` sets one, else the global one (ADR 0099).
+    /// `indexer_memory_mb` sets one, else the global one (ADR 0100).
     #[must_use]
     pub fn limits_of(&self, indexer: &str) -> IndexLimits {
         let own = self

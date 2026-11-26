@@ -292,7 +292,7 @@ fn launch_of(
     })
 }
 
-/// The folder the indexer runs in: the project root, or the workspace below it (ADR 0099). A
+/// The folder the indexer runs in: the project root, or the workspace below it (ADR 0100). A
 /// workspace that is no folder inside the project (a link that leads out of it, or a folder that
 /// is gone) is refused, so the indexer never runs outside the project.
 fn workdir_of(job: &IndexJob<'_>) -> Result<PathBuf, IndexerError> {
@@ -417,7 +417,7 @@ impl IndexRunner for ProcessIndexRunner {
 }
 
 /// The outermost folders below `root` that hold one of the `wanted` files and have a source file
-/// among `files` (ADR 0099). A folder inside such a folder is part of its workspace: the indexer
+/// among `files` (ADR 0100). A folder inside such a folder is part of its workspace: the indexer
 /// finds the members from the outer manifest. Sorted, without duplicates.
 fn outermost_project_folders(
     wanted: &[String],

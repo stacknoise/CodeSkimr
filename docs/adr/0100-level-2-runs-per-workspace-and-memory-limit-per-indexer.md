@@ -1,4 +1,4 @@
-# 0099 – Level 2 runs per workspace and a memory limit per indexer
+# 0100 – Level 2 runs per workspace and a memory limit per indexer
 
 Status: accepted (follow-up of ADR 0033 and ADR 0087; asked for by the product owner in issues #738 and #739, 2026-11-26)
 
