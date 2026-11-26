@@ -16,5 +16,5 @@ The dependency map marks edges that lie on a cycle (`in_cycle`, ADR 0031), but a
 
 ## Consequences
 
-- The rule is built after the cycle detection of the module graph is merged (ADR 0104, step 4).
+- The rule is built after the cycle detection of the module graph is merged (ADR 0104, step 4). It is built: the places of a violation are the references of the weakest edge, found by the nearest enclosing namespace of the referring and the referred symbol, and a ring is held in `.codeskimr-baseline.toml` as `from = "A,B,C"` with an empty `to`.
 - Projects whose layers form a cycle on purpose keep `"off"` or hold the state.

@@ -9,18 +9,18 @@ use codeskimr_codes::i18n::{
     CLI_CONTEXT_CALLERS, CLI_CONTEXT_DEPENDENCIES, CLI_CONTEXT_DEPENDENCY_LINE, CLI_CONTEXT_FILE,
     CLI_CONTEXT_FILES, CLI_CONTEXT_HEAD, CLI_CONTEXT_LAYER, CLI_CONTEXT_NOTE_LINE,
     CLI_CONTEXT_NOTES, CLI_CONTEXT_SIGNATURE, CLI_QUERY_CUT, CLI_QUERY_IMPACT_LINE, CLI_QUERY_NONE,
-    CLI_QUERY_PRELIMINARY, CLI_QUERY_RULES_HEAD, CLI_QUERY_RULES_LINE, CLI_QUERY_RULES_NONE,
-    CLI_QUERY_RULES_RULE, CLI_QUERY_STALE, CLI_QUERY_SYMBOL_LINE, CLI_QUERY_UNUSED_LEFT_OUT,
-    CLI_QUERY_UNUSED_LEFT_OUT_LINE, CLI_QUERY_UNUSED_LINE, CLI_QUERY_USAGE_LINE,
-    CLI_RENAME_CONFLICT_LINE, CLI_RENAME_CONFLICTS, CLI_RENAME_DECLARATION_LINE,
-    CLI_RENAME_DISCLAIMER, CLI_RENAME_HEAD, CLI_RENAME_NOT_SEARCHED, CLI_RENAME_PUBLIC,
-    CLI_RENAME_SITES, CLI_RENAME_TEXT_LINE, CLI_RENAME_TEXTS,
+    CLI_QUERY_PRELIMINARY, CLI_QUERY_RULES_CYCLE_LINE, CLI_QUERY_RULES_HEAD, CLI_QUERY_RULES_LINE,
+    CLI_QUERY_RULES_NONE, CLI_QUERY_RULES_RULE, CLI_QUERY_STALE, CLI_QUERY_SYMBOL_LINE,
+    CLI_QUERY_UNUSED_LEFT_OUT, CLI_QUERY_UNUSED_LEFT_OUT_LINE, CLI_QUERY_UNUSED_LINE,
+    CLI_QUERY_USAGE_LINE, CLI_RENAME_CONFLICT_LINE, CLI_RENAME_CONFLICTS,
+    CLI_RENAME_DECLARATION_LINE, CLI_RENAME_DISCLAIMER, CLI_RENAME_HEAD, CLI_RENAME_NOT_SEARCHED,
+    CLI_RENAME_PUBLIC, CLI_RENAME_SITES, CLI_RENAME_TEXT_LINE, CLI_RENAME_TEXTS,
 };
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde_json::{Map, Value};
 
 use crate::consts::{
-    CONTROL_REPLACEMENT, JSON_NULL_TEXT, KIND_DECLARATION, LINE_BREAK, LIST_INDENT,
+    CHAIN_JOIN, CONTROL_REPLACEMENT, JSON_NULL_TEXT, KIND_DECLARATION, LINE_BREAK, LIST_INDENT,
     QUERY_SCHEMA_VERSION, TITLE_SEPARATOR, arg, key,
 };
 
@@ -370,7 +370,43 @@ fn unused_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<String>, I18n
     Ok(lines)
 }
 
+/// The line of a cycle violation: the way round the ring and what resolving it takes.
+fn cycle_line(speak: &Speaker<'_>, found: &Value, ring: &Value) -> Result<String, I18nError> {
+    let chain: Vec<String> = entries(ring, key::CHAIN)
+        .iter()
+        .filter_map(Value::as_str)
+        .map(plain)
+        .collect();
+    let numbers = [
+        (arg::CHAIN, text(chain.join(CHAIN_JOIN))),
+        (
+            arg::MODULES,
+            FluentValue::from(entries(ring, key::MODULES).len()),
+        ),
+        (arg::WEAKEST, count(ring, key::WEAKEST_COUNT)),
+        (arg::EDGES, count(ring, key::RESOLUTION_EDGES)),
+        (
+            arg::PLACES,
+            FluentValue::from(entries(found, key::PLACES).len()),
+        ),
+        (
+            arg::HELD,
+            text(
+                found
+                    .get(key::OLD)
+                    .and_then(Value::as_bool)
+                    .unwrap_or_default()
+                    .to_string(),
+            ),
+        ),
+    ];
+    speak.say(CLI_QUERY_RULES_CYCLE_LINE, &numbers)
+}
+
 fn rule_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
+    if let Some(ring) = found.get(key::RING).filter(|ring| ring.is_object()) {
+        return cycle_line(speak, found, ring);
+    }
     let place = entries(found, key::PLACES)
         .first()
         .cloned()

@@ -10,3 +10,7 @@ pub const ID_PUBLIC_API: &str = "public_api";
 pub const ID_SEPARATOR: &str = ":";
 /// Separates the two names of a `forbid` rule in its id.
 pub const ID_ARROW: &str = ">";
+/// Id of the kind `cycles`, the whole id of that rule.
+pub const ID_CYCLES: &str = "cycles";
+/// Joins the modules of a ring in the identity of a cycle violation.
+pub const ID_MODULES_JOIN: &str = ",";

@@ -1010,6 +1010,10 @@ impl codeskimr_application::ports::ReferencePlaces for Refs {
         }
         Ok(())
     }
+
+    fn namespaces(&self, _: SnapshotId) -> Result<NamespaceGraph, CodedError> {
+        Ok(NamespaceGraph::default())
+    }
 }
 
 impl codeskimr_application::rules::RulesChecks for FakeRules {

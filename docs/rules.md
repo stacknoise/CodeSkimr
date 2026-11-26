@@ -4,7 +4,7 @@ The project file `.codeskimr.toml` may hold the table `rules` besides the layers
 
 ```toml
 [rules]
-cycles = "deny"            # "off" (default) or "deny", see ADR 0105; built in a later step
+cycles = "deny"            # "off" (default) or "deny", see ADR 0105
 
 [[rules.forbid]]           # ADR 0106: Shop.Reports must not use Shop.Checkout
 from = "Shop.Reports"
@@ -19,6 +19,12 @@ internal = ["Shop.Data.Internal"]
 A prefix equals a name or lies above it up to a separator (`.` or `::`), the same as for layers. A `forbid` rule whose two prefixes contain each other, and a `public_api` rule whose `internal` is empty or not below `module`, are refused with `CFG-101` on the key `rules`.
 
 A violation is the symbol that refers and the symbol it must not reach, with every place of the reference. Its identity is the rule and the two names, never the line.
+
+## The cycle rule
+
+`cycles = "deny"` makes every ring of modules a violation (ADR 0105). A module is a node of the namespace graph of the scan, not collapsed; the detection is `find_cycles` of the module graph (ADR 0108). The rule is the first one in every answer, with the id `cycles`, and it is judged on the certain references only, like the others.
+
+A violation is one ring, not one reference. It shows the way round the ring (`A → B → C → A`) starting with its weakest edge, the number of modules, and the weakest edge: the dependency with the fewest references, whose places (every reference from a symbol of the one module into the other) are the places of the violation. "Resolvable over 1 edge with 2 places" is a hint from the graph, not a promise; the compiler decides what can be moved. Its identity in the held state is the sorted list of its modules (`from = "A,B,C"`, `to = ""`), so a ring that grows or shrinks by one module is a new violation.
 
 ## In the terminal and for agents
 

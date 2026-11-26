@@ -65,7 +65,7 @@ pub use module_graph::{
     ModuleCoupling, ModuleCycle, ModuleRisk, RiskLimits, find_cycles, find_risks, module_coupling,
 };
 pub use namespace_graph::{
-    NamespaceEdge, NamespaceGraph, NamespaceNode, name_parts, namespace_graph,
+    NamespaceEdge, NamespaceGraph, NamespaceNode, NamespaceOwners, name_parts, namespace_graph,
 };
 pub use project::{
     BranchName, CredentialId, FolderPath, GitUrl, Layer, LayerName, Project, ProjectId,

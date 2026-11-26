@@ -5,6 +5,7 @@ export const COMMAND = {
 
 /** The kinds of rules the command names. */
 export const KIND = {
+  cycles: "cycles",
   forbid: "forbid",
   publicApi: "public_api",
 } as const;
