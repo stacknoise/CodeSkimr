@@ -20,7 +20,7 @@ Option 2.
 2. **Storage.** The scope is stored in the database file of the project (ADR 0095), tables `scope_languages` and `scope_folders` (migration 0024). It does not enter the `Project` type; the port `ScopeStore` writes it, `ProjectRepository::scope` reads it.
 3. **Effect.** Discovery applies the scope: the walk does not enter a left-out folder and skips files of a left-out language before it hashes them. A change of the scope takes effect with the next scan. Files that leave the scope are treated as removed files by an incremental scan.
 4. **Commands.** `scope.get` (read) returns the scope and an overview: per language and per folder the number of files and whether it is covered, the project files found in folders (for stage 2), and a hint when the list is cut (`scan.overview_depth`, `scan.overview_max_folders`). For a folder project the overview is a live listing without filters, for a Git project it comes from the newest snapshot; stored entries are always shown so that they can be switched on again. `scope.set` (register projects) replaces the scope. The console has `codeskimr scope`, so the UI and the console can do the same.
-5. **Limits.** `scan.max_scope_entries` caps the number of entries; an invalid scope is the error PRJ-103 (`project_scope_invalid`). Folders hidden by `.gitignore` or by `excluded_folders` are not offered in the overview.
+5. **Limits.** `scan.max_scope_entries` caps the number of entries; an invalid scope is the error PRJ-103 (`project_scope_invalid`). Folders hidden by `.gitignore` or by `excluded_folders` are not offered in the overview. Folder names are compared as text, with case: on a file system that ignores case, `Src` does not match `src`.
 6. **Stage 2 per workspace and the interface** (an own tab "Scope", the hint when a folder is added as a second project, the new text of the stage 2 report) follow in separate pull requests on this decision.
 
 ## Consequences
@@ -28,5 +28,6 @@ Option 2.
 - One migration; projects without entries behave as before.
 - The overview of a folder project walks the tree once per call; it is bounded by the two limits above.
 - Notes and alerts attached to symbols of files that leave the scope behave as for removed symbols.
+- `matches_project_file` and its wildcard constant moved from the indexer adapter to the application ports: the overview needs them to name the project files of a folder, and an adapter may not depend on another adapter.
 - A project may cover a subfolder that another project also covers. No check blocks this.
 - BLUEPRINT 6.2, 7 and 10.2 and the error catalogue are updated with this decision.
