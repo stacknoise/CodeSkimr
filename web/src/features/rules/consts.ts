@@ -2,6 +2,7 @@
 export const COMMAND = {
   show: "rules.show",
   hold: "rules.hold",
+  openFile: "project_file.open",
 } as const;
 
 /** The kinds of rules the command names. */

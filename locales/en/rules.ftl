@@ -45,6 +45,11 @@ rules-hold-done = { $count ->
    *[other] State held on { $date }: { $count } violations now count as old burdens. Commit the file .codeskimr-baseline.toml.
 }
 rules-hold-failed = The state could not be held.
+rules-open = Open .codeskimr.toml
+rules-open-hint = Opens the project file with the program your system names for it. If it is missing, it is created empty.
+rules-open-git = Folder projects only: a Git project has no project file.
+rules-open-created = The file { $file } did not exist and was created empty.
+rules-open-failed = The project file could not be opened.
 rules-layers-title = Layers
 rules-layers-allowed = { $layer } → { $uses }
 rules-layers-nothing = nothing

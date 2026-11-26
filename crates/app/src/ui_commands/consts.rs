@@ -351,6 +351,12 @@ pub const RULES_SHOW: &str = "rules.show";
 pub const RULES_SHOW_TITLE: &str = i18n::COMMAND_RULES_SHOW_TITLE;
 /// Description key of `rules.show`.
 pub const RULES_SHOW_DESCRIPTION: &str = i18n::COMMAND_RULES_SHOW_DESCRIPTION;
+/// Id of the command that opens the project file of a folder project.
+pub const PROJECT_FILE_OPEN: &str = "project_file.open";
+/// Title key of `project_file.open`.
+pub const PROJECT_FILE_OPEN_TITLE: &str = i18n::COMMAND_PROJECT_FILE_OPEN_TITLE;
+/// Description key of `project_file.open`.
+pub const PROJECT_FILE_OPEN_DESCRIPTION: &str = i18n::COMMAND_PROJECT_FILE_OPEN_DESCRIPTION;
 /// Id of the command that holds the state of the rules: every violation counts as old burden.
 pub const RULES_HOLD: &str = "rules.hold";
 /// Title key of `rules.hold`.
@@ -483,3 +489,7 @@ pub const RENAME_PREVIEW_TITLE: &str = i18n::COMMAND_RENAME_PREVIEW_TITLE;
 pub const RENAME_PREVIEW_DESCRIPTION: &str = i18n::COMMAND_RENAME_PREVIEW_DESCRIPTION;
 /// Most places and text lines `rename.preview` lists; the counts stay whole.
 pub const RENAME_PREVIEW_LIMIT: usize = 500;
+
+/// The bits of a Unix file mode that make a file executable (owner, group, other).
+#[cfg(unix)]
+pub(super) const EXECUTE_BITS: u32 = 0o111;

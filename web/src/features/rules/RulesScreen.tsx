@@ -9,6 +9,9 @@ import {
   holdFailed,
   holdState,
   loadRules,
+  openedNow,
+  openFailed,
+  openProjectFile,
   resetRules,
   rulesData,
   rulesFailure,
@@ -126,6 +129,52 @@ function HoldButton(props: { project: number; answer: RulesOut | null }) {
   );
 }
 
+/** The button that opens the project file with the program of the system. Like holding the state
+ * it needs a folder project. */
+function OpenButton(props: { project: number; answer: RulesOut | null }) {
+  const [busy, setBusy] = createSignal(false);
+  const open = async () => {
+    setBusy(true);
+    await openProjectFile(props.project);
+    setBusy(false);
+  };
+  return (
+    <button
+      type="button"
+      class={styles.hold}
+      disabled={busy() || props.answer?.holdable !== true}
+      title={
+        props.answer?.holdable === false
+          ? t(I18N_KEYS.RULES_OPEN_GIT)
+          : t(I18N_KEYS.RULES_OPEN_HINT)
+      }
+      onClick={open}
+    >
+      {t(I18N_KEYS.RULES_OPEN)}
+    </button>
+  );
+}
+
+/** What opening the project file did: that it was created, or why it failed. */
+function OpenResult() {
+  return (
+    <>
+      <Show when={openedNow()?.created}>
+        <p class={styles.note} role="status">
+          {t(I18N_KEYS.RULES_OPEN_CREATED, { file: openedNow()?.file ?? "" })}
+        </p>
+      </Show>
+      <Show when={openFailed() !== undefined}>
+        <div class={styles.alert} role="alert">
+          {openFailed() === null
+            ? t(I18N_KEYS.RULES_OPEN_FAILED)
+            : errorText(openFailed() as ErrorCode)}
+        </div>
+      </Show>
+    </>
+  );
+}
+
 /** What holding the state did: the day and how many old burdens the file has now, or why it
  * failed. */
 function HoldResult() {
@@ -168,7 +217,12 @@ export function RulesScreen() {
           <p class={styles.sub}>{t(I18N_KEYS.RULES_SUBTITLE)}</p>
         </div>
         <Show when={activeProject()}>
-          {(project) => <HoldButton project={project()} answer={rulesData()} />}
+          {(project) => (
+            <div class={styles.actions}>
+              <OpenButton project={project()} answer={rulesData()} />
+              <HoldButton project={project()} answer={rulesData()} />
+            </div>
+          )}
         </Show>
       </header>
       <Show
@@ -177,6 +231,7 @@ export function RulesScreen() {
       >
         <Failure />
         <HoldResult />
+        <OpenResult />
         <Show when={rulesData()}>{(data) => <Answer data={data()} />}</Show>
       </Show>
     </>

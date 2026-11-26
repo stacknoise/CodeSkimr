@@ -29,6 +29,9 @@ mod layers_tests;
 mod level2;
 mod level2_revoke;
 mod preferences;
+mod project_file_open;
+#[cfg(test)]
+mod project_file_open_tests;
 mod projects;
 mod projects_pick;
 #[cfg(test)]
@@ -91,6 +94,7 @@ use codeskimr_source::{FolderMentions, FolderText};
 pub(crate) use status::{mark_ready, mark_started};
 
 use crate::clock::SystemClock;
+use crate::file_opener::SystemOpener;
 use crate::folder_dialog::{FolderPicker, SystemPicker};
 use crate::level2_runs::Level2Runs;
 use crate::locations::Locations;
@@ -123,6 +127,7 @@ use level2::Level2StatusCommand;
 pub(crate) use level2::{Window, confirmation_desk};
 use level2_revoke::Level2Revoke;
 use preferences::{GetPreferences, PreferencesFile, SetPreferences};
+use project_file_open::ProjectFileOpen;
 use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
 use projects_pick::{FolderDialogInfo, PickFolder};
 use projects_remove::RemoveProject;
@@ -459,6 +464,7 @@ fn expose_project_file(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<LayersSet>()?;
     api.expose::<RulesShow>()?;
     api.expose::<RulesHold>()?;
+    api.expose::<ProjectFileOpen>()?;
     api.expose::<UnusedKeep>()?;
     api.expose::<UnusedLift>()?;
     Ok(())
@@ -672,6 +678,20 @@ fn register_usages(
     add(registry, UsagesCode { ports })
 }
 
+/// The command that opens the project file with the program of the system (ADR 0111).
+fn register_project_file_open(
+    registry: &mut Registry,
+    ports: &Arc<ExplorerPorts>,
+) -> Result<(), CodedError> {
+    add(
+        registry,
+        ProjectFileOpen {
+            ports: Arc::clone(ports),
+            opener: Arc::new(SystemOpener),
+        },
+    )
+}
+
 /// The commands of the project file, see [`expose_project_file`].
 fn register_project_file(
     registry: &mut Registry,
@@ -701,6 +721,7 @@ fn register_project_file(
             ports: Arc::clone(ports),
         },
     )?;
+    register_project_file_open(registry, ports)?;
     add(
         registry,
         UnusedKeep {

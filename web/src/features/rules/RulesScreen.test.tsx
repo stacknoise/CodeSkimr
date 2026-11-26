@@ -153,6 +153,33 @@ describe("RulesScreen", () => {
     expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
 
+  /** Clicks "Open .codeskimr.toml" while `project_file.open` answers with `reply`. */
+  async function clickOpen(reply: Response): Promise<void> {
+    fetchMock.mockImplementation((path: string) =>
+      Promise.resolve(path.endsWith("project_file.open") ? reply : answer(ANSWER)),
+    );
+    render(() => <RulesScreen />);
+    await screen.findByText("Layers");
+    fireEvent.click(screen.getByRole("button", { name: "Open .codeskimr.toml" }));
+  }
+
+  it("opens the project file with the button and says when it was created", async () => {
+    await clickOpen(answer({ file: ".codeskimr.toml", created: true }));
+    expect(await screen.findByText(/did not exist and was created empty/)).toBeInTheDocument();
+  });
+
+  it("shows the failure of opening", async () => {
+    await clickOpen(answer({ code: "APP-605" }, 500));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+  });
+
+  it("switches the open button off for a Git project", async () => {
+    serve({ holdable: false });
+    render(() => <RulesScreen />);
+    await screen.findByText("Layers");
+    expect(screen.getByRole("button", { name: "Open .codeskimr.toml" })).toBeDisabled();
+  });
+
   it("folds the rest of the violations away and shows them on request", async () => {
     serve();
     render(() => <RulesScreen />);

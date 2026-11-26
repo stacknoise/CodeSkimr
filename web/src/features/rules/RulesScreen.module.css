@@ -211,3 +211,9 @@
 .hold {
     margin-top: var(--space-4);
 }
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8);
+}
