@@ -44,7 +44,7 @@ Prüfen Sie, bevor Sie löschen.
 
 ### Symbole bewusst behalten (Ausnahmeliste)
 
-Was bleiben soll, tragen Sie in der `.codeskimr.toml` des Projekts ein, damit alle im Team dasselbe sehen:
+Der Knopf „Bewusst behalten“ in einer Zeile fragt nach einem Grund und schreibt das Symbol in die Ausnahmeliste; „Aufheben“ in der Gruppe „Ausgenommen“ nimmt den Eintrag wieder heraus. Der Knopf schreibt einen Eintrag mit dem qualifizierten Namen und dem Grund, gefolgt vom Datum, damit die Liste wie ein Protokoll liest. Ein Symbol, dessen Name `*` oder `?` enthält, lässt sich nicht per Knopf behalten (der Eintrag würde mehr abdecken); einen solchen Eintrag schreiben Sie von Hand. Was bleiben soll, können Sie auch direkt in der `.codeskimr.toml` des Projekts eintragen, damit alle im Team dasselbe sehen:
 
 ```toml
 [[unused.ignore]]

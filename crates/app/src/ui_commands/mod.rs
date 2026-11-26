@@ -55,6 +55,9 @@ mod temp_file;
 #[cfg(test)]
 pub(crate) mod tests;
 mod ui_settings;
+mod unused_keep;
+#[cfg(test)]
+mod unused_keep_tests;
 mod usages;
 mod usages_code;
 
@@ -119,6 +122,7 @@ use stats::{StatsOverview, StatsPorts, StatsRanking};
 use status::{BudgetTargets, StatusInfo};
 use symbol::ExplorerSymbol;
 use ui_settings::{GetUiSettings, SetIndexerMemory};
+use unused_keep::{UnusedKeep, UnusedLift};
 use usages::{UsagesPorts, UsagesQuery};
 use usages_code::UsagesCode;
 
@@ -441,6 +445,8 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<GraphLayers>()?;
     api.expose::<LayersGet>()?;
     api.expose::<LayersSet>()?;
+    api.expose::<UnusedKeep>()?;
+    api.expose::<UnusedLift>()?;
     api.expose::<StatusInfo>()?;
     api.expose::<StatsOverview>()?;
     api.expose::<StatsRanking>()?;
@@ -622,6 +628,18 @@ fn register_explorer(
     add(
         registry,
         LayersSet {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(
+        registry,
+        UnusedKeep {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(
+        registry,
+        UnusedLift {
             ports: Arc::clone(&ports),
         },
     )?;

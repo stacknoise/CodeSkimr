@@ -1,7 +1,15 @@
 import { I18N_KEYS } from "../../shared/i18n/keys";
 
 /** Ids of the commands of the statistics (crates/app/src/ui_commands/consts.rs). */
-export const COMMAND = { overview: "stats.overview", ranking: "stats.ranking" } as const;
+export const COMMAND = {
+  overview: "stats.overview",
+  ranking: "stats.ranking",
+  keep: "unused.keep",
+  lift: "unused.lift",
+} as const;
+
+/** How many characters of an ISO timestamp make the date: `2026-11-26`. */
+export const ISO_DATE_LENGTH = 10;
 
 /** The views of the screen: the overview and one tab per ranking (ADR 0081). */
 export const TAB = {

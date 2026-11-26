@@ -9,6 +9,7 @@ import { cx } from "../../shared/ui/cx";
 import { NoticeBox } from "../../shared/ui/NoticeBox";
 import { SlowLoad } from "../../shared/ui/SlowLoad";
 import { count } from "../projects/format";
+import { SOURCE_KIND } from "../projects/consts";
 import { projects, refreshProjects } from "../projects/projects";
 import { Histogram, Hotspots } from "./Charts";
 import {
@@ -47,6 +48,7 @@ import {
   statsTab,
   statsTests,
 } from "./stats";
+import { keepFailure } from "./keep";
 import { LeftOutList } from "./LeftOut";
 import type { RankingAnswer, RankingName, Row, Tab, UnusedCounts } from "./types";
 import { HatchPattern } from "./UsageBar";
@@ -158,7 +160,21 @@ function ComplexityCharts(props: { rows: Row[] }) {
   );
 }
 
-function TableCard(props: { ranking: RankingName; answer: RankingAnswer; project: number }) {
+/** What went wrong when a symbol was kept or an exception lifted. */
+function KeepFailure() {
+  return (
+    <Show when={keepFailure()}>
+      {(code) => <p role="alert">{t(I18N_KEYS.STATS_KEEP_FAILED, { code: code() })}</p>}
+    </Show>
+  );
+}
+
+function TableCard(props: {
+  ranking: RankingName;
+  answer: RankingAnswer;
+  project: number;
+  editable: boolean;
+}) {
   return (
     <div class={styles.tableCard}>
       <Show
@@ -169,6 +185,7 @@ function TableCard(props: { ranking: RankingName; answer: RankingAnswer; project
           ranking={props.ranking}
           rows={props.answer.rows}
           selected={selectedRow()}
+          keep={{ project: props.project, editable: props.editable }}
           onSelect={(row) => selectRow(row.id)}
           onOpen={(row) => openRow(props.project, row)}
         />
@@ -183,11 +200,17 @@ function TableCard(props: { ranking: RankingName; answer: RankingAnswer; project
   );
 }
 
+/** The languages of a project and whether it has a project file to write (a folder). */
+function useProjectInfo(project: () => number) {
+  const row = () => projects().find((entry) => entry.id === project());
+  return {
+    languages: () => (row()?.languages ?? []).map((info) => info.language),
+    editable: () => row()?.kind === SOURCE_KIND.folder,
+  };
+}
+
 function RankingView(props: { ranking: RankingName; answer: RankingAnswer; project: number }) {
-  const languages = () =>
-    (projects().find((row) => row.id === props.project)?.languages ?? []).map(
-      (info) => info.language,
-    );
+  const { languages, editable } = useProjectInfo(() => props.project);
   return (
     <>
       <Show when={props.ranking === TAB.unused && props.answer.unused}>
@@ -197,8 +220,16 @@ function RankingView(props: { ranking: RankingName; answer: RankingAnswer; proje
         <ComplexityCharts rows={props.answer.rows} />
       </Show>
       <Filters ranking={props.ranking} languages={languages()} />
+      <Show when={props.ranking === TAB.unused}>
+        <KeepFailure />
+      </Show>
       <div class={styles.split}>
-        <TableCard ranking={props.ranking} answer={props.answer} project={props.project} />
+        <TableCard
+          ranking={props.ranking}
+          answer={props.answer}
+          project={props.project}
+          editable={editable()}
+        />
         <SidePanel
           row={currentRow()}
           onOpen={(row) => openRow(props.project, row)}
@@ -209,6 +240,8 @@ function RankingView(props: { ranking: RankingName; answer: RankingAnswer; proje
         <LeftOutList
           items={props.answer.left_out}
           total={props.answer.unused?.left_out ?? props.answer.left_out.length}
+          project={props.project}
+          editable={editable()}
         />
       </Show>
     </>

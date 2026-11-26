@@ -18,13 +18,13 @@ struct Written<'a> {
     layers: &'a [LayerRule],
 }
 
-/// `text` without its `[[layers]]` tables: a table runs to the next table header.
-fn without_layer_tables(text: &str) -> String {
+/// `text` without its tables that start with `header`: a table runs to the next table header.
+pub(super) fn without_tables(text: &str, header: &str) -> String {
     let mut inside = false;
     let mut kept = Vec::new();
     for line in text.lines() {
         let head = line.trim_start();
-        if head.starts_with(LAYER_TABLE_HEADER) {
+        if head.starts_with(header) {
             inside = true;
         } else if head.starts_with(TABLE_HEADER_START) {
             inside = false;
@@ -67,19 +67,33 @@ fn with_known_limits(text: &str, mut wanted: Vec<LayerRule>) -> Vec<LayerRule> {
 /// - `CFG-101` if the layers are not valid: a name or namespace is not valid, a name is used
 ///   twice, or a layer has no namespace.
 pub fn with_layers(text: &str, wanted: Vec<LayerRule>) -> Result<String, ConfigError> {
-    ConfigLayer::parse(LayerSource::Project, text)?;
     let rules = with_known_limits(text, wanted);
-    let mut result = without_layer_tables(text).trim_end().to_owned();
-    if !rules.is_empty() {
-        let block =
-            toml::to_string(&Written { layers: &rules }).map_err(|_| ConfigError::OutOfRange {
-                key: super::consts::keys::LAYERS,
-                violation: Violation::MustBeLayerRule,
-            })?;
+    let block = if rules.is_empty() {
+        String::new()
+    } else {
+        toml::to_string(&Written { layers: &rules }).map_err(|_| ConfigError::OutOfRange {
+            key: super::consts::keys::LAYERS,
+            violation: Violation::MustBeLayerRule,
+        })?
+    };
+    rewrite(text, LAYER_TABLE_HEADER, &block)
+}
+
+/// The text of a project file without its tables that start with `header`, and with `block` (the
+/// tables written anew, empty if there are none) at the end. The result must be a valid project
+/// file; the line ends of `text` are kept.
+///
+/// # Errors
+/// - `CFG-102` if `text` is not valid TOML (the file is then left alone).
+/// - `CFG-101` if the result is not a valid configuration.
+pub(super) fn rewrite(text: &str, header: &str, block: &str) -> Result<String, ConfigError> {
+    ConfigLayer::parse(LayerSource::Project, text)?;
+    let mut result = without_tables(text, header).trim_end().to_owned();
+    if !block.is_empty() {
         if !result.is_empty() {
             result.push_str(BLOCK_SEPARATOR);
         }
-        result.push_str(&block);
+        result.push_str(block);
     }
     Config::resolve(&[ConfigLayer::parse(LayerSource::Project, &result)?])?;
     if !result.is_empty() {
