@@ -5,6 +5,7 @@ import { TONE } from "../../shared/ui/consts";
 import { Pill } from "../../shared/ui/Pill";
 import { KindBadge } from "../explorer/KindBadge";
 import { LIST_JOIN } from "./consts";
+import { liftRule } from "./keep";
 import styles from "./LeftOut.module.css";
 import type { IgnoreRule, LeftOut } from "./types";
 
@@ -26,7 +27,7 @@ function RuleView(props: { rule: IgnoreRule }) {
   );
 }
 
-function Line(props: { item: LeftOut }) {
+function Line(props: { item: LeftOut; project: number; editable: boolean }) {
   const [open, setOpen] = createSignal(false);
   return (
     <li class={styles.line}>
@@ -43,6 +44,15 @@ function Line(props: { item: LeftOut }) {
         <button type="button" aria-expanded={open()} onClick={() => setOpen(!open())}>
           {t(open() ? I18N_KEYS.STATS_LEFT_OUT_HIDE : I18N_KEYS.STATS_LEFT_OUT_SHOW)}
         </button>
+        <button
+          type="button"
+          disabled={!props.editable}
+          title={props.editable ? undefined : t(I18N_KEYS.STATS_KEEP_GIT)}
+          aria-label={t(I18N_KEYS.STATS_LIFT_ROW, { name: props.item.row.name })}
+          onClick={() => void liftRule(props.project, props.item.rule)}
+        >
+          {t(I18N_KEYS.STATS_LIFT_BUTTON)}
+        </button>
       </div>
       <Show when={open()}>
         <RuleView rule={props.item.rule} />
@@ -53,7 +63,12 @@ function Line(props: { item: LeftOut }) {
 
 /** The symbols the exception list of the project leaves out of the ranking, with the entry that
  * does (ADR 0101); `total` counts all of them, `items` holds the first ones. */
-export function LeftOutList(props: { items: LeftOut[]; total: number }) {
+export function LeftOutList(props: {
+  items: LeftOut[];
+  total: number;
+  project: number;
+  editable: boolean;
+}) {
   return (
     <section class={styles.section} aria-label={t(I18N_KEYS.STATS_LEFT_OUT_TITLE)}>
       <h3>{t(I18N_KEYS.STATS_LEFT_OUT_TITLE)}</h3>
@@ -64,7 +79,9 @@ export function LeftOutList(props: { items: LeftOut[]; total: number }) {
         </p>
       </Show>
       <ul class={styles.list}>
-        <For each={props.items}>{(item) => <Line item={item} />}</For>
+        <For each={props.items}>
+          {(item) => <Line item={item} project={props.project} editable={props.editable} />}
+        </For>
       </ul>
     </section>
   );

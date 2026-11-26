@@ -330,6 +330,18 @@ pub const LAYERS_GET: &str = "layers.get";
 pub const LAYERS_GET_TITLE: &str = i18n::COMMAND_LAYERS_GET_TITLE;
 /// Description key of `layers.get`.
 pub const LAYERS_GET_DESCRIPTION: &str = i18n::COMMAND_LAYERS_GET_DESCRIPTION;
+/// Id of the command that keeps a symbol on purpose (an entry of `[[unused.ignore]]`).
+pub const UNUSED_KEEP: &str = "unused.keep";
+/// Title key of `unused.keep`.
+pub const UNUSED_KEEP_TITLE: &str = i18n::COMMAND_UNUSED_KEEP_TITLE;
+/// Description key of `unused.keep`.
+pub const UNUSED_KEEP_DESCRIPTION: &str = i18n::COMMAND_UNUSED_KEEP_DESCRIPTION;
+/// Id of the command that takes an entry out of `[[unused.ignore]]` again.
+pub const UNUSED_LIFT: &str = "unused.lift";
+/// Title key of `unused.lift`.
+pub const UNUSED_LIFT_TITLE: &str = i18n::COMMAND_UNUSED_LIFT_TITLE;
+/// Description key of `unused.lift`.
+pub const UNUSED_LIFT_DESCRIPTION: &str = i18n::COMMAND_UNUSED_LIFT_DESCRIPTION;
 /// Id of the command that writes the layers into the project file.
 pub const LAYERS_SET: &str = "layers.set";
 /// Title key of `layers.set`.

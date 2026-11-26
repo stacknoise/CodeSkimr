@@ -6,6 +6,12 @@ use std::str::Chars;
 
 use crate::consts::{GLOB_ANY, GLOB_ONE};
 
+/// Whether `text` holds a wildcard, so that as a pattern it would match more than itself.
+#[must_use]
+pub fn has_wildcard(text: &str) -> bool {
+    text.contains([GLOB_ANY, GLOB_ONE])
+}
+
 /// Whether `text` matches the glob `pattern` as a whole. It allocates nothing: the exception list
 /// is asked once per symbol, which is millions of times for a large project.
 #[must_use]

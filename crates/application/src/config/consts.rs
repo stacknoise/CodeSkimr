@@ -130,6 +130,10 @@ pub mod keys {
     pub const LAYERS: &str = "layers";
     /// `unused.ignore`
     pub const UNUSED_IGNORE: &str = "unused.ignore";
+    /// `unused`
+    pub const UNUSED: &str = "unused";
+    /// `ignore`, the key of the exception list inside `unused`.
+    pub const IGNORE: &str = "ignore";
     /// `conventions.max_function_lines`
     pub const MAX_FUNCTION_LINES: &str = "conventions.max_function_lines";
     /// `conventions.max_cognitive_complexity`
@@ -241,6 +245,8 @@ pub const LOWER_ONLY_SCAN_KEYS: [&str; 4] = [
 
 /// Header of a table in an array of tables, as it starts a layer in `.codeskimr.toml`.
 pub const LAYER_TABLE_HEADER: &str = "[[layers]]";
+/// Header of an entry of the exception list of the unused symbols.
+pub const UNUSED_TABLE_HEADER: &str = "[[unused.ignore]]";
 /// First character of every table header line.
 pub const TABLE_HEADER_START: char = '[';
 /// Separates the kept part of the project file from the written layers.

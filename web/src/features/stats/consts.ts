@@ -1,7 +1,15 @@
 import { I18N_KEYS } from "../../shared/i18n/keys";
 
 /** Ids of the commands of the statistics (crates/app/src/ui_commands/consts.rs). */
-export const COMMAND = { overview: "stats.overview", ranking: "stats.ranking" } as const;
+export const COMMAND = {
+  overview: "stats.overview",
+  ranking: "stats.ranking",
+  keep: "unused.keep",
+  lift: "unused.lift",
+} as const;
+
+/** The locale whose short date is `2026-11-26`: the local date of today as the reason gets it. */
+export const DATE_LOCALE = "sv-SE";
 
 /** The views of the screen: the overview and one tab per ranking (ADR 0081). */
 export const TAB = {
