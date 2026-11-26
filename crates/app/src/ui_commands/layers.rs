@@ -3,7 +3,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
-use std::io::{ErrorKind, Read, Write};
+use std::io::Write;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -18,9 +18,10 @@ use serde::{Deserialize, Serialize};
 
 use super::consts::{
     LAYERS_GET, LAYERS_GET_DESCRIPTION, LAYERS_GET_TITLE, LAYERS_SET, LAYERS_SET_DESCRIPTION,
-    LAYERS_SET_TITLE, PROJECT_FILE_MAX_BYTES,
+    LAYERS_SET_TITLE,
 };
 use super::explorer::{ExplorerPorts, namespace_of};
+use crate::project_file::{PROJECT_FILE_MAX_BYTES, read_project_file};
 
 /// The input of `layers.get`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -148,29 +149,6 @@ fn rule_of(entry: &LayerEntry) -> LayerRule {
         name: entry.name.clone(),
         namespaces: entry.namespaces.clone(),
         may_use: None,
-    }
-}
-
-/// The text of the project file; empty if there is none. A link or anything but a file is
-/// refused, and no more than the limit is read, however the file grows while it is read.
-pub(crate) fn read_project_file(path: &Path) -> Result<String, CodedError> {
-    let unreadable = || CodedError::new(ErrorCode::ConfigParseFailed);
-    let meta = match fs::symlink_metadata(path) {
-        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(String::new()),
-        Err(_) => return Err(unreadable()),
-        Ok(meta) => meta,
-    };
-    if !meta.is_file() {
-        return Err(unreadable());
-    }
-    let mut text = String::new();
-    let read = fs::File::open(path).and_then(|file| {
-        file.take(PROJECT_FILE_MAX_BYTES + 1)
-            .read_to_string(&mut text)
-    });
-    match read {
-        Ok(_) if text.len() as u64 <= PROJECT_FILE_MAX_BYTES => Ok(text),
-        _ => Err(unreadable()),
     }
 }
 

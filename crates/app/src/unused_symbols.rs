@@ -12,7 +12,7 @@ use codeskimr_application::ports::CodeStatistics;
 use codeskimr_application::unused::{Findings, UnusedSymbols, judge};
 use codeskimr_domain::{Project, ProjectSource, RankingQuery, SnapshotId};
 
-use crate::ui_commands::layers::read_project_file;
+use crate::project_file::read_project_file;
 
 /// The exception list of a folder project; empty for a Git project or without a project file.
 ///

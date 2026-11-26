@@ -66,6 +66,8 @@ fn the_assessment_cuts_the_list_but_not_the_counts() {
     assert_eq!(answer["total"], 1);
     assert_eq!(answer["unused"][0]["name"], "Spare");
     assert_eq!(answer["counts"]["likely"], 1);
+    // The filter does not touch the symbols the exception list took out.
+    assert_eq!(answer["left_out"][0]["name"], "Migrate");
 }
 
 #[test]

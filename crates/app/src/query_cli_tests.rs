@@ -232,3 +232,61 @@ fn unused_lists_what_nobody_calls_with_the_reason_and_leaves_out_what_is_called(
     let text = world.run(&unused(false), "en").unwrap();
     assert!(text.contains("Demo.Caller.Run"), "{text}");
 }
+
+#[test]
+fn an_entry_of_the_exception_list_moves_the_symbol_to_left_out_with_its_reason() {
+    let world = World::new();
+    let list = "[[unused.ignore]]\nsymbols = [\"*.Run\"]\nreason = \"called by the host\"\n";
+    fs::write(world.folder.join(".codeskimr.toml"), list).unwrap();
+    let answer = world.json(&unused(true));
+    let names: Vec<&str> = answer["unused"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| row["qualified_name"].as_str().unwrap())
+        .collect();
+    assert!(!names.contains(&"Demo.Caller.Run"), "{names:?}");
+    assert_eq!(answer["left_out"][0]["qualified_name"], "Demo.Caller.Run");
+    assert_eq!(
+        answer["left_out"][0]["rule"]["reason"],
+        "called by the host"
+    );
+    assert_eq!(answer["counts"]["left_out"], 1);
+    let text = world.run(&unused(false), "en").unwrap();
+    assert!(text.contains("because: called by the host"), "{text}");
+}
+
+#[test]
+fn a_broken_exception_list_fails_the_command_with_its_code() {
+    let world = World::new();
+    let file = world.folder.join(".codeskimr.toml");
+    for (text, code) in [
+        (
+            "[[unused.ignore]]\nsymbols = [\"*.Run\"]\n",
+            ErrorCode::ConfigInvalidValue,
+        ),
+        ("[[unused.ignore]\n", ErrorCode::ConfigParseFailed),
+    ] {
+        fs::write(&file, text).unwrap();
+        let failure = world.run(&unused(true), "en").unwrap_err();
+        assert_eq!(failure.code(), code, "{text}");
+    }
+}
+
+#[test]
+fn every_assessment_and_kind_the_command_line_offers_is_accepted_by_the_tool() {
+    let world = World::new();
+    for assessment in ["likely", "public", "approximate"] {
+        for kind in ["all", "types", "functions"] {
+            let action = QueryAction::Unused(UnusedQuery {
+                kind: Some(kind.to_owned()),
+                language: None,
+                assessment: Some(assessment.to_owned()),
+                include_tests: false,
+                limit: None,
+                target: target(true),
+            });
+            assert!(world.run(&action, "en").is_ok(), "{assessment} {kind}");
+        }
+    }
+}

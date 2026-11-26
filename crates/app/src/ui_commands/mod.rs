@@ -22,7 +22,7 @@ mod graph_focus;
 mod graph_types;
 mod graph_wrap;
 mod indexers;
-pub(crate) mod layers;
+mod layers;
 #[cfg(test)]
 mod layers_tests;
 mod level2;

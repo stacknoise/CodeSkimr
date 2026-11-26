@@ -322,8 +322,6 @@ pub const LAYERS_SET: &str = "layers.set";
 pub const LAYERS_SET_TITLE: &str = i18n::COMMAND_LAYERS_SET_TITLE;
 /// Description key of `layers.set`.
 pub const LAYERS_SET_DESCRIPTION: &str = i18n::COMMAND_LAYERS_SET_DESCRIPTION;
-/// Largest project file that is read; a bigger one is refused.
-pub const PROJECT_FILE_MAX_BYTES: u64 = 1_048_576;
 
 /// Id of the command that lists annotations.
 pub const ANNOTATIONS_LIST: &str = "annotations.list";

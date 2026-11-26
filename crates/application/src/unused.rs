@@ -63,10 +63,10 @@ pub fn judge(
     }
     let tests_hidden = with_tests.saturating_sub(ranked.len());
     let assess = |fact: &SymbolFacts| {
-        let language = approximate
-            .iter()
-            .any(|candidate| candidate == fact.language.as_str());
-        assessment_rank(Assessment::of(fact.visibility, language))
+        assessment_rank(Assessment::of(
+            fact.visibility,
+            is_approximate(fact, approximate),
+        ))
     };
     ranked.sort_by_key(|fact| assess(fact));
     let mut judged = Judged {
@@ -106,14 +106,19 @@ pub struct Finding {
     pub test: bool,
 }
 
+/// Whether the usages of the language of `fact` are an approximation.
+fn is_approximate(fact: &SymbolFacts, approximate: &[String]) -> bool {
+    approximate
+        .iter()
+        .any(|language| language == fact.language.as_str())
+}
+
 impl Finding {
     /// The finding for a symbol without usages; `approximate` names the languages whose usages
     /// are an approximation.
     #[must_use]
     pub fn of(fact: &SymbolFacts, approximate: &[String]) -> Self {
-        let is_approximate = approximate
-            .iter()
-            .any(|language| language == fact.language.as_str());
+        let approximate = is_approximate(fact, approximate);
         Self {
             id: fact.id,
             name: fact.name.to_string(),
@@ -121,8 +126,8 @@ impl Finding {
             kind: fact.kind,
             path: fact.path.as_str().to_owned(),
             language: fact.language.to_string(),
-            assessment: Assessment::of(fact.visibility, is_approximate),
-            reason: UnusedReason::of(fact.visibility, is_approximate),
+            assessment: Assessment::of(fact.visibility, approximate),
+            reason: UnusedReason::of(fact.visibility, approximate),
             test: fact.test,
         }
     }

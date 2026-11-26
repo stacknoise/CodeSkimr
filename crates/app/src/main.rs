@@ -54,6 +54,7 @@ mod open;
 mod principal;
 #[cfg(any(windows, test))]
 mod private_acl;
+mod project_file;
 mod query_cli;
 #[cfg(test)]
 mod query_cli_tests;
