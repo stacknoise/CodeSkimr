@@ -1,4 +1,13 @@
-import { createEffect, createSignal, For, onCleanup, onMount, Show, type JSX } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  onCleanup,
+  onMount,
+  Show,
+  type JSX,
+} from "solid-js";
 import { Portal } from "solid-js/web";
 import { t } from "../../shared/i18n/i18n";
 import { useDialogFocus } from "../../shared/ui/dialogFocus";
@@ -12,15 +21,27 @@ import {
   GIT_ADDRESS,
   NETWORK_PATH,
   NEW_PROJECT_TITLE_ID,
+  PROJECT_TAB,
   SOURCE_KIND,
   SUGGEST_DELAY_MS,
   type SourceKind,
 } from "./consts";
+import { openProject } from "../../shared/project/active";
+import { OverlapHint } from "./OverlapHint";
+import { overlapOf, type Overlap } from "./overlap";
+import { selectProject } from "./page";
 import { BrowseButton, BrowseWaiting, useBrowse } from "./BrowseButton";
 import { failureText } from "./failure";
 import { readFolderDialog } from "./folderDialog";
 import { credentialNames, refreshCredentials } from "./credentials";
-import { addProject, projectAdding, projectsFailure, suggestName, type Failure } from "./projects";
+import {
+  addProject,
+  projectAdding,
+  projects,
+  projectsFailure,
+  suggestName,
+  type Failure,
+} from "./projects";
 import styles from "./NewProjectForm.module.css";
 
 /** Props of the form: the source field belongs to the screen, which fills it on a drop and
@@ -242,12 +263,26 @@ function NameField(props: { value: string; onType: (value: string) => void }) {
 }
 
 /** Sends the form: the source, and for a Git source the branch and the stored login. */
-function useSubmit(props: NewProjectFormProps, kind: () => SourceKind, name: () => string) {
+function useSubmit(
+  props: NewProjectFormProps,
+  kind: () => SourceKind,
+  name: () => string,
+  covered: () => Overlap | null,
+) {
   let branch = DEFAULT_BRANCH;
   const [credential, setCredential] = createSignal("");
   const submit = async (event: SubmitEvent) => {
     event.preventDefault();
     if (props.source.trim() === "" || projectAdding()) {
+      return;
+    }
+    const inside = covered();
+    if (inside !== null) {
+      // Covered in the project that holds the folder: nothing is added, its tab Scope opens.
+      props.onSource("");
+      props.onClose?.();
+      openProject(inside.project.id);
+      selectProject(inside.project.id, PROJECT_TAB.scope);
       return;
     }
     const git = kind() === SOURCE_KIND.git;
@@ -272,7 +307,7 @@ function useSubmit(props: NewProjectFormProps, kind: () => SourceKind, name: () 
 }
 
 /** The foot of the window: the keys, "Cancel" and the button that adds. */
-function Foot(props: { onClose: (() => void) | undefined }) {
+function Foot(props: { onClose: (() => void) | undefined; covered: boolean }) {
   return (
     <div class={styles.foot}>
       <span class={styles.keys}>{t(I18N_KEYS.PROJECTS_NEW_KEYS)}</span>
@@ -282,7 +317,9 @@ function Foot(props: { onClose: (() => void) | undefined }) {
         </button>
       </Show>
       <button type="submit" class={styles.button} disabled={projectAdding()}>
-        {projectAdding() ? t(I18N_KEYS.PROJECTS_ADDING) : t(I18N_KEYS.PROJECTS_ADD_AND_SCAN)}
+        {projectAdding()
+          ? t(I18N_KEYS.PROJECTS_ADDING)
+          : t(props.covered ? I18N_KEYS.PROJECTS_SCOPE_HINT_NEXT : I18N_KEYS.PROJECTS_ADD_AND_SCAN)}
       </button>
     </div>
   );
@@ -294,6 +331,7 @@ function Body(props: {
   kind: SourceKind;
   name: ReturnType<typeof useName>;
   gitFields: () => JSX.Element;
+  overlap: ReturnType<typeof useOverlap>;
 }) {
   const browse = useBrowse(props.form);
   return (
@@ -309,9 +347,24 @@ function Body(props: {
       </Show>
       <NameField value={props.name.name()} onType={props.name.type} />
       <Show when={props.kind === SOURCE_KIND.git}>{props.gitFields()}</Show>
+      <Show when={props.overlap.overlap()}>
+        {(found) => (
+          <OverlapHint overlap={found()} own={props.overlap.own()} onOwn={props.overlap.setOwn} />
+        )}
+      </Show>
       <Messages notice={props.form.notice} />
     </div>
   );
+}
+
+/** Whether the typed folder lies inside a project, and whether the user chose to add it anyway. */
+function useOverlap(kind: () => SourceKind, source: () => string) {
+  const [own, setOwn] = createSignal(false);
+  const overlap = createMemo(() =>
+    kind() === SOURCE_KIND.folder ? overlapOf(source(), projects()) : null,
+  );
+  const covered = () => (own() ? null : overlap());
+  return { overlap, own, setOwn, covered };
 }
 
 /** The modal window "New project" (mock 24, variant C as a centred dialog): source, name, and for
@@ -319,7 +372,8 @@ function Body(props: {
 export function NewProjectForm(props: NewProjectFormProps) {
   const [kind, setKind] = useKind(() => props.source);
   const name = useName(() => props.source);
-  const { submit, gitFields } = useSubmit(props, kind, name.sent);
+  const found = useOverlap(kind, () => props.source);
+  const { submit, gitFields } = useSubmit(props, kind, name.sent, found.covered);
   onMount(() => {
     void refreshCredentials();
     void readFolderDialog();
@@ -343,8 +397,8 @@ export function NewProjectForm(props: NewProjectFormProps) {
           </h2>
           <KindSwitch kind={kind()} onKind={setKind} />
         </div>
-        <Body form={props} kind={kind()} name={name} gitFields={gitFields} />
-        <Foot onClose={props.onClose} />
+        <Body form={props} kind={kind()} name={name} gitFields={gitFields} overlap={found} />
+        <Foot onClose={props.onClose} covered={found.covered() !== null} />
       </form>
     </Portal>
   );

@@ -223,3 +223,37 @@
     margin: var(--space-8) 0;
     color: var(--ink-2);
 }
+
+.overlap {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    margin: 0;
+    padding: var(--space-12) var(--space-16);
+    background: var(--accent-bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+    color: var(--ink);
+}
+
+.overlap p {
+    margin: 0;
+    color: var(--ink-2);
+}
+
+.overlapTitle {
+    padding: 0;
+    font-weight: 600;
+}
+
+.overlapChoice {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    cursor: pointer;
+}
+
+.overlapNote {
+    padding-inline-start: var(--space-16);
+    font-size: 12px;
+}
