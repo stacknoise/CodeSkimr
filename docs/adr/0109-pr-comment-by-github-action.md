@@ -1,4 +1,4 @@
-# 0104 – Comment with the impact of a change in the pull request, by a GitHub Action
+# 0109 – Comment with the impact of a change in the pull request, by a GitHub Action
 
 Status: proposed (way A of concept E2 decided by the product owner on 2026-11-23; builds on ADR 0097)
 
