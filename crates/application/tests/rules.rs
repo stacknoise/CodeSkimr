@@ -340,3 +340,23 @@ fn a_ring_of_three_modules_has_a_chain_that_closes_after_every_module() {
     let chain: Vec<&str> = ring.chain.iter().map(QualifiedName::as_str).collect();
     assert_eq!(chain, ["C", "A", "B", "C"]);
 }
+
+#[test]
+fn the_layers_come_before_the_cycles_and_the_rules_of_the_project_file() {
+    let layers = [
+        layer("Api", "Shop.Api", Some(&["Data"])),
+        layer("Data", "Shop.Data", None),
+    ];
+    let text = format!("{CYCLES}\n{PROJECT}");
+    let outcomes = evaluate(&rules(&text), &layers, &ring_store(), SNAPSHOT).unwrap();
+    let ids: Vec<&str> = outcomes.iter().map(|o| o.id.as_str()).collect();
+    assert_eq!(
+        ids,
+        [
+            "layers",
+            "cycles",
+            "forbid:Shop.Reports>Shop.Checkout",
+            "public_api:Shop.Data"
+        ]
+    );
+}
