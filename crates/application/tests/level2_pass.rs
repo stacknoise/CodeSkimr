@@ -740,7 +740,7 @@ mod cases {
         );
         pass.limits = Some(Arc::new(Moving(Mutex::new(100))));
         let root = FolderPath::new("/work").unwrap();
-        pass.run(&Principal::local_owner(), &snapshot(), &root, &cancel);
+        let _ = pass.run(&Principal::local_owner(), &snapshot(), &root, &cancel);
         assert_eq!(*fakes.runner.memory.lock().unwrap(), vec![101, 102]);
     }
 
