@@ -139,6 +139,8 @@ pub const KIND_CONFIG: &str = "config";
 /// `kind` of the id of a translation message in the answer of `find_constants`.
 pub const KIND_I18N: &str = "i18n";
 
+/// Value of `kind` of the rule that forbids cycles between modules.
+pub const RULE_CYCLES: &str = "cycles";
 /// Value of `kind` of a rule that forbids one module to use another.
 pub const RULE_FORBID: &str = "forbid";
 /// Value of `kind` of a rule that closes the inside of a module.

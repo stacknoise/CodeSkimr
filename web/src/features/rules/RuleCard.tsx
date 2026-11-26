@@ -14,7 +14,7 @@ import {
   VISIBLE_PLACES,
   VISIBLE_VIOLATIONS,
 } from "./consts";
-import type { PlaceOut, RuleOut, ViolationOut } from "./types";
+import type { PlaceOut, RingOut, RuleOut, ViolationOut } from "./types";
 import styles from "./RulesScreen.module.css";
 
 /** `path:line` of a place, as an editor takes it. */
@@ -28,8 +28,42 @@ function placesText(violation: ViolationOut): string {
   return violation.places.length > VISIBLE_PLACES ? `${named}${PLACES_MORE}` : named;
 }
 
+/** The badge that says whether a violation is an old burden or new. */
+function Age(props: { old: boolean }) {
+  return (
+    <span class={props.old ? styles.badgeOld : styles.badgeNew}>
+      {props.old ? t(I18N_KEYS.RULES_VIOLATION_OLD) : t(I18N_KEYS.RULES_VIOLATION_NEW)}
+    </span>
+  );
+}
+
+/** One cycle: the way round the ring, its size, the weakest edge and where to cut it. */
+function CycleRow(props: { violation: ViolationOut; ring: RingOut }) {
+  return (
+    <li class={styles.violation}>
+      <span class={styles.symbol}>{props.ring.chain.join(` ${ARROW} `)}</span>
+      <span class={styles.advice}>
+        {t(I18N_KEYS.RULES_RING_ADVICE, {
+          edges: props.ring.resolution_edges,
+          places: props.violation.places.length,
+        })}
+      </span>
+      <Age old={props.violation.old} />
+    </li>
+  );
+}
+
 /** One violation: who reaches whom, how often, where, and whether it is an old burden. */
 function ViolationRow(props: { violation: ViolationOut }) {
+  return (
+    <Show when={props.violation.ring} fallback={<ReferenceRow violation={props.violation} />}>
+      {(ring) => <CycleRow violation={props.violation} ring={ring()} />}
+    </Show>
+  );
+}
+
+/** A reference that a rule forbids, from the symbol that refers to the one it reaches. */
+function ReferenceRow(props: { violation: ViolationOut }) {
   return (
     <li class={styles.violation}>
       <span class={styles.symbol}>{props.violation.from}</span>
@@ -41,9 +75,7 @@ function ViolationRow(props: { violation: ViolationOut }) {
         {t(I18N_KEYS.RULES_PLACES, { count: props.violation.places.length })}
       </span>
       <span class={styles.places}>{placesText(props.violation)}</span>
-      <span class={props.violation.old ? styles.badgeOld : styles.badgeNew}>
-        {props.violation.old ? t(I18N_KEYS.RULES_VIOLATION_OLD) : t(I18N_KEYS.RULES_VIOLATION_NEW)}
-      </span>
+      <Age old={props.violation.old} />
     </li>
   );
 }
@@ -51,24 +83,29 @@ function ViolationRow(props: { violation: ViolationOut }) {
 /** The title and the line of the rule as the project file says it. */
 function Heading(props: { rule: RuleOut }) {
   const forbid = () => props.rule.kind === KIND.forbid;
+  const cycles = () => props.rule.kind === KIND.cycles;
   return (
     <>
       <span class={styles.title}>
-        {forbid()
-          ? t(I18N_KEYS.RULES_FORBID_TITLE, { from: props.rule.from, to: props.rule.to })
-          : t(I18N_KEYS.RULES_PUBLIC_API_TITLE)}
+        {cycles()
+          ? t(I18N_KEYS.RULES_CYCLES_TITLE)
+          : forbid()
+            ? t(I18N_KEYS.RULES_FORBID_TITLE, { from: props.rule.from, to: props.rule.to })
+            : t(I18N_KEYS.RULES_PUBLIC_API_TITLE)}
       </span>
       <span class={styles.kindBadge}>{t(I18N_KEYS.RULES_KIND_NEW)}</span>
       <span class={styles.spec}>
-        {forbid()
-          ? (props.rule.reason ??
-            t(I18N_KEYS.RULES_FORBID_SPEC, { from: props.rule.from, to: props.rule.to }))
-          : t(I18N_KEYS.RULES_PUBLIC_API_SPEC, {
-              module: props.rule.from,
-              internal: props.rule.internal
-                .map((prefix) => `${prefix}${INTERNAL_SUFFIX}`)
-                .join(INTERNAL_JOIN),
-            })}
+        {cycles()
+          ? t(I18N_KEYS.RULES_CYCLES_SPEC)
+          : forbid()
+            ? (props.rule.reason ??
+              t(I18N_KEYS.RULES_FORBID_SPEC, { from: props.rule.from, to: props.rule.to }))
+            : t(I18N_KEYS.RULES_PUBLIC_API_SPEC, {
+                module: props.rule.from,
+                internal: props.rule.internal
+                  .map((prefix) => `${prefix}${INTERNAL_SUFFIX}`)
+                  .join(INTERNAL_JOIN),
+              })}
       </span>
     </>
   );

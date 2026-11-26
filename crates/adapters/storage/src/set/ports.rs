@@ -158,6 +158,7 @@ impl ReferenceSites for SqliteStore {
 impl ReferencePlaces for SqliteStore {
     forward! { ReferencePlaces via of_snapshot:
         fn for_each_reference(&self, snapshot: SnapshotId, visit: &mut dyn FnMut(ReferencePlace)) -> Result<(), CodedError>;
+        fn namespaces(&self, snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError>;
     }
 }
 

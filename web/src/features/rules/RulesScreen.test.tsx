@@ -25,6 +25,7 @@ function violation(index: number, old: boolean): ViolationOut {
       { path: `Reports/Job${index}.cs`, line: 31, column: 9 },
       { path: `Reports/Job${index}.cs`, line: 40, column: 9 },
     ],
+    ring: null,
   };
 }
 
@@ -109,10 +110,40 @@ describe("RulesScreen", () => {
     expect(await screen.findByText(/has no rules yet/)).toBeInTheDocument();
   });
 
-  it("tells that the cycle rule is on but not checked yet", async () => {
-    serve({ cycles: true });
+  it("shows a ring of modules with its way round, its weakest edge and where to cut", async () => {
+    serve({
+      cycles: true,
+      new: 1,
+      rules: [
+        {
+          id: "cycles",
+          kind: "cycles",
+          from: "",
+          to: "",
+          internal: [],
+          reason: null,
+          new: 1,
+          violations: [
+            {
+              from: "Shop.Data",
+              to: "Shop.Api",
+              old: false,
+              places: [{ path: "Data/R.cs", line: 6, column: 5 }],
+              ring: {
+                modules: ["Shop.Api", "Shop.Data"],
+                chain: ["Shop.Data", "Shop.Api", "Shop.Data"],
+                weakest_count: 1,
+                resolution_edges: 1,
+              },
+            },
+          ],
+        },
+      ],
+    });
     render(() => <RulesScreen />);
-    expect(await screen.findByText(/Cycles between modules are switched on/)).toBeInTheDocument();
+    expect(await screen.findByText("No cycles between modules")).toBeInTheDocument();
+    expect(screen.getByText("Shop.Data → Shop.Api → Shop.Data")).toBeInTheDocument();
+    expect(screen.getByText("Resolvable over 1 edge with 1 place")).toBeInTheDocument();
   });
 
   it("reads in German too", async () => {

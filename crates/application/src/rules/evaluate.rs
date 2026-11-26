@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use codeskimr_domain::{QualifiedName, is_within};
 
 use super::consts::{ID_ARROW, ID_FORBID, ID_PUBLIC_API, ID_SEPARATOR};
+use super::cycles::cycles_outcome;
 use super::model::{Outcome, Place, RuleKind, Violation};
 use crate::config::{ForbidRule, PublicApiRule, Rules};
 use crate::error::CodedError;
@@ -68,6 +69,7 @@ pub fn evaluate(
     references: &dyn ReferencePlaces,
     snapshot: SnapshotId,
 ) -> Result<Vec<Outcome>, CodedError> {
+    let cycles = cycles_outcome(rules, references, snapshot)?;
     let rules = rules_of(rules);
     let mut found: Vec<Found> = rules.iter().map(|_| Found::new()).collect();
     references.for_each_reference(snapshot, &mut |reference: ReferencePlace| {
@@ -84,21 +86,19 @@ pub fn evaluate(
             }
         }
     })?;
-    Ok(rules
-        .iter()
-        .zip(found)
-        .map(|(rule, hits)| Outcome {
-            id: rule.id(),
-            kind: rule.kind(),
-            violations: hits
-                .into_iter()
-                .map(|((from, to), places)| Violation {
-                    from,
-                    to,
-                    places,
-                    old: false,
-                })
-                .collect(),
-        })
-        .collect())
+    let judged = rules.iter().zip(found).map(|(rule, hits)| Outcome {
+        id: rule.id(),
+        kind: rule.kind(),
+        violations: hits
+            .into_iter()
+            .map(|((from, to), places)| Violation {
+                from,
+                to,
+                places,
+                old: false,
+                ring: None,
+            })
+            .collect(),
+    });
+    Ok(cycles.into_iter().chain(judged).collect())
 }

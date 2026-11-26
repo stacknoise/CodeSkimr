@@ -231,6 +231,19 @@ cli-query-rules-line = { $from } -> { $to }  { $path }:{ $line }:{ $column }  ({
         [one] 1 Stelle
        *[other] { $places } Stellen
     })
+cli-query-rules-cycle-line = { $chain }  ({ $modules } Module, schwächste Kante { $weakest ->
+        [one] 1 Verweis
+       *[other] { $weakest } Verweise
+    } an { $places ->
+        [one] 1 Stelle
+       *[other] { $places } Stellen
+    }; aufgelöst über { $edges ->
+        [one] 1 Kante
+       *[other] { $edges } Kanten
+    }, { $held ->
+        [true] festgehalten
+       *[other] NEU
+    })
 cli-arg-query-text = Teil des Symbolnamens; die Zeichen müssen in dieser Reihenfolge vorkommen
 cli-arg-query-symbol = Id oder qualifizierter Name des Symbols
 cli-arg-query-project = Id des Projekts, oder der Ordner oder die Git-URL, aus der es gescannt wurde (Standard: der aktuelle Ordner)
