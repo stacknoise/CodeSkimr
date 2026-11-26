@@ -39,6 +39,7 @@ Owner: `codeskimr_application`
 |---|---|---|---|---|---|
 | PRJ-101 | `project_source_invalid` | error | no | 0.1.0 | The given source is neither an existing folder nor a valid Git URL. |
 | PRJ-102 | `project_name_invalid` | error | no | 1.0.0 | The display name of a project is empty, has control or invisible characters or is too long. |
+| PRJ-103 | `project_scope_invalid` | error | no | 1.1.0 | The scope of a project names a folder that is not a folder inside the project (empty, absolute, with a drive, or leaving the project through ..), a language with an invalid name, or more entries than scan.max_scope_entries allows. |
 | PRJ-201 | `project_not_found` | error | no | 0.1.0 | No project with this id exists. |
 | PRJ-301 | `project_already_registered` | error | no | 0.1.0 | A project with the same source is already registered. |
 | PRJ-302 | `snapshot_in_progress` | error | no | 0.1.0 | A scan for this project is already running. |

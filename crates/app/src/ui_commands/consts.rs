@@ -330,14 +330,24 @@ pub const LAYERS_GET: &str = "layers.get";
 pub const LAYERS_GET_TITLE: &str = i18n::COMMAND_LAYERS_GET_TITLE;
 /// Description key of `layers.get`.
 pub const LAYERS_GET_DESCRIPTION: &str = i18n::COMMAND_LAYERS_GET_DESCRIPTION;
+/// Id of the command that keeps a symbol on purpose (an entry of `[[unused.ignore]]`).
+pub const UNUSED_KEEP: &str = "unused.keep";
+/// Title key of `unused.keep`.
+pub const UNUSED_KEEP_TITLE: &str = i18n::COMMAND_UNUSED_KEEP_TITLE;
+/// Description key of `unused.keep`.
+pub const UNUSED_KEEP_DESCRIPTION: &str = i18n::COMMAND_UNUSED_KEEP_DESCRIPTION;
+/// Id of the command that takes an entry out of `[[unused.ignore]]` again.
+pub const UNUSED_LIFT: &str = "unused.lift";
+/// Title key of `unused.lift`.
+pub const UNUSED_LIFT_TITLE: &str = i18n::COMMAND_UNUSED_LIFT_TITLE;
+/// Description key of `unused.lift`.
+pub const UNUSED_LIFT_DESCRIPTION: &str = i18n::COMMAND_UNUSED_LIFT_DESCRIPTION;
 /// Id of the command that writes the layers into the project file.
 pub const LAYERS_SET: &str = "layers.set";
 /// Title key of `layers.set`.
 pub const LAYERS_SET_TITLE: &str = i18n::COMMAND_LAYERS_SET_TITLE;
 /// Description key of `layers.set`.
 pub const LAYERS_SET_DESCRIPTION: &str = i18n::COMMAND_LAYERS_SET_DESCRIPTION;
-/// Largest project file that is read; a bigger one is refused.
-pub const PROJECT_FILE_MAX_BYTES: u64 = 1_048_576;
 
 /// Id of the command that lists annotations.
 pub const ANNOTATIONS_LIST: &str = "annotations.list";
@@ -424,3 +434,16 @@ pub const ORIGIN_UI: &str = "ui";
 pub const ORIGIN_CLI: &str = "cli";
 /// Joins key and value in the text of a command line override.
 pub const OVERRIDE_JOIN: char = '=';
+
+/// Id of the command that shows what a project covers and what it leaves out.
+pub const SCOPE_GET: &str = "scope.get";
+/// Title key of `scope.get`.
+pub const SCOPE_GET_TITLE: &str = i18n::COMMAND_SCOPE_GET_TITLE;
+/// Description key of `scope.get`.
+pub const SCOPE_GET_DESCRIPTION: &str = i18n::COMMAND_SCOPE_GET_DESCRIPTION;
+/// Id of the command that stores what a project leaves out.
+pub const SCOPE_SET: &str = "scope.set";
+/// Title key of `scope.set`.
+pub const SCOPE_SET_TITLE: &str = i18n::COMMAND_SCOPE_SET_TITLE;
+/// Description key of `scope.set`.
+pub const SCOPE_SET_DESCRIPTION: &str = i18n::COMMAND_SCOPE_SET_DESCRIPTION;

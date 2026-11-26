@@ -5,7 +5,7 @@ use std::time::Instant;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
     CommitHash, FileId, LanguageId, Metric, Project, ProjectId, Reference, ReferenceId,
-    RelativePath, Snapshot, SnapshotId, SourceFile, Symbol, SymbolId, SymbolPair, Timestamp,
+    RelativePath, Scope, Snapshot, SnapshotId, SourceFile, Symbol, SymbolId, SymbolPair, Timestamp,
 };
 
 use super::{LeftOut, PendingReference, SkippedFile, SymbolFingerprints, SymbolHash};
@@ -202,6 +202,14 @@ pub trait ProjectRepository: Send + Sync {
     /// `PRJ-201` if it does not exist.
     fn project_for_removal(&self, id: ProjectId) -> Result<Project, CodedError> {
         self.project(id)
+    }
+
+    /// What the scans of the project leave out (ADR 0102). The default leaves nothing out.
+    ///
+    /// # Errors
+    /// `PRJ-201` if the project does not exist, otherwise a coded failure of the `STO` group.
+    fn scope(&self, _id: ProjectId) -> Result<Scope, CodedError> {
+        Ok(Scope::default())
     }
 
     /// The files of the newest snapshot of the project, empty if it has none.

@@ -130,6 +130,10 @@ pub mod keys {
     pub const LAYERS: &str = "layers";
     /// `unused.ignore`
     pub const UNUSED_IGNORE: &str = "unused.ignore";
+    /// `unused`
+    pub const UNUSED: &str = "unused";
+    /// `ignore`, the key of the exception list inside `unused`.
+    pub const IGNORE: &str = "ignore";
     /// `conventions.max_function_lines`
     pub const MAX_FUNCTION_LINES: &str = "conventions.max_function_lines";
     /// `conventions.max_cognitive_complexity`
@@ -166,6 +170,12 @@ pub mod keys {
     pub const MAX_MEMORY_MB: &str = "scan.max_memory_mb";
     /// `scan.max_left_out_listed`
     pub const MAX_LEFT_OUT_LISTED: &str = "scan.max_left_out_listed";
+    /// `scan.max_scope_entries`
+    pub const MAX_SCOPE_ENTRIES: &str = "scan.max_scope_entries";
+    /// `scan.overview_depth`
+    pub const OVERVIEW_DEPTH: &str = "scan.overview_depth";
+    /// `scan.overview_max_folders`
+    pub const OVERVIEW_MAX_FOLDERS: &str = "scan.overview_max_folders";
     /// `level2.max_index_bytes`
     pub const LEVEL2_MAX_INDEX_BYTES: &str = "level2.max_index_bytes";
     /// `level2.timeout_seconds`
@@ -241,6 +251,8 @@ pub const LOWER_ONLY_SCAN_KEYS: [&str; 4] = [
 
 /// Header of a table in an array of tables, as it starts a layer in `.codeskimr.toml`.
 pub const LAYER_TABLE_HEADER: &str = "[[layers]]";
+/// Header of an entry of the exception list of the unused symbols.
+pub const UNUSED_TABLE_HEADER: &str = "[[unused.ignore]]";
 /// First character of every table header line.
 pub const TABLE_HEADER_START: char = '[';
 /// Separates the kept part of the project file from the written layers.

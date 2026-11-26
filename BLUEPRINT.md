@@ -310,6 +310,7 @@ codeskimr/
   - `layer_graph` – the dependency map
   - `type_summary` – the metric strip
 - **Statistics (ADR 0091):** `symbol_statistics` (one row per type and callable with usage counts, measured values, test flag and the place in the order of path and name), `statistics_facets` and `statistics_complexity` (counts per group) and `snapshot_statistics` (which test folders the rows were counted for). Unlike the read models above they are **not** written in the transaction of the snapshot but right after it, in a thread of their own, so that the scan keeps its budget; a snapshot without these rows is valid and gets them at the first question of the statistics screen. A level 2 import deletes the rows of the snapshots it changed.
+- **Scope (ADR 0102):** the tables `scope_languages` and `scope_folders` in the file of the project hold the languages and folders the project leaves out; they are not tied to a snapshot and not touched by retention. An empty scope covers everything.
 - **Retention:** keep the last N snapshots per project (configurable, default from `config/default.toml`). Each snapshot also stores how long its scan took and how many files it changed (`duration_ms`, `files_changed`, ADR 0097). Two retained snapshots can be compared (symbols added, removed, changed, moved) and the usages that a change hits are listed (ADR 0097).
 - **Annotations (ADR 0068):** the tables `annotation`, `annotation_baseline` and `alert` are not tied to a snapshot and are not touched by retention. A symbol is found again by kind, qualified name and parameter types. Dismissed alerts are kept for `annotations.dismissed_retention_days`.
 - Schema migrations are versioned SQL files in `crates/adapters/storage/migrations/` (one set for the catalog, one for the project files), applied when a file is opened.
@@ -326,7 +327,7 @@ flowchart LR
 | Stage | Responsibility | Parallel |
 |---|---|---|
 | Fetch source | folder: nothing to do; Git: shallow clone or fetch | I/O |
-| Discover files | walk with `.gitignore`, detect language, hash content, skip unchanged files | yes |
+| Discover files | walk with `.gitignore`, apply the scope of the project (left-out folders are not entered, files of left-out languages are not hashed, ADR 0102), detect language, hash content, skip unchanged files | yes |
 | Analyze | Tree-sitter per file, then run the language-pack queries and build symbols and members; the tree never leaves the adapter (ADR 0013) | yes (per file) |
 | Resolve references | map names to symbols (section 9) | yes (per file, after a global symbol table pass) |
 | Compute metrics | LOC, CC, MI, Ce, Ca, instability | yes |
@@ -470,8 +471,9 @@ codeskimr scan <path|git-url>     scan and print a summary (--json for machines,
 codeskimr serve                   start the server without opening a browser
 codeskimr mcp                     MCP over stdio
 codeskimr export <project> --html <file>
+codeskimr scope <project>         show or change the languages and folders a project leaves out (ADR 0102)
 codeskimr check <path>            run the convention checks (for CI)
-codeskimr symbols|usages|impact|context <query|symbol>   the questions of the MCP tools `search_symbols`, `find_usages`, `impact_of_change`, `get_context` for scripts and CI (`--json` with `schema` and `stale`, ADR 0099)
+codeskimr symbols|usages|impact|context <query|symbol>, codeskimr unused   the questions of the MCP tools `search_symbols`, `find_usages`, `impact_of_change`, `get_context`, `find_unused` for scripts and CI (`--json` with `schema` and `stale`, ADR 0099)
 codeskimr codes [<code>]          list error codes / explain one code
 codeskimr scans <project>         list the retained scans with duration (ADR 0097, from 1.1)
 codeskimr compare <project>       compare two scans: added, removed, changed, moved (ADR 0097, from 1.1)
@@ -504,6 +506,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | `find_usages` | symbol, direction, depth, include_tests | references with kind, location, confidence |
 | `impact_of_change` | symbol | affected symbols, layers, public interfaces |
 | `get_context` | symbol, budget? | signature, doc, callers (verified first), dependencies, affected files and annotations in one answer, cut by the budget (ADR 0099) |
+| `find_unused` | kind?, language?, assessment?, include_tests? | symbols without a usage with assessment and reason, and those the exception list of the project takes out (ADR 0101) |
 | `get_dependencies` | symbol or namespace, direction | edges with counts and violations |
 | `find_similar_code` | code snippet or symbol | existing functions with similar structure ("does this already exist?") |
 | `find_constants` | query | existing constants, config keys and i18n keys |
@@ -1145,6 +1148,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-21 (`docs/error
 | CFG-104 | `project_file_not_writable` | The project file `.codeskimr.toml` could not be written. |
 | CFG-105 | `level2_switch_off` | Level 2 is not enabled in the user configuration; the program does not enable it itself. |
 | PRJ-101 | `project_source_invalid` | The given source is neither an existing folder nor a valid Git URL. |
+| PRJ-103 | `project_scope_invalid` | The scope of a project names a folder that is not a folder inside the project (empty, absolute, with a drive, or leaving the project through ..), a language with an invalid name, or more entries than scan.max_scope_entries allows. |
 | PRJ-201 | `project_not_found` | No project with this id exists. |
 | PRJ-301 | `project_already_registered` | A project with the same source is already registered. |
 | PRJ-302 | `snapshot_in_progress` | A scan for this project is already running. |

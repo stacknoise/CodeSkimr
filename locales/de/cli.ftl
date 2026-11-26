@@ -195,11 +195,31 @@ cli-codes-explain =
     }, seit Version { $since }.
 cli-codes-retired = Dieser Code ist stillgelegt: nichts löst ihn mehr aus, die Nummer bleibt reserviert.
 
+cli-cmd-scope = Zeigen oder ändern, welche Sprachen und Ordner ein Projekt erfasst
+cli-arg-scope-project = Nummer des Projekts, oder der Ordner oder die Git-Adresse, von der es gescannt wurde
+cli-arg-without-language = Diese Sprache aus den Scans auslassen (mehrfach möglich)
+cli-arg-with-language = Diese Sprache wieder erfassen (mehrfach möglich)
+cli-arg-without-folder = Diesen Ordner aus den Scans auslassen, relativ zum Projektordner (mehrfach möglich)
+cli-arg-with-folder = Diesen Ordner wieder erfassen (mehrfach möglich)
+cli-arg-scope-reset = Zuerst alles wieder erfassen, danach die anderen Änderungen anwenden
+cli-scope-heading = Umfang von Projekt { $project }:
+cli-scope-language = { $state ->
+    [covered] Erfasst
+   *[left_out] Ausgelassen
+}: Sprache { $language } ({ $files } Dateien)
+cli-scope-folder = { $state ->
+    [covered] Erfasst
+   *[left_out] Ausgelassen
+}: Ordner { $path } ({ $files } Dateien)
+cli-scope-more = { $count } weitere Ordner sind nicht aufgeführt. Mit --json kommt die ganze Antwort.
+cli-scope-saved = Der Umfang ist gespeichert. Er gilt ab dem nächsten Scan; der Code bleibt ein Projekt.
+cli-scope-unchanged = Der Umfang bleibt, wie er war.
 # Die Abfragebefehle symbols, usages, impact und context.
 cli-cmd-symbols = Symbole im neuesten Scan eines Projekts nach Namen suchen (die Antwort des MCP-Werkzeugs search_symbols)
 cli-cmd-usages = Auflisten, wo ein Symbol verwendet wird oder was es verwendet (die Antwort von find_usages)
 cli-cmd-impact = Auflisten, was eine Änderung eines Symbols erreichen kann (die Antwort von impact_of_change)
 cli-cmd-context = Signatur, Aufrufer, Abhängigkeiten, betroffene Dateien und Anmerkungen eines Symbols in einer Antwort (die Antwort von get_context)
+cli-cmd-unused = Auflisten, für welche Symbole keine Verwendung gefunden wurde, mit dem Grund je Symbol (die Antwort von find_unused)
 cli-arg-query-text = Teil des Symbolnamens; die Zeichen müssen in dieser Reihenfolge vorkommen
 cli-arg-query-symbol = Id oder qualifizierter Name des Symbols
 cli-arg-query-project = Id des Projekts, oder der Ordner oder die Git-URL, aus der es gescannt wurde (Standard: der aktuelle Ordner)
@@ -208,10 +228,16 @@ cli-arg-direction = incoming (wer das Symbol verwendet, Standard) oder outgoing 
 cli-arg-depth = Schritte, die die Suche geht (mindestens 1; ohne Angabe der eingestellte Standard)
 cli-arg-include-tests = Verweise aus Testcode mitzählen
 cli-arg-budget = Wie viel die Antwort enthält: short, medium (Standard) oder long
+cli-arg-unused-kind = Nur diese Symbole: all (Standard), types oder functions
+cli-arg-language-filter = Nur Symbole dieser Sprache, etwa csharp oder python
+cli-arg-assessment = Nur Symbole mit dieser Einschätzung: likely, public oder approximate
 cli-query-none = Nichts gefunden.
 cli-query-symbol-line = { $kind } { $name }  { $path }  (Id { $id })
 cli-query-usage-line = { $path }:{ $line }:{ $column }  { $kind }, { $confidence }, in { $name }
 cli-query-impact-line = Schritt { $depth }  { $kind } { $name }  { $path }
+cli-query-unused-line = { $kind } { $name }  { $path }  ({ $assessment }, { $reason })
+cli-query-unused-left-out = Durch die Ausnahmeliste ausgenommen ({ $shown } von { $total }):
+cli-query-unused-left-out-line = { $kind } { $name }  { $path }  weil: { $text }
 cli-query-cut = Die Antwort wurde auf die eingestellte Grenze gekürzt; mit --limit mehr, mit --json die Gesamtzahlen.
 cli-query-preliminary = Vorläufig: Einige Treffer stammen nur aus der Namensauflösung und wurden von keinem Indexer (Stufe 2) geprüft.
 cli-query-stale = Dateien haben sich seit dem letzten Scan geändert, die Antwort kann veraltet sein. Zuerst codeskimr scan ausführen.

@@ -9,8 +9,8 @@ use std::time::Instant;
 
 use codeskimr_domain::{
     CommitHash, ContentHash, FileId, FolderPath, LanguageId, Metric, Project, Reference,
-    RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts,
-    SymbolOrigin, Timestamp,
+    RelativePath, ScanMode, Scope, Snapshot, SnapshotId, SnapshotStats, SourceFile, Symbol,
+    SymbolCounts, SymbolOrigin, Timestamp,
 };
 
 use codeskimr_codes::{Coded, ErrorCode};
@@ -222,6 +222,20 @@ impl DiscoverStage {
     /// a snapshot without a record, is a full scan: the kept files would carry the old names.
     ///
     /// The run also notes when the discover stage began (ADR 0097).
+    /// What an incremental scan takes over from the newest snapshot; nothing for a full scan.
+    fn carried(
+        &self,
+        mode: ScanMode,
+        files: &mut Vec<DiscoveredFile>,
+        state: PreviousState,
+    ) -> Result<Carried, CodedError> {
+        let (ScanMode::Incremental, Some(snapshot)) = (mode, state.snapshot) else {
+            return Ok(Carried::default());
+        };
+        let bases = self.projects.stored_names(snapshot, StoredNames::Bases)?;
+        Carried::from_previous(files, state, bases, self.projects.as_ref())
+    }
+
     fn with_naming(&self, mut run: ScanRun) -> Result<ScanRun, CodedError> {
         run.began = Some(Instant::now());
         run.naming_rules = self.analyzer.naming_rules();
@@ -251,11 +265,12 @@ impl Stage for DiscoverStage {
             // files cannot be resolved again: a full scan writes them.
             run.mode = ScanMode::Full;
         }
-        let mut files = self
-            .discovery
-            .discover(&run.root, &state.files, ctx.cancel_token())?;
+        let scope = self.projects.scope(run.project.id)?;
+        let mut files =
+            self.discovery
+                .discover_scoped(&run.root, &state.files, &scope, ctx.cancel_token())?;
         run.paths_report = report_paths(run.mode, &files, &state.files, &run.paths);
-        run.files_changed = changed_files(&files, &state, run.mode, &run.paths);
+        run.files_changed = changed_files(&files, &state, &scope, run.mode, &run.paths);
         if run.mode == ScanMode::Incremental {
             limit_to_paths(&mut files, &state.files, &run.paths);
             run.confirms = unchanged_snapshot(&files, &state, &run.paths);
@@ -273,12 +288,7 @@ impl Stage for DiscoverStage {
         if let (true, Some(snapshot)) = (state.symbols.is_empty(), state.snapshot) {
             state.symbols = self.projects.snapshot_symbols(snapshot)?;
         }
-        let carried = if let (ScanMode::Incremental, Some(snapshot)) = (run.mode, state.snapshot) {
-            let bases = self.projects.stored_names(snapshot, StoredNames::Bases)?;
-            Carried::from_previous(&mut files, state, bases, self.projects.as_ref())?
-        } else {
-            Carried::default()
-        };
+        let carried = self.carried(run.mode, &mut files, state)?;
         let found = count(&files);
         ctx.progress(found, found);
         Ok(Discovered {
@@ -290,12 +300,13 @@ impl Stage for DiscoverStage {
 }
 
 /// How many files this scan changed against the newest snapshot: those that are new, whose content
-/// or language differs, and those that are gone. A file the previous scan left out for good counts
+/// or language differs, and those that are gone (a file that the project scope leaves out is not gone, ADR 0102). A file the previous scan left out for good counts
 /// as unchanged if it looks as it did then (issue #684). `None` if the project
 /// has no snapshot yet. A scan of some paths counts only the files those paths name (ADR 0097).
 fn changed_files(
     files: &[DiscoveredFile],
     previous: &PreviousState,
+    scope: &Scope,
     mode: ScanMode,
     paths: &Selection,
 ) -> Option<u32> {
@@ -322,6 +333,7 @@ fn changed_files(
     let gone = previous
         .files
         .iter()
+        .filter(|file| scope.covers(&file.path, &file.language))
         .filter(|file| named(&file.path) && !present.contains(&file.path))
         .count();
     Some(u32::try_from(changed + gone).unwrap_or(u32::MAX))

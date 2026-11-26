@@ -1,7 +1,7 @@
-//! `codeskimr symbols`, `usages`, `impact` and `context`: the questions of the MCP tools of the
-//! same names, asked from the command line. The tools answer; this module adds what a script
-//! needs around the answer: the version of the format, whether the scan is out of date, and a
-//! failure as JSON with its registered code.
+//! `codeskimr symbols`, `usages`, `impact`, `context` and `unused`: the questions of the MCP tools
+//! of the same names, asked from the command line. The tools answer; this module adds what a
+//! script needs around the answer: the version of the format, whether the scan is out of date,
+//! and a failure as JSON with its registered code.
 
 use std::path::Path;
 use std::sync::Arc;
@@ -10,13 +10,13 @@ use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{FileDiscovery, ProjectRepository};
 use codeskimr_cli::{
-    ContextQuery, ImpactQuery, QueryAction, QueryKind, SymbolsQuery, UsagesQuery,
+    ContextQuery, ImpactQuery, QueryAction, QueryKind, SymbolsQuery, UnusedQuery, UsagesQuery,
     query_code_report, query_error_json, query_json, query_text,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Principal, ProjectId, ProjectSource};
 use codeskimr_i18n::Messages;
-use codeskimr_mcp::{ContextArgs, ImpactArgs, McpError, SearchArgs, Tools, UsagesArgs};
+use codeskimr_mcp::{ContextArgs, ImpactArgs, McpError, SearchArgs, Tools, UnusedArgs, UsagesArgs};
 use codeskimr_storage::SqliteStore;
 use serde_json::Value;
 
@@ -102,6 +102,18 @@ fn ask(tools: &Tools, principal: Principal, action: &QueryAction) -> Result<Valu
         QueryAction::Usages(query) => tools.find_usages(&principal, &usages_args(query)),
         QueryAction::Impact(query) => tools.impact_of_change(&principal, &impact_args(query)),
         QueryAction::Context(query) => tools.get_context(&principal, &context_args(query)),
+        QueryAction::Unused(query) => tools.find_unused(&principal, &unused_args(query)),
+    }
+}
+
+fn unused_args(query: &UnusedQuery) -> UnusedArgs {
+    UnusedArgs {
+        kind: query.kind.clone(),
+        language: query.language.clone(),
+        assessment: query.assessment.clone(),
+        include_tests: Some(query.include_tests),
+        project: None,
+        limit: query.limit,
     }
 }
 
@@ -143,18 +155,20 @@ fn context_args(query: &ContextQuery) -> ContextArgs {
 
 /// Whether files of the project changed since the newest scan: `None` if that cannot be told.
 /// Only a folder can be looked at; a Git source is a copy that only a scan updates. The files
-/// are hashed as a scan hashes them, but not parsed.
+/// are hashed as a scan hashes them, but not parsed, and only the files of the scope of the
+/// project count (ADR 0102).
 fn stale(session: &Session, around: &Surroundings<'_>) -> Option<bool> {
     let id = ProjectId::new(session.project);
     let ProjectSource::Folder(root) = session.store.project(id).ok()?.source else {
         return None;
     };
     let previous = session.store.latest_files(id).ok()?;
+    let scope = session.store.scope(id).ok()?;
     let discovery: Arc<dyn FileDiscovery> = build_analysis(&session.config, around.locations)
         .ok()?
         .discovery;
     let found = discovery
-        .discover(&root, &previous, &CancelToken::new())
+        .discover_scoped(&root, &previous, &scope, &CancelToken::new())
         .ok()?;
     Some(found.len() < previous.len() || found.iter().any(|file| file.changed))
 }
@@ -165,6 +179,7 @@ const fn kind_of(action: &QueryAction) -> QueryKind {
         QueryAction::Usages(_) => QueryKind::Usages,
         QueryAction::Impact(_) => QueryKind::Impact,
         QueryAction::Context(_) => QueryKind::Context,
+        QueryAction::Unused(_) => QueryKind::Unused,
     }
 }
 

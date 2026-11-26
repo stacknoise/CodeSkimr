@@ -13,6 +13,7 @@ mod rescan;
 mod search;
 mod similar;
 mod symbol;
+mod unused;
 mod usages;
 
 use std::sync::Arc;
@@ -26,6 +27,7 @@ use codeskimr_application::ports::{
     ProjectScanner, ProjectToolCheck, ReferenceSites, ScanReportStore, SimilarityIndex,
     SnippetFingerprinter, SymbolDetail, SymbolKey, UsageIndex,
 };
+use codeskimr_application::unused::UnusedSymbols;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Project, ProjectId, QualifiedName, Snapshot, SymbolId};
 use codeskimr_i18n::Messages;
@@ -100,6 +102,8 @@ pub struct Ports {
     pub annotations: Arc<dyn AnnotationStore>,
     /// What the newest scan says about itself, for `get_project` (ADR 0072).
     pub reports: Arc<dyn ScanReportStore>,
+    /// The symbols without a usage under the exception list of a project, for `find_unused`.
+    pub unused: Arc<dyn UnusedSymbols>,
 }
 
 /// The tools of the server; all of them only read except `rescan`.
@@ -120,6 +124,7 @@ pub struct Tools {
     key_sources: KeySources,
     annotations: Arc<dyn AnnotationStore>,
     reports: Arc<dyn ScanReportStore>,
+    unused: Arc<dyn UnusedSymbols>,
     limits: McpLimits,
     default_project: Option<ProjectId>,
 }
@@ -157,6 +162,7 @@ impl Tools {
             key_sources: ports.key_sources,
             annotations: ports.annotations,
             reports: ports.reports,
+            unused: ports.unused,
             limits,
             default_project,
         }
@@ -283,6 +289,10 @@ impl Tools {
 
     pub(crate) fn reports(&self) -> &dyn ScanReportStore {
         self.reports.as_ref()
+    }
+
+    pub(crate) fn unused_symbols(&self) -> &dyn UnusedSymbols {
+        self.unused.as_ref()
     }
 
     pub(crate) fn annotation_store(&self) -> &dyn AnnotationStore {

@@ -8,7 +8,7 @@ use codeskimr_application::error::CodedError;
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
     MCP_SERVER_INSTRUCTIONS, MCP_TOOL_CHECK_CONVENTIONS, MCP_TOOL_FIND_CONSTANTS,
-    MCP_TOOL_FIND_SIMILAR_CODE, MCP_TOOL_FIND_USAGES, MCP_TOOL_GET_ALERTS,
+    MCP_TOOL_FIND_SIMILAR_CODE, MCP_TOOL_FIND_UNUSED, MCP_TOOL_FIND_USAGES, MCP_TOOL_GET_ALERTS,
     MCP_TOOL_GET_ARCHITECTURE, MCP_TOOL_GET_CONTEXT, MCP_TOOL_GET_DEPENDENCIES,
     MCP_TOOL_GET_PROJECT, MCP_TOOL_GET_SYMBOL, MCP_TOOL_IMPACT_OF_CHANGE,
     MCP_TOOL_LIST_ANNOTATIONS, MCP_TOOL_RESCAN, MCP_TOOL_SEARCH_SYMBOLS,
@@ -30,14 +30,14 @@ use serde_json::Value;
 use crate::args::{
     AlertsArgs, AnnotationsArgs, ArchitectureArgs, ConstantsArgs, ContextArgs, ConventionsArgs,
     DependenciesArgs, ImpactArgs, ProjectArgs, RescanArgs, SearchArgs, SimilarArgs, SymbolArgs,
-    UsagesArgs,
+    UnusedArgs, UsagesArgs,
 };
 use crate::consts::{
     READ_TOOL_PERMISSION, SCAN_TOOL_PERMISSION, SERVER_NAME, SERVER_VERSION, TEXT_LANGUAGE,
-    TOOL_CHECK_CONVENTIONS, TOOL_FIND_CONSTANTS, TOOL_FIND_SIMILAR_CODE, TOOL_FIND_USAGES,
-    TOOL_GET_ALERTS, TOOL_GET_ARCHITECTURE, TOOL_GET_CONTEXT, TOOL_GET_DEPENDENCIES,
-    TOOL_GET_PROJECT, TOOL_GET_SYMBOL, TOOL_IMPACT_OF_CHANGE, TOOL_LIST_ANNOTATIONS, TOOL_RESCAN,
-    TOOL_SEARCH_SYMBOLS,
+    TOOL_CHECK_CONVENTIONS, TOOL_FIND_CONSTANTS, TOOL_FIND_SIMILAR_CODE, TOOL_FIND_UNUSED,
+    TOOL_FIND_USAGES, TOOL_GET_ALERTS, TOOL_GET_ARCHITECTURE, TOOL_GET_CONTEXT,
+    TOOL_GET_DEPENDENCIES, TOOL_GET_PROJECT, TOOL_GET_SYMBOL, TOOL_IMPACT_OF_CHANGE,
+    TOOL_LIST_ANNOTATIONS, TOOL_RESCAN, TOOL_SEARCH_SYMBOLS,
 };
 use crate::error::McpError;
 use crate::tools::Tools;
@@ -111,6 +111,7 @@ fn definitions(messages: &Messages) -> Result<Vec<Tool>, CodedError> {
         definition::<DependenciesArgs>(messages, TOOL_GET_DEPENDENCIES, MCP_TOOL_GET_DEPENDENCIES)?,
         definition::<SimilarArgs>(messages, TOOL_FIND_SIMILAR_CODE, MCP_TOOL_FIND_SIMILAR_CODE)?,
         definition::<ConstantsArgs>(messages, TOOL_FIND_CONSTANTS, MCP_TOOL_FIND_CONSTANTS)?,
+        definition::<UnusedArgs>(messages, TOOL_FIND_UNUSED, MCP_TOOL_FIND_UNUSED)?,
         definition::<ConventionsArgs>(
             messages,
             TOOL_CHECK_CONVENTIONS,
@@ -196,6 +197,7 @@ impl McpServer {
                 call(arguments, |args| tools.find_similar_code(&principal, &args))
             }
             TOOL_FIND_CONSTANTS => call(arguments, |args| tools.find_constants(&principal, &args)),
+            TOOL_FIND_UNUSED => call(arguments, |args| tools.find_unused(&principal, &args)),
             TOOL_CHECK_CONVENTIONS => {
                 call(arguments, |args| tools.check_conventions(&principal, &args))
             }

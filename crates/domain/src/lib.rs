@@ -25,6 +25,7 @@ mod qualified_name;
 mod reference;
 mod report;
 mod reverse_index;
+mod scope;
 mod secret_url;
 mod signature;
 mod similar;
@@ -48,7 +49,7 @@ pub use coupling::{SymbolPair, coupling, coupling_with};
 pub use error::ModelError;
 pub use file::{ContentHash, FileId, LanguageId, Loc, RelativePath, SourceFile};
 pub use fingerprint::{Fingerprint, FingerprintParams, Fingerprints, TokenId, winnow};
-pub use glob::glob_matches;
+pub use glob::{glob_matches, has_wildcard};
 pub use graph_layout::{
     Layout, LayoutEdge, LayoutGraph, LayoutNode, LayoutParams, NodeIndex, NodePlacement, NodeSize,
 };
@@ -70,6 +71,7 @@ pub use qualified_name::QualifiedName;
 pub use reference::{Confidence, Reference, ReferenceId, ReferenceKind};
 pub use report::{Level2Stage, OutcomeKind, ScanLevel, SkipReason};
 pub use reverse_index::{Direction, Reached, ReverseIndex, Usage, UsageQuery};
+pub use scope::{Scope, lies_below};
 pub use secret_url::{without_secrets, without_userinfo};
 pub use signature::signature_parameters;
 pub use similar::{SimilarPair, similar_pairs};

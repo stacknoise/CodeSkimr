@@ -36,7 +36,7 @@ use codeskimr_domain::{
     Fingerprints, FolderPath, LanguageId, Loc, Metric, MetricKind, MetricValue, ModelError,
     Permission, PermissionSet, Position, Principal, Project, ProjectId, ProjectName, ProjectSource,
     QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanLevel, ScanMode,
-    ScanOrigin, Snapshot, SnapshotId, SnapshotStats, SourceFile, Span, Symbol, SymbolCounts,
+    ScanOrigin, Scope, Snapshot, SnapshotId, SnapshotStats, SourceFile, Span, Symbol, SymbolCounts,
     SymbolId, SymbolKind, SymbolName, SymbolOrigin, SymbolPair, Timestamp,
 };
 use common::InMemoryConsent;
@@ -64,6 +64,8 @@ struct World {
     fail_at: Option<StageKind>,
     cancel_at: Option<(StageKind, CancelToken)>,
     previous: Previous,
+    /// What the project's scope leaves out.
+    scope: Scope,
     found: Option<Vec<(&'static str, bool)>>,
     missing_project: bool,
     panic_in_analyze: bool,
@@ -367,6 +369,10 @@ impl ProjectRepository for World {
         Ok(self.previous.index.clone())
     }
 
+    fn scope(&self, _: ProjectId) -> Result<Scope, CodedError> {
+        Ok(self.scope.clone())
+    }
+
     fn latest_state(&self, _: ProjectId) -> Result<PreviousState, CodedError> {
         Ok(PreviousState {
             files: self.previous.files.clone(),
@@ -653,6 +659,20 @@ fn a_file_left_out_for_good_is_not_counted_as_changed_while_it_looks_the_same()
     let (_, _) = run(&world, ScanMode::Incremental);
     // `e.rs` is new; `d.rs` is the file the earlier scan left out and it is as it was.
     assert_eq!(world.last_persisted()?.files_changed, Some(1));
+    Ok(())
+}
+
+#[test]
+fn files_the_project_scope_leaves_out_are_not_counted_as_gone() -> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        scope: Scope::new([model(LanguageId::new("rust"))?], []),
+        found: Some(vec![]),
+        ..World::default()
+    });
+    let (_, _) = run(&world, ScanMode::Full);
+    // Every file of the snapshot is Rust, which the scope leaves out: none of them is gone.
+    assert_eq!(world.last_persisted()?.files_changed, Some(0));
     Ok(())
 }
 

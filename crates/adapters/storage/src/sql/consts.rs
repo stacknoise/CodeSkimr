@@ -509,6 +509,22 @@ pub const CONSENT_UPSERT: &str = "INSERT INTO level2_consent \
     ON CONFLICT (project_id) DO UPDATE SET enabled = excluded.enabled, \
     confirmed = excluded.confirmed, source_kind = excluded.source_kind, \
     location = excluded.location, branch = excluded.branch";
+/// The languages a project leaves out: project id.
+pub const SCOPE_LANGUAGES: &str =
+    "SELECT language FROM scope_languages WHERE project_id = ?1 ORDER BY language";
+/// The folders a project leaves out: project id.
+pub const SCOPE_FOLDERS: &str =
+    "SELECT folder FROM scope_folders WHERE project_id = ?1 ORDER BY folder";
+/// Forgets the languages a project leaves out: project id.
+pub const SCOPE_LANGUAGES_DELETE: &str = "DELETE FROM scope_languages WHERE project_id = ?1";
+/// Forgets the folders a project leaves out: project id.
+pub const SCOPE_FOLDERS_DELETE: &str = "DELETE FROM scope_folders WHERE project_id = ?1";
+/// Adds a language that a project leaves out: project id, language.
+pub const SCOPE_LANGUAGE_INSERT: &str =
+    "INSERT INTO scope_languages (project_id, language) VALUES (?1, ?2)";
+/// Adds a folder that a project leaves out: project id, folder.
+pub const SCOPE_FOLDER_INSERT: &str =
+    "INSERT INTO scope_folders (project_id, folder) VALUES (?1, ?2)";
 /// Removes the report of a project (its findings go with it): project id.
 pub const TOOL_REPORT_DELETE: &str = "DELETE FROM tool_reports WHERE project_id = ?1";
 /// Adds the report header: project id, time of the check.

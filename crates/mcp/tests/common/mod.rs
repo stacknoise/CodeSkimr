@@ -4,7 +4,7 @@
 use std::sync::{Arc, Mutex};
 
 use codeskimr_application::cancel::CancelToken;
-use codeskimr_application::config::{Conventions, KeySources, McpLimits};
+use codeskimr_application::config::{Conventions, KeySources, McpLimits, UnusedIgnore};
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
@@ -18,6 +18,7 @@ use codeskimr_application::ports::{
     ScanReportStore, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex, SnippetFingerprinter,
     SourceText, SymbolDetail, SymbolKey, SymbolLabel, TypeFocus, UsageEntry, UsageIndex, UsagePage,
 };
+use codeskimr_application::unused::{Finding, Findings, UnusedSymbols};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
     Alert, Annotation, AnnotationId, BodyCounts, Confidence, ContentHash, Direction, FileId,
@@ -28,6 +29,7 @@ use codeskimr_domain::{
     Symbol, SymbolBaseline, SymbolCounts, SymbolId, SymbolKind, SymbolName, Timestamp, ToolFinding,
     ToolReport, ToolRole, ToolState, UsageQuery, Visibility,
 };
+use codeskimr_domain::{Assessment, RankingQuery, UnusedReason};
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::{Ports, Tools};
 
@@ -718,6 +720,7 @@ fn assemble_with(
             key_sources: key_sources(),
             annotations: Arc::new(FakeAnnotations::default()),
             reports: Arc::new(FakeReports),
+            unused: Arc::new(FakeUnused),
         },
         limits,
         PROJECT,
@@ -861,6 +864,68 @@ pub fn key_sources() -> KeySources {
     }
 }
 
+/// The symbols without a usage: a private function, a public class, one that the exception list
+/// takes out, and one test symbol that is only there when the question asks for test code.
+pub struct FakeUnused;
+
+/// The language whose question the fake answers with the failure of a broken exception list.
+pub const BROKEN_LIST: &str = "brokenlist";
+
+fn finding(id: u64, name: &str, assessment: Assessment, test: bool) -> Finding {
+    Finding {
+        id: SymbolId::new(id),
+        name: name.to_owned(),
+        qualified_name: format!("Demo.{name}"),
+        kind: SymbolKind::Method,
+        path: "src/Demo.cs".to_owned(),
+        language: "csharp".to_owned(),
+        assessment,
+        reason: match assessment {
+            Assessment::Likely => UnusedReason::Private,
+            Assessment::Public => UnusedReason::Public,
+            Assessment::Approximate => UnusedReason::Approximate,
+        },
+        test,
+    }
+}
+
+impl UnusedSymbols for FakeUnused {
+    fn unused(
+        &self,
+        _: &Project,
+        _: SnapshotId,
+        query: &RankingQuery,
+    ) -> Result<Findings, CodedError> {
+        // A question about this language stands for a project whose exception list is invalid.
+        if query
+            .language
+            .as_ref()
+            .is_some_and(|id| id.as_str() == BROKEN_LIST)
+        {
+            return Err(CodedError::new(ErrorCode::ConfigInvalidValue));
+        }
+        let mut kept = vec![
+            finding(1, "Orphan", Assessment::Likely, false),
+            finding(2, "Spare", Assessment::Public, false),
+        ];
+        if query.include_tests {
+            kept.push(finding(3, "Runs", Assessment::Likely, true));
+        }
+        Ok(Findings {
+            kept,
+            left_out: vec![(
+                finding(4, "Migrate", Assessment::Likely, false),
+                UnusedIgnore {
+                    paths: Vec::new(),
+                    symbols: vec!["*.Migrate".to_owned()],
+                    reason: "called by the migration tool".to_owned(),
+                },
+            )],
+            tests_hidden: usize::from(!query.include_tests),
+        })
+    }
+}
+
 /// The keys of the project: two configuration keys and one translation key.
 pub struct FakeKeys;
 
@@ -999,6 +1064,7 @@ pub fn tools_annotated(annotations: FakeAnnotations) -> Tools {
             key_sources: key_sources(),
             annotations: Arc::new(annotations),
             reports: Arc::new(FakeReports),
+            unused: Arc::new(FakeUnused),
         },
         limits(),
         PROJECT,

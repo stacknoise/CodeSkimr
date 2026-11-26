@@ -43,7 +43,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 24));
+    assert_eq!((mode.as_str(), version), ("wal", 25));
 }
 
 #[test]
@@ -578,8 +578,9 @@ fn connections_opening_a_new_database_at_once_all_succeed() {
     }
 }
 
-/// Removes the columns of the scan history (schema version 25 once the migration 0024 is in).
-const SCAN_HISTORY_COLUMNS_DROPPED: &str = "ALTER TABLE snapshots DROP COLUMN duration_ms;
+/// Takes back the newest schema changes: the scope (version 24) and the scan history (version 25).
+const NEWEST_CHANGES_DROPPED: &str = "DROP TABLE scope_folders; DROP TABLE scope_languages;
+     ALTER TABLE snapshots DROP COLUMN duration_ms;
      ALTER TABLE snapshots DROP COLUMN files_changed;";
 
 #[test]
@@ -588,7 +589,7 @@ fn a_version_eleven_database_keeps_its_layers_without_a_limit() {
     let db = TempDb::new();
     drop(ProjectDb::open(&db.0, keep(3)).unwrap());
     let conn = Connection::open(&db.0).unwrap();
-    conn.execute_batch(SCAN_HISTORY_COLUMNS_DROPPED).unwrap();
+    conn.execute_batch(NEWEST_CHANGES_DROPPED).unwrap();
     conn.execute_batch(
         "ALTER TABLE projects DROP COLUMN removing;
          DROP TABLE snapshot_skipped_files;

@@ -48,6 +48,10 @@ Manages the credentials in the keystore of the operating system (blueprint 12.2,
 
 Allows or forbids level 2 (the indexers of ADR 0033, which run the build tools of the project) for one project. `<project>` is the project id or the folder or Git URL it was scanned from, as for `export`. `confirm` needs a terminal on standard input and output: it prints what level 2 runs and with which rights (file and network access, no sandbox, the binding to source, location and branch and not to a commit) then shows the name, the location (folder or Git address) and the branch of the project the argument resolved to (a numeric id is resolved too). A Git URL resolves only the default branch of that repository; a project at another branch is addressed by its id. It starts only if the user types the name of that project (no fixed word such as `yes`). The project is read again after the answer and nothing is stored if its name, location or branch changed in the meantime. Without a terminal it fails with `SEC-403`; nothing can pass the word as an argument or through a pipe. `revoke` forbids it again at once. Nothing else confirms level 2: not MCP, not the server, not watch mode (`tests/consent_origin.rs` checks the source). Only `codeskimr scan` starts the indexers; `scan` prints one line per language with an indexer: "Level 2: ... checked" or "skipped (reason)".
 
+## `codeskimr scope <project>`
+
+Shows the scope of a project (ADR 0102): the languages and folders it leaves out of the scan, with the number of files per language and folder and the project files found in folders. `<project>` is the project id or the folder or Git URL, as for `export`. `--without-language`, `--with-language`, `--without-folder` and `--with-folder` (each may repeat) leave something out or take it back in; `--reset` takes everything back in first. Folders are paths relative to the project root. A change takes effect with the next scan. `--json` prints the answer of the command `scope.get` or `scope.set`. An invalid scope fails with `PRJ-103`.
+
 ## `codeskimr open`
 
 ```
@@ -87,17 +91,19 @@ codeskimr export <project> --html <file>
 
 Writes the explorer, the dependency map, the usages and the search of a scanned project into one self-contained HTML file, without source text (`docs/export.md`). `<project>` is a project id or the folder or Git URL it was scanned from. The export page is the built UI: it is part of the program, and a UI folder (`ui.dir`) that exists is read instead. If the program was built without the UI and there is no folder with the built export page (`npm run build` in `web/`), the command stops with `EXP-201`; a project with more references than `export.max_references` (default 600000) is refused with `EXP-502`, a second export of the same project at the same time with `EXP-501`; an unwritable file is `EXP-601`.
 
-## `codeskimr symbols`, `usages`, `impact` and `context`
+## `codeskimr symbols`, `usages`, `impact`, `context` and `unused`
 
 ```
 codeskimr symbols <query> [--kind KIND] [--limit N] [--project ID|FOLDER] [--json]
 codeskimr usages <symbol> [--direction incoming|outgoing] [--depth N] [--include-tests] [--limit N] [--project ID|FOLDER] [--json]
 codeskimr impact <symbol> [--limit N] [--project ID|FOLDER] [--json]
 codeskimr context <symbol> [--budget short|medium|long] [--project ID|FOLDER] [--json]
+codeskimr unused [--kind all|types|functions] [--language ID] [--assessment likely|public|approximate] [--include-tests] [--limit N] [--project ID|FOLDER] [--json]
 ```
 
-The questions of the MCP tools `search_symbols`, `find_usages`, `impact_of_change` and `get_context` (`docs/mcp.md`), asked from the command line, for scripts, CI and agents without MCP (ADR 0099). The commands call the same tools with the same limits (`mcp.default_limit`, `mcp.max_limit`, `mcp.default_depth`, `mcp.max_depth`, `mcp.context_items_*`), so a script and an agent get the same answer. `<symbol>` is an id or a qualified name. The project is the one that was scanned from the current folder, or the one named with `--project` (an id, or the folder or Git URL it was scanned from).
+The questions of the MCP tools `search_symbols`, `find_usages`, `impact_of_change`, `get_context` and `find_unused` (`docs/mcp.md`), asked from the command line, for scripts, CI and agents without MCP (ADR 0099). The commands call the same tools with the same limits (`mcp.default_limit`, `mcp.max_limit`, `mcp.default_depth`, `mcp.max_depth`, `mcp.context_items_*`), so a script and an agent get the same answer. `<symbol>` is an id or a qualified name. The project is the one that was scanned from the current folder, or the one named with `--project` (an id, or the folder or Git URL it was scanned from).
 
+- **`unused`.** Lists the symbols for which no usage was found, with the assessment and the reason (ADR 0101), without code in tests unless `--include-tests` is given. The symbols that the `[[unused.ignore]]` list of the project file takes out are printed below the list with the reason of their entry; with `--json` they are `left_out`. A broken list fails with `CFG-101` or `CFG-102`. The counterpart in the UI is the tab "No usage found" of the statistics screen.
 - **Newest scan, no hidden scan.** The commands read the last scan of the project; they never scan by themselves. If a project folder has files that changed, were added or went away since that scan, the answer says so: `"stale": true` in JSON, a closing line in the text. `stale` is `null` if that cannot be told: a Git source, which only a scan updates, or a folder that cannot be read. `null` never means "current"; only `false` does. To find out, the command hashes the files like a scan does, without parsing them.
 - **Text.** One line per hit; `context` shows the symbol, its callers, dependencies, files and notes under headings (a heading is left out when its list is empty). Texts that come from the project lose their control characters. A closing line says if the answer was cut or is preliminary (unchecked usages).
 - **JSON.** The answer of the MCP tool with two more fields: `schema` (the version of the format, now `1`; it grows when a field changes its meaning or goes away) and `stale`. Nothing else is printed to standard output, no colours, no progress.

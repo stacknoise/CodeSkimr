@@ -9,7 +9,7 @@ use std::sync::mpsc;
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{DiscoveredFile, FileDiscovery};
-use codeskimr_domain::{ContentHash, FolderPath, LanguageId, RelativePath, SourceFile};
+use codeskimr_domain::{ContentHash, FolderPath, LanguageId, RelativePath, Scope, SourceFile};
 use ignore::{DirEntry, WalkBuilder, WalkState};
 
 use crate::consts::{GIT_DIR_NAME, GROWTH_PROBE_BYTES};
@@ -60,6 +60,7 @@ struct Unreadable;
 /// State shared by the worker threads of one walk.
 struct Shared<'a> {
     root: &'a Path,
+    scope: &'a Scope,
     languages: &'a LanguageMap,
     previous: HashMap<&'a str, (&'a ContentHash, &'a LanguageId)>,
     cancel: &'a CancelToken,
@@ -76,9 +77,22 @@ impl FileDiscovery for WalkDiscovery {
         previous: &[SourceFile],
         cancel: &CancelToken,
     ) -> Result<Vec<DiscoveredFile>, CodedError> {
+        self.discover_scoped(root, previous, &Scope::default(), cancel)
+    }
+
+    /// Does not enter a folder that the scope leaves out and does not read a file of a language
+    /// it leaves out, so neither counts against the size limit.
+    fn discover_scoped(
+        &self,
+        root: &FolderPath,
+        previous: &[SourceFile],
+        scope: &Scope,
+        cancel: &CancelToken,
+    ) -> Result<Vec<DiscoveredFile>, CodedError> {
         open_folder(root)?;
         let shared = Shared {
             root: Path::new(root.as_str()),
+            scope,
             languages: &self.languages,
             previous: previous
                 .iter()
@@ -146,7 +160,8 @@ fn is_unchanged(root: &Path, file: &SourceFile, left: &mut u64) -> bool {
 /// Runs the parallel walk and collects what the workers found.
 fn walk(shared: &Shared<'_>, excluded: &[String]) -> Vec<DiscoveredFile> {
     let (sender, receiver) = mpsc::channel();
-    builder(shared.root, excluded).build_parallel().run(|| {
+    let walker = builder(shared.root, shared.scope, excluded).build_parallel();
+    walker.run(|| {
         let sender = sender.clone();
         Box::new(move |entry| {
             if shared.cancel.is_cancelled() || shared.too_large.load(Ordering::Acquire) {
@@ -167,9 +182,12 @@ fn walk(shared: &Shared<'_>, excluded: &[String]) -> Vec<DiscoveredFile> {
     receiver.into_iter().collect()
 }
 
-/// A walker that honours `.gitignore` also outside Git repositories and skips excluded folders.
-fn builder(root: &Path, excluded: &[String]) -> WalkBuilder {
+/// A walker that honours `.gitignore` also outside Git repositories and skips excluded folders
+/// and the folders that the scope leaves out.
+pub(crate) fn builder(root: &Path, scope: &Scope, excluded: &[String]) -> WalkBuilder {
     let excluded: Vec<String> = excluded.to_vec();
+    let scope = scope.clone();
+    let base = root.to_path_buf();
     let mut builder = WalkBuilder::new(root);
     builder
         .require_git(false)
@@ -179,7 +197,9 @@ fn builder(root: &Path, excluded: &[String]) -> WalkBuilder {
         .ignore(false)
         .parents(false)
         .follow_links(false)
-        .filter_entry(move |entry| !is_excluded(entry, &excluded));
+        .filter_entry(move |entry| {
+            !is_excluded(entry, &excluded) && !is_left_out(entry, &base, &scope)
+        });
     builder
 }
 
@@ -193,6 +213,15 @@ fn is_excluded(entry: &DirEntry, excluded: &[String]) -> bool {
             .is_some_and(|name| name == GIT_DIR_NAME || excluded.iter().any(|item| item == name))
 }
 
+/// Whether the entry is a folder that the scope leaves out. Nothing is looked up for a scope
+/// without folders.
+fn is_left_out(entry: &DirEntry, root: &Path, scope: &Scope) -> bool {
+    let is_dir = entry.file_type().is_some_and(|kind| kind.is_dir());
+    is_dir
+        && !scope.folders().is_empty()
+        && relative_path(root, entry.path()).is_some_and(|folder| !scope.covers_folder(&folder))
+}
+
 /// Turns a walked entry into a discovered file, `Ok(None)` if it is not one of ours.
 ///
 /// The size limit is checked on the file size before the content is read.
@@ -203,6 +232,9 @@ fn inspect(shared: &Shared<'_>, entry: &DirEntry) -> Result<Option<DiscoveredFil
     let Some(language) = shared.languages.detect(entry.path()) else {
         return Ok(None);
     };
+    if !shared.scope.covers_language(language) {
+        return Ok(None);
+    }
     let Some(path) = relative_path(shared.root, entry.path()) else {
         return Ok(None);
     };
