@@ -43,7 +43,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 23));
+    assert_eq!((mode.as_str(), version), ("wal", 24));
 }
 
 #[test]
@@ -585,7 +585,8 @@ fn a_version_eleven_database_keeps_its_layers_without_a_limit() {
     drop(ProjectDb::open(&db.0, keep(3)).unwrap());
     let conn = Connection::open(&db.0).unwrap();
     conn.execute_batch(
-        "ALTER TABLE projects DROP COLUMN removing;
+        "DROP TABLE scope_folders; DROP TABLE scope_languages;
+         ALTER TABLE projects DROP COLUMN removing;
          DROP TABLE snapshot_skipped_files;
          DROP TABLE symbol_statistics;
          DROP TABLE snapshot_statistics;

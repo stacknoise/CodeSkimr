@@ -21,6 +21,7 @@ pub mod ports;
 pub mod registry;
 pub mod report_view;
 pub mod resolve;
+pub mod scope;
 pub mod selection;
 pub mod stage;
 pub mod tools;

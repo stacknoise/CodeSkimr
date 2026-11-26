@@ -6,7 +6,7 @@ mod common;
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::ports::{DiscoveredFile, FileDiscovery};
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::{FileId, Loc, SnapshotId, SourceFile};
+use codeskimr_domain::{FileId, LanguageId, Loc, RelativePath, Scope, SnapshotId, SourceFile};
 use codeskimr_source::{DiscoveryConfig, WalkDiscovery};
 use common::{TestResult, folder, languages, write};
 
@@ -290,5 +290,34 @@ fn a_file_that_grew_or_that_is_over_the_total_limit_counts_as_changed() -> TestR
     write(dir.path(), "a.rs", &"fn a() {}".repeat(1000))?;
     let names = unchanged_names(dir.path(), &listed)?;
     assert_eq!(names, ["b.rs"]);
+    Ok(())
+}
+
+#[test]
+fn a_scope_keeps_folders_and_languages_out_of_the_walk() -> TestResult {
+    let dir = tempfile::tempdir()?;
+    write(dir.path(), "src/main.rs", "fn main() {}")?;
+    write(dir.path(), "docs/note.rs", "fn n() {}")?;
+    write(dir.path(), "docs/deep/more.rs", "fn m() {}")?;
+    write(dir.path(), "docs_old/kept.rs", "fn k() {}")?;
+    write(dir.path(), "tools/run.py", "print(1)")?;
+    let scope = Scope::new([LanguageId::new("python")?], [RelativePath::new("docs")?]);
+    let walk = discovery(u64::MAX)?;
+    let files = walk.discover_scoped(&folder(dir.path())?, &[], &scope, &CancelToken::new())?;
+    assert_eq!(paths(&files), ["docs_old/kept.rs", "src/main.rs"]);
+    Ok(())
+}
+
+#[test]
+fn a_file_the_scope_leaves_out_does_not_count_against_the_size_limit() -> TestResult {
+    let dir = tempfile::tempdir()?;
+    write(dir.path(), "src/main.rs", "fn main() {}")?;
+    write(dir.path(), "vendor/big.rs", &"fn a() {}\n".repeat(1000))?;
+    let scope = Scope::new([], [RelativePath::new("vendor")?]);
+    let walk = discovery(100)?;
+    let files = walk.discover_scoped(&folder(dir.path())?, &[], &scope, &CancelToken::new())?;
+    assert_eq!(paths(&files), ["src/main.rs"]);
+    let refused = walk.discover(&folder(dir.path())?, &[], &CancelToken::new());
+    assert_eq!(refused.unwrap_err().code(), ErrorCode::SourceTooLarge);
     Ok(())
 }

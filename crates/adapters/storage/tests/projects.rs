@@ -3,9 +3,10 @@
 #[cfg(test)]
 mod common;
 
-use codeskimr_application::ports::{ProjectRepository, SnapshotStore};
+use codeskimr_application::ports::{ProjectRepository, ScopeStore, SnapshotStore};
 use codeskimr_domain::{
-    BranchName, CredentialId, GitUrl, Principal, ProjectId, ProjectSource, ScanMode,
+    BranchName, CredentialId, GitUrl, LanguageId, Principal, ProjectId, ProjectSource,
+    RelativePath, ScanMode, Scope,
 };
 use common::{PROJECT, code_of, data, file, header, project, store};
 
@@ -206,5 +207,51 @@ fn consent_for_a_project_that_does_not_exist_is_refused() {
     assert_eq!(
         store.consent(ProjectId::new(7)).unwrap(),
         ConsentRecord::default()
+    );
+}
+
+#[test]
+fn a_project_leaves_nothing_out_until_it_is_told_to() {
+    let store = store(3);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    assert_eq!(store.scope(PROJECT).unwrap(), Scope::default());
+}
+
+#[test]
+fn the_scope_of_a_project_is_stored_replaced_and_kept_over_a_save() {
+    let store = store(3);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    let wanted = Scope::new(
+        [LanguageId::new("sql").unwrap()],
+        [
+            RelativePath::new("docs").unwrap(),
+            RelativePath::new("web/old").unwrap(),
+        ],
+    );
+    store.store_scope(PROJECT, &wanted).unwrap();
+    assert_eq!(store.scope(PROJECT).unwrap(), wanted);
+    // Saving the project again (a rename, new layers) does not touch the scope.
+    store
+        .save_project(&project(1, "/work/app", &[("Core", &["App.Core"])]))
+        .unwrap();
+    assert_eq!(store.scope(PROJECT).unwrap(), wanted);
+    let smaller = Scope::new([], [RelativePath::new("docs").unwrap()]);
+    store.store_scope(PROJECT, &smaller).unwrap();
+    assert_eq!(store.scope(PROJECT).unwrap(), smaller);
+    store.store_scope(PROJECT, &Scope::default()).unwrap();
+    assert!(store.scope(PROJECT).unwrap().is_everything());
+}
+
+#[test]
+fn the_scope_of_an_unknown_project_is_refused() {
+    let store = store(3);
+    let scope = Scope::new([LanguageId::new("sql").unwrap()], []);
+    assert_eq!(
+        code_of(&store.store_scope(ProjectId::new(9), &scope).unwrap_err()),
+        "PRJ-201"
+    );
+    assert_eq!(
+        code_of(&store.scope(ProjectId::new(9)).unwrap_err()),
+        "PRJ-201"
     );
 }

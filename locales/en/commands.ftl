@@ -94,3 +94,7 @@ command-stats-ranking-title = Show a ranking
 command-stats-ranking-description = Ranks the symbols of the newest scan: the most used, those without a usage found, the most complex, the largest and the most coupled.
 command-settings-effective-title = Show effective settings
 command-settings-effective-description = Shows every setting as it holds now: its value and where the value comes from (default, configuration file or command line). Secret values are never shown, and nothing can be changed here.
+command-scope-get-title = Show scope of project
+command-scope-get-description = Shows which languages and folders a project covers and which it leaves out, with the number of files of each, counted in the folder as a scan would walk it.
+command-scope-set-title = Set scope of project
+command-scope-set-description = Stores the languages and folders that the scans of a project leave out. The change applies from the next scan; the code stays one project.

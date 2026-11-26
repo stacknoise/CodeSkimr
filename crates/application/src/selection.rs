@@ -32,6 +32,12 @@ impl Selection {
         Self(paths.iter().map(tidy).collect())
     }
 
+    /// The tidied paths, in the order they were named.
+    #[must_use]
+    pub fn paths(&self) -> &[String] {
+        &self.0
+    }
+
     /// Whether no path is named, which selects everything.
     #[must_use]
     pub fn is_empty(&self) -> bool {

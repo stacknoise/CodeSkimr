@@ -9,7 +9,7 @@ use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     IndexArtifact, IndexJob, IndexRunner, IndexerSpec, IndexerStatus, PLACEHOLDER_OUTPUT,
-    PLACEHOLDER_PROJECT, ToolProblem, ToolSeen,
+    PLACEHOLDER_PROJECT, ToolProblem, ToolSeen, matches_project_file,
 };
 use codeskimr_codes::Coded;
 use codeskimr_domain::RelativePath;
@@ -18,7 +18,7 @@ use tempfile::TempDir;
 use crate::consts::{
     BYTES_PER_MB, EXCERPT_BYTES, HEAP_SHARE_PERCENT, HOME_DIR_NAME, INDEX_FILE_NAME, LOG_CODE,
     LOG_EXCERPT, LOG_INDEXER, OUTPUT_DIR_PREFIX, PATH_ENV, PERCENT, PLACEHOLDER_HEAP_MB,
-    PROJECT_FILE_WILDCARD, SCRATCH_DIR_NAME, SURVIVED_CODE,
+    SCRATCH_DIR_NAME, SURVIVED_CODE,
 };
 use crate::env::{self, Environment, Folders};
 use crate::error::{FailureReason, IndexerError};
@@ -477,13 +477,6 @@ fn project_file_near(wanted: &[String], root: &Path) -> bool {
     root.ancestors().any(|dir| {
         std::fs::read_dir(dir).map_or(true, |entries| lists_project_file(wanted, entries))
     })
-}
-
-/// Whether the file name `name` is the one `wanted` names; `*` at the start matches any prefix.
-fn matches_project_file(wanted: &str, name: &str) -> bool {
-    wanted
-        .strip_prefix(PROJECT_FILE_WILDCARD)
-        .map_or_else(|| wanted == name, |suffix| name.ends_with(suffix))
 }
 
 #[cfg(test)]

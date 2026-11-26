@@ -12,16 +12,16 @@ use codeskimr_application::ports::{
     DependencyQuery, FileHit, ImpactPage, LanguageShare, Level2Replacement, MemberRow, OutlineNode,
     PendingReference, PreviousIndex, PreviousState, ProjectCatalog, ProjectOverview,
     ProjectRepository, RankedRows, RankingRequest, ReferenceSite, ReferenceSites, ReportWrite,
-    SameName, ScanReport, ScanReportStore, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex,
-    SnapshotData, SnapshotStore, StatisticsSetup, StatisticsSummary, StoredNames, StoredReferences,
-    SymbolDetail, SymbolKey, SymbolState, SymbolStates, ToolReportStore, TypeFocus, UnusedCounts,
-    UsageIndex, UsagePage,
+    SameName, ScanReport, ScanReportStore, ScopeStore, SearchHit, SimilarHit, SimilarQuery,
+    SimilarityIndex, SnapshotData, SnapshotStore, StatisticsSetup, StatisticsSummary, StoredNames,
+    StoredReferences, SymbolDetail, SymbolKey, SymbolState, SymbolStates, ToolReportStore,
+    TypeFocus, UnusedCounts, UsageIndex, UsagePage,
 };
 use codeskimr_domain::{
     Alert, AlertId, Annotation, AnnotationId, ContentHash, FileId, Fingerprints, LayerEdge,
     NamespaceGraph, Project, ProjectId, QualifiedName, RankingQuery, Reference, RelativePath,
-    Snapshot, SnapshotId, SourceFile, Symbol, SymbolBaseline, SymbolFacts, SymbolId, SymbolName,
-    SymbolPair, ToolReport, UsageQuery,
+    Scope, Snapshot, SnapshotId, SourceFile, Symbol, SymbolBaseline, SymbolFacts, SymbolId,
+    SymbolName, SymbolPair, ToolReport, UsageQuery,
 };
 
 use super::SqliteStore;
@@ -66,6 +66,7 @@ macro_rules! forward {
 impl ProjectRepository for SqliteStore {
     forward! { ProjectRepository via of_project:
         fn project(&self, id: ProjectId) -> Result<Project, CodedError>;
+        fn scope(&self, id: ProjectId) -> Result<Scope, CodedError>;
         fn latest_files(&self, id: ProjectId) -> Result<Vec<SourceFile>, CodedError>;
         fn latest_index(&self, id: ProjectId) -> Result<PreviousIndex, CodedError>;
         fn latest_state(&self, id: ProjectId) -> Result<PreviousState, CodedError>;
@@ -181,6 +182,12 @@ impl ConsentStore for SqliteStore {
 
     fn store_consent(&self, grant: &ConsentGrant) -> Result<(), CodedError> {
         ConsentStore::store_consent(&*self.of_project(grant.project())?, grant)
+    }
+}
+
+impl ScopeStore for SqliteStore {
+    fn store_scope(&self, project: ProjectId, scope: &Scope) -> Result<(), CodedError> {
+        ScopeStore::store_scope(&*self.of_project(project)?, project, scope)
     }
 }
 

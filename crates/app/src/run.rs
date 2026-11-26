@@ -10,7 +10,7 @@ use codeskimr_application::conventions::CheckReport;
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{
     Action, CliError, CodesArgs, CredentialAction, ExportArgs, Invocation, Level2Action, OpenArgs,
-    Parsed, ScanArgs, ScanSummary, StartArgs, check_json, check_text, codes_text,
+    Parsed, ScanArgs, ScanSummary, ScopeArgs, StartArgs, check_json, check_text, codes_text,
     credential_deleted, credential_stored, device_prompt, error_line, export_written,
     from_ui_notice, from_ui_wait, language_from, level2_confirmed, level2_declined, level2_revoked,
     open_ready, open_url_warning, parse, scan_finished, scan_json, scan_started, secret_prompt,
@@ -34,7 +34,7 @@ use crate::watch::{self, Report};
 use crate::wiring::os_secrets;
 use crate::{
     annotations_cli, check, credential, export, level2_consent, level2_console, mcp, open,
-    query_cli, scan, serve, start, tray, ui_commands,
+    query_cli, scan, scope_cli, serve, start, tray, ui_commands,
 };
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
@@ -155,6 +155,16 @@ fn needs_packs(action: &Action) -> bool {
     )
 }
 
+fn run_scope(
+    args: &ScopeArgs,
+    invocation: &Invocation,
+    locations: &Locations,
+    texts: (&Messages, &str),
+) -> Result<Outcome, Failure> {
+    let around = surroundings(invocation, locations, texts);
+    print_text(scope_cli::run_scope(args, &around))
+}
+
 fn run_invocation(
     invocation: &Invocation,
     env: Lookup<'_>,
@@ -192,6 +202,7 @@ fn run_invocation(
         Action::Open(args) => run_open(*args, invocation, &locations, env, (messages, language)),
         Action::Serve(_) => run_serve(invocation, &locations, (messages, language)),
         Action::Export(args) => run_export(args, invocation, &locations, messages, language),
+        Action::Scope(args) => run_scope(args, invocation, &locations, (messages, language)),
         Action::Codes(args) => print_codes(args, messages, language),
         Action::Check(args) => {
             let report = check::run(args, &invocation.global, &locations, &current_dir)?;
