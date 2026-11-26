@@ -52,13 +52,16 @@ fn name_at(graph: &NamespaceGraph, at: usize) -> Option<QualifiedName> {
 }
 
 fn ring_of(graph: &NamespaceGraph, found: &Found<'_>) -> Option<Ring> {
+    let mut modules = found
+        .cycle
+        .modules
+        .iter()
+        .map(|&at| name_at(graph, at))
+        .collect::<Option<Vec<_>>>()?;
+    // The identity in the held state is the sorted names, whatever order the graph has.
+    modules.sort_unstable();
     Some(Ring {
-        modules: found
-            .cycle
-            .modules
-            .iter()
-            .map(|&at| name_at(graph, at))
-            .collect::<Option<Vec<_>>>()?,
+        modules,
         chain: way_round(found.cycle, found.weakest)
             .into_iter()
             .map(|at| name_at(graph, at))

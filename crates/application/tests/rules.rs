@@ -259,3 +259,29 @@ fn a_ring_is_held_by_its_sorted_modules_and_a_bigger_ring_is_new() {
     assert_eq!(grown.outcomes[0].new_violations(), 1);
     assert_eq!(grown.resolved.len(), 1);
 }
+
+#[test]
+fn the_identity_of_a_ring_is_sorted_by_name_whatever_the_order_of_the_graph() {
+    let store = Fake(
+        Vec::new(),
+        namespaces(
+            &["Shop.Data", "Shop.Cart", "Shop.Api"],
+            &[(0, 2, 2), (2, 0, 1)],
+        ),
+    );
+    let held = evaluate(&rules(CYCLES), &store, SNAPSHOT).unwrap();
+    let baseline = Baseline::holding("2026-11-26", &held);
+    assert_eq!(baseline.entries[0].from, "Shop.Api,Shop.Data");
+}
+
+#[test]
+fn a_ring_of_three_modules_has_a_chain_that_closes_after_every_module() {
+    let store = Fake(
+        Vec::new(),
+        namespaces(&["A", "B", "C"], &[(0, 1, 3), (1, 2, 2), (2, 0, 1)]),
+    );
+    let outcomes = evaluate(&rules(CYCLES), &store, SNAPSHOT).unwrap();
+    let ring = outcomes[0].violations[0].ring.as_ref().unwrap();
+    let chain: Vec<&str> = ring.chain.iter().map(QualifiedName::as_str).collect();
+    assert_eq!(chain, ["C", "A", "B", "C"]);
+}
