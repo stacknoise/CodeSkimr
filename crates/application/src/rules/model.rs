@@ -5,6 +5,8 @@ use codeskimr_domain::{QualifiedName, RelativePath, Span};
 /// The kind of a rule (ADR 0105 to 0107; the layers are the rule of ADR 0054).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuleKind {
+    /// The layers of the project: a layer may only use the layers it lists (`CHK-103`).
+    Layers,
     /// `[[rules.forbid]]`: module A must not use module B.
     Forbid,
     /// `[[rules.public_api]]`: the inside of a module is closed to others.

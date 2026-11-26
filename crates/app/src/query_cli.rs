@@ -7,15 +7,16 @@
 use std::path::Path;
 use std::sync::Arc;
 
+use codeskimr_application::access;
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{FileDiscovery, ProjectRepository};
+use codeskimr_application::ports::{Clock, CodeIndex, FileDiscovery, ProjectRepository};
 use codeskimr_cli::{
     ContextQuery, ImpactQuery, QueryAction, QueryKind, RenameQuery, RulesQuery, SymbolsQuery,
     UnusedQuery, UsagesQuery, query_code_report, query_error_json, query_json, query_text,
 };
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::{Principal, ProjectId, ProjectSource};
+use codeskimr_domain::{Permission, Principal, ProjectId, ProjectSource};
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::{
     ContextArgs, ImpactArgs, McpError, RenameArgs, RulesArgs, SearchArgs, Tools, UnusedArgs,
@@ -25,8 +26,11 @@ use codeskimr_storage::SqliteStore;
 use serde_json::Value;
 
 use crate::annotations_cli::Surroundings;
+use crate::clock::SystemClock;
 use crate::consts::NEW_VIOLATIONS;
 use crate::mcp::project_tools;
+use crate::rules_check::StoredRules;
+use crate::ui_commands::hold;
 use crate::wiring::{build_analysis, open_store};
 use crate::{config_files, export, principal};
 
@@ -226,6 +230,27 @@ fn failing(action: &QueryAction, answer: &Value) -> bool {
             > 0
 }
 
+/// Holds the state of the rules instead of judging them (`codeskimr rules --hold`): the answer
+/// is the day and the number of violations the file now has.
+fn held(session: &Session, principal: Principal) -> Result<Value, QueryFailure> {
+    access::require(&principal, Permission::Manage)?;
+    let id = ProjectId::new(session.project);
+    let project = session.store.project(id)?;
+    let snapshot = session
+        .store
+        .latest_snapshot(id)?
+        .ok_or_else(|| CodedError::new(ErrorCode::ProjectNotScanned))?;
+    let checks = StoredRules::new(session.store.clone());
+    let written = hold(&checks, &project, snapshot.id, SystemClock.now())?;
+    serde_json::to_value(written)
+        .map_err(|_| QueryFailure::from(CodedError::new(ErrorCode::UnexpectedInternalError)))
+}
+
+/// Whether the command holds the state of the rules instead of asking a tool.
+const fn holds(action: &QueryAction) -> bool {
+    matches!(action, QueryAction::Rules(RulesQuery { hold: true, .. }))
+}
+
 /// Runs the query command and returns what to print: JSON with `--json`, text otherwise.
 ///
 /// # Errors
@@ -238,20 +263,29 @@ pub fn run(
     current_dir: &Path,
 ) -> Result<Answered, QueryFailure> {
     let session = open(action, around, current_dir)?;
-    let answer = ask(&session.tools, principal::resolve(), action)?;
-    let stale = stale(&session, around);
+    let holding = holds(action);
+    let answer = if holding {
+        held(&session, principal::resolve())?
+    } else {
+        ask(&session.tools, principal::resolve(), action)?
+    };
+    let stale = if holding {
+        None
+    } else {
+        stale(&session, around)
+    };
     let failing = failing(action, &answer);
+    let kind = if holding {
+        QueryKind::RulesHeld
+    } else {
+        kind_of(action)
+    };
     let text = if action.target().json {
         query_json(answer, stale)
             .map_err(|_| QueryFailure::from(CodedError::new(ErrorCode::UnexpectedInternalError)))?
     } else {
-        query_text(
-            around.messages,
-            around.language,
-            kind_of(action),
-            (&answer, stale),
-        )
-        .map_err(|error| QueryFailure::from(CodedError::caused_by(error)))?
+        query_text(around.messages, around.language, kind, (&answer, stale))
+            .map_err(|error| QueryFailure::from(CodedError::caused_by(error)))?
     };
     Ok(Answered { text, failing })
 }

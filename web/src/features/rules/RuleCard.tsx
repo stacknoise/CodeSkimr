@@ -6,11 +6,13 @@ import {
   INTERNAL_JOIN,
   INTERNAL_SUFFIX,
   KIND,
+  LAYERS_JOIN,
   MARK,
   MORE_JOIN,
   PLACE_SEPARATOR,
   PLACES_JOIN,
   PLACES_MORE,
+  USES_JOIN,
   VISIBLE_PLACES,
   VISIBLE_VIOLATIONS,
 } from "./consts";
@@ -48,28 +50,52 @@ function ViolationRow(props: { violation: ViolationOut }) {
   );
 }
 
-/** The title and the line of the rule as the project file says it. */
+/** What each layer may use, as the layer rule states it: `Api → Domain; Data → nothing`. */
+function layersSpec(rule: RuleOut): string {
+  return rule.allowed
+    .map((entry) =>
+      t(I18N_KEYS.RULES_LAYERS_ALLOWED, {
+        layer: entry.layer,
+        uses:
+          entry.may_use.length > 0
+            ? entry.may_use.join(USES_JOIN)
+            : t(I18N_KEYS.RULES_LAYERS_NOTHING),
+      }),
+    )
+    .join(LAYERS_JOIN);
+}
+
+/** The title of the rule and the line under the badge that says what it demands. */
+function titleAndSpec(rule: RuleOut): { title: string; spec: string } {
+  if (rule.kind === KIND.layers) {
+    return { title: t(I18N_KEYS.RULES_LAYERS_TITLE), spec: layersSpec(rule) };
+  }
+  if (rule.kind === KIND.forbid) {
+    return {
+      title: t(I18N_KEYS.RULES_FORBID_TITLE, { from: rule.from, to: rule.to }),
+      spec: rule.reason ?? t(I18N_KEYS.RULES_FORBID_SPEC, { from: rule.from, to: rule.to }),
+    };
+  }
+  return {
+    title: t(I18N_KEYS.RULES_PUBLIC_API_TITLE),
+    spec: t(I18N_KEYS.RULES_PUBLIC_API_SPEC, {
+      module: rule.from,
+      internal: rule.internal.map((prefix) => `${prefix}${INTERNAL_SUFFIX}`).join(INTERNAL_JOIN),
+    }),
+  };
+}
+
+/** The title and the line of the rule as the project file says it. The layers are no new kind
+ * of rule, so they carry no badge. */
 function Heading(props: { rule: RuleOut }) {
-  const forbid = () => props.rule.kind === KIND.forbid;
+  const text = () => titleAndSpec(props.rule);
   return (
     <>
-      <span class={styles.title}>
-        {forbid()
-          ? t(I18N_KEYS.RULES_FORBID_TITLE, { from: props.rule.from, to: props.rule.to })
-          : t(I18N_KEYS.RULES_PUBLIC_API_TITLE)}
-      </span>
-      <span class={styles.kindBadge}>{t(I18N_KEYS.RULES_KIND_NEW)}</span>
-      <span class={styles.spec}>
-        {forbid()
-          ? (props.rule.reason ??
-            t(I18N_KEYS.RULES_FORBID_SPEC, { from: props.rule.from, to: props.rule.to }))
-          : t(I18N_KEYS.RULES_PUBLIC_API_SPEC, {
-              module: props.rule.from,
-              internal: props.rule.internal
-                .map((prefix) => `${prefix}${INTERNAL_SUFFIX}`)
-                .join(INTERNAL_JOIN),
-            })}
-      </span>
+      <span class={styles.title}>{text().title}</span>
+      <Show when={props.rule.kind !== KIND.layers}>
+        <span class={styles.kindBadge}>{t(I18N_KEYS.RULES_KIND_NEW)}</span>
+      </Show>
+      <span class={styles.spec}>{text().spec}</span>
     </>
   );
 }

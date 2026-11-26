@@ -9,7 +9,7 @@ use serde_json::Value;
 
 use super::{SnapshotInfo, Tools, to_json, truncation_notice};
 use crate::args::RulesArgs;
-use crate::consts::{LINE_OFFSET, READ_TOOL_PERMISSION, RULE_FORBID, RULE_PUBLIC_API};
+use crate::consts::{LINE_OFFSET, READ_TOOL_PERMISSION, RULE_FORBID, RULE_LAYERS, RULE_PUBLIC_API};
 use crate::error::{CodeReport, McpError};
 
 #[derive(Serialize)]
@@ -78,6 +78,7 @@ fn violation(violation: &Violation) -> ViolationRow {
 
 const fn kind_label(kind: RuleKind) -> &'static str {
     match kind {
+        RuleKind::Layers => RULE_LAYERS,
         RuleKind::Forbid => RULE_FORBID,
         RuleKind::PublicApi => RULE_PUBLIC_API,
     }

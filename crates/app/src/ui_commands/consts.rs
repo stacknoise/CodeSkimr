@@ -337,6 +337,8 @@ pub const LAYERS_GET: &str = "layers.get";
 pub const LAYERS_GET_TITLE: &str = i18n::COMMAND_LAYERS_GET_TITLE;
 /// Description key of `layers.get`.
 pub const LAYERS_GET_DESCRIPTION: &str = i18n::COMMAND_LAYERS_GET_DESCRIPTION;
+/// Kind of a rule in the answer of `rules.show`: the layers of the project.
+pub const LAYERS: &str = "layers";
 /// Kind of a rule in the answer of `rules.show`: modules that must not use each other.
 pub const FORBID: &str = "forbid";
 /// Kind of a rule in the answer of `rules.show`: the inside of a module is closed.
@@ -347,6 +349,12 @@ pub const RULES_SHOW: &str = "rules.show";
 pub const RULES_SHOW_TITLE: &str = i18n::COMMAND_RULES_SHOW_TITLE;
 /// Description key of `rules.show`.
 pub const RULES_SHOW_DESCRIPTION: &str = i18n::COMMAND_RULES_SHOW_DESCRIPTION;
+/// Id of the command that holds the state of the rules: every violation counts as old burden.
+pub const RULES_HOLD: &str = "rules.hold";
+/// Title key of `rules.hold`.
+pub const RULES_HOLD_TITLE: &str = i18n::COMMAND_RULES_HOLD_TITLE;
+/// Description key of `rules.hold`.
+pub const RULES_HOLD_DESCRIPTION: &str = i18n::COMMAND_RULES_HOLD_DESCRIPTION;
 /// Id of the command that keeps a symbol on purpose (an entry of `[[unused.ignore]]`).
 pub const UNUSED_KEEP: &str = "unused.keep";
 /// Title key of `unused.keep`.

@@ -30,6 +30,7 @@ function violation(index: number, old: boolean): ViolationOut {
 
 const ANSWER: RulesOut = {
   scanned: true,
+  holdable: true,
   cycles: false,
   held_on: "2026-11-26",
   resolved: 1,
@@ -37,12 +38,27 @@ const ANSWER: RulesOut = {
   new: 1,
   rules: [
     {
+      id: "layers",
+      kind: "layers",
+      from: "",
+      to: "",
+      internal: [],
+      reason: null,
+      allowed: [
+        { layer: "Api", may_use: ["Domain"] },
+        { layer: "Data", may_use: [] },
+      ],
+      new: 0,
+      violations: [],
+    },
+    {
       id: "forbid:Shop.Reports>Shop.Checkout",
       kind: "forbid",
       from: "Shop.Reports",
       to: "Shop.Checkout",
       internal: [],
       reason: null,
+      allowed: [],
       new: 1,
       violations: [violation(1, false), violation(2, true), violation(3, true), violation(4, true)],
     },
@@ -53,6 +69,7 @@ const ANSWER: RulesOut = {
       to: "",
       internal: ["Shop.Data.Internal"],
       reason: null,
+      allowed: [],
       new: 0,
       violations: [],
     },
@@ -79,8 +96,59 @@ describe("RulesScreen", () => {
     expect(screen.getByText("1 new")).toBeInTheDocument();
     expect(screen.getByText("3 old burdens")).toBeInTheDocument();
     expect(screen.getByText("Only through the public interface")).toBeInTheDocument();
-    expect(screen.getByText("kept")).toBeInTheDocument();
+    expect(screen.getAllByText("kept")).toHaveLength(2);
     expect(screen.getByText("Shop.Data.Internal.* only within Shop.Data")).toBeInTheDocument();
+  });
+
+  it("shows the layer rule first, says what each layer may use and gives it no new-kind badge", async () => {
+    serve();
+    render(() => <RulesScreen />);
+    expect(await screen.findByText("Layers")).toBeInTheDocument();
+    expect(screen.getByText("Api → Domain; Data → nothing")).toBeInTheDocument();
+    expect(screen.getAllByText("new rule kind")).toHaveLength(2);
+  });
+
+  it("holds the state with the button, shows what was written and reads the rules again", async () => {
+    let held = false;
+    fetchMock.mockImplementation((path: string) => {
+      if (path.endsWith("rules.hold")) {
+        held = true;
+        return Promise.resolve(answer({ held_on: "2026-11-26", entries: 5 }));
+      }
+      return Promise.resolve(answer(held ? { ...ANSWER, new: 0, old: 5 } : ANSWER));
+    });
+    render(() => <RulesScreen />);
+    expect(await screen.findByText("1 fail the CI")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Hold state" }));
+    expect(await screen.findByText(/State held on 2026-11-26: 5 violations/)).toBeInTheDocument();
+    expect(await screen.findByText("0 fail the CI")).toBeInTheDocument();
+  });
+
+  it("switches the button off for a Git project and for a project without a scan", async () => {
+    serve({ holdable: false });
+    const first = render(() => <RulesScreen />);
+    await screen.findByText("Layers");
+    const button = screen.getByRole("button", { name: "Hold state" });
+    expect(button).toBeDisabled();
+    expect(button.getAttribute("title")).toMatch(/Folder projects only/);
+    first.unmount();
+    resetRules();
+    serve({ scanned: false, rules: [] });
+    render(() => <RulesScreen />);
+    await screen.findByText(/has not been scanned yet/);
+    expect(screen.getByRole("button", { name: "Hold state" })).toBeDisabled();
+  });
+
+  it("shows the failure of holding the state", async () => {
+    fetchMock.mockImplementation((path: string) =>
+      Promise.resolve(
+        path.endsWith("rules.hold") ? answer({ code: "CFG-104" }, 500) : answer(ANSWER),
+      ),
+    );
+    render(() => <RulesScreen />);
+    await screen.findByText("Layers");
+    fireEvent.click(screen.getByRole("button", { name: "Hold state" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
 
   it("folds the rest of the violations away and shows them on request", async () => {

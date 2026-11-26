@@ -257,6 +257,10 @@ pub mod arg {
     pub const ASSESSMENT: &str = "assessment";
     /// `{ $new }`: the proposed new name, or how many violations are new.
     pub const NEW: &str = "new";
+    /// `{ $date }`: the day the state of the rules was held.
+    pub const DATE: &str = "date";
+    /// `{ $entries }`: how many violations the held state has.
+    pub const ENTRIES: &str = "entries";
     /// `{ $held }`: how many violations the held state has, or whether one is held.
     pub const HELD: &str = "held";
     /// `{ $resolved }`: how many held violations are gone.
@@ -447,6 +451,8 @@ pub const DIRECTIONS: [&str; 2] = ["incoming", "outgoing"];
 pub const ARG_DEPTH: &str = "depth";
 /// Flag of `usages`: references from tests count.
 pub const ARG_INCLUDE_TESTS: &str = "include-tests";
+/// Long flag of `rules` that holds the state.
+pub const ARG_HOLD: &str = "hold";
 /// Option of `context`: how much room the answer takes.
 pub const ARG_BUDGET: &str = "budget";
 /// Placeholder shown for the budget.
@@ -499,6 +505,10 @@ pub mod key {
     pub const SAME_SIGNATURE: &str = "same_signature";
     /// The rules of `rules`.
     pub const RULES: &str = "rules";
+    /// The day the state was held.
+    pub const HELD_ON: &str = "held_on";
+    /// How many violations the held state has.
+    pub const ENTRIES: &str = "entries";
     /// The violations of a rule.
     pub const VIOLATIONS: &str = "violations";
     /// The places of a violation.

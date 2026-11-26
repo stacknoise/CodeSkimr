@@ -48,6 +48,7 @@ impl RulesChecks for StoredRules {
         let (rules, baseline) = files_of(&project.source)?;
         report(
             &rules,
+            &project.layers,
             baseline.as_ref(),
             self.references.as_ref(),
             snapshot,

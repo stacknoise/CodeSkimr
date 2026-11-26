@@ -115,3 +115,13 @@ fn a_name_is_inside_its_own_first_segments_only() -> Result<(), ModelError> {
     assert!(QualifiedName::new("shop::ui")?.is_inside("shop"));
     Ok(())
 }
+
+#[test]
+fn a_timestamp_names_its_day_in_utc() {
+    use codeskimr_domain::Timestamp;
+    assert_eq!(Timestamp(0).iso_date(), "1970-01-01");
+    assert_eq!(Timestamp(951_782_400).iso_date(), "2000-02-29");
+    assert_eq!(Timestamp(1_795_737_599).iso_date(), "2026-11-26");
+    assert_eq!(Timestamp(1_795_737_600).iso_date(), "2026-11-27");
+    assert_eq!(Timestamp(-1).iso_date(), "1969-12-31");
+}
