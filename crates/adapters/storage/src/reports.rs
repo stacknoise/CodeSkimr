@@ -18,6 +18,7 @@ struct LineColumns {
     outcome: OutcomeKind,
     files: Option<i64>,
     stale: Option<i64>,
+    failed_workspaces: i64,
     reason: Option<&'static str>,
     code: Option<&'static str>,
 }
@@ -27,14 +28,20 @@ fn columns_of(outcome: &LanguageOutcome) -> StorageResult<LineColumns> {
         outcome: OutcomeKind::Skipped,
         files: None,
         stale: None,
+        failed_workspaces: 0,
         reason: None,
         code: None,
     };
     Ok(match outcome {
-        LanguageOutcome::Checked { files, stale } => LineColumns {
+        LanguageOutcome::Checked {
+            files,
+            stale,
+            failed_workspaces,
+        } => LineColumns {
             outcome: OutcomeKind::Checked,
             files: Some(column_int(*files)?),
             stale: Some(column_int(*stale)?),
+            failed_workspaces: column_int(*failed_workspaces)?,
             ..none
         },
         LanguageOutcome::Skipped(reason) => LineColumns {
@@ -62,6 +69,7 @@ fn insert_languages(tx: &Transaction<'_>, id: i64, lines: &[LanguageLine]) -> St
             columns.stale,
             columns.reason,
             columns.code,
+            columns.failed_workspaces,
         ])?;
     }
     Ok(())
@@ -96,10 +104,12 @@ fn line_of(cols: &Cols<'_>) -> StorageResult<Option<LanguageLine>> {
     let outcome: String = cols.take()?;
     let (files, stale): (Option<i64>, Option<i64>) = (cols.take()?, cols.take()?);
     let (reason, code): (Option<String>, Option<String>) = (cols.take()?, cols.take()?);
+    let failed_workspaces: i64 = cols.take()?;
     let outcome = match label_from::<OutcomeKind>(&outcome)? {
         OutcomeKind::Checked => LanguageOutcome::Checked {
             files: id_from(files.unwrap_or_default())?,
             stale: id_from(stale.unwrap_or_default())?,
+            failed_workspaces: id_from(failed_workspaces)?,
         },
         OutcomeKind::Failed => {
             // A code that this version does not know any more leaves the line out.
