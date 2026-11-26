@@ -5,9 +5,9 @@ use std::collections::BTreeMap;
 use codeskimr_domain::{QualifiedName, is_within};
 
 use super::consts::{ID_ARROW, ID_FORBID, ID_PUBLIC_API, ID_SEPARATOR};
-use super::cycles::cycles_outcome;
+use super::cycles::Rings;
 use super::model::{Outcome, Place, RuleKind, Violation};
-use crate::config::{ForbidRule, PublicApiRule, Rules};
+use crate::config::{CycleRule, ForbidRule, PublicApiRule, Rules};
 use crate::error::CodedError;
 use crate::ports::{ReferencePlace, ReferencePlaces};
 use codeskimr_domain::SnapshotId;
@@ -69,23 +69,13 @@ pub fn evaluate(
     references: &dyn ReferencePlaces,
     snapshot: SnapshotId,
 ) -> Result<Vec<Outcome>, CodedError> {
-    let cycles = cycles_outcome(rules, references, snapshot)?;
+    let graph = match rules.cycles {
+        CycleRule::Deny => Some(references.namespaces(snapshot)?),
+        CycleRule::Off => None,
+    };
+    let mut rings = graph.as_ref().map(Rings::new);
     let rules = rules_of(rules);
-    let mut found: Vec<Found> = rules.iter().map(|_| Found::new()).collect();
-    references.for_each_reference(snapshot, &mut |reference: ReferencePlace| {
-        for (rule, hits) in rules.iter().zip(&mut found) {
-            if reference.from != reference.to
-                && rule.breaks(reference.from.as_str(), reference.to.as_str())
-            {
-                hits.entry((reference.from.clone(), reference.to.clone()))
-                    .or_default()
-                    .push(Place {
-                        path: reference.path.clone(),
-                        span: reference.span,
-                    });
-            }
-        }
-    })?;
+    let found = walk(&rules, rings.as_mut(), references, snapshot)?;
     let judged = rules.iter().zip(found).map(|(rule, hits)| Outcome {
         id: rule.id(),
         kind: rule.kind(),
@@ -100,5 +90,35 @@ pub fn evaluate(
             })
             .collect(),
     });
+    let cycles = rings.map(Rings::into_outcome);
     Ok(cycles.into_iter().chain(judged).collect())
+}
+
+/// Looks at every certain reference once: the rings note the places of their weakest edges and
+/// each rule collects the pairs of symbols that break it.
+fn walk(
+    rules: &[Rule<'_>],
+    mut rings: Option<&mut Rings<'_>>,
+    references: &dyn ReferencePlaces,
+    snapshot: SnapshotId,
+) -> Result<Vec<Found>, CodedError> {
+    let mut found: Vec<Found> = rules.iter().map(|_| Found::new()).collect();
+    references.for_each_reference(snapshot, &mut |reference: ReferencePlace| {
+        if let Some(rings) = rings.as_deref_mut() {
+            rings.visit(&reference);
+        }
+        for (rule, hits) in rules.iter().zip(&mut found) {
+            if reference.from != reference.to
+                && rule.breaks(reference.from.as_str(), reference.to.as_str())
+            {
+                hits.entry((reference.from.clone(), reference.to.clone()))
+                    .or_default()
+                    .push(Place {
+                        path: reference.path.clone(),
+                        span: reference.span,
+                    });
+            }
+        }
+    })?;
+    Ok(found)
 }
