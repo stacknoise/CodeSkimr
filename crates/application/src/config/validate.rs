@@ -3,8 +3,8 @@
 use std::collections::HashSet;
 
 use super::consts::{
-    FORBIDDEN_EDITOR_SCHEMES, MAX_PARALLEL_RUNS_LIMIT, PATH_SEPARATORS, PERCENT_MAX,
-    PLACEHOLDER_PATH, SCHEME_EXTRA_CHARS, UI_COOLDOWN_MIN_SECONDS, UNIT_MAX, UNIT_MIN,
+    FORBIDDEN_EDITOR_SCHEMES, MAX_INDEXER_MEMORY_MB, MAX_PARALLEL_RUNS_LIMIT, PATH_SEPARATORS,
+    PERCENT_MAX, PLACEHOLDER_PATH, SCHEME_EXTRA_CHARS, UI_COOLDOWN_MIN_SECONDS, UNIT_MAX, UNIT_MIN,
     URL_SCHEME_SEPARATOR, keys,
 };
 use super::error::{ConfigError, Violation};
@@ -275,7 +275,23 @@ fn check_context_items(mcp: &McpLimits) -> Result<(), ConfigError> {
     Ok(())
 }
 
+/// Every memory limit of one indexer must lie within what a machine can have.
+fn check_indexer_memory(level2: &Level2) -> Result<(), ConfigError> {
+    if level2
+        .indexer_memory_mb
+        .values()
+        .any(|megabytes| *megabytes > MAX_INDEXER_MEMORY_MB)
+    {
+        return fail(
+            keys::LEVEL2_INDEXER_MEMORY_MB,
+            Violation::MustNotPass(MAX_INDEXER_MEMORY_MB),
+        );
+    }
+    Ok(())
+}
+
 fn check_level2(level2: &Level2) -> Result<(), ConfigError> {
+    check_indexer_memory(level2)?;
     if level2.max_index_bytes == 0 {
         return fail(keys::LEVEL2_MAX_INDEX_BYTES, Violation::MustBePositive);
     }

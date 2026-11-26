@@ -559,3 +559,14 @@ pub mod note_arg {
 pub const STATISTICS_THREAD_NAME: &str = "statistics-count";
 /// Log event: the numbers of the statistics could not be counted after a scan.
 pub const LOG_STATISTICS_FAILED: &str = "statistics_count_failed";
+
+/// File in the data folder that holds the settings the UI saved (ADR 0103).
+pub const UI_SETTINGS_FILE: &str = "ui-settings.json";
+/// Largest settings file that is read; anything bigger is ignored.
+pub const UI_SETTINGS_MAX_BYTES: u64 = 4096;
+/// Header of the table of the configuration layer made from the saved memory limits.
+pub const UI_LAYER_HEADER: &str = "[level2.indexer_memory_mb]";
+/// Between a key and its value in a line of that layer.
+pub const UI_LAYER_ASSIGN: &str = " = ";
+/// Ending of a line of that layer.
+pub const UI_LAYER_NEWLINE: &str = "\n";

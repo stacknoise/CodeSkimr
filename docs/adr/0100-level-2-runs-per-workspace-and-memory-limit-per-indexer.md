@@ -33,4 +33,4 @@ For the memory limit: one global limit (today), a limit per language, or a limit
 - `vscode-main` gets a Rust run in `cli/` and a TypeScript run with its own limit; whether the C# and TypeScript runs pass on that corpus is measured by the product owner after release, not by CI.
 - The same code may be indexed twice if two workspaces overlap by path dependencies; the files are counted once because each workspace replaces only its own files.
 - A project with many workspaces runs the indexer that many times in series; the time limit holds for each run. A list of workspaces in the settings and a line per workspace in the report are not part of this decision.
-- The settings screen (tab "Genaue Prüfung") does not edit the new table yet; it shows it in the effective settings. What the terminal can do, the UI can do later (ADR 0092), tracked in its own issue.
+- The settings screen (tab "Analysis") edits the table with a field per indexer (issue #752, ADR 0103); until then it was only in the user file and in the effective settings.

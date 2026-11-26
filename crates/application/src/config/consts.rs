@@ -23,6 +23,8 @@ pub const NO_PREFIX: &str = "";
 pub const UI_COOLDOWN_MIN_SECONDS: u32 = 10;
 /// Value of `level2.indexer_memory_mb.<indexer>` that means "use `level2.max_memory_mb`".
 pub const MEMORY_FOLLOWS_GLOBAL: u32 = 0;
+/// Most memory in megabytes that `level2.indexer_memory_mb.<indexer>` may name (1 TiB).
+pub const MAX_INDEXER_MEMORY_MB: u32 = 1_048_576;
 /// The name that stands for no indexer in particular (the global limits).
 pub const NO_INDEXER: &str = "";
 /// Most level 2 runs at the same time that the configuration may allow.
@@ -170,6 +172,8 @@ pub mod keys {
     pub const LEVEL2_TIMEOUT_SECONDS: &str = "level2.timeout_seconds";
     /// `level2.max_memory_mb`
     pub const LEVEL2_MAX_MEMORY_MB: &str = "level2.max_memory_mb";
+    /// `level2.indexer_memory_mb`
+    pub const LEVEL2_INDEXER_MEMORY_MB: &str = "level2.indexer_memory_mb";
     /// `level2.max_output_bytes`
     pub const LEVEL2_MAX_OUTPUT_BYTES: &str = "level2.max_output_bytes";
     /// `level2.min_mapped`
