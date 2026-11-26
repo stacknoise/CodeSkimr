@@ -124,6 +124,8 @@ codeskimr change [project] [--base ID] [--target ID] [--json | --markdown]
 
 The history of the scans and their comparison (ADR 0097, `docs/compare.md`). `[project]` is the first argument: an id, or the folder or Git URL the project was scanned from; without it the project of the current folder.
 
+The counterpart in the UI (ADR 0092) is the history of scans and the screen "Change" (#755, #758); `--json` has the REST commands `scans.list`, `scans.compare` and `scans.impact` as counterpart, `--markdown` the same answer rendered for a comment.
+
 - **`scans`.** Lists the scans of the project that are kept, newest first, with the id of the snapshot (the number `--base` and `--target` take), the time (UTC), the kind, the number of files, the files that scan changed, the duration and the commit. With `--json` the answer of the command `scans.list`.
 - **`compare`.** Compares two scans: the symbols that were added, removed, changed or moved, the new layer violations and cycles, and the critical symbols the difference touches. Without `--base` and `--target` the newest scan is the target and the scan before it the base; the base must be older than the target. With `--json` the answer of `scans.compare`; its `impact` is `null`.
 - **`change`.** The same comparison plus the impact: for every removed symbol and every symbol whose signature or visibility changed, its direct usages in the base scan, each *adapted* (the symbol that holds it changed too) or *not touched*. The *not touched* usages are the checklist. With `--json` the answer of `scans.impact` and of the MCP tool `impact_of_diff`. The name is `change`, not `impact`: `codeskimr impact <symbol>` is the question of the MCP tool `impact_of_change`.

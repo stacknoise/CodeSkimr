@@ -142,21 +142,34 @@ fn civil_from_days(days: i64) -> (i64, i64, i64) {
     const ERA_DAYS: i64 = 146_097;
     const EPOCH_SHIFT: i64 = 719_468;
     const YEAR_DAYS: i64 = 365;
+    const FOUR_YEARS_DAYS: i64 = 1_460;
+    const CENTURY_DAYS: i64 = 36_524;
+    const MONTH_CYCLE_MONTHS: i64 = 5;
+    const MONTH_CYCLE_DAYS: i64 = 153;
+    const MONTH_OFFSET: i64 = 2;
+    const MARCH_BASED_NEW_YEAR: i64 = 10;
+    const MARCH: i64 = 3;
+    const MONTHS_SHIFT_BACK: i64 = 9;
+    const YEARS_PER_ERA: i64 = 400;
+    const LEAP_CYCLE: i64 = 4;
+    const CENTURY: i64 = 100;
     let shifted = days + EPOCH_SHIFT;
     let era = shifted.div_euclid(ERA_DAYS);
     let day_of_era = shifted.rem_euclid(ERA_DAYS);
-    let year_of_era = (day_of_era - day_of_era / 1_460 + day_of_era / 36_524
+    let year_of_era = (day_of_era - day_of_era / FOUR_YEARS_DAYS + day_of_era / CENTURY_DAYS
         - day_of_era / (ERA_DAYS - 1))
         / YEAR_DAYS;
-    let day_of_year = day_of_era - (YEAR_DAYS * year_of_era + year_of_era / 4 - year_of_era / 100);
-    let month_index = (5 * day_of_year + 2) / 153;
-    let day = day_of_year - (153 * month_index + 2) / 5 + 1;
-    let month = if month_index < 10 {
-        month_index + 3
+    let day_of_year =
+        day_of_era - (YEAR_DAYS * year_of_era + year_of_era / LEAP_CYCLE - year_of_era / CENTURY);
+    let month_index = (MONTH_CYCLE_MONTHS * day_of_year + MONTH_OFFSET) / MONTH_CYCLE_DAYS;
+    let day =
+        day_of_year - (MONTH_CYCLE_DAYS * month_index + MONTH_OFFSET) / MONTH_CYCLE_MONTHS + 1;
+    let month = if month_index < MARCH_BASED_NEW_YEAR {
+        month_index + MARCH
     } else {
-        month_index - 9
+        month_index - MONTHS_SHIFT_BACK
     };
-    let year = year_of_era + era * 400 + i64::from(month <= 2);
+    let year = year_of_era + era * YEARS_PER_ERA + i64::from(month <= MONTH_OFFSET);
     (year, month, day)
 }
 
@@ -583,3 +596,7 @@ pub fn change_markdown(
     lines.push(speak.say(CHANGE_MD_NOTE, &note)?);
     Ok(lines.join(LINE_BREAK))
 }
+
+#[cfg(test)]
+#[path = "change_text_tests.rs"]
+mod tests;
