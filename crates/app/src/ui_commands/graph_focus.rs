@@ -7,7 +7,7 @@ use std::collections::BTreeSet;
 
 use codeskimr_application::config::Graph;
 use codeskimr_application::error::CodedError;
-use codeskimr_domain::{Layer, NamespaceGraph, QualifiedName, SnapshotId};
+use codeskimr_domain::{Layer, NamespaceGraph, NodePlacement, NodeSize, QualifiedName, SnapshotId};
 
 use super::consts::{NAMESPACE_SIDE_MAX, TYPE_ROW_FOCUS, TYPE_ROW_USED, TYPE_ROW_USERS};
 use super::graph::{BoxOut, FocusOut, GraphOut, GraphPorts, LinkOut, layer_index};
@@ -80,7 +80,7 @@ fn side(graph: &NamespaceGraph, at: usize, users: bool) -> Vec<(usize, u32)> {
     found
 }
 
-fn name_of(graph: &NamespaceGraph, at: usize) -> String {
+pub(super) fn name_of(graph: &NamespaceGraph, at: usize) -> String {
     graph
         .namespaces
         .get(at)
@@ -128,6 +128,27 @@ fn links(graph: &NamespaceGraph, drawn: &[Drawn]) -> Vec<LinkOut> {
         .collect()
 }
 
+/// The box of the namespace at `at`: the last name segment as the label, the rest as the
+/// breadcrumb, and the layer that owns it.
+pub(super) fn namespace_box(
+    graph: &NamespaceGraph,
+    layers: &[Layer],
+    at: usize,
+    spot: &NodePlacement,
+    size: NodeSize,
+) -> BoxOut {
+    let name = name_of(graph, at);
+    let holder = layer_index(layers, &name)
+        .and_then(|found| layers.get(found))
+        .map(|layer| layer.name.as_str().to_owned());
+    let types = graph.namespaces.get(at).map(|node| node.types);
+    BoxOut {
+        label: short_name(&name),
+        context: breadcrumb(&name),
+        ..BoxOut::placed(&name, spot, size, holder, types)
+    }
+}
+
 fn place(
     look: &Graph,
     graph: &NamespaceGraph,
@@ -143,18 +164,7 @@ fn place(
     Ok(drawn
         .iter()
         .zip(&layout.placements)
-        .map(|(one, spot)| {
-            let name = name_of(graph, one.at);
-            let holder = layer_index(layers, &name)
-                .and_then(|at| layers.get(at))
-                .map(|layer| layer.name.as_str().to_owned());
-            let types = graph.namespaces.get(one.at).map(|node| node.types);
-            BoxOut {
-                label: short_name(&name),
-                context: breadcrumb(&name),
-                ..BoxOut::placed(&name, spot, size, holder, types)
-            }
-        })
+        .map(|(one, spot)| namespace_box(graph, layers, one.at, spot, size))
         .collect())
 }
 
@@ -191,12 +201,16 @@ pub(super) fn namespaces_out(
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use codeskimr_domain::{NamespaceEdge, NamespaceNode, QualifiedName};
 
     use super::*;
 
-    fn graph(names: &[&str], edges: &[(usize, usize, u32)]) -> NamespaceGraph {
+    /// A graph of namespaces with one type each.
+    pub(in crate::ui_commands) fn graph(
+        names: &[&str],
+        edges: &[(usize, usize, u32)],
+    ) -> NamespaceGraph {
         NamespaceGraph {
             namespaces: names
                 .iter()

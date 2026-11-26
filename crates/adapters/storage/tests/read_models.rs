@@ -3,7 +3,7 @@
 #[cfg(test)]
 mod common;
 
-use codeskimr_application::ports::{ProjectRepository, ReferenceSites};
+use codeskimr_application::ports::{ProjectRepository, ReferencePlaces, ReferenceSites};
 use codeskimr_domain::{
     Confidence, MetricKind, ProjectId, Reference, ReferenceKind, RelativePath, SnapshotId,
     SymbolId, SymbolKind,
@@ -285,4 +285,27 @@ fn the_certain_references_of_a_file_come_with_both_names() {
     assert_eq!(shown.len(), 6, "test and probable references are left out");
     assert!(shown.contains(&("src/order.cs", "App.Api.Controller", "App.Core.Service")));
     assert!(shown.iter().all(|(path, _, _)| *path == file.as_str()));
+}
+
+#[test]
+fn every_certain_reference_of_the_snapshot_comes_with_its_own_place() {
+    let mut found = Vec::new();
+    layered()
+        .for_each_reference(SNAPSHOT, &mut |place| found.push(place))
+        .unwrap();
+    assert!(found.iter().all(|place| !place.path.as_str().is_empty()));
+    let shown: Vec<_> = found
+        .iter()
+        .map(|place| (place.from.as_str(), place.to.as_str()))
+        .collect();
+    assert!(shown.contains(&("App.Api.Controller", "App.Core.Service")));
+    let in_file: Vec<_> = found
+        .iter()
+        .filter(|place| place.path.as_str() == "src/order.cs")
+        .collect();
+    assert_eq!(
+        in_file.len(),
+        6,
+        "test and probable references are left out"
+    );
 }

@@ -21,6 +21,8 @@ pub const TOOL_GET_ARCHITECTURE: &str = "get_architecture";
 pub const TOOL_FIND_USAGES: &str = "find_usages";
 /// Name of the tool that shows what a change of a symbol can reach.
 pub const TOOL_IMPACT_OF_CHANGE: &str = "impact_of_change";
+/// Name of the tool that shows what the difference between two scans hits.
+pub const TOOL_IMPACT_OF_DIFF: &str = "impact_of_diff";
 /// Name of the tool that looks for functions that resemble a piece of code.
 pub const TOOL_FIND_SIMILAR_CODE: &str = "find_similar_code";
 /// Name of the tool that looks for existing constants.
@@ -37,6 +39,10 @@ pub const TOOL_GET_ALERTS: &str = "get_alerts";
 pub const TOOL_GET_CONTEXT: &str = "get_context";
 /// Name of the tool that lists the symbols without a usage.
 pub const TOOL_FIND_UNUSED: &str = "find_unused";
+/// Name of the tool that judges the architecture rules of the project.
+pub const TOOL_CHECK_RULES: &str = "check_rules";
+/// Name of the tool that shows what a new name for a symbol would hit.
+pub const TOOL_PREVIEW_RENAME: &str = "preview_rename";
 /// Name of the tool that scans the project again.
 pub const TOOL_RESCAN: &str = "rescan";
 
@@ -86,6 +92,8 @@ pub const ARG_QUERY: &str = "query";
 pub const ARG_KIND: &str = "kind";
 /// Name of the argument that cuts `find_unused` to one assessment.
 pub const ARG_ASSESSMENT: &str = "assessment";
+/// Argument name reported when its value is invalid: the new name of `preview_rename`.
+pub const ARG_NEW_NAME: &str = "new_name";
 /// Argument name reported when its value is invalid: the symbol.
 pub const ARG_SYMBOL: &str = "symbol";
 /// Argument name reported when its value is invalid: the direction of a walk.
@@ -132,3 +140,12 @@ pub const KIND_CONFIG: &str = "config";
 
 /// `kind` of the id of a translation message in the answer of `find_constants`.
 pub const KIND_I18N: &str = "i18n";
+
+/// Value of `kind` of the layer rule.
+pub const RULE_LAYERS: &str = "layers";
+/// Value of `kind` of the rule that forbids cycles between modules.
+pub const RULE_CYCLES: &str = "cycles";
+/// Value of `kind` of a rule that forbids one module to use another.
+pub const RULE_FORBID: &str = "forbid";
+/// Value of `kind` of a rule that closes the inside of a module.
+pub const RULE_PUBLIC_API: &str = "public_api";

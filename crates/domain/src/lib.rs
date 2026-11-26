@@ -6,6 +6,7 @@
 mod access;
 mod alert;
 mod annotation;
+mod compare;
 mod consts;
 mod coupling;
 mod error;
@@ -19,6 +20,7 @@ mod layer_map;
 mod measure;
 mod metric;
 mod metrics;
+mod module_graph;
 mod namespace_graph;
 mod project;
 mod qualified_name;
@@ -45,6 +47,10 @@ pub use annotation::{
     Annotation, AnnotationContent, AnnotationId, AnnotationKind, AnnotationLimits,
     AnnotationTarget, AnnotationText, AnnotationTitle, Assignee, Author, NewAnnotation, TaskStatus,
 };
+pub use compare::{
+    ChangeReason, Comparison, ImpactCause, ImpactSubject, Matched, SymbolFact, SymbolIdentity,
+    compare_symbols, compares_kind,
+};
 pub use coupling::{SymbolPair, coupling, coupling_with};
 pub use error::ModelError;
 pub use file::{ContentHash, FileId, LanguageId, Loc, RelativePath, SourceFile};
@@ -60,12 +66,15 @@ pub use metric::{Metric, MetricKind, MetricValue};
 pub use metrics::{
     HalsteadCounts, LineKind, cyclomatic_complexity, lines_of_code, maintainability_index,
 };
+pub use module_graph::{
+    ModuleCoupling, ModuleCycle, ModuleRisk, RiskLimits, find_cycles, find_risks, module_coupling,
+};
 pub use namespace_graph::{
-    NamespaceEdge, NamespaceGraph, NamespaceNode, name_parts, namespace_graph,
+    NamespaceEdge, NamespaceGraph, NamespaceNode, NamespaceOwners, name_parts, namespace_graph,
 };
 pub use project::{
     BranchName, CredentialId, FolderPath, GitUrl, Layer, LayerName, Project, ProjectId,
-    ProjectName, ProjectSource,
+    ProjectName, ProjectSource, is_within,
 };
 pub use qualified_name::QualifiedName;
 pub use reference::{Confidence, Reference, ReferenceId, ReferenceKind};

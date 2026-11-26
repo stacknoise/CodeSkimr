@@ -371,6 +371,15 @@ pub const REFERENCE_SITES: &str = "SELECT f.path, a.qualified_name, a.start_line
     WHERE r.snapshot_id = ?1 AND r.kind <> ?2 AND r.confidence = ?3 \
     AND f.path = ?4 \
     ORDER BY a.start_line, a.start_column, r.id";
+/// Every certain reference of a snapshot that is not of kind `test`, with the place of the
+/// reference itself (ADR 0104): snapshot, kind to leave out, confidence.
+pub const REFERENCE_PLACES: &str = "SELECT f.path, r.start_line, r.start_column, \
+    r.end_line, r.end_column, a.qualified_name, b.qualified_name FROM snapshot_references r \
+    JOIN symbols a ON a.snapshot_id = r.snapshot_id AND a.id = r.from_symbol \
+    JOIN files f ON f.snapshot_id = r.snapshot_id AND f.id = r.file_id \
+    JOIN symbols b ON b.snapshot_id = r.snapshot_id AND b.id = r.to_symbol \
+    WHERE r.snapshot_id = ?1 AND r.kind <> ?2 AND r.confidence = ?3 \
+    ORDER BY f.path, r.start_line, r.start_column, r.id";
 /// Adds a layer graph edge: snapshot, from, to, count, violates, in cycle.
 pub const EDGE_INSERT: &str = "INSERT INTO layer_graph \
     (snapshot_id, from_layer, to_layer, edge_count, violates_layering, in_cycle) \
@@ -543,6 +552,16 @@ pub const TOOL_FINDINGS: &str = "SELECT language, tool, role, state, found, requ
 
 /// Records the naming rules of the packs a snapshot was scanned with.
 pub const SNAPSHOT_NAMING_SET: &str = "UPDATE snapshots SET naming_rules = ?1 WHERE id = ?2";
+/// The naming rules of one snapshot; no row without the snapshot, `NULL` for one from before the
+/// record existed: snapshot.
+pub const SNAPSHOT_NAMING_OF: &str = "SELECT naming_rules FROM snapshots WHERE id = ?1";
+/// The symbols of a snapshot that take part in a comparison, with the file that declares them: snapshot,
+/// JSON list of kind labels, origin of level 1. Only symbols of level 1, so a scan with level 2
+/// against one without shows no false change; in the order of the ids.
+pub const COMPARISON_FACTS: &str = "SELECT s.id, s.kind, s.qualified_name, s.signature, \
+    s.visibility, f.path, s.content_hash \
+    FROM symbol_rows s CROSS JOIN files f ON f.snapshot_id = ?1 AND f.id = s.file_id \
+    WHERE s.origin = ?3 AND +s.kind IN (SELECT value FROM json_each(?2)) ORDER BY s.id";
 /// The naming rules of the newest snapshot of a project; no row without a snapshot, `NULL` for one
 /// from before the record existed.
 pub const SNAPSHOT_NAMING_LATEST: &str = "SELECT naming_rules FROM snapshots WHERE project_id = ?1 AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1) ORDER BY id DESC LIMIT 1";

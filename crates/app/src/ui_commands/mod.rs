@@ -19,6 +19,7 @@ mod export;
 mod export_tests;
 mod graph;
 mod graph_focus;
+mod graph_modules;
 mod graph_types;
 mod graph_wrap;
 mod indexers;
@@ -28,6 +29,9 @@ mod layers_tests;
 mod level2;
 mod level2_revoke;
 mod preferences;
+mod project_file_open;
+#[cfg(test)]
+mod project_file_open_tests;
 mod projects;
 mod projects_pick;
 #[cfg(test)]
@@ -41,7 +45,13 @@ mod projects_rename_tests;
 #[cfg(test)]
 mod projects_tests;
 mod rating;
+mod rename_preview;
+mod rules;
+#[cfg(test)]
+mod rules_tests;
 mod scans;
+#[cfg(test)]
+mod scans_compare_tests;
 #[cfg(test)]
 mod scans_tests;
 mod scope;
@@ -81,16 +91,18 @@ use codeskimr_cli::GlobalOptions;
 use codeskimr_domain::{Author, LanguageId};
 use codeskimr_parsing::{Blake3Digest, TreeSitterHighlighter};
 use codeskimr_server::CommandApi;
-use codeskimr_source::FolderText;
+use codeskimr_source::{FolderMentions, FolderText};
 
 pub(crate) use status::{mark_ready, mark_started};
 
 use crate::clock::SystemClock;
+use crate::file_opener::SystemOpener;
 use crate::folder_dialog::{FolderPicker, SystemPicker};
 use crate::level2_runs::Level2Runs;
 use crate::locations::Locations;
 use crate::running::RunningScans;
 use crate::scan::BrowserRun;
+use crate::scan_compare;
 use crate::ui_settings::UiSettingsFile;
 use crate::wiring::{Secrets, index_runner, indexer_check, tool_checker};
 pub(crate) use alerts::{
@@ -111,17 +123,22 @@ use credentials::{DeleteCredential, ListCredentials, SetCredential};
 use explorer::{ExplorerOutline, ExplorerPorts};
 pub(crate) use export::{ExportInput, HtmlExport};
 use graph::{GraphLayers, GraphPorts};
+use graph_modules::GraphModules;
 use indexers::ListIndexers;
 use layers::{LayersGet, LayersSet};
 use level2::Level2StatusCommand;
 pub(crate) use level2::{Window, confirmation_desk};
 use level2_revoke::Level2Revoke;
 use preferences::{GetPreferences, PreferencesFile, SetPreferences};
+use project_file_open::ProjectFileOpen;
 use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
 use projects_pick::{FolderDialogInfo, PickFolder};
 use projects_remove::RemoveProject;
 use projects_rename::{RenameProject, SuggestName};
-use scans::{ScanListPorts, ScansList};
+use rename_preview::{RenamePreviewCommand, RenamePreviewPorts};
+pub(crate) use rules::hold;
+use rules::{RulesHold, RulesShow};
+use scans::{ComparePorts, ScanListPorts, ScansCompare, ScansImpact, ScansList};
 pub(crate) use scope::{
     GetInput as ScopeGetInput, ScopeAnswer, ScopeGet, ScopeSet, SetInput as ScopeSetInput,
 };
@@ -315,6 +332,12 @@ fn register_views(
 ) -> Result<(), CodedError> {
     register_search(registry, catalog)?;
     register_usages(registry, catalog, config.mcp.max_depth)?;
+    add(
+        registry,
+        RenamePreviewCommand {
+            ports: rename_preview_ports(catalog, config),
+        },
+    )?;
     register_graph(registry, catalog, config.graph.clone())?;
     register_stats(registry, catalog, config)?;
     add(
@@ -327,12 +350,32 @@ fn register_views(
             }),
         },
     )?;
+    register_compare(registry, catalog, config)?;
     add(registry, status_info(config))?;
     register_explorer(registry, catalog, config.metrics.clone(), locations)?;
     register_preferences(registry, locations)?;
     register_ui_settings(registry, locations)?;
     add(registry, effective_settings(locations, global)?)?;
     add(registry, export_command(catalog, config, locations))
+}
+
+/// Registers the commands that compare two scans: the plain comparison and the impact.
+fn register_compare(
+    registry: &mut Registry,
+    catalog: &Arc<SqliteStore>,
+    config: &Config,
+) -> Result<(), CodedError> {
+    let ports = Arc::new(ComparePorts {
+        projects: catalog.clone(),
+        comparer: Arc::new(scan_compare::comparer(catalog, config)),
+    });
+    add(
+        registry,
+        ScansCompare {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(registry, ScansImpact { ports })
 }
 
 /// Registers the two commands of the level 2 switch (ADR 0071). Neither is an MCP tool.
@@ -438,6 +481,18 @@ fn add<C: Command>(registry: &mut Registry, command: C) -> Result<(), CodedError
     registry.register(command).map_err(CodedError::caused_by)
 }
 
+/// The commands that read or write the project file: layers, rules and the exception list.
+fn expose_project_file(api: &mut CommandApi) -> Result<(), CodedError> {
+    api.expose::<LayersGet>()?;
+    api.expose::<LayersSet>()?;
+    api.expose::<RulesShow>()?;
+    api.expose::<RulesHold>()?;
+    api.expose::<ProjectFileOpen>()?;
+    api.expose::<UnusedKeep>()?;
+    api.expose::<UnusedLift>()?;
+    Ok(())
+}
+
 /// Makes every registered command of the UI reachable over REST.
 fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ListProjects>()?;
@@ -458,21 +513,16 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ListCredentials>()?;
     api.expose::<SetCredential>()?;
     api.expose::<DeleteCredential>()?;
-    api.expose::<ExplorerOutline>()?;
-    api.expose::<ExplorerSymbol>()?;
-    api.expose::<ExplorerSource>()?;
-    api.expose::<SearchQuery>()?;
-    api.expose::<UsagesQuery>()?;
-    api.expose::<UsagesCode>()?;
+    expose_index_views(api)?;
     api.expose::<GraphLayers>()?;
-    api.expose::<LayersGet>()?;
-    api.expose::<LayersSet>()?;
-    api.expose::<UnusedKeep>()?;
-    api.expose::<UnusedLift>()?;
+    api.expose::<GraphModules>()?;
+    expose_project_file(api)?;
     api.expose::<StatusInfo>()?;
     api.expose::<StatsOverview>()?;
     api.expose::<StatsRanking>()?;
     api.expose::<ScansList>()?;
+    api.expose::<ScansCompare>()?;
+    api.expose::<ScansImpact>()?;
     api.expose::<GetPreferences>()?;
     api.expose::<SetPreferences>()?;
     api.expose::<GetUiSettings>()?;
@@ -480,6 +530,19 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<EffectiveSettings>()?;
     api.expose::<HtmlExport>()?;
     expose_annotations(api)
+}
+
+/// Makes the commands that read the index reachable over REST: explorer, search, usages and the
+/// check of a rename.
+fn expose_index_views(api: &mut CommandApi) -> Result<(), CodedError> {
+    api.expose::<ExplorerOutline>()?;
+    api.expose::<ExplorerSymbol>()?;
+    api.expose::<ExplorerSource>()?;
+    api.expose::<SearchQuery>()?;
+    api.expose::<UsagesQuery>()?;
+    api.expose::<UsagesCode>()?;
+    api.expose::<RenamePreviewCommand>()?;
+    Ok(())
 }
 
 /// Makes the commands of annotations and alerts reachable over REST.
@@ -640,17 +703,78 @@ fn register_usages(
     add(registry, UsagesCode { ports })
 }
 
+/// The command that opens the project file with the program of the system (ADR 0111).
+fn register_project_file_open(
+    registry: &mut Registry,
+    ports: &Arc<ExplorerPorts>,
+) -> Result<(), CodedError> {
+    add(
+        registry,
+        ProjectFileOpen {
+            ports: Arc::clone(ports),
+            opener: Arc::new(SystemOpener),
+        },
+    )
+}
+
+/// The commands of the project file, see [`expose_project_file`].
+fn register_project_file(
+    registry: &mut Registry,
+    ports: &Arc<ExplorerPorts>,
+) -> Result<(), CodedError> {
+    add(
+        registry,
+        LayersGet {
+            ports: Arc::clone(ports),
+        },
+    )?;
+    add(
+        registry,
+        LayersSet {
+            ports: Arc::clone(ports),
+        },
+    )?;
+    add(
+        registry,
+        RulesShow {
+            ports: Arc::clone(ports),
+        },
+    )?;
+    add(
+        registry,
+        RulesHold {
+            ports: Arc::clone(ports),
+        },
+    )?;
+    register_project_file_open(registry, ports)?;
+    add(
+        registry,
+        UnusedKeep {
+            ports: Arc::clone(ports),
+        },
+    )?;
+    add(
+        registry,
+        UnusedLift {
+            ports: Arc::clone(ports),
+        },
+    )?;
+    Ok(())
+}
+
 fn register_graph(
     registry: &mut Registry,
     store: &Arc<SqliteStore>,
     look: Graph,
 ) -> Result<(), CodedError> {
+    let ports = graph_ports(store, look);
     add(
         registry,
         GraphLayers {
-            ports: graph_ports(store, look),
+            ports: Arc::clone(&ports),
         },
-    )
+    )?;
+    add(registry, GraphModules { ports })
 }
 
 fn register_explorer(
@@ -666,30 +790,7 @@ fn register_explorer(
             ports: Arc::clone(&ports),
         },
     )?;
-    add(
-        registry,
-        LayersGet {
-            ports: Arc::clone(&ports),
-        },
-    )?;
-    add(
-        registry,
-        LayersSet {
-            ports: Arc::clone(&ports),
-        },
-    )?;
-    add(
-        registry,
-        UnusedKeep {
-            ports: Arc::clone(&ports),
-        },
-    )?;
-    add(
-        registry,
-        UnusedLift {
-            ports: Arc::clone(&ports),
-        },
-    )?;
+    register_project_file(registry, &ports)?;
     add(
         registry,
         ExplorerSource {
@@ -732,6 +833,16 @@ fn usages_ports(store: &Arc<SqliteStore>, max_depth: u32) -> Arc<UsagesPorts> {
     })
 }
 
+fn rename_preview_ports(store: &Arc<SqliteStore>, config: &Config) -> Arc<RenamePreviewPorts> {
+    Arc::new(RenamePreviewPorts {
+        projects: store.clone(),
+        index: store.clone(),
+        usages: store.clone(),
+        mentions: Arc::new(FolderMentions::new(config.scan.excluded_folders.clone())),
+        source: Arc::new(FolderText),
+    })
+}
+
 fn graph_ports(store: &Arc<SqliteStore>, look: Graph) -> Arc<GraphPorts> {
     Arc::new(GraphPorts {
         projects: store.clone(),
@@ -752,6 +863,7 @@ fn explorer_ports(
         text: Arc::new(FolderText),
         highlighter: Arc::new(TreeSitterHighlighter::new(&locations.languages_dir)),
         thresholds,
+        references: store.clone(),
     })
 }
 

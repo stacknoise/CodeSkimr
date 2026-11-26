@@ -2,7 +2,7 @@
 
 use codeskimr_domain::{
     AnnotationLimits, FingerprintParams, Layer, LayerName, LayoutParams, ModelError, NodeSize,
-    QualifiedName, glob_matches,
+    QualifiedName, RiskLimits, glob_matches, is_within,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
@@ -20,6 +20,8 @@ pub struct Config {
     pub layers: Vec<LayerRule>,
     /// What the project says about symbols without a usage (ADR 0101).
     pub unused: Unused,
+    /// The architecture rules of the project (ADR 0104 to 0107).
+    pub rules: Rules,
     /// Thresholds that rate metric values as good, medium or poor.
     pub metrics: MetricThresholds,
     /// Performance budgets.
@@ -48,6 +50,8 @@ pub struct Config {
     pub graph: Graph,
     /// The HTML export (ADR 0090).
     pub export: Export,
+    /// Limits of the comparison of two scans (ADR 0097).
+    pub compare: Compare,
     /// Limits of annotations and alerts (ADR 0068).
     pub annotations: Annotations,
     /// Where `find_constants` looks for configuration and translation keys.
@@ -114,6 +118,80 @@ impl UnusedIgnore {
             globs.is_empty() || globs.iter().any(|glob| glob_matches(glob, text))
         };
         hit(&self.paths, path) && hit(&self.symbols, qualified_name)
+    }
+}
+
+/// The table `rules` of `.codeskimr.toml`: the architecture rules besides the layers (ADR 0104).
+#[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Rules {
+    /// Whether cycles between modules are a violation (ADR 0105).
+    pub cycles: CycleRule,
+    /// `[[rules.forbid]]`: modules that must not use each other (ADR 0106).
+    pub forbid: Vec<ForbidRule>,
+    /// `[[rules.public_api]]`: modules whose inside is closed to others (ADR 0107).
+    pub public_api: Vec<PublicApiRule>,
+}
+
+/// What the project says about cycles between modules.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CycleRule {
+    /// Cycles are not checked.
+    #[default]
+    Off,
+    /// A cycle between modules is a violation.
+    Deny,
+}
+
+/// Whether `text` is a qualified-name prefix that a rule can name.
+fn is_prefix(text: &str) -> bool {
+    QualifiedName::new(text).is_ok()
+}
+
+/// One entry of `[[rules.forbid]]`: the module `from` must not use the module `to`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ForbidRule {
+    /// Prefix of the module that must not use `to`.
+    pub from: String,
+    /// Prefix of the module that must not be used.
+    pub to: String,
+    /// Why, shown on the screen; optional.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+impl ForbidRule {
+    /// Whether the entry is well formed: two valid prefixes, neither inside the other.
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        is_prefix(&self.from)
+            && is_prefix(&self.to)
+            && !is_within(&self.from, &self.to)
+            && !is_within(&self.to, &self.from)
+    }
+}
+
+/// One entry of `[[rules.public_api]]`: names in `internal` may be used from inside `module` only.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublicApiRule {
+    /// Prefix of the module.
+    pub module: String,
+    /// Prefixes of its inside; each lies in `module` and is not `module` itself.
+    pub internal: Vec<String>,
+}
+
+impl PublicApiRule {
+    /// Whether the entry is well formed: a valid module and at least one valid inside below it.
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        is_prefix(&self.module)
+            && !self.internal.is_empty()
+            && self.internal.iter().all(|inside| {
+                is_prefix(inside) && inside != &self.module && is_within(&self.module, inside)
+            })
     }
 }
 
@@ -453,6 +531,16 @@ pub struct Export {
     pub max_references: u32,
 }
 
+/// The comparison of two scans and the change view (ADR 0097).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Compare {
+    /// Most symbols one list of a comparison holds; the answer says when it is cut.
+    pub max_symbols: u32,
+    /// Most usages listed per symbol whose usages a change can break.
+    pub max_usages: u32,
+}
+
 /// The picture of the dependency map (blueprint 15, screen 3), in layout units.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -472,6 +560,14 @@ pub struct Graph {
     /// Most boxes in one line of a row; a longer row wraps into several lines, so that a project
     /// with hundreds of namespaces stays readable.
     pub row_boxes: u32,
+    /// Fewest places that use a module for it to count as a risk (ADR 0108).
+    pub risk_min_incoming: u32,
+    /// How much less stable, in thousandths, the module a risky module depends on must be.
+    pub risk_instability_gap: u32,
+    /// Most risks the module map lists.
+    pub risk_max: u32,
+    /// Most modules the module map draws and lists.
+    pub max_modules: u32,
 }
 
 impl Graph {
@@ -481,6 +577,16 @@ impl Graph {
         NodeSize {
             width: self.node_width,
             height: self.node_height,
+        }
+    }
+
+    /// The limits of a risky module (ADR 0108).
+    #[must_use]
+    pub fn risk_limits(&self) -> RiskLimits {
+        RiskLimits {
+            min_incoming: self.risk_min_incoming,
+            instability_gap: self.risk_instability_gap,
+            max_risks: usize::try_from(self.risk_max).unwrap_or(usize::MAX),
         }
     }
 

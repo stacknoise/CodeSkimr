@@ -8,20 +8,21 @@ use codeskimr_application::ids::{project_of_raw, project_of_snapshot};
 use codeskimr_application::ports::{
     AlertDismissal, AlertFilter, AlertPurge, AlertRaise, AnnotationCreation, AnnotationFilter,
     AnnotationStore, AnnotationUpdate, CodeIndex, CodeOutline, CodeSpan, CodeStatistics,
-    Confirmation, Confirmed, ConsentGrant, ConsentRecord, ConsentStore, DependencyPage,
-    DependencyQuery, FileHit, ImpactPage, LanguageShare, Level2Replacement, MemberRow, OutlineNode,
-    PendingReference, PreviousIndex, PreviousState, ProjectCatalog, ProjectOverview,
-    ProjectRepository, RankedRows, RankingRequest, ReferenceSite, ReferenceSites, ReportWrite,
-    SameName, ScanEntry, ScanReport, ScanReportStore, ScopeStore, SearchHit, SimilarHit,
-    SimilarQuery, SimilarityIndex, SnapshotData, SnapshotStore, StatisticsSetup, StatisticsSummary,
-    StoredNames, StoredReferences, SymbolDetail, SymbolKey, SymbolState, SymbolStates,
-    ToolReportStore, TypeFocus, UnusedCounts, UsageIndex, UsagePage,
+    ComparisonSource, Confirmation, Confirmed, ConsentGrant, ConsentRecord, ConsentStore,
+    DependencyPage, DependencyQuery, FileHit, ImpactPage, LanguageShare, Level2Replacement,
+    MemberRow, OutlineNode, PendingReference, PreviousIndex, PreviousState, ProjectCatalog,
+    ProjectOverview, ProjectRepository, RankedRows, RankingRequest, ReferencePlace,
+    ReferencePlaces, ReferenceSite, ReferenceSites, ReportWrite, SameName, ScanEntry, ScanReport,
+    ScanReportStore, ScopeStore, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex,
+    SnapshotData, SnapshotStore, StatisticsSetup, StatisticsSummary, StoredNames, StoredReferences,
+    SymbolDetail, SymbolKey, SymbolState, SymbolStates, ToolReportStore, TypeFocus, UnusedCounts,
+    UsageIndex, UsagePage,
 };
 use codeskimr_domain::{
     Alert, AlertId, Annotation, AnnotationId, ContentHash, FileId, Fingerprints, LayerEdge,
     NamespaceGraph, Project, ProjectId, QualifiedName, RankingQuery, Reference, RelativePath,
-    Scope, Snapshot, SnapshotId, SourceFile, Symbol, SymbolBaseline, SymbolFacts, SymbolId,
-    SymbolName, SymbolPair, ToolReport, UsageQuery,
+    Scope, Snapshot, SnapshotId, SourceFile, Symbol, SymbolBaseline, SymbolFact, SymbolFacts,
+    SymbolId, SymbolName, SymbolPair, ToolReport, UsageQuery,
 };
 
 use super::SqliteStore;
@@ -154,12 +155,26 @@ impl ReferenceSites for SqliteStore {
     }
 }
 
+impl ReferencePlaces for SqliteStore {
+    forward! { ReferencePlaces via of_snapshot:
+        fn for_each_reference(&self, snapshot: SnapshotId, visit: &mut dyn FnMut(ReferencePlace)) -> Result<(), CodedError>;
+        fn namespaces(&self, snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError>;
+    }
+}
+
 impl SymbolStates for SqliteStore {
     forward! { SymbolStates via of_snapshot:
         fn states(&self, snapshot: SnapshotId, names: &[QualifiedName]) -> Result<Vec<SymbolState>, CodedError>;
         fn child_hashes(&self, snapshot: SnapshotId, name: &QualifiedName) -> Result<Vec<ContentHash>, CodedError>;
         fn remaining_references(&self, snapshot: SnapshotId, name: &QualifiedName, simple: &SymbolName) -> Result<u32, CodedError>;
         fn same_simple_name(&self, snapshot: SnapshotId, simple: &SymbolName) -> Result<Vec<SameName>, CodedError>;
+    }
+}
+
+impl ComparisonSource for SqliteStore {
+    forward! { ComparisonSource via of_snapshot:
+        fn comparison_facts(&self, snapshot: SnapshotId) -> Result<Vec<SymbolFact>, CodedError>;
+        fn snapshot_naming_rules(&self, snapshot: SnapshotId) -> Result<Option<String>, CodedError>;
     }
 }
 

@@ -31,6 +31,10 @@
     border-color: var(--bad);
 }
 
+.cycle {
+    border-color: var(--bad);
+}
+
 .total {
     color: var(--muted);
 }

@@ -108,6 +108,10 @@ mod tests {
             sweeps: 1,
             placement_passes: 1,
             row_boxes: 3,
+            risk_min_incoming: 10,
+            risk_instability_gap: 100,
+            risk_max: 5,
+            max_modules: 200,
         }
     }
 

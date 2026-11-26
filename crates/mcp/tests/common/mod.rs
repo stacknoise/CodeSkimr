@@ -4,7 +4,9 @@
 use std::sync::{Arc, Mutex};
 
 use codeskimr_application::cancel::CancelToken;
-use codeskimr_application::config::{Conventions, KeySources, McpLimits, UnusedIgnore};
+use codeskimr_application::config::{
+    Config, ConfigLayer, Conventions, KeySources, LayerSource, McpLimits, UnusedIgnore,
+};
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
@@ -115,9 +117,18 @@ impl CodeIndex for FakeIndex {
     fn search(
         &self,
         _snapshot: SnapshotId,
-        _query: &str,
+        query: &str,
         limit: u32,
     ) -> Result<Vec<SearchHit>, CodedError> {
+        if query == "Invoice" {
+            return Ok(vec![
+                hit(5, SymbolKind::Class, "App.Domain.Invoice"),
+                hit(6, SymbolKind::Class, "App.Billing.Invoice"),
+            ]);
+        }
+        if query == "Quote" {
+            return Ok(vec![hit(7, SymbolKind::Class, "App.Domain.Quote")]);
+        }
         let all = vec![
             hit(1, SymbolKind::Class, "App.Order"),
             hit(2, SymbolKind::Method, "App.Order.Total"),
@@ -136,6 +147,24 @@ impl CodeIndex for FakeIndex {
             SymbolKey::Id(id) => id.get() == 1,
             SymbolKey::Qualified(name) => name.as_str() == "App.Domain.Order",
         };
+        if matches!(key, SymbolKey::Id(id) if id.get() == 5) {
+            let mut other = detail();
+            other.symbol = symbol_named(5, SymbolKind::Class, "App.Domain.Invoice");
+            other.symbol.signature = Some("Invoice()".to_owned());
+            return Ok(Some(other));
+        }
+        if matches!(key, SymbolKey::Id(id) if id.get() == 7) {
+            let mut other = detail();
+            other.symbol = symbol_named(7, SymbolKind::Class, "App.Domain.Quote");
+            other.symbol.signature = Some("Quote(int count)".to_owned());
+            return Ok(Some(other));
+        }
+        if matches!(key, SymbolKey::Id(id) if id.get() == 8) {
+            return Ok(Some(wallet()));
+        }
+        if matches!(key, SymbolKey::Id(id) if id.get() == 9) {
+            return Ok(Some(wallet_constructor()));
+        }
         Ok(found.then(detail))
     }
 
@@ -204,6 +233,32 @@ fn detail() -> SymbolDetail {
             value: MetricValue::new(40.0).unwrap(),
         }],
     }
+}
+
+/// A type `Wallet` with a member of the same name: its constructor.
+fn wallet() -> SymbolDetail {
+    let mut found = detail();
+    found.symbol = symbol_named(8, SymbolKind::Class, "App.Domain.Wallet");
+    found.members = vec![MemberRef {
+        id: SymbolId::new(9),
+        name: SymbolName::new("Wallet").unwrap(),
+        kind: SymbolKind::Constructor,
+    }];
+    found
+}
+
+/// The constructor of `Wallet`, which stands on another line than the type.
+fn wallet_constructor() -> SymbolDetail {
+    let mut found = detail();
+    found.symbol = symbol_named(9, SymbolKind::Constructor, "App.Domain.Wallet.Wallet");
+    let start = Position { line: 6, column: 4 };
+    let end = Position {
+        line: 6,
+        column: 20,
+    };
+    found.symbol.span = Span::new(start, end).unwrap();
+    found.members = Vec::new();
+    found
 }
 
 pub struct FakeProjects;
@@ -721,6 +776,10 @@ fn assemble_with(
             annotations: Arc::new(FakeAnnotations::default()),
             reports: Arc::new(FakeReports),
             unused: Arc::new(FakeUnused),
+            rules: Arc::new(FakeRules),
+            compare: Arc::new(FakeDiffs),
+            mentions: Arc::new(FakeMentions),
+            text: Arc::new(FakeText),
         },
         limits,
         PROJECT,
@@ -926,6 +985,51 @@ impl UnusedSymbols for FakeUnused {
     }
 }
 
+/// The architecture rules of the project: one `forbid` rule that two references break, one of
+/// them held as an old burden by the state of the project.
+pub struct FakeRules;
+
+const RULES: &str = "[[rules.forbid]]\nfrom = \"Shop.Reports\"\nto = \"Shop.Checkout\"\n";
+const HELD: &str = "held_on = \"2026-11-25\"\n\n[[entries]]\nrule = \"forbid:Shop.Reports>Shop.Checkout\"\nfrom = \"Shop.Reports.A.Old\"\nto = \"Shop.Checkout.Cart.Total\"\n";
+
+struct Refs;
+
+impl codeskimr_application::ports::ReferencePlaces for Refs {
+    fn for_each_reference(
+        &self,
+        _: SnapshotId,
+        visit: &mut dyn FnMut(codeskimr_application::ports::ReferencePlace),
+    ) -> Result<(), CodedError> {
+        for (line, from) in [(3, "Shop.Reports.A.Old"), (9, "Shop.Reports.A.Fresh")] {
+            let at = codeskimr_domain::Position { line, column: 4 };
+            visit(codeskimr_application::ports::ReferencePlace {
+                path: RelativePath::new("Reports/A.cs").unwrap(),
+                span: codeskimr_domain::Span::new(at, at).unwrap(),
+                from: codeskimr_domain::QualifiedName::new(from).unwrap(),
+                to: codeskimr_domain::QualifiedName::new("Shop.Checkout.Cart.Total").unwrap(),
+            });
+        }
+        Ok(())
+    }
+
+    fn namespaces(&self, _: SnapshotId) -> Result<NamespaceGraph, CodedError> {
+        Ok(NamespaceGraph::default())
+    }
+}
+
+impl codeskimr_application::rules::RulesChecks for FakeRules {
+    fn check(
+        &self,
+        _: &Project,
+        snapshot: SnapshotId,
+    ) -> Result<codeskimr_application::rules::RulesReport, CodedError> {
+        let layer = ConfigLayer::parse(LayerSource::Project, RULES).unwrap();
+        let rules = Config::resolve(&[layer]).unwrap().rules;
+        let held = codeskimr_application::rules::Baseline::parse(HELD)?;
+        codeskimr_application::rules::report(&rules, &[], Some(&held), &Refs, snapshot)
+    }
+}
+
 /// The keys of the project: two configuration keys and one translation key.
 pub struct FakeKeys;
 
@@ -1065,8 +1169,170 @@ pub fn tools_annotated(annotations: FakeAnnotations) -> Tools {
             annotations: Arc::new(annotations),
             reports: Arc::new(FakeReports),
             unused: Arc::new(FakeUnused),
+            rules: Arc::new(FakeRules),
+            compare: Arc::new(FakeDiffs),
+            mentions: Arc::new(FakeMentions),
+            text: Arc::new(FakeText),
         },
         limits(),
         PROJECT,
     )
+}
+
+/// Reads a made-up line for every line asked: `code at <path>:<line>`.
+pub struct FakeText;
+
+impl SourceText for FakeText {
+    fn excerpt(
+        &self,
+        _: &FolderPath,
+        path: &RelativePath,
+        (first, last): (u32, u32),
+        _: (u32, u64),
+    ) -> Result<Excerpt, CodedError> {
+        Ok(Excerpt {
+            lines: (first..=last)
+                .map(|line| format!("  code at {}:{line}  ", path.as_str()))
+                .collect(),
+            truncated: false,
+        })
+    }
+}
+
+/// Finds the old name in a configuration file and in a document, and in the line of the usage.
+pub struct FakeMentions;
+
+impl codeskimr_application::ports::NameMentions for FakeMentions {
+    fn mentions(
+        &self,
+        _root: &codeskimr_domain::FolderPath,
+        name: &str,
+        limits: &codeskimr_application::ports::MentionLimits,
+        except: &std::collections::HashSet<(String, u32)>,
+    ) -> Result<codeskimr_application::ports::Mentions, CodedError> {
+        let lines = [
+            ("src/app/service.cs", 11, format!("var x = {name}.Total();")),
+            ("config/app.json", 2, format!("\"audit\": [\"{name}\"]")),
+            ("docs/api.md", 119, format!("POST /orders calls {name}")),
+        ];
+        let all: Vec<_> = lines
+            .into_iter()
+            .filter(|(path, line, _)| !except.contains(&((*path).to_owned(), *line)))
+            .map(|(path, line, text)| codeskimr_application::ports::Mention {
+                path: RelativePath::new(path).unwrap(),
+                line,
+                text,
+            })
+            .collect();
+        Ok(codeskimr_application::ports::Mentions {
+            total: all.len(),
+            items: all.into_iter().take(limits.max_items).collect(),
+            skipped: 0,
+        })
+    }
+}
+
+/// The comparison of the two newest scans: one removed method whose two usages are listed, one of
+/// them adapted and one on the checklist. A base that equals the target is the wrong order.
+pub struct FakeDiffs;
+
+fn scan_entry(id: u64) -> codeskimr_application::ports::ScanEntry {
+    codeskimr_application::ports::ScanEntry {
+        snapshot: SnapshotId::new(id),
+        created: codeskimr_domain::Timestamp(1_700_000_000 + i64::try_from(id).unwrap()),
+        commit: None,
+        mode: codeskimr_domain::ScanMode::Full,
+        files: 4,
+        symbols: 9,
+        duration_ms: Some(120),
+        files_changed: Some(1),
+    }
+}
+
+fn method(id: u64, name: &str) -> codeskimr_domain::SymbolFact {
+    codeskimr_domain::SymbolFact {
+        id: codeskimr_domain::SymbolId::new(id),
+        kind: codeskimr_domain::SymbolKind::Method,
+        qualified_name: codeskimr_domain::QualifiedName::new(name).unwrap(),
+        signature: Some("void Pay(int amount)".to_owned()),
+        visibility: Some(codeskimr_domain::Visibility::Public),
+        path: RelativePath::new("Checkout/Cart.cs").unwrap(),
+        content_hash: None,
+    }
+}
+
+fn usage(
+    line: u32,
+    status: codeskimr_application::compare::UsageStatus,
+    confidence: codeskimr_domain::Confidence,
+) -> codeskimr_application::compare::ImpactUsage {
+    let at = codeskimr_domain::Position { line, column: 4 };
+    codeskimr_application::compare::ImpactUsage {
+        from: codeskimr_application::ports::SymbolLabel {
+            id: codeskimr_domain::SymbolId::new(50 + u64::from(line)),
+            qualified_name: codeskimr_domain::QualifiedName::new("Shop.Orders.Place").unwrap(),
+            kind: codeskimr_domain::SymbolKind::Method,
+        },
+        path: RelativePath::new("Orders/Place.cs").unwrap(),
+        reference: codeskimr_domain::Reference {
+            id: codeskimr_domain::ReferenceId::new(u64::from(line)),
+            from: codeskimr_domain::SymbolId::new(50),
+            to: codeskimr_domain::SymbolId::new(7),
+            file: codeskimr_domain::FileId::new(1),
+            span: codeskimr_domain::Span::new(at, at).unwrap(),
+            kind: codeskimr_domain::ReferenceKind::Call,
+            confidence,
+            verified: false,
+        },
+        status,
+    }
+}
+
+fn sample_comparison(
+    request: &codeskimr_application::compare::ComparisonRequest,
+) -> codeskimr_application::compare::ScanComparison {
+    use codeskimr_application::compare::{Impact, LayerChanges, Listed, SymbolImpact, UsageStatus};
+    use codeskimr_domain::{Confidence, ImpactCause, ImpactSubject};
+    let removed = method(7, "Shop.Checkout.Cart.Pay");
+    let usages = vec![
+        usage(10, UsageStatus::NotTouched, Confidence::Certain),
+        usage(20, UsageStatus::Adapted, Confidence::Probable),
+    ];
+    codeskimr_application::compare::ScanComparison {
+        project: PROJECT,
+        base: scan_entry(request.base.map_or(1, SnapshotId::get)),
+        target: scan_entry(request.target.map_or(2, SnapshotId::get)),
+        added: Listed::cut(Vec::new(), 10),
+        removed: Listed::cut(vec![removed.clone()], 10),
+        changed: Listed::cut(Vec::new(), 10),
+        moved: Listed::cut(Vec::new(), 10),
+        critical: Vec::new(),
+        layers: LayerChanges::default(),
+        impact: request.with_impact.then(|| Impact {
+            symbols: Listed::cut(
+                vec![SymbolImpact {
+                    subject: ImpactSubject {
+                        symbol: removed,
+                        cause: ImpactCause::Removed,
+                    },
+                    usages: Listed::cut(usages, 1),
+                }],
+                10,
+            ),
+        }),
+    }
+}
+
+impl codeskimr_application::compare::ScanDiffs for FakeDiffs {
+    fn compare(
+        &self,
+        request: &codeskimr_application::compare::ComparisonRequest,
+    ) -> Result<codeskimr_application::compare::ScanComparison, CodedError> {
+        if request.base.is_some() && request.base == request.target {
+            return Err(CodedError::new(
+                codeskimr_codes::ErrorCode::ComparisonOrderInvalid,
+            ));
+        }
+        Ok(sample_comparison(request))
+    }
 }

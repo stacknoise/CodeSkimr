@@ -10,6 +10,7 @@ export type ErrorCode =
   | "APP-602"
   | "APP-603"
   | "APP-604"
+  | "APP-605"
   | "CFG-101"
   | "CFG-102"
   | "CFG-103"
@@ -98,6 +99,9 @@ export type ErrorCode =
   | "ANN-201"
   | "ANN-202"
   | "ANN-301"
+  | "CMP-101"
+  | "CMP-201"
+  | "CMP-301"
   | "UI-201"
   | "UI-901"
   | "CHK-101"
@@ -106,6 +110,7 @@ export type ErrorCode =
   | "CHK-104"
   | "CHK-105"
   | "CHK-106"
+  | "CHK-107"
 ;
 
 /** Static data of one error code. */
@@ -132,6 +137,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "APP-602": { id: "APP-602", name: "language_packs_unavailable", group: "APP", class: "external", severity: "error", retryable: true, description: "The language packs built into the program could not be written to the data directory.", since: "0.1.0", deprecated: false, messageKey: "error-APP-602" },
   "APP-603": { id: "APP-603", name: "tray_start_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The program could not start itself in the background or show its tray icon.", since: "0.1.0", deprecated: false, messageKey: "error-APP-603" },
   "APP-604": { id: "APP-604", name: "confirm_window_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The console window for the level 2 confirmation could not be started; the screen shows the command instead.", since: "0.9.0", deprecated: false, messageKey: "error-APP-604" },
+  "APP-605": { id: "APP-605", name: "project_file_open_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The system did not start a program for the project file.", since: "1.2.0", deprecated: false, messageKey: "error-APP-605" },
   "CFG-101": { id: "CFG-101", name: "config_invalid_value", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration value is outside its allowed range or has the wrong type.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-101" },
   "CFG-102": { id: "CFG-102", name: "config_parse_failed", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file is not valid TOML.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-102" },
   "CFG-103": { id: "CFG-103", name: "config_unknown_key", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file or flag sets a key that does not exist.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-103" },
@@ -220,6 +226,9 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "ANN-201": { id: "ANN-201", name: "annotation_not_found", group: "ANN", class: "not_found", severity: "error", retryable: false, description: "No annotation with this id exists.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-201" },
   "ANN-202": { id: "ANN-202", name: "alert_not_found", group: "ANN", class: "not_found", severity: "error", retryable: false, description: "No alert with this id exists.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-202" },
   "ANN-301": { id: "ANN-301", name: "critical_already_marked", group: "ANN", class: "conflict", severity: "error", retryable: false, description: "The symbol already has a critical mark; a symbol has at most one.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-301" },
+  "CMP-101": { id: "CMP-101", name: "comparison_order_invalid", group: "CMP", class: "invalid_input", severity: "error", retryable: false, description: "The base of a comparison is not an older snapshot than its target; the base is the older scan, the target the newer one (ADR 0097).", since: "1.1.0", deprecated: false, messageKey: "error-CMP-101" },
+  "CMP-201": { id: "CMP-201", name: "snapshot_not_found", group: "CMP", class: "not_found", severity: "error", retryable: false, description: "A snapshot of the comparison does not exist or retention has removed it; only the retained scans of the project can be compared, and a project with one scan has nothing to compare (ADR 0097).", since: "1.1.0", deprecated: false, messageKey: "error-CMP-201" },
+  "CMP-301": { id: "CMP-301", name: "naming_rules_differ", group: "CMP", class: "conflict", severity: "error", retryable: true, description: "The two snapshots were scanned with different naming rules, so their symbols cannot be matched by name; a full scan of the project writes a snapshot with the current rules and the comparison can be repeated (ADR 0097).", since: "1.1.0", deprecated: false, messageKey: "error-CMP-301" },
   "UI-201": { id: "UI-201", name: "api_unreachable", group: "UI", class: "not_found", severity: "error", retryable: false, description: "The UI cannot reach the local server.", since: "0.1.0", deprecated: false, messageKey: "error-UI-201" },
   "UI-901": { id: "UI-901", name: "unexpected_ui_error", group: "UI", class: "internal", severity: "error", retryable: false, description: "An uncaught exception was converted at a feature boundary (bug).", since: "0.1.0", deprecated: false, messageKey: "error-UI-901" },
   "CHK-101": { id: "CHK-101", name: "literal_found", group: "CHK", class: "invalid_input", severity: "error", retryable: false, description: "A literal outside the allowed exceptions was found.", since: "0.1.0", deprecated: false, messageKey: "error-CHK-101" },
@@ -228,4 +237,5 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "CHK-104": { id: "CHK-104", name: "function_too_long", group: "CHK", class: "invalid_input", severity: "error", retryable: false, description: "A function exceeds the configured length.", since: "0.1.0", deprecated: false, messageKey: "error-CHK-104" },
   "CHK-105": { id: "CHK-105", name: "complexity_too_high", group: "CHK", class: "invalid_input", severity: "error", retryable: false, description: "A function exceeds the configured cognitive complexity.", since: "0.1.0", deprecated: false, messageKey: "error-CHK-105" },
   "CHK-106": { id: "CHK-106", name: "too_many_parameters", group: "CHK", class: "invalid_input", severity: "error", retryable: false, description: "A function has more parameters than the configured maximum.", since: "0.9.0", deprecated: false, messageKey: "error-CHK-106" },
+  "CHK-107": { id: "CHK-107", name: "rule_violation", group: "CHK", class: "invalid_input", severity: "error", retryable: false, description: "Code breaks an architecture rule of the project.", since: "1.2.0", deprecated: false, messageKey: "error-CHK-107" },
 };

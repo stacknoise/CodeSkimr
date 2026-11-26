@@ -79,6 +79,13 @@ pub const GRAPH_TITLE: &str = i18n::COMMAND_GRAPH_LAYERS_TITLE;
 /// Description key of `graph.layers`.
 pub const GRAPH_DESCRIPTION: &str = i18n::COMMAND_GRAPH_LAYERS_DESCRIPTION;
 
+/// Id of the command behind the tab "Modules" of the dependency map (ADR 0108).
+pub const GRAPH_MODULES: &str = "graph.modules";
+/// Title key of `graph.modules`.
+pub const GRAPH_MODULES_TITLE: &str = i18n::COMMAND_GRAPH_MODULES_TITLE;
+/// Description key of `graph.modules`.
+pub const GRAPH_MODULES_DESCRIPTION: &str = i18n::COMMAND_GRAPH_MODULES_DESCRIPTION;
+
 /// Id of the command of the quick search.
 pub const SEARCH_QUERY: &str = "search.query";
 /// Most hits the quick search returns.
@@ -330,6 +337,32 @@ pub const LAYERS_GET: &str = "layers.get";
 pub const LAYERS_GET_TITLE: &str = i18n::COMMAND_LAYERS_GET_TITLE;
 /// Description key of `layers.get`.
 pub const LAYERS_GET_DESCRIPTION: &str = i18n::COMMAND_LAYERS_GET_DESCRIPTION;
+/// Kind of a rule in the answer of `rules.show`: the layers of the project.
+pub const LAYERS: &str = "layers";
+/// Kind of a rule in the answer of `rules.show`: no cycles between modules.
+pub const CYCLES: &str = "cycles";
+/// Kind of a rule in the answer of `rules.show`: modules that must not use each other.
+pub const FORBID: &str = "forbid";
+/// Kind of a rule in the answer of `rules.show`: the inside of a module is closed.
+pub const PUBLIC_API: &str = "public_api";
+/// Id of the command that shows the architecture rules of a project and their violations.
+pub const RULES_SHOW: &str = "rules.show";
+/// Title key of `rules.show`.
+pub const RULES_SHOW_TITLE: &str = i18n::COMMAND_RULES_SHOW_TITLE;
+/// Description key of `rules.show`.
+pub const RULES_SHOW_DESCRIPTION: &str = i18n::COMMAND_RULES_SHOW_DESCRIPTION;
+/// Id of the command that opens the project file of a folder project.
+pub const PROJECT_FILE_OPEN: &str = "project_file.open";
+/// Title key of `project_file.open`.
+pub const PROJECT_FILE_OPEN_TITLE: &str = i18n::COMMAND_PROJECT_FILE_OPEN_TITLE;
+/// Description key of `project_file.open`.
+pub const PROJECT_FILE_OPEN_DESCRIPTION: &str = i18n::COMMAND_PROJECT_FILE_OPEN_DESCRIPTION;
+/// Id of the command that holds the state of the rules: every violation counts as old burden.
+pub const RULES_HOLD: &str = "rules.hold";
+/// Title key of `rules.hold`.
+pub const RULES_HOLD_TITLE: &str = i18n::COMMAND_RULES_HOLD_TITLE;
+/// Description key of `rules.hold`.
+pub const RULES_HOLD_DESCRIPTION: &str = i18n::COMMAND_RULES_HOLD_DESCRIPTION;
 /// Id of the command that keeps a symbol on purpose (an entry of `[[unused.ignore]]`).
 pub const UNUSED_KEEP: &str = "unused.keep";
 /// Title key of `unused.keep`.
@@ -393,6 +426,18 @@ pub const SCANS_LIST: &str = "scans.list";
 pub const SCANS_LIST_TITLE: &str = i18n::COMMAND_SCANS_LIST_TITLE;
 /// Description key of `scans.list`.
 pub const SCANS_LIST_DESCRIPTION: &str = i18n::COMMAND_SCANS_LIST_DESCRIPTION;
+/// Id of the command that compares two scans of a project (ADR 0097).
+pub const SCANS_COMPARE: &str = "scans.compare";
+/// Title key of `scans.compare`.
+pub const SCANS_COMPARE_TITLE: &str = i18n::COMMAND_SCANS_COMPARE_TITLE;
+/// Description key of `scans.compare`.
+pub const SCANS_COMPARE_DESCRIPTION: &str = i18n::COMMAND_SCANS_COMPARE_DESCRIPTION;
+/// Id of the command that lists what the difference of two scans hits (ADR 0097).
+pub const SCANS_IMPACT: &str = "scans.impact";
+/// Title key of `scans.impact`.
+pub const SCANS_IMPACT_TITLE: &str = i18n::COMMAND_SCANS_IMPACT_TITLE;
+/// Description key of `scans.impact`.
+pub const SCANS_IMPACT_DESCRIPTION: &str = i18n::COMMAND_SCANS_IMPACT_DESCRIPTION;
 /// Id of the command that summarises a project for the statistics screen (ADR 0081).
 pub const STATS_OVERVIEW: &str = "stats.overview";
 /// Title key of `stats.overview`.
@@ -447,3 +492,16 @@ pub const SCOPE_SET: &str = "scope.set";
 pub const SCOPE_SET_TITLE: &str = i18n::COMMAND_SCOPE_SET_TITLE;
 /// Description key of `scope.set`.
 pub const SCOPE_SET_DESCRIPTION: &str = i18n::COMMAND_SCOPE_SET_DESCRIPTION;
+
+/// Id of the command that previews a rename.
+pub const RENAME_PREVIEW: &str = "rename.preview";
+/// Title key of `rename.preview`.
+pub const RENAME_PREVIEW_TITLE: &str = i18n::COMMAND_RENAME_PREVIEW_TITLE;
+/// Description key of `rename.preview`.
+pub const RENAME_PREVIEW_DESCRIPTION: &str = i18n::COMMAND_RENAME_PREVIEW_DESCRIPTION;
+/// Most places and text lines `rename.preview` lists; the counts stay whole.
+pub const RENAME_PREVIEW_LIMIT: usize = 500;
+
+/// The bits of a Unix file mode that make a file executable (owner, group, other).
+#[cfg(unix)]
+pub(super) const EXECUTE_BITS: u32 = 0o111;

@@ -73,6 +73,10 @@ crate = "codeskimr_application"
 title = "Annotations and alerts (ADR 0068)"
 crate = "codeskimr_application, codeskimr_storage"
 
+[groups.CMP]
+title = "Scan comparison and impact (ADR 0097)"
+crate = "codeskimr_application, codeskimr_storage"
+
 [groups.UI]
 title = "Frontend"
 crate = "web"
@@ -145,6 +149,14 @@ severity = "error"
 retryable = true
 description = "The console window for the level 2 confirmation could not be started; the screen shows the command instead."
 since = "0.9.0"
+
+[[codes]]
+id = "APP-605"
+name = "project_file_open_failed"
+severity = "error"
+retryable = true
+description = "The system did not start a program for the project file."
+since = "1.2.0"
 
 [[codes]]
 id = "CFG-101"
@@ -854,6 +866,30 @@ description = "The symbol already has a critical mark; a symbol has at most one.
 since = "0.1.0"
 
 [[codes]]
+id = "CMP-101"
+name = "comparison_order_invalid"
+severity = "error"
+retryable = false
+description = "The base of a comparison is not an older snapshot than its target; the base is the older scan, the target the newer one (ADR 0097)."
+since = "1.1.0"
+
+[[codes]]
+id = "CMP-201"
+name = "snapshot_not_found"
+severity = "error"
+retryable = false
+description = "A snapshot of the comparison does not exist or retention has removed it; only the retained scans of the project can be compared, and a project with one scan has nothing to compare (ADR 0097)."
+since = "1.1.0"
+
+[[codes]]
+id = "CMP-301"
+name = "naming_rules_differ"
+severity = "error"
+retryable = true
+description = "The two snapshots were scanned with different naming rules, so their symbols cannot be matched by name; a full scan of the project writes a snapshot with the current rules and the comparison can be repeated (ADR 0097)."
+since = "1.1.0"
+
+[[codes]]
 id = "UI-201"
 name = "api_unreachable"
 severity = "error"
@@ -916,3 +952,11 @@ severity = "error"
 retryable = false
 description = "A function has more parameters than the configured maximum."
 since = "0.9.0"
+
+[[codes]]
+id = "CHK-107"
+name = "rule_violation"
+severity = "error"
+retryable = false
+description = "Code breaks an architecture rule of the project."
+since = "1.2.0"

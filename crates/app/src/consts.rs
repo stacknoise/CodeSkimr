@@ -595,3 +595,6 @@ pub const UI_LAYER_HEADER: &str = "[level2.indexer_memory_mb]";
 pub const UI_LAYER_ASSIGN: &str = " = ";
 /// Ending of a line of that layer.
 pub const UI_LAYER_NEWLINE: &str = "\n";
+
+/// The field of the answer of `rules` that counts the violations the held state does not have.
+pub const NEW_VIOLATIONS: &str = "new";

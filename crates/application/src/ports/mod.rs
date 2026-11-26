@@ -9,6 +9,7 @@ mod analysis;
 mod annotations;
 mod catalog;
 mod clock;
+mod compare;
 mod confirmation;
 mod consent;
 mod credentials;
@@ -18,6 +19,7 @@ mod indexer;
 mod keys;
 mod level2;
 mod memory;
+mod mentions;
 mod outline;
 mod query;
 mod references;
@@ -43,6 +45,7 @@ pub use annotations::{
 };
 pub use catalog::{DatabaseInfo, DatabaseState, LanguageShare, ProjectCatalog, ProjectOverview};
 pub use clock::Clock;
+pub use compare::ComparisonSource;
 pub use confirmation::{ConfirmationWindow, Level2Switch, WindowOutcome};
 pub use consent::{ConsentGrant, ConsentRecord, ConsentStore, RunPermit};
 pub use credentials::{AuthError, Credential, CredentialStore, FIELD_SEPARATOR, LockedSecret};
@@ -56,12 +59,13 @@ pub use indexer::{
 pub use keys::{KeyEntry, KeyKind, KeySearch, ProjectKeys};
 pub use level2::{ImportRequest, Imported, ReferenceImporter};
 pub use memory::{MemoryGauge, MemoryLimit, MemoryWatch};
+pub use mentions::{Mention, MentionLimits, Mentions, NameMentions};
 pub use outline::{CodeOutline, MemberRow, OutlineNode};
 pub use query::{
     CodeIndex, CodeSpan, FileHit, MemberRef, ScanEntry, SearchHit, SymbolDetail, SymbolKey,
     TypeFocus, TypeNeighbour,
 };
-pub use references::{ReferenceSite, ReferenceSites};
+pub use references::{ReferencePlace, ReferencePlaces, ReferenceSite, ReferenceSites};
 pub use report::{
     LanguageLine, LanguageOutcome, LastScan, Level2Report, ReportWrite, ScanReport, ScanReportStore,
 };
