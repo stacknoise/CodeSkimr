@@ -448,6 +448,8 @@ export const I18N_KEYS = {
   COMMAND_UI_SETTINGS_GET_DESCRIPTION: "command-ui-settings-get-description",
   COMMAND_UI_SETTINGS_SET_INDEXER_MEMORY_TITLE: "command-ui-settings-set-indexer-memory-title",
   COMMAND_UI_SETTINGS_SET_INDEXER_MEMORY_DESCRIPTION: "command-ui-settings-set-indexer-memory-description",
+  COMMAND_RULES_SHOW_TITLE: "command-rules-show-title",
+  COMMAND_RULES_SHOW_DESCRIPTION: "command-rules-show-description",
   COMMAND_UNUSED_KEEP_TITLE: "command-unused-keep-title",
   COMMAND_UNUSED_KEEP_DESCRIPTION: "command-unused-keep-description",
   COMMAND_UNUSED_LIFT_TITLE: "command-unused-lift-title",

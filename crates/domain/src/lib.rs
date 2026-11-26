@@ -65,7 +65,7 @@ pub use namespace_graph::{
 };
 pub use project::{
     BranchName, CredentialId, FolderPath, GitUrl, Layer, LayerName, Project, ProjectId,
-    ProjectName, ProjectSource,
+    ProjectName, ProjectSource, is_within,
 };
 pub use qualified_name::QualifiedName;
 pub use reference::{Confidence, Reference, ReferenceId, ReferenceKind};

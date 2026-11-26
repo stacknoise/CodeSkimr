@@ -42,6 +42,9 @@ mod projects_rename_tests;
 mod projects_tests;
 mod rating;
 mod rename_preview;
+mod rules;
+#[cfg(test)]
+mod rules_tests;
 mod scans;
 #[cfg(test)]
 mod scans_tests;
@@ -123,6 +126,7 @@ use projects_pick::{FolderDialogInfo, PickFolder};
 use projects_remove::RemoveProject;
 use projects_rename::{RenameProject, SuggestName};
 use rename_preview::{RenamePreviewCommand, RenamePreviewPorts};
+use rules::RulesShow;
 use scans::{ScanListPorts, ScansList};
 pub(crate) use scope::{
     GetInput as ScopeGetInput, ScopeAnswer, ScopeGet, ScopeSet, SetInput as ScopeSetInput,
@@ -446,6 +450,16 @@ fn add<C: Command>(registry: &mut Registry, command: C) -> Result<(), CodedError
     registry.register(command).map_err(CodedError::caused_by)
 }
 
+/// The commands that read or write the project file: layers, rules and the exception list.
+fn expose_project_file(api: &mut CommandApi) -> Result<(), CodedError> {
+    api.expose::<LayersGet>()?;
+    api.expose::<LayersSet>()?;
+    api.expose::<RulesShow>()?;
+    api.expose::<UnusedKeep>()?;
+    api.expose::<UnusedLift>()?;
+    Ok(())
+}
+
 /// Makes every registered command of the UI reachable over REST.
 fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ListProjects>()?;
@@ -468,10 +482,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<DeleteCredential>()?;
     expose_index_views(api)?;
     api.expose::<GraphLayers>()?;
-    api.expose::<LayersGet>()?;
-    api.expose::<LayersSet>()?;
-    api.expose::<UnusedKeep>()?;
-    api.expose::<UnusedLift>()?;
+    expose_project_file(api)?;
     api.expose::<StatusInfo>()?;
     api.expose::<StatsOverview>()?;
     api.expose::<StatsRanking>()?;
@@ -656,6 +667,44 @@ fn register_usages(
     add(registry, UsagesCode { ports })
 }
 
+/// The commands of the project file, see [`expose_project_file`].
+fn register_project_file(
+    registry: &mut Registry,
+    ports: &Arc<ExplorerPorts>,
+) -> Result<(), CodedError> {
+    add(
+        registry,
+        LayersGet {
+            ports: Arc::clone(ports),
+        },
+    )?;
+    add(
+        registry,
+        LayersSet {
+            ports: Arc::clone(ports),
+        },
+    )?;
+    add(
+        registry,
+        RulesShow {
+            ports: Arc::clone(ports),
+        },
+    )?;
+    add(
+        registry,
+        UnusedKeep {
+            ports: Arc::clone(ports),
+        },
+    )?;
+    add(
+        registry,
+        UnusedLift {
+            ports: Arc::clone(ports),
+        },
+    )?;
+    Ok(())
+}
+
 fn register_graph(
     registry: &mut Registry,
     store: &Arc<SqliteStore>,
@@ -682,30 +731,7 @@ fn register_explorer(
             ports: Arc::clone(&ports),
         },
     )?;
-    add(
-        registry,
-        LayersGet {
-            ports: Arc::clone(&ports),
-        },
-    )?;
-    add(
-        registry,
-        LayersSet {
-            ports: Arc::clone(&ports),
-        },
-    )?;
-    add(
-        registry,
-        UnusedKeep {
-            ports: Arc::clone(&ports),
-        },
-    )?;
-    add(
-        registry,
-        UnusedLift {
-            ports: Arc::clone(&ports),
-        },
-    )?;
+    register_project_file(registry, &ports)?;
     add(
         registry,
         ExplorerSource {
@@ -777,6 +803,7 @@ fn explorer_ports(
         text: Arc::new(FolderText),
         highlighter: Arc::new(TreeSitterHighlighter::new(&locations.languages_dir)),
         thresholds,
+        references: store.clone(),
     })
 }
 

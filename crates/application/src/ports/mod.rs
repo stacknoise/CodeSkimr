@@ -63,7 +63,7 @@ pub use query::{
     CodeIndex, CodeSpan, FileHit, MemberRef, ScanEntry, SearchHit, SymbolDetail, SymbolKey,
     TypeFocus, TypeNeighbour,
 };
-pub use references::{ReferenceSite, ReferenceSites};
+pub use references::{ReferencePlace, ReferencePlaces, ReferenceSite, ReferenceSites};
 pub use report::{
     LanguageLine, LanguageOutcome, LastScan, Level2Report, ReportWrite, ScanReport, ScanReportStore,
 };

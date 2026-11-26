@@ -135,14 +135,21 @@ impl Layer {
     /// below it, up to a separator, `.` or `::` (`App.Domain` owns `App.Domain.Order`, not `App.DomainX`).
     #[must_use]
     pub fn owns(&self, name: &str) -> bool {
-        self.namespaces.iter().any(|namespace| {
-            let prefix = namespace.as_str();
-            name == prefix
-                || name.strip_prefix(prefix).is_some_and(|rest| {
-                    rest.starts_with(NAME_SEPARATOR) || rest.starts_with(MODULE_NAME_SEPARATOR)
-                })
-        })
+        self.namespaces
+            .iter()
+            .any(|namespace| is_within(namespace.as_str(), name))
     }
+}
+
+/// Whether `name` equals `prefix` or lies below it, up to a separator, `.` or `::`
+/// (`App.Domain` holds `App.Domain.Order`, not `App.DomainX`). The one rule of layers and of the
+/// architecture rules (ADR 0104).
+#[must_use]
+pub fn is_within(prefix: &str, name: &str) -> bool {
+    name == prefix
+        || name.strip_prefix(prefix).is_some_and(|rest| {
+            rest.starts_with(NAME_SEPARATOR) || rest.starts_with(MODULE_NAME_SEPARATOR)
+        })
 }
 
 /// A registered repository.

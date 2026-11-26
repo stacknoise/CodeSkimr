@@ -22,6 +22,7 @@ pub mod registry;
 pub mod rename;
 pub mod report_view;
 pub mod resolve;
+pub mod rules;
 pub mod scope;
 pub mod selection;
 pub mod stage;
