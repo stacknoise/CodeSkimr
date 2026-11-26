@@ -8,7 +8,7 @@ use std::any::Any;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use codeskimr_domain::{LanguageId, SymbolKind};
+use codeskimr_domain::{LanguageId, RelativePath, SymbolKind};
 
 use crate::cancel::CancelToken;
 use crate::consts::PROJECT_FILE_WILDCARD;
@@ -106,6 +106,9 @@ pub struct IndexJob<'a> {
     pub spec: &'a IndexerSpec,
     /// The limits of the run.
     pub limits: IndexLimits,
+    /// The folder below the project root in which the indexer runs (a workspace, ADR 0100); `None`
+    /// is the project root itself. The index names its files relative to this folder.
+    pub workspace: Option<&'a RelativePath>,
     /// Proof that consent and permission were checked, and the folder of the project the indexer
     /// runs in. The runner reads the consent once more before it starts the process.
     pub permit: &'a RunPermit,
@@ -248,6 +251,25 @@ pub trait IndexRunner: Send + Sync {
     /// true if the spec names none or the runner cannot tell.
     fn has_project_file(&self, _spec: &IndexerSpec, _root: &Path) -> bool {
         true
+    }
+
+    /// The folders in which `spec` has to run so that it finds its project files, for the source
+    /// `files` of its languages (paths relative to `root`); `None` is the project root. A folder
+    /// above or at the root that holds a project file gives one run for the whole project; else
+    /// every outermost folder below the root that holds one and has source files gives one run
+    /// (a Cargo workspace or a solution in a subfolder, ADR 0100). Empty if there is nowhere the
+    /// indexer could find a project file.
+    fn workspaces(
+        &self,
+        spec: &IndexerSpec,
+        root: &Path,
+        _files: &[&RelativePath],
+    ) -> Vec<Option<RelativePath>> {
+        if self.has_project_file(spec, root) {
+            vec![None]
+        } else {
+            Vec::new()
+        }
     }
 
     /// Runs the indexer once and returns its index file.

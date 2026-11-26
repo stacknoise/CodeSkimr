@@ -76,12 +76,26 @@ Every run is limited; an indexer that exceeds a limit is stopped together with a
 |---|---|---|
 | `timeout_seconds` | 900 | `RES-502` |
 | `max_memory_mb` (whole process tree) | 4096 | `RES-504` |
+| `indexer_memory_mb.<indexer>` (memory limit of one indexer, in section `[level2.indexer_memory_mb]`; `0` follows `max_memory_mb`) | 0 | `RES-504` |
 | `max_output_bytes` (console and files) | 512 MiB | `RES-503` |
 | `max_index_bytes` (largest index that is read) | 256 MiB | `RES-501` |
 | `min_mapped` (share of project occurrences that must map) | 0.5 | `RES-302` |
 | `max_created_symbols` (most symbols that level 2 creates itself, e.g. types a macro generates) | 100000 | `RES-303` |
 
+A large TypeScript project needs far more memory than the other indexers. So you can give one indexer a limit of its own by its name (`rust-analyzer`, `scip-dotnet`, `scip-java`, `scip-python`, `scip-typescript`; TypeScript, JavaScript and TSX share `scip-typescript`, Java and Kotlin share `scip-java`), for example in your user configuration:
+
+```toml
+[level2.indexer_memory_mb]
+scip-typescript = 12288
+```
+
+For Node.js (`scip-typescript`) the limit also sets the heap of the process. A name that is not in the list is refused when the configuration is read, so a typo does not go unnoticed.
+
 The indexer gets a cleared environment with an allow list (no token or secret of CodeSkimr reaches it), runs in its own process group, and its output is redacted before it is logged. **The network is not blocked**, because restoring packages needs it; this is the main residual risk and the reason for the confirmation.
+
+## Projects with several workspaces
+
+Some indexers need a project file in their working folder (`Cargo.toml` for rust-analyzer, a solution or `.csproj` for scip-dotnet). If the project folder or a folder above it holds one, the indexer runs once there. If not, CodeSkimr looks for the outermost folders below the project folder that hold one and have source files of that language (a Cargo workspace in `cli/`, a solution in a subfolder) and runs the indexer once in each. The run reports the sum. If one workspace fails, the others still count; the files of the failed one keep level 1 and are counted as outdated in the report.
 
 ## After a change
 

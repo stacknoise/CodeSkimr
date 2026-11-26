@@ -345,7 +345,7 @@ pub const NO_VERSION: &str = "?";
 /// Separates the codes in a list of codes.
 pub const CODE_LIST_SEPARATOR: &str = ", ";
 
-/// Sub-command that shows or changes what a project covers (ADR 0097).
+/// Sub-command that shows or changes what a project covers (ADR 0101).
 pub const COMMAND_SCOPE: &str = "scope";
 /// Argument id of the project of `scope`.
 pub const ARG_SCOPE_PROJECT: &str = "scope-project";

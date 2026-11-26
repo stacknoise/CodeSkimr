@@ -310,7 +310,7 @@ codeskimr/
   - `layer_graph` – the dependency map
   - `type_summary` – the metric strip
 - **Statistics (ADR 0091):** `symbol_statistics` (one row per type and callable with usage counts, measured values, test flag and the place in the order of path and name), `statistics_facets` and `statistics_complexity` (counts per group) and `snapshot_statistics` (which test folders the rows were counted for). Unlike the read models above they are **not** written in the transaction of the snapshot but right after it, in a thread of their own, so that the scan keeps its budget; a snapshot without these rows is valid and gets them at the first question of the statistics screen. A level 2 import deletes the rows of the snapshots it changed.
-- **Scope (ADR 0097):** the tables `scope_languages` and `scope_folders` in the file of the project hold the languages and folders the project leaves out; they are not tied to a snapshot and not touched by retention. An empty scope covers everything.
+- **Scope (ADR 0101):** the tables `scope_languages` and `scope_folders` in the file of the project hold the languages and folders the project leaves out; they are not tied to a snapshot and not touched by retention. An empty scope covers everything.
 - **Retention:** keep the last N snapshots per project (configurable, default from `config/default.toml`).
 - **Annotations (ADR 0068):** the tables `annotation`, `annotation_baseline` and `alert` are not tied to a snapshot and are not touched by retention. A symbol is found again by kind, qualified name and parameter types. Dismissed alerts are kept for `annotations.dismissed_retention_days`.
 - Schema migrations are versioned SQL files in `crates/adapters/storage/migrations/` (one set for the catalog, one for the project files), applied when a file is opened.
@@ -327,7 +327,7 @@ flowchart LR
 | Stage | Responsibility | Parallel |
 |---|---|---|
 | Fetch source | folder: nothing to do; Git: shallow clone or fetch | I/O |
-| Discover files | walk with `.gitignore`, apply the scope of the project (left-out folders are not entered, files of left-out languages are not hashed, ADR 0097), detect language, hash content, skip unchanged files | yes |
+| Discover files | walk with `.gitignore`, apply the scope of the project (left-out folders are not entered, files of left-out languages are not hashed, ADR 0101), detect language, hash content, skip unchanged files | yes |
 | Analyze | Tree-sitter per file, then run the language-pack queries and build symbols and members; the tree never leaves the adapter (ADR 0013) | yes (per file) |
 | Resolve references | map names to symbols (section 9) | yes (per file, after a global symbol table pass) |
 | Compute metrics | LOC, CC, MI, Ce, Ca, instability | yes |
@@ -471,7 +471,7 @@ codeskimr scan <path|git-url>     scan and print a summary (--json for machines,
 codeskimr serve                   start the server without opening a browser
 codeskimr mcp                     MCP over stdio
 codeskimr export <project> --html <file>
-codeskimr scope <project>         show or change the languages and folders a project leaves out (ADR 0097)
+codeskimr scope <project>         show or change the languages and folders a project leaves out (ADR 0101)
 codeskimr check <path>            run the convention checks (for CI)
 codeskimr codes [<code>]          list error codes / explain one code
 ```
@@ -752,7 +752,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
   - MCP limits
   - snapshot retention
   - watcher debounce
-  - level 2 (`level2.*`: switch, time, memory and output limits, index size, share of mappable uses). Only the user config and CLI flags may set them; the project file cannot
+  - level 2 (`level2.*`: switch, time, memory (global and per indexer) and output limits, index size, share of mappable uses). Only the user config and CLI flags may set them; the project file cannot
   - excluded folders (`bin`, `obj`, `.git`, `node_modules`, `target`, `dist` …)
   - annotations (`annotations.*`, ADR 0068): `dismissed_retention_days` (30), `max_text_chars` (4000), `max_title_chars` (500), `max_assignee_chars` (100), `max_name_chars` (500), `max_parameter_chars` (200), `max_parameters` (32), `default_page_size` (100), `max_page_size` (500)
 - **Overrides,** applied in this order: user config file → project config (`.codeskimr.toml` in the repository) → CLI flags. The project config may only lower `scan.max_source_mb`, `scan.parse_timeout_ms`, `scan.max_candidates` and `scan.max_memory_mb`, not raise them above the value of the defaults and the user file, so that a scanned repository cannot lift the protection of the scanning machine (ADR 0040).
@@ -936,7 +936,7 @@ Reference: the budgets are meant for a mid-range developer laptop (class recorde
 | Memory for 1M LOC indexed | < 500 MB |
 | Binary size (full-tier languages built in) | < 60 MB |
 
-**Level 2 (ADR 0033) is not part of this table.** The budgets above are for level 1: the scan is complete and usable before level 2 starts, and the second pass (section 9.3) runs external indexers, whose time and memory depend on the project and its build tools and cannot be measured by the benchmark of CI. Level 2 is bounded by limits instead, which are configuration keys with defaults in `config/default.toml` (section 14): `level2.timeout_seconds` 900, `level2.max_memory_mb` 4096, `level2.max_output_bytes` 512 MiB, `level2.max_index_bytes` 256 MiB. Since ADR 0072 level 2 also runs in the background after a scan from the browser; it stays outside the budgets (the scan has returned by then), is bounded by the same limits and by `level2.max_parallel_runs` 1 and `level2.ui_cooldown_seconds` 60. Exceeding one stops the indexer and keeps level 1 (`RES-502`, `RES-504`, `RES-503`, `RES-501`). What the indexers cost on the pinned corpora (one cold run each on the measuring machine, measured by hand, `docs/accuracy.md`) is the reference for choosing those limits:
+**Level 2 (ADR 0033) is not part of this table.** The budgets above are for level 1: the scan is complete and usable before level 2 starts, and the second pass (section 9.3) runs external indexers, whose time and memory depend on the project and its build tools and cannot be measured by the benchmark of CI. Level 2 is bounded by limits instead, which are configuration keys with defaults in `config/default.toml` (section 14): `level2.timeout_seconds` 900, `level2.max_memory_mb` 4096 (per indexer by `level2.indexer_memory_mb`, ADR 0100), `level2.max_output_bytes` 512 MiB, `level2.max_index_bytes` 256 MiB. Since ADR 0072 level 2 also runs in the background after a scan from the browser; it stays outside the budgets (the scan has returned by then), is bounded by the same limits and by `level2.max_parallel_runs` 1 and `level2.ui_cooldown_seconds` 60. Exceeding one stops the indexer and keeps level 1 (`RES-502`, `RES-504`, `RES-503`, `RES-501`). What the indexers cost on the pinned corpora (one cold run each on the measuring machine, measured by hand, `docs/accuracy.md`) is the reference for choosing those limits:
 
 | Indexer | Corpus | Time | Peak memory | Index |
 |---|---|---|---|---|

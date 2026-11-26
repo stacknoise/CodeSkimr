@@ -50,7 +50,7 @@ Allows or forbids level 2 (the indexers of ADR 0033, which run the build tools o
 
 ## `codeskimr scope <project>`
 
-Shows the scope of a project (ADR 0097): the languages and folders it leaves out of the scan, with the number of files per language and folder and the project files found in folders. `<project>` is the project id or the folder or Git URL, as for `export`. `--without-language`, `--with-language`, `--without-folder` and `--with-folder` (each may repeat) leave something out or take it back in; `--reset` takes everything back in first. Folders are paths relative to the project root. A change takes effect with the next scan. `--json` prints the answer of the command `scope.get` or `scope.set`. An invalid scope fails with `PRJ-103`.
+Shows the scope of a project (ADR 0101): the languages and folders it leaves out of the scan, with the number of files per language and folder and the project files found in folders. `<project>` is the project id or the folder or Git URL, as for `export`. `--without-language`, `--with-language`, `--without-folder` and `--with-folder` (each may repeat) leave something out or take it back in; `--reset` takes everything back in first. Folders are paths relative to the project root. A change takes effect with the next scan. `--json` prints the answer of the command `scope.get` or `scope.set`. An invalid scope fails with `PRJ-103`.
 
 ## `codeskimr open`
 

@@ -1,4 +1,4 @@
-//! The scope a user asks for, checked before it is stored (ADR 0097).
+//! The scope a user asks for, checked before it is stored (ADR 0101).
 //!
 //! Folders and languages are texts that a person typed or a browser sent, so they are checked here
 //! once: a folder must be a folder inside the project, a language must look like the id of a

@@ -64,7 +64,7 @@ pub struct ScanArgs {
     pub name: Option<String>,
 }
 
-/// Arguments of `codeskimr scope`: show the scope of a project, or change it first (ADR 0097).
+/// Arguments of `codeskimr scope`: show the scope of a project, or change it first (ADR 0101).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ScopeArgs {
     /// Id of the project, or the folder or Git URL it was scanned from.

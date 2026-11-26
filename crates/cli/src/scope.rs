@@ -1,4 +1,4 @@
-//! The command `scope` (ADR 0097): its definition with clap and the translation of its arguments.
+//! The command `scope` (ADR 0101): its definition with clap and the translation of its arguments.
 //! What runs behind it are the commands `scope.get` and `scope.set` of the registry.
 
 use clap::{Arg, ArgAction, ArgMatches, Command};

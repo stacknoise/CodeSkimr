@@ -1,4 +1,4 @@
-# 0097 – A project can leave out languages and folders (scope)
+# 0101 – A project can leave out languages and folders (scope)
 
 Status: accepted (way A confirmed by the product owner on 2026-11-25, mock 26 chosen on 2026-11-26)
 
@@ -17,7 +17,7 @@ A project covers everything below its root. In a large repository with several l
 Option 2.
 
 1. **Model.** The scope of a project is a set of left-out languages and a set of left-out folders (paths relative to the project root, with `/`). An empty scope covers everything, so new languages and new folders are covered without any action. A folder that is left out covers all folders below it. The type `Scope` lives in the domain crate.
-2. **Storage.** The scope is stored in the database file of the project (ADR 0095), tables `scope_languages` and `scope_folders` (schema version 23). It does not enter the `Project` type; the port `ScopeStore` writes it, `ProjectRepository::scope` reads it.
+2. **Storage.** The scope is stored in the database file of the project (ADR 0095), tables `scope_languages` and `scope_folders` (migration 0024). It does not enter the `Project` type; the port `ScopeStore` writes it, `ProjectRepository::scope` reads it.
 3. **Effect.** Discovery applies the scope: the walk does not enter a left-out folder and skips files of a left-out language before it hashes them. A change of the scope takes effect with the next scan. Files that leave the scope are treated as removed files by an incremental scan.
 4. **Commands.** `scope.get` (read) returns the scope and an overview: per language and per folder the number of files and whether it is covered, the project files found in folders (for stage 2), and a hint when the list is cut (`scan.overview_depth`, `scan.overview_max_folders`). For a folder project the overview is a live listing without filters, for a Git project it comes from the newest snapshot; stored entries are always shown so that they can be switched on again. `scope.set` (register projects) replaces the scope. The console has `codeskimr scope`, so the UI and the console can do the same.
 5. **Limits.** `scan.max_scope_entries` caps the number of entries; an invalid scope is the error PRJ-103 (`project_scope_invalid`). Folders hidden by `.gitignore` or by `excluded_folders` are not offered in the overview.

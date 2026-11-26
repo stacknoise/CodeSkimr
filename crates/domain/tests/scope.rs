@@ -1,4 +1,4 @@
-//! What a project leaves out of its scans (ADR 0097).
+//! What a project leaves out of its scans (ADR 0101).
 
 #[cfg(test)]
 mod tests {

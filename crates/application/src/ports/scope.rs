@@ -1,5 +1,5 @@
 //! The scope of a project: what its scans leave out, and a look at what lies in the folder
-//! (ADR 0097).
+//! (ADR 0101).
 
 use codeskimr_domain::{FolderPath, LanguageId, ProjectId, RelativePath, Scope};
 

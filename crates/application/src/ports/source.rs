@@ -58,7 +58,7 @@ pub trait FileDiscovery: Send + Sync {
     ) -> Result<Vec<DiscoveredFile>, CodedError>;
 
     /// Like [`FileDiscovery::discover`], but a file that `scope` leaves out is not part of the
-    /// result (ADR 0097). The default discovers everything and drops those files afterwards; an
+    /// result (ADR 0101). The default discovers everything and drops those files afterwards; an
     /// adapter that can skip a folder or a language before it reads the files overrides it.
     ///
     /// # Errors
