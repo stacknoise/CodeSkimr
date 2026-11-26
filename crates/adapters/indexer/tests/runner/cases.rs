@@ -533,8 +533,19 @@ fn a_failed_run_whose_output_names_a_memory_marker_is_a_memory_limit() {
         memory_markers: vec!["restore failed".to_owned()],
         ..spec("fail")
     };
-    let result = fixture.run_with(&marked, limits(), &CancelToken::new());
-    assert_eq!(code_of(result), ErrorCode::IndexerMemoryLimit);
+    let error = fixture
+        .run_with(&marked, limits(), &CancelToken::new())
+        .unwrap_err();
+    assert_eq!(error.code(), ErrorCode::IndexerMemoryLimit);
+    // The excerpt of the output stays with the error, so that the log can show it (#744).
+    let cause = error
+        .source()
+        .and_then(|s| s.downcast_ref::<IndexerError>());
+    let Some(IndexerError::MemoryLimit { excerpt }) = cause else {
+        panic!("not a memory limit: {cause:?}");
+    };
+    assert!(excerpt.contains("restore failed"), "{excerpt}");
+    assert!(!excerpt.contains(SECRET), "{excerpt}");
 }
 
 #[test]

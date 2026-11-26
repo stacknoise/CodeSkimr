@@ -1,5 +1,6 @@
 //! The texts the commands print: scan summary and error line.
 
+use codeskimr_application::ids;
 use codeskimr_application::tools::{ToolView, ToolsView};
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
@@ -11,6 +12,7 @@ use codeskimr_codes::i18n::{
     CLI_START_KEEP_OPEN, CLI_START_TRAY, CLI_TRAY_LOG, CLI_TRAY_OPEN, CLI_TRAY_QUIT,
     CLI_TRAY_TOOLTIP, CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
 };
+use codeskimr_domain::SnapshotId;
 use codeskimr_domain::ToolState;
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde::Serialize;
@@ -351,7 +353,10 @@ pub fn scan_finished(
     let mut details = FluentArgs::new();
     details.set(arg::SYMBOLS, FluentValue::from(summary.symbols));
     details.set(arg::REFERENCES, FluentValue::from(summary.references));
-    details.set(arg::SNAPSHOT, FluentValue::from(summary.snapshot));
+    details.set(
+        arg::SNAPSHOT,
+        FluentValue::from(ids::snapshot_number(SnapshotId::new(summary.snapshot))),
+    );
     let first = messages.format(language, CLI_SCAN_FINISHED, Some(&finished))?;
     let second = messages.format(language, CLI_SCAN_DETAILS, Some(&details))?;
     let mut lines = vec![first, second];
