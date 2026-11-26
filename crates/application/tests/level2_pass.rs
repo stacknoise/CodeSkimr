@@ -243,7 +243,8 @@ mod cases {
         fails: Option<ErrorCode>,
         /// The folder of each request, in order.
         places: Mutex<Vec<Option<String>>>,
-        cancels: Option<CancelToken>,
+        /// The cancel token and the number of the import after which it fires.
+        cancels: Option<(CancelToken, usize)>,
         /// The ids (of the importer's own numbering) of the symbols the import creates, each the
         /// child of the one before, and a use of the last.
         creates: Vec<u64>,
@@ -297,7 +298,8 @@ mod cases {
     impl ReferenceImporter for Importer {
         fn import(&self, request: &ImportRequest<'_>) -> Result<Imported, CodedError> {
             self.remember(request);
-            if let Some(token) = &self.cancels {
+            let imports = self.seen.lock().unwrap().len();
+            if let Some((token, _)) = self.cancels.as_ref().filter(|(_, n)| imports >= *n) {
                 token.cancel();
             }
             if let Some(code) = self.fails {
@@ -361,7 +363,8 @@ mod cases {
         run_fails: Option<ErrorCode>,
         project_file: ProjectFile,
         import_fails: Option<ErrorCode>,
-        cancel_in_import: bool,
+        /// The number of the import that cancels the scan.
+        cancel_in_import: Option<usize>,
         files_fail: bool,
         confirmed: bool,
         creates: Vec<u64>,
@@ -380,7 +383,7 @@ mod cases {
                 run_fails: None,
                 project_file: ProjectFile::Present,
                 import_fails: None,
-                cancel_in_import: false,
+                cancel_in_import: None,
                 files_fail: false,
                 confirmed: true,
                 creates: Vec::new(),
@@ -438,7 +441,9 @@ mod cases {
                 sites: Mutex::default(),
                 places: Mutex::default(),
                 fails: setup.import_fails,
-                cancels: setup.cancel_in_import.then(|| cancel.clone()),
+                cancels: setup
+                    .cancel_in_import
+                    .map(|number| (cancel.clone(), number)),
                 creates: setup.creates.clone(),
             }),
         }
@@ -469,6 +474,7 @@ mod cases {
             ids: Arc::new(ProjectIds::default()),
             max_file_bytes: 1 << 20,
             settings: switched_on(),
+            limits: None,
             indexers,
             events: codeskimr_application::events::EventBus::new(),
         };
@@ -681,6 +687,22 @@ mod cases {
         assert_eq!(outcome.runs, 2);
         assert_eq!(outcome.imports, vec![vec!["cli/a.rs".to_owned()]]);
         assert_eq!(counted(&outcome.result), Some((1, 0, 4, 3, 2, 1)));
+    }
+
+    #[test]
+    fn a_cancel_counts_the_workspaces_that_did_not_run_through() {
+        let outcome = run(Setup {
+            files: vec![
+                file(1, "a/a.rs", "csharp"),
+                file(2, "b/b.rs", "csharp"),
+                file(3, "c/c.rs", "csharp"),
+            ],
+            workspaces: vec!["a", "b", "c"],
+            cancel_in_import: Some(2),
+            ..Setup::default()
+        });
+        assert_eq!(outcome.runs, 2);
+        assert_eq!(counted(&outcome.result), Some((1, 0, 4, 3, 2, 2)));
     }
 
     #[test]
@@ -900,7 +922,7 @@ mod cases {
     #[test]
     fn a_cancel_after_the_import_replaces_nothing() {
         let outcome = run(Setup {
-            cancel_in_import: true,
+            cancel_in_import: Some(1),
             ..Setup::default()
         });
         assert_eq!(outcome.imports.len(), 1);

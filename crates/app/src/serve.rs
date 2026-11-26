@@ -19,6 +19,7 @@ use codeskimr_server::{CommandApi, EditorSettings, Server, UiOptions, UiSettings
 use codeskimr_storage::SqliteStore;
 
 use crate::consts::{SHUTDOWN_GRACE, URL_SCHEME};
+use crate::fresh_limits::FreshLimits;
 use crate::locations::Locations;
 use crate::retention::DailyPurge;
 use crate::running::RunningScans;
@@ -167,7 +168,14 @@ pub(crate) fn serving_parts(
             config,
             locations,
             (events.clone(), secrets),
-            running,
+            (
+                running,
+                Arc::new(FreshLimits {
+                    global: global.clone(),
+                    locations: locations.clone(),
+                    started_with: config.level2.clone(),
+                }),
+            ),
         )?),
         events,
         token_lock: Some(locations.token_lock()),
