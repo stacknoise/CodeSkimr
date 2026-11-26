@@ -95,7 +95,7 @@ function Summary(props: { preview: Preview }) {
 
 /** The symbol that has the new name, with its signature if the index knows one. */
 function conflictName(conflict: Conflict): string {
-  const name = conflict.symbol.qualified_name;
+  const name = conflict.qualified_name;
   return conflict.signature === null
     ? name
     : `${name}${SIGNATURE_OPEN}${conflict.signature}${SIGNATURE_CLOSE}`;
@@ -164,7 +164,7 @@ function Sites(props: { preview: Preview }) {
             <Row
               where={site.path}
               line={site.line}
-              text={site.from?.qualified_name ?? props.preview.symbol.qualified_name}
+              text={site.code ?? site.from?.qualified_name ?? props.preview.symbol.qualified_name}
               badge={<Badge entry={SITE_TEXT[siteBadge(site)]} />}
             />
           )}

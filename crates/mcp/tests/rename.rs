@@ -151,3 +151,44 @@ fn a_symbol_with_another_signature_under_the_new_name_may_be_an_overload() {
     assert_eq!(conflicts[0]["qualified_name"], "App.Domain.Quote");
     assert_eq!(conflicts[0]["same_signature"], false);
 }
+
+#[test]
+fn a_member_with_the_name_of_the_type_is_a_declaration_of_its_own() {
+    let wallet = RenameArgs {
+        symbol: "8".to_owned(),
+        limit: Some(10),
+        ..args("Purse")
+    };
+    let answer = tools().preview_rename(&owner(), &wallet).unwrap();
+    let items = answer["sites"]["items"].as_array().unwrap();
+    let places: Vec<_> = items
+        .iter()
+        .map(|site| {
+            (
+                site["kind"].as_str().unwrap(),
+                site["line"].as_u64().unwrap(),
+            )
+        })
+        .collect();
+    // The usage that both symbols report is one place; the type and its constructor are two.
+    assert_eq!(
+        places,
+        [("usage", 12), ("declaration", 5), ("declaration", 7)]
+    );
+    assert_eq!(answer["sites"]["total"], 3);
+}
+
+#[test]
+fn every_listed_place_comes_with_the_line_of_code_it_stands_on() {
+    let answer = tools().preview_rename(&owner(), &args("Purchase")).unwrap();
+    let items = &answer["sites"]["items"];
+    assert_eq!(items[0]["code"], "code at src/app/service.cs:12");
+    assert_eq!(items[1]["code"], "code at src/order.cs:5");
+}
+
+#[test]
+fn a_caller_who_may_not_read_source_gets_no_code_lines() {
+    let reader = Principal::limited(PermissionSet::none().with(Permission::Read));
+    let answer = tools().preview_rename(&reader, &args("Purchase")).unwrap();
+    assert_eq!(answer["sites"]["items"][0]["code"], serde_json::Value::Null);
+}

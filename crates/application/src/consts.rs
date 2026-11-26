@@ -233,3 +233,11 @@ pub const RENAME_TEXT_NAMEOF: &str = "nameof";
 pub const RENAME_TEXT_COMMENT: &str = "comment";
 /// Label of a text line that no usage explains.
 pub const RENAME_TEXT_CODE: &str = "code";
+/// Most characters of the code line of a place that a rename preview keeps.
+pub const RENAME_CODE_CHARS: usize = 240;
+/// Most lines one read of a file may span when the code lines of the places in it are read.
+pub const RENAME_CODE_MAX_SPAN: u32 = 5_000;
+/// Offset between a zero-based line of the index and the one-based line people read.
+pub const RENAME_LINE_OFFSET: u32 = 1;
+/// Offset between a zero-based column of the index and the one-based column people read.
+pub const RENAME_COLUMN_OFFSET: u32 = 1;

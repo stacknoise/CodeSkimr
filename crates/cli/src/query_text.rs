@@ -261,6 +261,15 @@ fn site_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
     )
 }
 
+/// A place of `preview-rename` and, under it, the line of code it stands on if the answer has one.
+fn site_block(speak: &Speaker<'_>, found: &Value) -> Result<Vec<String>, I18nError> {
+    let mut block = vec![[LIST_INDENT, site_line(speak, found)?.as_str()].concat()];
+    if let Some(code) = found.get(key::SITE_CODE).and_then(Value::as_str) {
+        block.push([LIST_INDENT, LIST_INDENT, code].concat());
+    }
+    Ok(block)
+}
+
 type Line = fn(&Speaker<'_>, &Value) -> Result<String, I18nError>;
 
 /// A list of `context` with a heading that says how many of how many are shown; nothing if it
@@ -379,7 +388,7 @@ fn rename_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<String>, I18n
         speak.say(CLI_RENAME_SITES, &numbers)?,
     ];
     for entry in entries(&sites, key::ITEMS) {
-        lines.push([LIST_INDENT, site_line(speak, entry)?.as_str()].concat());
+        lines.extend(site_block(speak, entry)?);
     }
     let conflicts = json_list(answer, key::CONFLICTS);
     lines.extend(section(

@@ -190,8 +190,6 @@ pub const SYMBOL_DESCRIPTION: &str = i18n::COMMAND_EXPLORER_SYMBOL_DESCRIPTION;
 
 /// Lines are stored from 0, the screen counts from 1.
 pub const LINE_OFFSET: u32 = 1;
-/// Offset between the zero-based column of the index and the one-based column the screen shows.
-pub const COLUMN_OFFSET: u32 = 1;
 /// Longest chain of enclosing symbols in the breadcrumb.
 pub const BREADCRUMB_DEPTH: usize = 8;
 

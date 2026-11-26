@@ -780,6 +780,7 @@ fn rename_preview_ports(store: &Arc<SqliteStore>, config: &Config) -> Arc<Rename
         index: store.clone(),
         usages: store.clone(),
         mentions: Arc::new(FolderMentions::new(config.scan.excluded_folders.clone())),
+        source: Arc::new(FolderText),
     })
 }
 

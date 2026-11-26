@@ -180,7 +180,7 @@ pub struct UsagesPorts {
 }
 
 // codeskimr: allow CHK-102 maps a symbol label into the place of the usages view
-pub(super) fn place(project: &Project, label: &SymbolLabel) -> Place {
+fn place(project: &Project, label: &SymbolLabel) -> Place {
     Place {
         id: label.id.get(),
         qualified_name: label.qualified_name.to_string(),

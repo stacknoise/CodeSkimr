@@ -231,9 +231,11 @@ fn the_text_of_a_rename_preview_says_what_it_cannot_see() {
         "new_name": "Submit",
         "public_interface": true,
         "sites": {"total": 2, "files": 2, "verified": 1, "items": [
-            {"kind": "declaration", "path": "Order.cs", "line": 5, "column": 3},
+            {"kind": "declaration", "path": "Order.cs", "line": 5, "column": 3,
+             "code": "public void Place() {"},
             {"kind": "usage", "path": "Api.cs", "line": 41, "column": 9,
-             "confidence": "certain", "from": {"qualified_name": "Shop.Api.Post"}}
+             "confidence": "certain", "from": {"qualified_name": "Shop.Api.Post"},
+             "code": "order.Place();"}
         ]},
         "conflicts": [{"kind": "method", "qualified_name": "Shop.Order.Submit",
                        "path": "Order.cs", "same_signature": true}],
@@ -247,6 +249,8 @@ fn the_text_of_a_rename_preview_says_what_it_cannot_see() {
         "Places that would have to change: 2 in 2 files (1 checked by the indexer)",
         "Order.cs:5:3  declaration",
         "Api.cs:41:9",
+        "    public void Place() {",
+        "    order.Place();",
         "Name conflicts (1 of 1):",
         "same signature: the two clash",
         "appsettings.json:18  configuration",

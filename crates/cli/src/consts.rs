@@ -451,6 +451,8 @@ pub mod key {
     pub const STALE: &str = "stale";
     /// The registered code of a failure.
     pub const CODE: &str = "code";
+    /// The line of code a place of `preview-rename` stands on.
+    pub const SITE_CODE: &str = "code";
     /// The failure of a command.
     pub const ERROR: &str = "error";
     /// An answer that is not an object, as a field.
