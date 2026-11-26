@@ -2,13 +2,12 @@
 //! (ADR 0111).
 
 use std::fs;
-use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use codeskimr_application::error::CodedError;
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::{BranchName, GitUrl, Project, ProjectId, ProjectName, ProjectSource};
+use codeskimr_domain::ProjectSource;
 use serde_json::json;
 
 use super::project_file_open::open_project_file;
@@ -22,6 +21,7 @@ const FILE: &str = ".codeskimr.toml";
 struct Recorder {
     opened: Mutex<Vec<PathBuf>>,
     fails: bool,
+    away: bool,
 }
 
 impl Recorder {
@@ -29,6 +29,15 @@ impl Recorder {
         Self {
             opened: Mutex::new(Vec::new()),
             fails,
+            away: false,
+        }
+    }
+
+    /// An opener on a machine where nobody sits.
+    fn away() -> Self {
+        Self {
+            away: true,
+            ..Self::new(false)
         }
     }
 
@@ -38,6 +47,10 @@ impl Recorder {
 }
 
 impl FileOpener for Recorder {
+    fn available(&self) -> bool {
+        !self.away
+    }
+
     fn open(&self, file: &Path) -> Result<(), CodedError> {
         self.opened.lock().unwrap().push(file.to_path_buf());
         if self.fails {
@@ -76,6 +89,14 @@ fn a_missing_file_is_created_empty_and_then_opened() {
     assert_eq!(opener.opened().len(), 1);
 }
 
+/// Opening in `dir` is refused with `CFG-102` and the opener is never asked.
+fn assert_refused(dir: &Path) {
+    let opener = Recorder::new(false);
+    let refused = open_project_file(&opener, &folder(dir)).unwrap_err();
+    assert_eq!(refused.code(), ErrorCode::ConfigParseFailed);
+    assert_eq!(opener.opened().len(), 0);
+}
+
 #[cfg(unix)]
 #[test]
 fn a_link_is_refused_and_never_followed() {
@@ -83,10 +104,7 @@ fn a_link_is_refused_and_never_followed() {
     let target = dir.path().join("elsewhere.txt");
     fs::write(&target, "secret").unwrap();
     std::os::unix::fs::symlink(&target, dir.path().join(FILE)).unwrap();
-    let opener = Recorder::new(false);
-    let refused = open_project_file(&opener, &folder(dir.path())).unwrap_err();
-    assert_eq!(refused.code(), ErrorCode::ConfigParseFailed);
-    assert_eq!(opener.opened().len(), 0);
+    assert_refused(dir.path());
     assert_eq!(fs::read_to_string(&target).unwrap(), "secret");
 }
 
@@ -94,10 +112,7 @@ fn a_link_is_refused_and_never_followed() {
 fn a_folder_in_place_of_the_file_is_refused() {
     let dir = tempfile::tempdir().unwrap();
     fs::create_dir(dir.path().join(FILE)).unwrap();
-    let opener = Recorder::new(false);
-    let refused = open_project_file(&opener, &folder(dir.path())).unwrap_err();
-    assert_eq!(refused.code(), ErrorCode::ConfigParseFailed);
-    assert_eq!(opener.opened().len(), 0);
+    assert_refused(dir.path());
 }
 
 #[test]
@@ -111,21 +126,7 @@ fn a_failing_system_is_reported_with_its_own_code() {
 #[test]
 fn a_git_project_has_no_file_to_open() {
     let fixture = Fixture::installed(None);
-    let store =
-        codeskimr_storage::SqliteStore::open(&fixture.locations.database(), NonZeroU32::MIN)
-            .unwrap();
-    store
-        .save_project(&Project {
-            id: ProjectId::new(7),
-            name: ProjectName::new("remote").unwrap(),
-            source: ProjectSource::Git {
-                url: GitUrl::new("https://example.org/demo.git").unwrap(),
-                branch: BranchName::new("main").unwrap(),
-                credential: None,
-            },
-            layers: Vec::new(),
-        })
-        .unwrap();
+    fixture.registered_git(7);
     assert_eq!(
         fixture.call("project_file.open", json!({ "project": 7 })),
         Err("PRJ-101")
@@ -143,4 +144,25 @@ fn a_reader_is_refused_before_anything_happens() {
     );
     assert_eq!(refused, Err("AUTH-401"));
     assert!(!fixture.root.path().join("app").join(FILE).exists());
+}
+
+#[test]
+fn nothing_is_created_where_nobody_sits_at_the_machine() {
+    let dir = tempfile::tempdir().unwrap();
+    let opener = Recorder::away();
+    let failed = open_project_file(&opener, &folder(dir.path())).unwrap_err();
+    assert_eq!(failed.code(), ErrorCode::ProjectFileOpenFailed);
+    assert_eq!(opener.opened().len(), 0);
+    assert!(!dir.path().join(FILE).exists());
+}
+
+#[cfg(unix)]
+#[test]
+fn an_executable_file_is_refused() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join(FILE);
+    fs::write(&file, "").unwrap();
+    fs::set_permissions(&file, fs::Permissions::from_mode(0o755)).unwrap();
+    assert_refused(dir.path());
 }

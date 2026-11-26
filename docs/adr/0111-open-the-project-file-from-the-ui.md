@@ -21,6 +21,9 @@ Option 1.
 - **A missing file is created empty**, with an exclusive create (`create_new`), so nothing existing is ever followed or overwritten. If that fails, the answer is `CFG-104`. The answer says `created: true`, and the screen says so.
 - **Right to manage.** The check `access::require(Manage)` comes first, before the project is even looked up, like `layers.set` and `unused.keep`. A reader is refused with `AUTH-401`.
 - **Only for the local user.** Opening a program is a thing that happens on the machine where the person sits. The command is exposed on the REST API of the app (which the UI uses) and is **not an MCP tool**: an agent has no use for it and must not be able to start programs. A server that runs for a team (a later version, ADR 0033 mentions the same limit for installing tools) must switch the command off, because the program would open on the server and not at the person who clicked. This ADR states that as a rule for that version.
+- **Nobody at the machine, nothing created.** Before the file is looked at, the session must be a desktop session that is not remote (`DISPLAY`, `WAYLAND_DISPLAY`, `SESSIONNAME` or `SECURITYSESSIONID` set, none of `SSH_CONNECTION`, `SSH_CLIENT`, `SSH_TTY`), the same check as for the window of the confirmation (ADR 0071). Otherwise the answer is `APP-605` and nothing is created. The right to manage alone does not tell local from remote.
+- **No executable file.** A project file with an execute bit (Unix) is refused with `CFG-102` like a link.
+- **`CFG-102` for all refusals of the file.** A link, a folder, an executable file and an unreadable file all give `CFG-102` ("not a usable configuration file"), as reading the file does (ADR 0065).
 - **One opener.** `FileOpener` is a trait; `SystemOpener` uses the code that already starts the browser (ADR 0028): `xdg-open`, `open` or `start` with the path as one argument, never through a shell. The tests use a fake opener and never start a program.
 - **What the answer holds.** Only the file name and `created`, never a path of the server's disk.
 - **New error `APP-605`** (`project_file_open_failed`): the system started no program (none is registered for the type, or the start failed). It is retryable. The text says what to do: open the file by hand.
@@ -29,4 +32,6 @@ Option 1.
 
 - The REST command is 55th in the list; the console has no counterpart because it already runs in the editor of its user (ADR 0092 lists the counterpart: the file lies in the project folder, `codeskimr rules` names it).
 - On a machine without a desktop (a build server) the command fails with `APP-605`; nothing else happens, except that an empty file may have been created.
+- Known limit: between the check of the file and the start of the program, someone who may write in the project folder can swap the file for a link. A program that takes a path cannot close that window; the effect is that the user sees a file of their own in the editor. No code is planned for it.
+- On Windows a UNC path is handed over in the form the opener takes (`opener_form`).
 - A later team version has to disable the command (see above); a test for that belongs to that version.

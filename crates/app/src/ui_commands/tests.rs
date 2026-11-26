@@ -119,6 +119,28 @@ impl Fixture {
         project.id.get()
     }
 
+    /// Registers a Git project with the id `id` that was never scanned.
+    pub(crate) fn registered_git(&self, id: u64) {
+        let store = codeskimr_storage::SqliteStore::open(
+            &self.locations.database(),
+            std::num::NonZeroU32::MIN,
+        )
+        .unwrap();
+        let source = codeskimr_domain::ProjectSource::Git {
+            url: codeskimr_domain::GitUrl::new("https://example.org/demo.git").unwrap(),
+            branch: codeskimr_domain::BranchName::new("main").unwrap(),
+            credential: None,
+        };
+        store
+            .save_project(&codeskimr_domain::Project {
+                id: codeskimr_domain::ProjectId::new(id),
+                name: codeskimr_domain::ProjectName::new("remote").unwrap(),
+                source,
+                layers: Vec::new(),
+            })
+            .unwrap();
+    }
+
     /// Registers and scans the demo project and returns its id.
     pub(crate) fn scanned(&self) -> u64 {
         let added = self
