@@ -1,0 +1,22 @@
+# 0108 – Module graph with cycles, coupling and stability
+
+Status: accepted (the scope was decided by the product owner for version 1.2, "Modulgraph mit Kennzahlen" (A2) of `entscheidungen/erweiterungen-nach-1-0.md`; the mock `erw-module` was approved on 2026-11-26). The steps below are built one pull request each; this record is written with the first.
+
+## Context
+
+The dependency map knows layers, namespaces around one namespace in the middle, and types around one type. It marks the layer edges that lie on a cycle, and the statistics screen ranks symbols by coupling (ADR 0037). Missing is the view per module: which modules form a ring, which edge to remove to end it, and how stable each module is. The rule "no cycles between modules" of the thread "Rules page and new kinds of rules" needs the same detection, so it is built once in the core.
+
+## Decision
+
+1. **Module.** A module is a node of the `NamespaceGraph` (a namespace, a Rust module, a package), at the depth the graph is collapsed to (`NamespaceGraph::collapsed`, depth 0 keeps every namespace). The graph of a snapshot comes from `CodeIndex::namespace_graph`. Its edges carry the number of references; references inside one module and from or to a symbol that sits in no module are not counted (as before).
+2. **Cycles (step 1).** `codeskimr_domain::find_cycles` returns the rings: strongly connected groups of more than one module (Tarjan, without recursion, so a ring of 50,000 modules does not overflow the stack). A ring lists its modules (positions in the graph, ascending), all its edges, and a **resolution**: the edges to remove so that no ring is left. The resolution takes again and again the edge with the fewest references among those that still lie on a ring (ties by position). For two modules that use each other this is the weaker edge, as the mock shows; for larger rings it may be several edges. It is a suggestion by the number of places to change, not a statement about which direction is right.
+3. **Coupling and stability (step 1).** `module_coupling` counts references: `incoming` is the number of places in other modules that use the module, `outgoing` the number of places in it that use other modules. Stability, in the concept's wording, is `outgoing / (incoming + outgoing)` (this is the *instability* of ADR 0015, where it is counted in distinct units; here it counts references, because the mock and the question "how many places do I have to change" ask for it). It is given in thousandths (`PERMILLE`) and does not exist for a module without a dependency in either direction. 0 means many depend on the module and it depends on little, 1 the opposite. The numbers differ on purpose from the units counted by ADR 0037; the screen names its unit ("places") so the two are not mixed up.
+4. **Risk (step 1).** `find_risks` reports a module that at least `risk_min_incoming` places use and that depends on a module whose instability is at least `risk_instability_gap` thousandths higher than its own; the least stable such module is named. The most used risky modules come first, at most `risk_max`. The three values live in `[graph]` of `config/default.toml` (step 2).
+5. **Doors (steps 2 to 4).** The command `graph.modules` (rows with incoming, outgoing, stability, number of types, layer and whether the module is in a ring; the rings with resolution and the places of the edges; the risks) and the level `modules` of `graph.layers` (the picture: one box per module in the row of its layer, the edge counts, rings and layer violations marked) feed the tab "Modules" of the graph screen; the MCP tool `get_dependencies` gets the level `module` and answers with the same rings and numbers; the CLI follows with `--json`. All read the functions of step 1, so the doors cannot drift apart. The rule "no cycles between modules" of the rules page calls `find_cycles` and does not detect on its own.
+6. **Not decided here.** Weighing the rows by the size of a module, and a limit for the stability as a rule of `codeskimr check`.
+
+## Consequences
+
+- The Rust core gets one place for cycles between modules; the layer-level detection of the storage adapter stays as it is (it works on layer positions and feeds the layer edges).
+- Detection and coupling are linear in the edges; the resolution recomputes the rings of one ring only, so its cost grows with the size of the ring, not of the project.
+- The coupling of the tab differs from the ranking "Coupling" of the statistics screen; the texts say places there and units here.
