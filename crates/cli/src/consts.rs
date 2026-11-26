@@ -265,6 +265,14 @@ pub mod arg {
     pub const PLACES: &str = "places";
     /// `{ $rule }`: the id of a rule.
     pub const RULE: &str = "rule";
+    /// `{ $chain }`: the way round a ring of modules.
+    pub const CHAIN: &str = "chain";
+    /// `{ $modules }`: how many modules a ring has.
+    pub const MODULES: &str = "modules";
+    /// `{ $weakest }`: how many references the weakest edge of a ring has.
+    pub const WEAKEST: &str = "weakest";
+    /// `{ $edges }`: over how many edges a ring is resolved.
+    pub const EDGES: &str = "edges";
     /// `{ $to }`: the symbol a violation must not reach; `{ $from }` is the one that refers.
     pub const TO: &str = "to";
     /// `{ $from }`: the symbol that refers.
@@ -503,6 +511,16 @@ pub mod key {
     pub const VIOLATIONS: &str = "violations";
     /// The places of a violation.
     pub const PLACES: &str = "places";
+    /// The ring of modules behind a cycle violation.
+    pub const RING: &str = "ring";
+    /// Every module of a ring.
+    pub const MODULES: &str = "modules";
+    /// A way round a ring.
+    pub const CHAIN: &str = "chain";
+    /// How many references the weakest edge of a ring has.
+    pub const WEAKEST_COUNT: &str = "weakest_count";
+    /// Over how many edges a ring is resolved.
+    pub const RESOLUTION_EDGES: &str = "resolution_edges";
     /// Whether a violation is an old burden, or how many there are.
     pub const OLD: &str = "old";
     /// How many violations are new.
@@ -597,6 +615,8 @@ pub const JSON_NULL_TEXT: &str = "null";
 pub const CONTROL_REPLACEMENT: char = ' ';
 /// Puts the entries of a list below its heading.
 pub const LIST_INDENT: &str = "  ";
+/// Joins the modules of the way round a ring in a line of the terminal.
+pub const CHAIN_JOIN: &str = " -> ";
 /// Separates the title of an annotation from its text.
 pub const TITLE_SEPARATOR: &str = " ";
 

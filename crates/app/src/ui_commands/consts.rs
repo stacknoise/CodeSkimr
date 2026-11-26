@@ -337,6 +337,8 @@ pub const LAYERS_GET: &str = "layers.get";
 pub const LAYERS_GET_TITLE: &str = i18n::COMMAND_LAYERS_GET_TITLE;
 /// Description key of `layers.get`.
 pub const LAYERS_GET_DESCRIPTION: &str = i18n::COMMAND_LAYERS_GET_DESCRIPTION;
+/// Kind of a rule in the answer of `rules.show`: no cycles between modules.
+pub const CYCLES: &str = "cycles";
 /// Kind of a rule in the answer of `rules.show`: modules that must not use each other.
 pub const FORBID: &str = "forbid";
 /// Kind of a rule in the answer of `rules.show`: the inside of a module is closed.

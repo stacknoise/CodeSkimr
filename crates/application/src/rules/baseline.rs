@@ -47,10 +47,13 @@ impl Baseline {
         let entries: BTreeSet<BaselineEntry> = outcomes
             .iter()
             .flat_map(|outcome| {
-                outcome.violations.iter().map(|violation| BaselineEntry {
-                    rule: outcome.id.clone(),
-                    from: violation.from.to_string(),
-                    to: violation.to.to_string(),
+                outcome.violations.iter().map(|violation| {
+                    let (from, to) = violation.identity();
+                    BaselineEntry {
+                        rule: outcome.id.clone(),
+                        from,
+                        to,
+                    }
                 })
             })
             .collect();
@@ -84,10 +87,11 @@ impl Baseline {
         let mut seen: BTreeSet<BaselineEntry> = BTreeSet::new();
         for outcome in &mut outcomes {
             for violation in &mut outcome.violations {
+                let (from, to) = violation.identity();
                 let entry = BaselineEntry {
                     rule: outcome.id.clone(),
-                    from: violation.from.to_string(),
-                    to: violation.to.to_string(),
+                    from,
+                    to,
                 };
                 violation.old = held.contains(&entry);
                 seen.insert(entry);

@@ -231,6 +231,19 @@ cli-query-rules-line = { $from } -> { $to }  { $path }:{ $line }:{ $column }  ({
         [one] 1 place
        *[other] { $places } places
     })
+cli-query-rules-cycle-line = { $chain }  ({ $modules } modules, weakest edge { $weakest ->
+        [one] 1 reference
+       *[other] { $weakest } references
+    } at { $places ->
+        [one] 1 place
+       *[other] { $places } places
+    }; resolved over { $edges ->
+        [one] 1 edge
+       *[other] { $edges } edges
+    }, { $held ->
+        [true] held
+       *[other] NEW
+    })
 cli-arg-query-text = Part of the symbol name; the characters must appear in this order
 cli-arg-query-symbol = Id or qualified name of the symbol
 cli-arg-query-project = Id of the project, or the folder or Git URL it was scanned from (default: the current folder)

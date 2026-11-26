@@ -37,4 +37,13 @@ rules-places = { $count ->
 rules-more = … { $count } weitere
 rules-show-all = Alle zeigen
 rules-show-less = Weniger zeigen
-rules-cycles-pending = Zyklen zwischen Modulen sind in der Projektdatei eingeschaltet. Die Prüfung folgt in einer späteren Version.
+rules-cycles-title = Keine Zyklen zwischen Modulen
+rules-cycles-spec = cycles = "deny"
+rules-ring-advice = Auflösbar über { $edges ->
+    [one] 1 Kante
+   *[other] { $edges } Kanten
+} mit { $places ->
+    [one] 1 Stelle
+   *[other] { $places } Stellen
+}
+rules-ring-show = Im Graphen zeigen
