@@ -127,6 +127,18 @@ impl Fixture {
         added["project"].as_u64().unwrap()
     }
 
+    /// Registers the folder of the fixture as project `id` without scanning it.
+    pub(crate) fn registered(&self, id: u64) {
+        let store = SqliteStore::open(&self.locations.database(), NonZeroU32::MIN).unwrap();
+        let project = Project {
+            id: ProjectId::new(id),
+            name: ProjectName::new("app").unwrap(),
+            source: ProjectSource::Folder(FolderPath::new(self.folder()).unwrap()),
+            layers: Vec::new(),
+        };
+        store.save_project(&project).unwrap();
+    }
+
     pub(crate) fn folder(&self) -> String {
         self.root.path().join("app").to_string_lossy().into_owned()
     }

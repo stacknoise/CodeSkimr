@@ -2,10 +2,6 @@
 
 use std::fs;
 
-use std::num::NonZeroU32;
-
-use codeskimr_domain::{FolderPath, Project, ProjectId, ProjectName, ProjectSource};
-use codeskimr_storage::SqliteStore;
 use serde_json::{Value, json};
 
 use super::stats_tests::project;
@@ -103,14 +99,7 @@ fn a_project_without_a_scan_is_not_judged_but_says_whether_cycles_are_denied() {
     let fixture = Fixture::installed(None);
     let app = fixture.root.path().join("app");
     fs::write(app.join(".codeskimr.toml"), "[rules]\ncycles = \"deny\"\n").unwrap();
-    let store = SqliteStore::open(&fixture.locations.database(), NonZeroU32::MIN).unwrap();
-    let project = Project {
-        id: ProjectId::new(7),
-        name: ProjectName::new("fresh").unwrap(),
-        source: ProjectSource::Folder(FolderPath::new(fixture.folder()).unwrap()),
-        layers: Vec::new(),
-    };
-    store.save_project(&project).unwrap();
+    fixture.registered(7);
     let answer = show(&fixture, 7);
     assert_eq!(answer["scanned"], false);
     assert_eq!(answer["cycles"], true);
