@@ -6,7 +6,7 @@ mod common;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Permission, PermissionSet, Principal};
 use codeskimr_mcp::UnusedArgs;
-use common::tools;
+use common::{BROKEN_LIST, tools};
 
 #[cfg(test)]
 fn owner() -> Principal {
@@ -103,4 +103,14 @@ fn an_unknown_label_is_an_invalid_argument_and_a_caller_without_read_is_refused(
     assert_eq!(error.code(), ErrorCode::PermissionDenied);
     let reader = Principal::limited(PermissionSet::none().with(Permission::Read));
     assert!(tools().find_unused(&reader, &args()).is_ok());
+}
+
+#[test]
+fn a_broken_exception_list_fails_the_tool_with_its_code() {
+    let asked = UnusedArgs {
+        language: Some(BROKEN_LIST.to_owned()),
+        ..args()
+    };
+    let error = tools().find_unused(&owner(), &asked).unwrap_err();
+    assert_eq!(error.code(), ErrorCode::ConfigInvalidValue);
 }

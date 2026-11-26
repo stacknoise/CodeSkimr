@@ -214,17 +214,21 @@ fn unused(json: bool) -> QueryAction {
     })
 }
 
+fn unused_names(answer: &Value) -> Vec<&str> {
+    answer["unused"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| row["qualified_name"].as_str().unwrap())
+        .collect()
+}
+
 #[test]
 fn unused_lists_what_nobody_calls_with_the_reason_and_leaves_out_what_is_called() {
     let world = World::new();
     let answer = world.json(&unused(true));
     assert_eq!(answer["schema"], 1);
-    let names: Vec<&str> = answer["unused"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|row| row["qualified_name"].as_str().unwrap())
-        .collect();
+    let names = unused_names(&answer);
     assert!(names.contains(&"Demo.Caller.Run"), "{names:?}");
     assert!(!names.contains(&SYMBOL), "{names:?}");
     assert!(answer["unused"][0]["reason"].is_string());
@@ -239,12 +243,7 @@ fn an_entry_of_the_exception_list_moves_the_symbol_to_left_out_with_its_reason()
     let list = "[[unused.ignore]]\nsymbols = [\"*.Run\"]\nreason = \"called by the host\"\n";
     fs::write(world.folder.join(".codeskimr.toml"), list).unwrap();
     let answer = world.json(&unused(true));
-    let names: Vec<&str> = answer["unused"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|row| row["qualified_name"].as_str().unwrap())
-        .collect();
+    let names = unused_names(&answer);
     assert!(!names.contains(&"Demo.Caller.Run"), "{names:?}");
     assert_eq!(answer["left_out"][0]["qualified_name"], "Demo.Caller.Run");
     assert_eq!(

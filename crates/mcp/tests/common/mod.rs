@@ -861,6 +861,9 @@ pub fn key_sources() -> KeySources {
 /// takes out, and one test symbol that is only there when the question asks for test code.
 pub struct FakeUnused;
 
+/// The language whose question the fake answers with the failure of a broken exception list.
+pub const BROKEN_LIST: &str = "brokenlist";
+
 fn finding(id: u64, name: &str, assessment: Assessment, test: bool) -> Finding {
     Finding {
         id: SymbolId::new(id),
@@ -886,6 +889,14 @@ impl UnusedSymbols for FakeUnused {
         _: SnapshotId,
         query: &RankingQuery,
     ) -> Result<Findings, CodedError> {
+        // A question about this language stands for a project whose exception list is invalid.
+        if query
+            .language
+            .as_ref()
+            .is_some_and(|id| id.as_str() == BROKEN_LIST)
+        {
+            return Err(CodedError::new(ErrorCode::ConfigInvalidValue));
+        }
         let mut kept = vec![
             finding(1, "Orphan", Assessment::Likely, false),
             finding(2, "Spare", Assessment::Public, false),

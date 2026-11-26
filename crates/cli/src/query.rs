@@ -49,6 +49,13 @@ fn limit(say: Say<'_>) -> Result<Arg, CliError> {
         .help(say(CLI_ARG_LIMIT)?))
 }
 
+fn include_tests(say: Say<'_>) -> Result<Arg, CliError> {
+    Ok(Arg::new(ARG_INCLUDE_TESTS)
+        .long(ARG_INCLUDE_TESTS)
+        .action(ArgAction::SetTrue)
+        .help(say(CLI_ARG_INCLUDE_TESTS)?))
+}
+
 fn symbol(say: Say<'_>) -> Result<Arg, CliError> {
     Ok(Arg::new(ARG_QUERY_SYMBOL)
         .value_name(VALUE_QUERY_SYMBOL)
@@ -93,12 +100,7 @@ fn usages_command(say: Say<'_>) -> Result<Command, CliError> {
                 .value_parser(clap::value_parser!(u32))
                 .help(say(CLI_ARG_DEPTH)?),
         )
-        .arg(
-            Arg::new(ARG_INCLUDE_TESTS)
-                .long(ARG_INCLUDE_TESTS)
-                .action(ArgAction::SetTrue)
-                .help(say(CLI_ARG_INCLUDE_TESTS)?),
-        )
+        .arg(include_tests(say)?)
         .arg(limit(say)?);
     project_and_json(command, say)
 }
@@ -148,12 +150,7 @@ fn unused_command(say: Say<'_>) -> Result<Command, CliError> {
                 .value_parser(ASSESSMENTS)
                 .help(say(CLI_ARG_ASSESSMENT)?),
         )
-        .arg(
-            Arg::new(ARG_INCLUDE_TESTS)
-                .long(ARG_INCLUDE_TESTS)
-                .action(ArgAction::SetTrue)
-                .help(say(CLI_ARG_INCLUDE_TESTS)?),
-        )
+        .arg(include_tests(say)?)
         .arg(limit(say)?);
     project_and_json(command, say)
 }

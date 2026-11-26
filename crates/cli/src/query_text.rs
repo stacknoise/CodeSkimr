@@ -130,16 +130,27 @@ fn entries<'a>(value: &'a Value, name: &str) -> &'a [Value] {
 
 /// A line about a symbol: kind, name, file, id and the step a walk reached it in.
 fn named_line(speak: &Speaker<'_>, message: &str, found: &Value) -> Result<String, I18nError> {
-    speak.say(
-        message,
-        &[
-            (arg::KIND, text(field(found, key::KIND))),
-            (arg::NAME, text(field(found, key::QUALIFIED_NAME))),
-            (arg::PATH, text(field(found, key::PATH))),
-            (arg::ID, count(found, key::ID)),
-            (arg::DEPTH, count(found, key::DEPTH)),
-        ],
-    )
+    let more = [
+        (arg::ID, count(found, key::ID)),
+        (arg::DEPTH, count(found, key::DEPTH)),
+    ];
+    identified_line(speak, message, found, more)
+}
+
+/// A line that starts with what names a symbol (kind, qualified name, file) and adds `more`.
+fn identified_line<const N: usize>(
+    speak: &Speaker<'_>,
+    message: &str,
+    found: &Value,
+    more: [(&'static str, FluentValue<'static>); N],
+) -> Result<String, I18nError> {
+    let mut named = vec![
+        (arg::KIND, text(field(found, key::KIND))),
+        (arg::NAME, text(field(found, key::QUALIFIED_NAME))),
+        (arg::PATH, text(field(found, key::PATH))),
+    ];
+    named.extend(more);
+    speak.say(message, &named)
 }
 
 fn symbol_line(speak: &Speaker<'_>, hit: &Value) -> Result<String, I18nError> {
@@ -196,28 +207,20 @@ fn note_line(speak: &Speaker<'_>, note: &Value) -> Result<String, I18nError> {
 }
 
 fn unused_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
-    speak.say(
-        CLI_QUERY_UNUSED_LINE,
-        &[
-            (arg::KIND, text(field(found, key::KIND))),
-            (arg::NAME, text(field(found, key::QUALIFIED_NAME))),
-            (arg::PATH, text(field(found, key::PATH))),
-            (arg::ASSESSMENT, text(field(found, key::ASSESSMENT))),
-            (arg::REASON, text(field(found, key::REASON))),
-        ],
-    )
+    let more = [
+        (arg::ASSESSMENT, text(field(found, key::ASSESSMENT))),
+        (arg::REASON, text(field(found, key::REASON))),
+    ];
+    identified_line(speak, CLI_QUERY_UNUSED_LINE, found, more)
 }
 
 fn left_out_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
     let reason = field(&child(found, key::RULE), key::REASON);
-    speak.say(
+    identified_line(
+        speak,
         CLI_QUERY_UNUSED_LEFT_OUT_LINE,
-        &[
-            (arg::KIND, text(field(found, key::KIND))),
-            (arg::NAME, text(field(found, key::QUALIFIED_NAME))),
-            (arg::PATH, text(field(found, key::PATH))),
-            (arg::TEXT, text(reason)),
-        ],
+        found,
+        [(arg::TEXT, text(reason))],
     )
 }
 
