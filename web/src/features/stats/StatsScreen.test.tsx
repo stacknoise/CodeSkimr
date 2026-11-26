@@ -330,6 +330,23 @@ describe("StatsScreen: rankings", () => {
     expect(screen.getByText("Rule: “called by the migration tool”")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Show rule" }));
     expect(screen.getByText("*.Migrate")).toBeInTheDocument();
+    expect(screen.getByText(/^1 symbol does not appear in the number above/)).toBeInTheDocument();
+  });
+
+  it("counts all the symbols the list leaves out, not only the ones it shows", async () => {
+    const rule = { symbols: ["*.Migrate"], reason: "called by the migration tool" };
+    served({
+      ...RANKING,
+      rows: [row(2, "orphan")],
+      total: 1,
+      unused: { ...UNUSED, left_out: 5 },
+      left_out: [{ row: row(1, "Cart"), rule }],
+    });
+    await showRanking("No usage found");
+    expect(
+      await screen.findByText(/^5 symbols do not appear in the number above/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("1 of 5")).toBeInTheDocument();
   });
 
   it("draws the histogram and the hotspots in the complexity tab", async () => {

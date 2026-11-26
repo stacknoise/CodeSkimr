@@ -402,7 +402,7 @@ impl StatsPorts {
     /// The exception list of the project (ADR 0101); empty if it has none.
     fn rules(&self, project: u64) -> Result<Vec<UnusedIgnore>, CodedError> {
         let project = self.projects.project(ProjectId::new(project))?;
-        Ok(unused::rules_of(&project))
+        unused::rules_of(&project)
     }
 
     /// The symbols without usages of the snapshot, split by the exception list.
@@ -604,29 +604,28 @@ impl StatsOverview {
         }
     }
 
-    /// Counts the symbols without usages again, without the ones the exception list covers
-    /// (ADR 0101); nothing changes for a project without entries.
-    fn apply_rules(
+    /// The symbols without usages of the overview: the counts and the first rows. A project
+    /// with entries in the exception list (ADR 0101) is judged once from the facts of its
+    /// snapshot, the others from the stored numbers.
+    fn unused_out(
         &self,
-        out: &mut OverviewOut,
         snapshot: &Snapshot,
         all: &RankingQuery,
         project: u64,
-    ) -> Result<(), CodedError> {
-        let rules = self.ports.rules(project)?;
-        if rules.is_empty() {
-            return Ok(());
-        }
-        let judged = self.ports.judged(snapshot, all, &rules)?;
+    ) -> Result<(UnusedOut, Vec<RowOut>), CodedError> {
+        let ports = &self.ports;
         let top = usize::try_from(STATS_TOP).unwrap_or(usize::MAX);
-        out.unused = self.ports.counts_of(&judged);
-        out.top.unused = judged
-            .kept
-            .iter()
-            .take(top)
-            .map(|fact| self.ports.row(fact))
-            .collect();
-        Ok(())
+        let rules = ports.rules(project)?;
+        if rules.is_empty() {
+            let counts = ports
+                .statistics
+                .unused_counts(snapshot.id, all, ports.setup())?;
+            let found = ports.ranked(snapshot, all, None, top)?;
+            return Ok((unused_out(counts), ports.rows(&found.rows)));
+        }
+        let judged = ports.judged(snapshot, all, &rules)?;
+        let rows = judged.kept.iter().take(top).map(|fact| ports.row(fact));
+        Ok((ports.counts_of(&judged), rows.collect()))
     }
 
     fn top_out(&self, snapshot: &Snapshot, tests: bool) -> Result<TopOut, CodedError> {
@@ -638,7 +637,7 @@ impl StatsOverview {
         };
         Ok(TopOut {
             most_used: first(Ranking::MostUsed, KindGroup::Types)?,
-            unused: first(Ranking::Unused, KindGroup::All)?,
+            unused: Vec::new(),
             complexity: first(Ranking::Complexity, KindGroup::Functions)?,
             coupling: first(Ranking::Coupling, KindGroup::Types)?,
         })
@@ -677,9 +676,7 @@ impl Command for StatsOverview {
         };
         let ports = &self.ports;
         let all = query(Ranking::Unused, KindGroup::All, tests);
-        let unused = ports
-            .statistics
-            .unused_counts(snapshot.id, &all, ports.setup())?;
+        let (unused, unused_top) = self.unused_out(&snapshot, &all, request.input.project)?;
         let sums = ports
             .statistics
             .summary(snapshot.id, tests, ports.setup())?;
@@ -692,11 +689,11 @@ impl Command for StatsOverview {
                 certain: sums.certain_references,
                 probable: sums.probable_references,
             },
-            unused: unused_out(unused),
+            unused,
             complexity: self.complexity_out(sums.histogram),
             top: self.top_out(&snapshot, tests)?,
         };
-        self.apply_rules(&mut out, &snapshot, &all, request.input.project)?;
+        out.top.unused = unused_top;
         Ok(out)
     }
 }

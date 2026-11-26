@@ -206,7 +206,10 @@ function RankingView(props: { ranking: RankingName; answer: RankingAnswer; proje
         />
       </div>
       <Show when={props.ranking === TAB.unused && props.answer.left_out.length > 0}>
-        <LeftOutList items={props.answer.left_out} />
+        <LeftOutList
+          items={props.answer.left_out}
+          total={props.answer.unused?.left_out ?? props.answer.left_out.length}
+        />
       </Show>
     </>
   );

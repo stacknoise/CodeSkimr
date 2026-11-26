@@ -10,25 +10,30 @@ use std::path::Path;
 use codeskimr_application::config::{
     Config, ConfigLayer, LayerSource, PROJECT_CONFIG_FILE, UnusedIgnore,
 };
+use codeskimr_application::error::CodedError;
 use codeskimr_domain::{
     Assessment, Project, ProjectSource, RankingQuery, SymbolFacts, mark_tests, rank,
 };
 
 use super::layers::read_project_file;
 
-/// The exception list of a folder project; empty for a Git project, without a project file, or
-/// when the file cannot be read (the scan reports that, not the statistics).
-pub(super) fn rules_of(project: &Project) -> Vec<UnusedIgnore> {
+/// The exception list of a folder project; empty for a Git project or without a project file.
+///
+/// # Errors
+/// - `CFG-102` if the project file cannot be read or is not TOML.
+/// - `CFG-101` / `CFG-103` if it holds an invalid value, for example an entry without a reason.
+///
+/// The statistics fail with the code of the scan instead of showing every symbol again as if the
+/// list were empty.
+pub(super) fn rules_of(project: &Project) -> Result<Vec<UnusedIgnore>, CodedError> {
     let ProjectSource::Folder(folder) = &project.source else {
-        return Vec::new();
+        return Ok(Vec::new());
     };
     let path = Path::new(folder.as_str()).join(PROJECT_CONFIG_FILE);
-    read_project_file(&path)
-        .ok()
-        .and_then(|text| ConfigLayer::parse(LayerSource::Project, &text).ok())
-        .and_then(|layer| Config::resolve(&[layer]).ok())
-        .map(|config| config.unused.ignore)
-        .unwrap_or_default()
+    let text = read_project_file(&path)?;
+    let layer = ConfigLayer::parse(LayerSource::Project, &text).map_err(CodedError::caused_by)?;
+    let config = Config::resolve(&[layer]).map_err(CodedError::caused_by)?;
+    Ok(config.unused.ignore)
 }
 
 /// The symbols without a usage, split by the exception list.
@@ -67,12 +72,16 @@ pub(super) fn judge(
     test_names: &[String],
 ) -> Judged {
     mark_tests(&mut facts, test_names);
+    // One ranking with test code; the ranking without it is the same rows minus the test ones.
     let all = RankingQuery {
         include_tests: true,
         ..query.clone()
     };
-    let with_tests = rank(&facts, &all, usize::MAX).total;
-    let mut ranked: Vec<&SymbolFacts> = rank(&facts, query, usize::MAX).rows;
+    let mut ranked: Vec<&SymbolFacts> = rank(&facts, &all, usize::MAX).rows;
+    let with_tests = ranked.len();
+    if !query.include_tests {
+        ranked.retain(|fact| !fact.test);
+    }
     let tests_hidden = with_tests.saturating_sub(ranked.len());
     let assess = |fact: &SymbolFacts| {
         let language = approximate

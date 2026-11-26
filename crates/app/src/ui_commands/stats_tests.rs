@@ -230,3 +230,71 @@ fn an_entry_of_the_exception_list_takes_the_symbols_out_of_the_ranking_and_the_c
         .unwrap();
     assert_eq!(overview["unused"]["left_out"], 1);
 }
+
+#[test]
+fn the_overview_drops_a_symbol_of_the_exception_list_from_its_cards_and_first_rows() {
+    let fixture = Fixture::installed(None);
+    let id = project(&fixture);
+    let plain = fixture
+        .call("stats.overview", json!({ "project": id }))
+        .unwrap();
+    let list = "[[unused.ignore]]\nsymbols = [\"*.Hidden\"]\nreason = \"called by reflection\"\n";
+    fs::write(fixture.root.path().join("app/.codeskimr.toml"), list).unwrap();
+    let overview = fixture
+        .call("stats.overview", json!({ "project": id }))
+        .unwrap();
+    // The cards and the first rows of the overview drop the symbol as well.
+    let sum = |value: &Value| {
+        ["likely", "public", "approximate"]
+            .iter()
+            .map(|key| value["unused"][key].as_u64().unwrap())
+            .sum::<u64>()
+    };
+    assert_eq!(sum(&overview), sum(&plain) - 1);
+    let listed = |value: &Value| {
+        value["top"]["unused"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|row| row["name"] == "Hidden")
+    };
+    assert!(listed(&plain));
+    assert!(!listed(&overview));
+}
+
+#[test]
+fn the_first_entry_that_covers_a_symbol_names_it_and_both_lists_of_an_entry_must_match() {
+    let fixture = Fixture::installed(None);
+    let id = project(&fixture);
+    let list = "[[unused.ignore]]\npaths = [\"tests/*\"]\nsymbols = [\"*.Hidden\"]\nreason = \"first\"\n\n[[unused.ignore]]\nsymbols = [\"*.Hidden\"]\nreason = \"second\"\n\n[[unused.ignore]]\nsymbols = [\"*.Hidden\"]\nreason = \"third\"\n";
+    fs::write(fixture.root.path().join("app/.codeskimr.toml"), list).unwrap();
+    let answer = ranking(
+        &fixture,
+        id,
+        &json!({ "ranking": "unused", "kinds": "functions" }),
+    );
+    // `Hidden` is not under tests/, so the first entry does not match, the second does.
+    assert_eq!(answer["left_out"][0]["rule"]["reason"], "second");
+    assert_eq!(answer["unused"]["left_out"], 1);
+}
+
+#[test]
+fn a_broken_exception_list_fails_with_the_code_of_the_scan_and_hides_nothing() {
+    let fixture = Fixture::installed(None);
+    let id = project(&fixture);
+    let file = fixture.root.path().join("app/.codeskimr.toml");
+    // An entry needs a reason (CFG-101), a file that is no TOML is CFG-102.
+    for (text, code) in [
+        ("[[unused.ignore]]\nsymbols = [\"*.Hidden\"]\n", "CFG-101"),
+        ("[[unused.ignore]\n", "CFG-102"),
+    ] {
+        fs::write(&file, text).unwrap();
+        let input = json!({ "project": id, "ranking": "unused", "kinds": "functions" });
+        assert_eq!(fixture.call("stats.ranking", input), Err(code), "{text}");
+        assert_eq!(
+            fixture.call("stats.overview", json!({ "project": id })),
+            Err(code),
+            "{text}"
+        );
+    }
+}

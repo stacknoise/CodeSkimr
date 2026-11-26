@@ -52,12 +52,17 @@ function Line(props: { item: LeftOut }) {
 }
 
 /** The symbols the exception list of the project leaves out of the ranking, with the entry that
- * does (ADR 0101). */
-export function LeftOutList(props: { items: LeftOut[] }) {
+ * does (ADR 0101); `total` counts all of them, `items` holds the first ones. */
+export function LeftOutList(props: { items: LeftOut[]; total: number }) {
   return (
     <section class={styles.section} aria-label={t(I18N_KEYS.STATS_LEFT_OUT_TITLE)}>
       <h3>{t(I18N_KEYS.STATS_LEFT_OUT_TITLE)}</h3>
-      <p class={styles.note}>{t(I18N_KEYS.STATS_LEFT_OUT_NOTE, { count: props.items.length })}</p>
+      <p class={styles.note}>{t(I18N_KEYS.STATS_LEFT_OUT_NOTE, { count: props.total })}</p>
+      <Show when={props.total > props.items.length}>
+        <p class={styles.note}>
+          {t(I18N_KEYS.STATS_ROWS_SHOWN, { shown: props.items.length, total: props.total })}
+        </p>
+      </Show>
       <ul class={styles.list}>
         <For each={props.items}>{(item) => <Line item={item} />}</For>
       </ul>

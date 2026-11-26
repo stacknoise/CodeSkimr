@@ -100,7 +100,10 @@ stats-open-usages = Show usages
 stats-select-hint = Select a row to see its details.
 stats-visibility-none = –
 stats-left-out-title = Left out
-stats-left-out-note = { $count } do not appear in the number above: the project file .codeskimr.toml leaves them out.
+stats-left-out-note = { $count ->
+    [one] 1 symbol does not appear in the number above: the project file .codeskimr.toml leaves it out.
+   *[other] { $count } symbols do not appear in the number above: the project file .codeskimr.toml leaves them out.
+}
 stats-left-out-pill = left out
 stats-left-out-rule = Rule: “{ $reason }”
 stats-left-out-show = Show rule
