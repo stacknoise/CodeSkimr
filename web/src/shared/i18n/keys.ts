@@ -972,7 +972,6 @@ export const I18N_KEYS = {
   NAV_SETTINGS: "nav-settings",
   NAV_NEEDS_PROJECT: "nav-needs-project",
   SETTINGS_TITLE: "settings-title",
-  SETTINGS_SUBTITLE: "settings-subtitle",
   SETTINGS_VERSION: "settings-version",
   SETTINGS_TABS_LABEL: "settings-tabs-label",
   SETTINGS_TAB_APPEARANCE: "settings-tab-appearance",

@@ -6,7 +6,6 @@ nav-explorer = Explorer
 nav-settings = Einstellungen
 nav-needs-project = { $name }: zuerst ein Projekt öffnen
 settings-title = Einstellungen
-settings-subtitle = Darstellung und Sprache
 settings-version = CodeSkimr-Version { $version }
 settings-tabs-label = Rubriken der Einstellungen
 settings-tab-appearance = Darstellung

@@ -96,6 +96,14 @@ describe("the tabs of the settings screen", () => {
     );
   });
 
+  it("clears the search text when another tab is chosen", () => {
+    serve({ "settings.effective": () => answer({ user_file: null, overrides: [], settings: [] }) });
+    render(() => <SettingsScreen />);
+    fireEvent.input(screen.getByLabelText("Search a setting …"), { target: { value: "port" } });
+    fireEvent.click(screen.getByRole("tab", { name: "Appearance" }));
+    expect(screen.getByLabelText("Search a setting …")).toHaveValue("");
+  });
+
   it("keeps the configuration file and the error codes on the tab Info", async () => {
     serve({ "settings.effective": () => answer({ user_file: null, overrides: [], settings: [] }) });
     render(() => <SettingsScreen />);

@@ -209,7 +209,6 @@ export function SettingsScreen() {
     <>
       <header>
         <h1>{t(I18N_KEYS.SETTINGS_TITLE)}</h1>
-        <p class={styles.sub}>{t(I18N_KEYS.SETTINGS_SUBTITLE)}</p>
         <Show when={statusInfo()?.version}>
           {(version) => (
             <p class={styles.sub}>{t(I18N_KEYS.SETTINGS_VERSION, { version: version() })}</p>

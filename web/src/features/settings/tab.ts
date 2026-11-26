@@ -7,8 +7,12 @@ const [tab, setTab] = createSignal<SettingsTab>(SETTINGS_TAB.appearance);
 /** The tab of the settings screen that is shown. */
 export const settingsTab = tab;
 
-/** Changes the tab that is shown. */
+/** Changes the tab that is shown; the text of the search belongs to the effective settings, so
+ * it is cleared when another tab is chosen. */
 export function showSettingsTab(next: SettingsTab): void {
+  if (next !== SETTINGS_TAB.effective) {
+    setEffectiveSearch("");
+  }
   setTab(next);
 }
 
