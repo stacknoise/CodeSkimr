@@ -1,6 +1,11 @@
 //! "Keep on purpose" and "Lift" through the path the server takes (ADR 0101).
 
 use std::fs;
+use std::num::NonZeroU32;
+
+use codeskimr_codes::ErrorCode;
+use codeskimr_domain::{BranchName, GitUrl, Project, ProjectId, ProjectName, ProjectSource};
+use codeskimr_storage::SqliteStore;
 
 use serde_json::{Value, json};
 
@@ -93,4 +98,23 @@ fn a_file_that_is_not_toml_is_not_touched() {
     fs::write(&path, "[broken").unwrap();
     assert_eq!(fixture.call("unused.keep", keep(id, "A.B")), Err("CFG-102"));
     assert_eq!(fs::read_to_string(path).unwrap(), "[broken");
+}
+
+#[test]
+fn a_git_project_has_no_project_file_to_write() {
+    let fixture = Fixture::installed(None);
+    let store = SqliteStore::open(&fixture.locations.database(), NonZeroU32::MIN).unwrap();
+    let project = Project {
+        id: ProjectId::new(7),
+        name: ProjectName::new("remote").unwrap(),
+        source: ProjectSource::Git {
+            url: GitUrl::new("https://example.org/demo.git").unwrap(),
+            branch: BranchName::new("main").unwrap(),
+            credential: None,
+        },
+        layers: Vec::new(),
+    };
+    store.save_project(&project).unwrap();
+    let kept = fixture.call("unused.keep", keep(7, "Demo.Shop.Hidden"));
+    assert_eq!(kept, Err(ErrorCode::ProjectSourceInvalid.id()));
 }

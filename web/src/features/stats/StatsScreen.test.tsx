@@ -83,10 +83,10 @@ function served(
   more: Record<string, () => Response> = {},
 ) {
   serve({
-    ...more,
     "projects.list": () => answer([PROJECT_ROW]),
     "stats.overview": () => answer(overview),
     "stats.ranking": () => answer(ranking),
+    ...more,
   });
 }
 
@@ -351,6 +351,18 @@ describe("StatsScreen: rankings", () => {
     await waitFor(() => expect(inputs("stats.ranking").length).toBeGreaterThan(1));
   });
 
+  it("disables the keep button with a hint for a project that is not a folder", async () => {
+    const orphan = unusedRow(2, "orphan");
+    const ranked = { ...RANKING, rows: [orphan], total: 1, unused: UNUSED };
+    served(ranked, OVERVIEW, {
+      "projects.list": () => answer([{ ...PROJECT_ROW, kind: "git" }]),
+    });
+    const table = await showRanking("No usage found");
+    const button = within(table).getByRole("button", { name: "Keep orphan on purpose" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("title", expect.stringContaining("no project file"));
+  });
+
   it("says why an exception could not be written", async () => {
     const orphan = unusedRow(2, "orphan");
     const ranked = { ...RANKING, rows: [orphan], total: 1, unused: UNUSED };
@@ -374,7 +386,9 @@ describe("StatsScreen: rankings", () => {
     };
     served(ranked, OVERVIEW, { "unused.lift": () => answer({ entries: 0 }) });
     await showRanking("No usage found");
-    fireEvent.click(await screen.findByRole("button", { name: "Lift the exception for Migrate" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Lift the rule that leaves out Migrate" }),
+    );
     await waitFor(() => expect(inputs("unused.lift")).toHaveLength(1));
     expect(inputs("unused.lift")[0]).toEqual({ project: 1, paths: [], ...rule });
   });

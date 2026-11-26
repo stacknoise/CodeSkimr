@@ -9,7 +9,7 @@ export const COMMAND = {
 } as const;
 
 /** How many characters of an ISO timestamp make the date: `2026-11-26`. */
-export const ISO_DATE_LENGTH = 10;
+export const DATE_LOCALE = "sv-SE";
 
 /** The views of the screen: the overview and one tab per ranking (ADR 0081). */
 export const TAB = {

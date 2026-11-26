@@ -4,7 +4,7 @@ import { runCommand } from "../../shared/api/commands";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
-import { COMMAND, ISO_DATE_LENGTH } from "./consts";
+import { COMMAND, DATE_LOCALE } from "./consts";
 import { loadStats } from "./stats";
 import type { IgnoreRule, Row } from "./types";
 
@@ -27,9 +27,9 @@ async function change(project: number, command: string, input: object): Promise<
 }
 
 /** Writes the symbol of a row into the exception list of the project, with the reason and the
- * date of today (ADR 0101). */
+ * local date of today as YYYY-MM-DD (ADR 0101). */
 export function keepSymbol(project: number, row: Row, reason: string): Promise<boolean> {
-  const date = new Date().toISOString().slice(0, ISO_DATE_LENGTH);
+  const date = new Date().toLocaleDateString(DATE_LOCALE);
   const text = t(I18N_KEYS.STATS_KEEP_REASON_TEXT, { reason: reason.trim(), date });
   return change(project, COMMAND.keep, { symbol: row.qualified_name, reason: text });
 }

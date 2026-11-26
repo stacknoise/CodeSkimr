@@ -121,4 +121,4 @@ stats-keep-cancel = Abbrechen
 stats-keep-reason-text = { $reason } ({ $date })
 stats-keep-failed = Die Ausnahmeliste ließ sich nicht ändern: { $code }
 stats-lift-button = Aufheben
-stats-lift-row = Ausnahme für { $name } aufheben
+stats-lift-row = Regel aufheben, die { $name } ausnimmt

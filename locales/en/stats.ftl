@@ -121,4 +121,4 @@ stats-keep-cancel = Cancel
 stats-keep-reason-text = { $reason } ({ $date })
 stats-keep-failed = The exception list could not be changed: { $code }
 stats-lift-button = Lift
-stats-lift-row = Lift the exception for { $name }
+stats-lift-row = Lift the rule that leaves out { $name }
