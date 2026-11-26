@@ -705,3 +705,47 @@ fn schemes_that_run_code_or_read_files_are_never_editor_schemes() {
         ),
     ]);
 }
+
+#[test]
+fn the_project_file_keeps_an_exception_list_for_unused_symbols() {
+    assert!(
+        Config::defaults()
+            .expect("defaults")
+            .unused
+            .ignore
+            .is_empty()
+    );
+    let text = "[[unused.ignore]]\npaths = [\"Data/Migrations/**\"]\nreason = \"called by the migration tool\"\n\n[[unused.ignore]]\nsymbols = [\"*.DesignTimeFactory\"]\npaths = [\"Data/*\"]\nreason = \"only for dotnet ef\"\n";
+    let config = Config::resolve(&[project(text)]).expect("valid list");
+    let [first, second] = config.unused.ignore.as_slice() else {
+        panic!("two entries");
+    };
+    assert!(first.covers(
+        "Data/Migrations/20260101_Init.cs",
+        "Data.Migrations.Init.Up"
+    ));
+    assert!(!first.covers("Api/Startup.cs", "Api.Startup.ConfigureServices"));
+    assert!(second.covers("Data/DesignTimeFactory.cs", "Data.DesignTimeFactory"));
+    assert!(!second.covers("Api/DesignTimeFactory.cs", "Api.DesignTimeFactory"));
+}
+
+#[test]
+fn an_exception_needs_a_reason_and_a_pattern() {
+    assert_rejected(&[
+        (
+            "[[unused.ignore]]\npaths = [\"a/**\"]\nreason = \"\"\n",
+            "unused.ignore",
+            Violation::MustBeUnusedIgnore,
+        ),
+        (
+            "[[unused.ignore]]\nreason = \"why\"\n",
+            "unused.ignore",
+            Violation::MustBeUnusedIgnore,
+        ),
+        (
+            "[[unused.ignore]]\nsymbols = [\" \"]\nreason = \"why\"\n",
+            "unused.ignore",
+            Violation::MustBeUnusedIgnore,
+        ),
+    ]);
+}

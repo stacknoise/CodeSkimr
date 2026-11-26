@@ -153,7 +153,7 @@ fn rule_of(entry: &LayerEntry) -> LayerRule {
 
 /// The text of the project file; empty if there is none. A link or anything but a file is
 /// refused, and no more than the limit is read, however the file grows while it is read.
-fn read_project_file(path: &Path) -> Result<String, CodedError> {
+pub(super) fn read_project_file(path: &Path) -> Result<String, CodedError> {
     let unreadable = || CodedError::new(ErrorCode::ConfigParseFailed);
     let meta = match fs::symlink_metadata(path) {
         Err(error) if error.kind() == ErrorKind::NotFound => return Ok(String::new()),

@@ -33,7 +33,7 @@ function row(id: number, name: string, patch: Partial<Row> = {}): Row {
   };
 }
 
-const UNUSED = { likely: 2, public: 3, approximate: 1, tests_hidden: 7 };
+const UNUSED = { likely: 2, public: 3, approximate: 1, tests_hidden: 7, left_out: 0 };
 const OVERVIEW: Overview = {
   snapshot: 5,
   files: 12,
@@ -61,6 +61,7 @@ const RANKING: RankingAnswer = {
   rows: [row(1, "Cart"), row(5, "Order", { certain: 1, total: 9 })],
   total: 2,
   unused: null,
+  left_out: [],
 };
 
 useServerSession();
@@ -301,6 +302,34 @@ describe("StatsScreen: rankings", () => {
     await waitFor(() =>
       expect(inputs("stats.ranking").at(-1)).toMatchObject({ assessment: "likely" }),
     );
+  });
+
+  it("lists the symbols the exception list leaves out, with the rule on request", async () => {
+    const orphan = row(2, "orphan", {
+      certain: 0,
+      total: 0,
+      assessment: "likely",
+      reason: "private",
+    });
+    const kept = row(9, "Migrate", {
+      certain: 0,
+      total: 0,
+      assessment: "likely",
+      reason: "private",
+    });
+    const rule = { symbols: ["*.Migrate"], reason: "called by the migration tool" };
+    served({
+      ...RANKING,
+      rows: [orphan],
+      total: 1,
+      unused: { ...UNUSED, left_out: 1 },
+      left_out: [{ row: kept, rule }],
+    });
+    await showRanking("No usage found");
+    expect(await screen.findByText("Left out")).toBeInTheDocument();
+    expect(screen.getByText("Rule: “called by the migration tool”")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show rule" }));
+    expect(screen.getByText("*.Migrate")).toBeInTheDocument();
   });
 
   it("draws the histogram and the hotspots in the complexity tab", async () => {

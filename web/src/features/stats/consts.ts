@@ -72,6 +72,9 @@ export const REASON_TEXT = {
   approximate: I18N_KEYS.STATS_REASON_APPROXIMATE,
 } as const;
 
+/** Joins the patterns of an entry of the exception list. */
+export const LIST_JOIN = ", ";
+
 /** Rows a ranking asks for. */
 export const ROW_LIMIT = 200;
 

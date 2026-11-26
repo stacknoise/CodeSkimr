@@ -381,6 +381,10 @@ pub const GROUP_FUNCTIONS: &str = "functions";
 pub const ORDER_CERTAIN: &str = "certain";
 /// Label of `UsageOrder::All`.
 pub const ORDER_ALL: &str = "all";
+/// The glob sign for any run of characters (ADR 0101).
+pub const GLOB_ANY: char = '*';
+/// The glob sign for exactly one character.
+pub const GLOB_ONE: char = '?';
 /// Label of `UnusedReason::Private`.
 pub const REASON_PRIVATE: &str = "private";
 /// Label of `UnusedReason::Internal`.

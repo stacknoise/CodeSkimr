@@ -9,7 +9,7 @@
 use std::sync::Arc;
 
 use codeskimr_application::access;
-use codeskimr_application::config::MetricThresholds;
+use codeskimr_application::config::{MetricThresholds, UnusedIgnore};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     CodeIndex, CodeStatistics, ProjectRepository, RankedRows, RankingRequest, StatisticsSetup,
@@ -27,6 +27,7 @@ use super::consts::{
     STATS_RANKING, STATS_RANKING_DESCRIPTION, STATS_RANKING_TITLE, STATS_TOP,
 };
 use super::rating;
+use super::unused::{self, Judged};
 
 /// What a ranking sorts by, as the screen names it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -211,6 +212,8 @@ pub struct UnusedOut {
     pub approximate: u32,
     /// Test code without usages that the answer leaves out; zero if test code counts.
     pub tests_hidden: u32,
+    /// Symbols without usages that the exception list covers; they are not in the counts above.
+    pub left_out: u32,
 }
 
 /// The output of `stats.ranking`.
@@ -224,6 +227,18 @@ pub struct RankingOut {
     pub total: u32,
     /// For the ranking `unused`: the rows per assessment, before the filter by assessment.
     pub unused: Option<UnusedOut>,
+    /// For the ranking `unused`: the symbols the exception list of the project covers, with the
+    /// entry that does; they are not in `rows`, `total` and `unused` (ADR 0101).
+    pub left_out: Vec<LeftOutOut>,
+}
+
+/// A symbol without usages that an entry of the exception list covers.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct LeftOutOut {
+    /// The symbol.
+    pub row: RowOut,
+    /// The entry of `.codeskimr.toml` that covers it.
+    pub rule: UnusedIgnore,
 }
 
 /// How the usages of the snapshot split up.
@@ -383,12 +398,88 @@ impl StatsPorts {
     }
 }
 
+impl StatsPorts {
+    /// The exception list of the project (ADR 0101); empty if it has none.
+    fn rules(&self, project: u64) -> Result<Vec<UnusedIgnore>, CodedError> {
+        let project = self.projects.project(ProjectId::new(project))?;
+        Ok(unused::rules_of(&project))
+    }
+
+    /// The symbols without usages of the snapshot, split by the exception list.
+    fn judged(
+        &self,
+        snapshot: &Snapshot,
+        query: &RankingQuery,
+        rules: &[UnusedIgnore],
+    ) -> Result<Judged, CodedError> {
+        let facts = self.statistics.symbol_facts(snapshot.id)?;
+        Ok(unused::judge(
+            facts,
+            query,
+            rules,
+            &self.approximate,
+            &self.test_names,
+        ))
+    }
+
+    /// The counts per assessment of the symbols that stay in the ranking.
+    fn counts_of(&self, judged: &Judged) -> UnusedOut {
+        let mut counts = UnusedOut {
+            tests_hidden: count(judged.tests_hidden),
+            left_out: count(judged.left_out.len()),
+            ..UnusedOut::default()
+        };
+        for fact in &judged.kept {
+            let slot = match self.assess(fact) {
+                Assessment::Likely => &mut counts.likely,
+                Assessment::Public => &mut counts.public,
+                Assessment::Approximate => &mut counts.approximate,
+            };
+            *slot = slot.saturating_add(1);
+        }
+        counts
+    }
+
+    /// The ranking of unused symbols from the judged facts: the first rows of the wanted
+    /// assessment, and the symbols the list leaves out.
+    fn judged_ranking(
+        &self,
+        judged: &Judged,
+        assessment: Option<Assessment>,
+        limit: usize,
+    ) -> RankingOut {
+        let kept: Vec<&SymbolFacts> = judged
+            .kept
+            .iter()
+            .filter(|fact| assessment.is_none_or(|wanted| self.assess(fact) == wanted))
+            .collect();
+        let rows: Vec<RowOut> = kept.iter().take(limit).map(|fact| self.row(fact)).collect();
+        let left_out = judged
+            .left_out
+            .iter()
+            .take(limit)
+            .map(|(fact, rule)| LeftOutOut {
+                row: self.row(fact),
+                rule: rule.clone(),
+            })
+            .collect();
+        RankingOut {
+            snapshot: None,
+            rows,
+            total: count(kept.len()),
+            unused: Some(self.counts_of(judged)),
+            left_out,
+        }
+    }
+}
+
 fn unused_out(counts: UnusedCounts) -> UnusedOut {
     UnusedOut {
         likely: counts.likely,
         public: counts.public,
         approximate: counts.approximate,
         tests_hidden: counts.tests_hidden,
+        left_out: 0,
     }
 }
 
@@ -426,6 +517,12 @@ impl StatsRanking {
         input: &RankingInput,
     ) -> Result<RankingOut, CodedError> {
         let ports = &self.ports;
+        let rules = ports.rules(input.project)?;
+        if !rules.is_empty() {
+            let judged = ports.judged(snapshot, query, &rules)?;
+            let wanted = input.assessment.map(Assessment::from);
+            return Ok(ports.judged_ranking(&judged, wanted, limit_of(input)));
+        }
         let counts = ports
             .statistics
             .unused_counts(snapshot.id, query, ports.setup())?;
@@ -440,6 +537,7 @@ impl StatsRanking {
             rows: ports.rows(&ranked.rows),
             total: count(ranked.total),
             unused: Some(unused_out(counts)),
+            left_out: Vec::new(),
         })
     }
 }
@@ -475,6 +573,7 @@ impl Command for StatsRanking {
                 rows: self.ports.rows(&ranked.rows),
                 total: count(ranked.total),
                 unused: None,
+                left_out: Vec::new(),
             }
         };
         out.snapshot = Some(snapshot.id.get());
@@ -503,6 +602,31 @@ impl StatsOverview {
                 .sum(),
             histogram,
         }
+    }
+
+    /// Counts the symbols without usages again, without the ones the exception list covers
+    /// (ADR 0101); nothing changes for a project without entries.
+    fn apply_rules(
+        &self,
+        out: &mut OverviewOut,
+        snapshot: &Snapshot,
+        all: &RankingQuery,
+        project: u64,
+    ) -> Result<(), CodedError> {
+        let rules = self.ports.rules(project)?;
+        if rules.is_empty() {
+            return Ok(());
+        }
+        let judged = self.ports.judged(snapshot, all, &rules)?;
+        let top = usize::try_from(STATS_TOP).unwrap_or(usize::MAX);
+        out.unused = self.ports.counts_of(&judged);
+        out.top.unused = judged
+            .kept
+            .iter()
+            .take(top)
+            .map(|fact| self.ports.row(fact))
+            .collect();
+        Ok(())
     }
 
     fn top_out(&self, snapshot: &Snapshot, tests: bool) -> Result<TopOut, CodedError> {
@@ -559,7 +683,7 @@ impl Command for StatsOverview {
         let sums = ports
             .statistics
             .summary(snapshot.id, tests, ports.setup())?;
-        Ok(OverviewOut {
+        let mut out = OverviewOut {
             snapshot: Some(snapshot.id.get()),
             files: snapshot.stats.files,
             symbols: snapshot.stats.symbols,
@@ -571,6 +695,8 @@ impl Command for StatsOverview {
             unused: unused_out(unused),
             complexity: self.complexity_out(sums.histogram),
             top: self.top_out(&snapshot, tests)?,
-        })
+        };
+        self.apply_rules(&mut out, &snapshot, &all, request.input.project)?;
+        Ok(out)
     }
 }

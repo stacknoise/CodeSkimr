@@ -11,6 +11,7 @@ mod coupling;
 mod error;
 mod file;
 mod fingerprint;
+mod glob;
 mod graph_layout;
 mod id_hasher;
 mod layer;
@@ -47,6 +48,7 @@ pub use coupling::{SymbolPair, coupling, coupling_with};
 pub use error::ModelError;
 pub use file::{ContentHash, FileId, LanguageId, Loc, RelativePath, SourceFile};
 pub use fingerprint::{Fingerprint, FingerprintParams, Fingerprints, TokenId, winnow};
+pub use glob::glob_matches;
 pub use graph_layout::{
     Layout, LayoutEdge, LayoutGraph, LayoutNode, LayoutParams, NodeIndex, NodePlacement, NodeSize,
 };

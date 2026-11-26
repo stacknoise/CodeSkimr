@@ -198,3 +198,35 @@ fn commands_that_run_at_once_answer_as_they_do_one_after_the_other() {
         }
     });
 }
+
+#[test]
+fn an_entry_of_the_exception_list_takes_the_symbols_out_of_the_ranking_and_the_counts() {
+    let fixture = Fixture::installed(None);
+    let id = project(&fixture);
+    let before = ranking(
+        &fixture,
+        id,
+        &json!({ "ranking": "unused", "kinds": "functions" }),
+    );
+    assert!(names(&before).contains(&"Hidden"));
+    assert_eq!(before["left_out"], json!([]));
+    let list = "[[unused.ignore]]\nsymbols = [\"*.Hidden\"]\nreason = \"called by reflection\"\n";
+    fs::write(fixture.root.path().join("app/.codeskimr.toml"), list).unwrap();
+    let after = ranking(
+        &fixture,
+        id,
+        &json!({ "ranking": "unused", "kinds": "functions" }),
+    );
+    assert!(!names(&after).contains(&"Hidden"), "{after}");
+    assert_eq!(after["total"], before["total"].as_u64().unwrap() - 1);
+    assert_eq!(after["unused"]["left_out"], 1);
+    assert_eq!(after["left_out"][0]["row"]["name"], "Hidden");
+    assert_eq!(
+        after["left_out"][0]["rule"]["reason"],
+        "called by reflection"
+    );
+    let overview = fixture
+        .call("stats.overview", json!({ "project": id }))
+        .unwrap();
+    assert_eq!(overview["unused"]["left_out"], 1);
+}

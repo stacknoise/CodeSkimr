@@ -38,7 +38,25 @@ Der Scan sieht keine Aufrufe über Makros oder Reflection, keine Einstiegspunkte
 
 Konstruktoren und Member, die ein anderes Member überschreiben oder implementieren, werden gar nicht aufgeführt: Sie werden über ihren Typ oder über das Member aufgerufen, für das sie stehen, und das kann die Zahl der direkten Verwendungen nicht zeigen.
 
+Neben der Einschätzung steht die **Begründung** der Zeile, zum Beispiel „privat, keine Verwendung in der Klasse oder Datei“ oder „öffentlich: Nutzer außerhalb des Projekts möglich“.
+
 Prüfen Sie, bevor Sie löschen.
+
+### Symbole bewusst behalten (Ausnahmeliste)
+
+Was bleiben soll, tragen Sie in der `.codeskimr.toml` des Projekts ein, damit alle im Team dasselbe sehen:
+
+```toml
+[[unused.ignore]]
+paths = ["Data/Migrations/**"]
+reason = "vom Migrationswerkzeug aufgerufen"
+
+[[unused.ignore]]
+symbols = ["*.DesignTimeFactory"]
+reason = "nur für dotnet ef"
+```
+
+`paths` sind Muster auf den Dateipfad, `symbols` Muster auf den qualifizierten Namen (`*` steht für beliebig viele Zeichen, `?` für genau eins). Mit beiden Listen müssen beide passen. Der Grund ist Pflicht. Solche Symbole stehen nicht mehr in der Zahl und der Liste, sondern darunter im Bereich „Ausgenommen“, mit der Regel zum Ansehen. Das gilt für Ordner-Projekte; ein Git-Projekt hat keine Projektdatei.
 
 ## Komplexität
 
