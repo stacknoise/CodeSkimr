@@ -478,9 +478,13 @@ fn run_query(
     current_dir: &Path,
 ) -> Result<Outcome, Failure> {
     match query_cli::run(action, around, current_dir) {
-        Ok(text) => {
-            write_out(&text);
-            Ok(Outcome::Done)
+        Ok(answered) => {
+            write_out(&answered.text);
+            Ok(if answered.failing {
+                Outcome::FindingsReported
+            } else {
+                Outcome::Done
+            })
         }
         Err(failure) => {
             let json = action.target().json;

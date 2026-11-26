@@ -6,8 +6,8 @@ use std::fs;
 use std::path::PathBuf;
 
 use codeskimr_cli::{
-    ContextQuery, GlobalOptions, ImpactQuery, QueryAction, QueryTarget, RenameQuery, ScopeArgs,
-    SymbolsQuery, UnusedQuery, UsagesQuery,
+    ContextQuery, GlobalOptions, ImpactQuery, QueryAction, QueryTarget, RenameQuery, RulesQuery,
+    ScopeArgs, SymbolsQuery, UnusedQuery, UsagesQuery,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_i18n::Messages;
@@ -52,7 +52,17 @@ impl World {
             messages: &self.messages,
             language,
         };
-        query_cli::run(action, &around, &self.folder)
+        query_cli::run(action, &around, &self.folder).map(|answered| answered.text)
+    }
+
+    fn answered(&self, action: &QueryAction) -> query_cli::Answered {
+        let around = Surroundings {
+            global: &self.global,
+            locations: &self.data,
+            messages: &self.messages,
+            language: "en",
+        };
+        query_cli::run(action, &around, &self.folder).unwrap()
     }
 
     fn json(&self, action: &QueryAction) -> Value {
@@ -404,4 +414,58 @@ public class Target
     assert_eq!(found["conflicts"][0]["same_signature"], true);
     let failure = world.run(&rename("not a name", true), "en").unwrap_err();
     assert_eq!(failure.code(), ErrorCode::ToolArgumentsInvalid);
+}
+
+fn rules(json: bool) -> QueryAction {
+    QueryAction::Rules(RulesQuery {
+        limit: None,
+        target: target(json),
+    })
+}
+
+const FORBID: &str = "[[rules.forbid]]\nfrom = \"Demo.Caller\"\nto = \"Demo.Target\"\n";
+const HELD: &str = "held_on = \"2026-11-25\"\n\n[[entries]]\nrule = \"forbid:Demo.Caller>Demo.Target\"\nfrom = \"Demo.Caller.Run\"\nto = \"Demo.Target.Do\"\n\n[[entries]]\nrule = \"forbid:Demo.Caller>Demo.Target\"\nfrom = \"Demo.Caller.Run\"\nto = \"Demo.Target\"\n";
+
+#[test]
+fn a_new_violation_of_a_rule_is_listed_with_its_place_and_fails_the_run() {
+    let world = World::new();
+    fs::write(world.folder.join(".codeskimr.toml"), FORBID).unwrap();
+    let answered = world.answered(&rules(true));
+    assert!(answered.failing);
+    let answer: Value = serde_json::from_str(&answered.text).unwrap();
+    // The class and its method are two references of the one call.
+    assert_eq!(answer["new"], 2);
+    let violation = &answer["rules"][0]["violations"][1];
+    assert_eq!(violation["from"], "Demo.Caller.Run");
+    assert_eq!(violation["to"], "Demo.Target.Do");
+    assert_eq!(violation["places"][0]["path"], "Caller.cs");
+    let text = world.answered(&rules(false)).text;
+    assert!(text.contains("Demo.Caller.Run -> Demo.Target.Do"), "{text}");
+    assert!(text.contains("NEW"), "{text}");
+}
+
+#[test]
+fn a_held_violation_is_an_old_burden_and_does_not_fail_the_run() {
+    let world = World::new();
+    fs::write(world.folder.join(".codeskimr.toml"), FORBID).unwrap();
+    fs::write(world.folder.join(".codeskimr-baseline.toml"), HELD).unwrap();
+    let answered = world.answered(&rules(true));
+    assert!(!answered.failing);
+    let answer: Value = serde_json::from_str(&answered.text).unwrap();
+    assert_eq!(answer["old"], 2);
+    assert_eq!(answer["new"], 0);
+    let text = world.answered(&rules(false)).text;
+    assert!(text.contains("held"), "{text}");
+}
+
+#[test]
+fn a_project_without_rules_says_so_and_does_not_fail() {
+    let world = World::new();
+    let answered = world.answered(&rules(false));
+    assert!(!answered.failing);
+    assert!(
+        answered.text.contains("no architecture rules"),
+        "{}",
+        answered.text
+    );
 }

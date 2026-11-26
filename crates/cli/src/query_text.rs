@@ -9,7 +9,8 @@ use codeskimr_codes::i18n::{
     CLI_CONTEXT_CALLERS, CLI_CONTEXT_DEPENDENCIES, CLI_CONTEXT_DEPENDENCY_LINE, CLI_CONTEXT_FILE,
     CLI_CONTEXT_FILES, CLI_CONTEXT_HEAD, CLI_CONTEXT_LAYER, CLI_CONTEXT_NOTE_LINE,
     CLI_CONTEXT_NOTES, CLI_CONTEXT_SIGNATURE, CLI_QUERY_CUT, CLI_QUERY_IMPACT_LINE, CLI_QUERY_NONE,
-    CLI_QUERY_PRELIMINARY, CLI_QUERY_STALE, CLI_QUERY_SYMBOL_LINE, CLI_QUERY_UNUSED_LEFT_OUT,
+    CLI_QUERY_PRELIMINARY, CLI_QUERY_RULES_HEAD, CLI_QUERY_RULES_LINE, CLI_QUERY_RULES_NONE,
+    CLI_QUERY_RULES_RULE, CLI_QUERY_STALE, CLI_QUERY_SYMBOL_LINE, CLI_QUERY_UNUSED_LEFT_OUT,
     CLI_QUERY_UNUSED_LEFT_OUT_LINE, CLI_QUERY_UNUSED_LINE, CLI_QUERY_USAGE_LINE,
     CLI_RENAME_CONFLICT_LINE, CLI_RENAME_CONFLICTS, CLI_RENAME_DECLARATION_LINE,
     CLI_RENAME_DISCLAIMER, CLI_RENAME_HEAD, CLI_RENAME_NOT_SEARCHED, CLI_RENAME_PUBLIC,
@@ -36,6 +37,8 @@ pub enum QueryKind {
     Context,
     /// `unused`.
     Unused,
+    /// `rules`.
+    Rules,
     /// `preview-rename`.
     Rename,
 }
@@ -367,6 +370,61 @@ fn unused_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<String>, I18n
     Ok(lines)
 }
 
+fn rule_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
+    let place = entries(found, key::PLACES)
+        .first()
+        .cloned()
+        .unwrap_or_default();
+    let numbers = [
+        (arg::FROM, text(field(found, key::FROM))),
+        (arg::TO, text(field(found, key::TO))),
+        (arg::PATH, text(field(&place, key::PATH))),
+        (arg::LINE, count(&place, key::LINE)),
+        (arg::COLUMN, count(&place, key::COLUMN)),
+        (
+            arg::HELD,
+            text(
+                found
+                    .get(key::OLD)
+                    .and_then(Value::as_bool)
+                    .unwrap_or_default()
+                    .to_string(),
+            ),
+        ),
+        (
+            arg::PLACES,
+            FluentValue::from(entries(found, key::PLACES).len()),
+        ),
+    ];
+    speak.say(CLI_QUERY_RULES_LINE, &numbers)
+}
+
+/// The rules with their violations, the held ones marked, under a line that counts them.
+fn rules_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<String>, I18nError> {
+    let rules = entries(answer, key::RULES);
+    if rules.is_empty() {
+        return Ok(vec![speak.say(CLI_QUERY_RULES_NONE, &[])?]);
+    }
+    let head = [
+        (arg::NEW, count(answer, key::NEW)),
+        (arg::HELD, count(answer, key::OLD)),
+        (arg::RESOLVED, count(answer, key::RESOLVED)),
+    ];
+    let mut lines = vec![speak.say(CLI_QUERY_RULES_HEAD, &head)?];
+    for rule in rules {
+        let numbers = [
+            (arg::RULE, text(field(rule, key::ID))),
+            (arg::NEW, count(rule, key::NEW)),
+            (arg::TOTAL, count(rule, key::TOTAL)),
+        ];
+        lines.push(speak.say(CLI_QUERY_RULES_RULE, &numbers)?);
+        for found in entries(rule, key::VIOLATIONS) {
+            lines.push([LIST_INDENT, rule_line(speak, found)?.as_str()].concat());
+        }
+    }
+    Ok(lines)
+}
+
 /// The preview of a rename: what the places, conflicts and text lines are, and what it cannot see.
 fn rename_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<String>, I18nError> {
     let sites = child(answer, key::SITES);
@@ -425,6 +483,7 @@ fn body(speak: &Speaker<'_>, kind: QueryKind, answer: &Value) -> Result<Vec<Stri
         QueryKind::Impact => list_lines(speak, (answer, key::SYMBOLS), impact_line),
         QueryKind::Context => context_lines(speak, answer),
         QueryKind::Unused => unused_lines(speak, answer),
+        QueryKind::Rules => rules_lines(speak, answer),
         QueryKind::Rename => rename_lines(speak, answer),
     }
 }

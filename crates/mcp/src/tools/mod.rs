@@ -11,6 +11,7 @@ mod dependencies;
 mod project;
 mod rename;
 mod rescan;
+mod rules;
 mod search;
 mod similar;
 mod symbol;
@@ -28,6 +29,7 @@ use codeskimr_application::ports::{
     ProjectRepository, ProjectScanner, ProjectToolCheck, ReferenceSites, ScanReportStore,
     SimilarityIndex, SnippetFingerprinter, SourceText, SymbolDetail, SymbolKey, UsageIndex,
 };
+use codeskimr_application::rules::RulesChecks;
 use codeskimr_application::unused::UnusedSymbols;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Project, ProjectId, QualifiedName, Snapshot, SymbolId};
@@ -105,6 +107,8 @@ pub struct Ports {
     pub reports: Arc<dyn ScanReportStore>,
     /// The symbols without a usage under the exception list of a project, for `find_unused`.
     pub unused: Arc<dyn UnusedSymbols>,
+    /// The architecture rules of a project with their violations, for `check_rules`.
+    pub rules: Arc<dyn RulesChecks>,
     /// The lines of a project folder that hold a name, for `preview_rename`.
     pub mentions: Arc<dyn NameMentions>,
     /// The lines of code of the places of a rename, read from the project folder.
@@ -130,6 +134,7 @@ pub struct Tools {
     annotations: Arc<dyn AnnotationStore>,
     reports: Arc<dyn ScanReportStore>,
     unused: Arc<dyn UnusedSymbols>,
+    rules: Arc<dyn RulesChecks>,
     mentions: Arc<dyn NameMentions>,
     text: Arc<dyn SourceText>,
     limits: McpLimits,
@@ -170,6 +175,7 @@ impl Tools {
             annotations: ports.annotations,
             reports: ports.reports,
             unused: ports.unused,
+            rules: ports.rules,
             mentions: ports.mentions,
             text: ports.text,
             limits,
@@ -306,6 +312,10 @@ impl Tools {
 
     pub(crate) fn source_text(&self) -> &dyn SourceText {
         self.text.as_ref()
+    }
+
+    pub(crate) fn rules_checks(&self) -> &dyn RulesChecks {
+        self.rules.as_ref()
     }
 
     pub(crate) fn unused_symbols(&self) -> &dyn UnusedSymbols {

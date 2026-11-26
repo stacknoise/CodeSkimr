@@ -5,10 +5,12 @@ mod baseline;
 mod consts;
 mod evaluate;
 mod model;
+mod port;
 mod report;
 
 pub use baseline::{Baseline, BaselineEntry, Judged};
 pub use consts::BASELINE_FILE;
 pub use evaluate::evaluate;
+pub use port::RulesChecks;
 pub use model::{Outcome, Place, RuleKind, Violation};
 pub use report::{RulesReport, report};

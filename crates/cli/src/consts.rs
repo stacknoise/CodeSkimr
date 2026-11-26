@@ -255,8 +255,20 @@ pub mod arg {
     pub const REASON: &str = "reason";
     /// `{ $assessment }`: how much "no usage found" says about a symbol.
     pub const ASSESSMENT: &str = "assessment";
-    /// `{ $new }`: the proposed new name.
+    /// `{ $new }`: the proposed new name, or how many violations are new.
     pub const NEW: &str = "new";
+    /// `{ $held }`: how many violations the held state has, or whether one is held.
+    pub const HELD: &str = "held";
+    /// `{ $resolved }`: how many held violations are gone.
+    pub const RESOLVED: &str = "resolved";
+    /// `{ $places }`: how many places a violation has.
+    pub const PLACES: &str = "places";
+    /// `{ $rule }`: the id of a rule.
+    pub const RULE: &str = "rule";
+    /// `{ $to }`: the symbol a violation must not reach; `{ $from }` is the one that refers.
+    pub const TO: &str = "to";
+    /// `{ $from }`: the symbol that refers.
+    pub const FROM: &str = "from";
     /// `{ $verified }`: number of places that level 2 verified.
     pub const VERIFIED: &str = "verified";
     /// `{ $clash }`: whether two signatures are the same.
@@ -393,6 +405,8 @@ pub const COMMAND_IMPACT: &str = "impact";
 pub const COMMAND_CONTEXT: &str = "context";
 /// Sub-command that lists the symbols without a usage.
 pub const COMMAND_UNUSED: &str = "unused";
+/// Sub-command that judges the architecture rules of the project.
+pub const COMMAND_RULES: &str = "rules";
 /// Sub-command that shows what a new name for a symbol would hit.
 pub const COMMAND_PREVIEW_RENAME: &str = "preview-rename";
 /// Argument id of the new name of `preview-rename`.
@@ -483,6 +497,20 @@ pub mod key {
     pub const FILES: &str = "files";
     /// Whether a name conflict has the same signature.
     pub const SAME_SIGNATURE: &str = "same_signature";
+    /// The rules of `rules`.
+    pub const RULES: &str = "rules";
+    /// The violations of a rule.
+    pub const VIOLATIONS: &str = "violations";
+    /// The places of a violation.
+    pub const PLACES: &str = "places";
+    /// Whether a violation is an old burden, or how many there are.
+    pub const OLD: &str = "old";
+    /// How many violations are new.
+    pub const NEW: &str = "new";
+    /// How many held violations are gone.
+    pub const RESOLVED: &str = "resolved";
+    /// The symbol a violation must not reach.
+    pub const TO: &str = "to";
     /// The symbols without a usage of `unused`.
     pub const UNUSED: &str = "unused";
     /// The symbols the exception list takes out, in `unused`.

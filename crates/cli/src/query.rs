@@ -8,21 +8,22 @@ use codeskimr_codes::i18n::{
     CLI_ARG_ASSESSMENT, CLI_ARG_BUDGET, CLI_ARG_DEPTH, CLI_ARG_DIRECTION, CLI_ARG_INCLUDE_TESTS,
     CLI_ARG_JSON, CLI_ARG_KIND_FILTER, CLI_ARG_LANGUAGE_FILTER, CLI_ARG_LIMIT,
     CLI_ARG_QUERY_NEW_NAME, CLI_ARG_QUERY_PROJECT, CLI_ARG_QUERY_SYMBOL, CLI_ARG_QUERY_TEXT,
-    CLI_ARG_UNUSED_KIND, CLI_CMD_CONTEXT, CLI_CMD_IMPACT, CLI_CMD_PREVIEW_RENAME, CLI_CMD_SYMBOLS,
-    CLI_CMD_UNUSED, CLI_CMD_USAGES,
+    CLI_ARG_UNUSED_KIND, CLI_CMD_CONTEXT, CLI_CMD_IMPACT, CLI_CMD_PREVIEW_RENAME, CLI_CMD_RULES,
+    CLI_CMD_SYMBOLS, CLI_CMD_UNUSED, CLI_CMD_USAGES,
 };
 
 use crate::args::{
-    ContextQuery, ImpactQuery, QueryAction, QueryTarget, RenameQuery, SymbolsQuery, UnusedQuery,
-    UsagesQuery,
+    ContextQuery, ImpactQuery, QueryAction, QueryTarget, RenameQuery, RulesQuery, SymbolsQuery,
+    UnusedQuery, UsagesQuery,
 };
 use crate::consts::{
     ARG_ASSESSMENT, ARG_BUDGET, ARG_DEPTH, ARG_DIRECTION, ARG_INCLUDE_TESTS, ARG_JSON, ARG_KIND,
     ARG_LANGUAGE, ARG_PROJECT, ARG_QUERY_NEW_NAME, ARG_QUERY_PROJECT, ARG_QUERY_SYMBOL,
     ARG_QUERY_TEXT, ARG_ROWS, ASSESSMENTS, BUDGETS, COMMAND_CONTEXT, COMMAND_IMPACT,
-    COMMAND_PREVIEW_RENAME, COMMAND_SYMBOLS, COMMAND_UNUSED, COMMAND_USAGES, DIRECTIONS,
-    UNUSED_KINDS, VALUE_ASSESSMENT, VALUE_BUDGET, VALUE_DIRECTION, VALUE_KIND, VALUE_LANGUAGE,
-    VALUE_QUERY_NEW_NAME, VALUE_QUERY_PROJECT, VALUE_QUERY_SYMBOL, VALUE_QUERY_TEXT, VALUE_ROWS,
+    COMMAND_PREVIEW_RENAME, COMMAND_RULES, COMMAND_SYMBOLS, COMMAND_UNUSED, COMMAND_USAGES,
+    DIRECTIONS, UNUSED_KINDS, VALUE_ASSESSMENT, VALUE_BUDGET, VALUE_DIRECTION, VALUE_KIND,
+    VALUE_LANGUAGE, VALUE_QUERY_NEW_NAME, VALUE_QUERY_PROJECT, VALUE_QUERY_SYMBOL,
+    VALUE_QUERY_TEXT, VALUE_ROWS,
 };
 use crate::error::CliError;
 
@@ -158,6 +159,13 @@ fn unused_command(say: Say<'_>) -> Result<Command, CliError> {
     project_and_json(command, say)
 }
 
+fn rules_command(say: Say<'_>) -> Result<Command, CliError> {
+    let command = Command::new(COMMAND_RULES)
+        .about(say(CLI_CMD_RULES)?)
+        .arg(limit(say)?);
+    project_and_json(command, say)
+}
+
 fn rename_command(say: Say<'_>) -> Result<Command, CliError> {
     let command = Command::new(COMMAND_PREVIEW_RENAME)
         .about(say(CLI_CMD_PREVIEW_RENAME)?)
@@ -172,7 +180,7 @@ fn rename_command(say: Say<'_>) -> Result<Command, CliError> {
     project_and_json(command, say)
 }
 
-/// The six query commands.
+/// The seven query commands.
 ///
 /// # Errors
 /// `I18N-201` if a help text is missing.
@@ -183,6 +191,7 @@ pub fn commands(say: Say<'_>) -> Result<Vec<Command>, CliError> {
         impact_command(say)?,
         context_command(say)?,
         unused_command(say)?,
+        rules_command(say)?,
         rename_command(say)?,
     ])
 }
@@ -195,6 +204,7 @@ pub fn is_query(name: &str) -> bool {
         COMMAND_IMPACT,
         COMMAND_CONTEXT,
         COMMAND_UNUSED,
+        COMMAND_RULES,
         COMMAND_PREVIEW_RENAME,
     ]
     .contains(&name)
@@ -255,6 +265,10 @@ pub fn action(name: &str, matches: &ArgMatches) -> QueryAction {
             target: target(matches),
         }),
         COMMAND_UNUSED => unused_action(matches),
+        COMMAND_RULES => QueryAction::Rules(RulesQuery {
+            limit: limit(),
+            target: target(matches),
+        }),
         COMMAND_PREVIEW_RENAME => rename_action(matches),
         _ => QueryAction::Context(ContextQuery {
             symbol: text(matches, ARG_QUERY_SYMBOL),

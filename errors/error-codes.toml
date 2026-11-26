@@ -916,3 +916,11 @@ severity = "error"
 retryable = false
 description = "A function has more parameters than the configured maximum."
 since = "0.9.0"
+
+[[codes]]
+id = "CHK-107"
+name = "rule_violation"
+severity = "error"
+retryable = false
+description = "Code breaks an architecture rule of the project."
+since = "1.2.0"

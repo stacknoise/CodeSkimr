@@ -1,21 +1,18 @@
 //! The command behind the screen "Rules": the architecture rules of the project file with their
 //! violations, judged against the held state (ADR 0104).
 
-use std::path::Path;
 use std::sync::Arc;
 
-use codeskimr_application::config::{
-    Config, ConfigLayer, CycleRule, LayerSource, PROJECT_CONFIG_FILE, Rules,
-};
+use codeskimr_application::config::{CycleRule, Rules};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
-use codeskimr_application::rules::{BASELINE_FILE, Baseline, Outcome, report};
-use codeskimr_domain::{Permission, ProjectSource};
+use codeskimr_application::rules::{Outcome, report};
+use codeskimr_domain::Permission;
 use serde::{Deserialize, Serialize};
 
 use super::consts::{FORBID, PUBLIC_API, RULES_SHOW, RULES_SHOW_DESCRIPTION, RULES_SHOW_TITLE};
 use super::explorer::ExplorerPorts;
-use crate::project_file::read_project_file;
+use crate::rules_check::files_of;
 
 /// The input of `rules.show`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -86,24 +83,6 @@ pub struct RulesOut {
     pub old: usize,
     /// Violations that it does not have: the number that fails the CI.
     pub new: usize,
-}
-
-/// The rules of the project file and the held state; both empty for a Git project.
-fn files_of(source: &ProjectSource) -> Result<(Rules, Option<Baseline>), CodedError> {
-    let ProjectSource::Folder(folder) = source else {
-        return Ok((Rules::default(), None));
-    };
-    let root = Path::new(folder.as_str());
-    let text = read_project_file(&root.join(PROJECT_CONFIG_FILE))?;
-    let layer = ConfigLayer::parse(LayerSource::Project, &text).map_err(CodedError::caused_by)?;
-    let config = Config::resolve(&[layer]).map_err(CodedError::caused_by)?;
-    let held = read_project_file(&root.join(BASELINE_FILE))?;
-    let baseline = if held.trim().is_empty() {
-        None
-    } else {
-        Some(Baseline::parse(&held)?)
-    };
-    Ok((config.rules, baseline))
 }
 
 fn violations_of(outcome: &Outcome) -> Vec<ViolationOut> {

@@ -20,6 +20,10 @@ A prefix equals a name or lies above it up to a separator (`.` or `::`), the sam
 
 A violation is the symbol that refers and the symbol it must not reach, with every place of the reference. Its identity is the rule and the two names, never the line.
 
+## In the terminal and for agents
+
+`codeskimr rules [--json]` and the MCP tool `check_rules` (`docs/cli.md`, `docs/mcp.md`) give the answer of the screen. The command exits with 1 only if there is a violation the held state does not have, so a CI job runs `codeskimr scan .` and then `codeskimr rules`. A violation has the code `CHK-107`.
+
 ## Holding the state
 
 `codeskimr_application::rules::Baseline` is the content of `.codeskimr-baseline.toml` (`held_on` and one entry with `rule`, `from` and `to` per held violation). A violation with an entry is an old burden; one without is new. Entries whose violation is gone are reported as resolved. The file is meant to be committed.

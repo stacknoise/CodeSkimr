@@ -4,7 +4,9 @@
 use std::sync::{Arc, Mutex};
 
 use codeskimr_application::cancel::CancelToken;
-use codeskimr_application::config::{Conventions, KeySources, McpLimits, UnusedIgnore};
+use codeskimr_application::config::{
+    Config, ConfigLayer, Conventions, KeySources, LayerSource, McpLimits, UnusedIgnore,
+};
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
@@ -774,6 +776,7 @@ fn assemble_with(
             annotations: Arc::new(FakeAnnotations::default()),
             reports: Arc::new(FakeReports),
             unused: Arc::new(FakeUnused),
+            rules: Arc::new(FakeRules),
             mentions: Arc::new(FakeMentions),
             text: Arc::new(FakeText),
         },
@@ -981,6 +984,47 @@ impl UnusedSymbols for FakeUnused {
     }
 }
 
+/// The architecture rules of the project: one `forbid` rule that two references break, one of
+/// them held as an old burden by the state of the project.
+pub struct FakeRules;
+
+const RULES: &str = "[[rules.forbid]]\nfrom = \"Shop.Reports\"\nto = \"Shop.Checkout\"\n";
+const HELD: &str = "held_on = \"2026-11-25\"\n\n[[entries]]\nrule = \"forbid:Shop.Reports>Shop.Checkout\"\nfrom = \"Shop.Reports.A.Old\"\nto = \"Shop.Checkout.Cart.Total\"\n";
+
+struct Refs;
+
+impl codeskimr_application::ports::ReferencePlaces for Refs {
+    fn for_each_reference(
+        &self,
+        _: SnapshotId,
+        visit: &mut dyn FnMut(codeskimr_application::ports::ReferencePlace),
+    ) -> Result<(), CodedError> {
+        for (line, from) in [(3, "Shop.Reports.A.Old"), (9, "Shop.Reports.A.Fresh")] {
+            let at = codeskimr_domain::Position { line, column: 4 };
+            visit(codeskimr_application::ports::ReferencePlace {
+                path: RelativePath::new("Reports/A.cs").unwrap(),
+                span: codeskimr_domain::Span::new(at, at).unwrap(),
+                from: codeskimr_domain::QualifiedName::new(from).unwrap(),
+                to: codeskimr_domain::QualifiedName::new("Shop.Checkout.Cart.Total").unwrap(),
+            });
+        }
+        Ok(())
+    }
+}
+
+impl codeskimr_application::rules::RulesChecks for FakeRules {
+    fn check(
+        &self,
+        _: &Project,
+        snapshot: SnapshotId,
+    ) -> Result<codeskimr_application::rules::RulesReport, CodedError> {
+        let layer = ConfigLayer::parse(LayerSource::Project, RULES).unwrap();
+        let rules = Config::resolve(&[layer]).unwrap().rules;
+        let held = codeskimr_application::rules::Baseline::parse(HELD)?;
+        codeskimr_application::rules::report(&rules, Some(&held), &Refs, snapshot)
+    }
+}
+
 /// The keys of the project: two configuration keys and one translation key.
 pub struct FakeKeys;
 
@@ -1120,6 +1164,7 @@ pub fn tools_annotated(annotations: FakeAnnotations) -> Tools {
             annotations: Arc::new(annotations),
             reports: Arc::new(FakeReports),
             unused: Arc::new(FakeUnused),
+            rules: Arc::new(FakeRules),
             mentions: Arc::new(FakeMentions),
             text: Arc::new(FakeText),
         },

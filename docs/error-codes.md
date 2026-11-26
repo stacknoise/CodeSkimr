@@ -240,3 +240,4 @@ Owner: `codeskimr_application`
 | CHK-104 | `function_too_long` | error | no | 0.1.0 | A function exceeds the configured length. |
 | CHK-105 | `complexity_too_high` | error | no | 0.1.0 | A function exceeds the configured cognitive complexity. |
 | CHK-106 | `too_many_parameters` | error | no | 0.9.0 | A function has more parameters than the configured maximum. |
+| CHK-107 | `rule_violation` | error | no | 1.2.0 | Code breaks an architecture rule of the project. |
