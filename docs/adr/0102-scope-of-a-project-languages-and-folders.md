@@ -1,4 +1,4 @@
-# 0101 – A project can leave out languages and folders (scope)
+# 0102 – A project can leave out languages and folders (scope)
 
 Status: accepted (way A confirmed by the product owner on 2026-11-25, mock 26 chosen on 2026-11-26)
 

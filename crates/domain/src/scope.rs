@@ -1,4 +1,4 @@
-//! What a project covers: the languages and folders that its scans leave out (ADR 0101).
+//! What a project covers: the languages and folders that its scans leave out (ADR 0102).
 //!
 //! The scope lists what is left out, not what is taken, so a language or folder that appears later
 //! is covered without anybody changing the setting. An empty scope covers everything, which is what

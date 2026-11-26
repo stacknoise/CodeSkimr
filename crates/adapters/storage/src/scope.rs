@@ -1,5 +1,5 @@
 //! What a project leaves out of its scans: the `ScopeStore` port and the reading side of
-//! `ProjectRepository::scope` (ADR 0101).
+//! `ProjectRepository::scope` (ADR 0102).
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::ScopeStore;

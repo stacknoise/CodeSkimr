@@ -196,7 +196,7 @@ pub trait ProjectRepository: Send + Sync {
         self.project(id)
     }
 
-    /// What the scans of the project leave out (ADR 0101). The default leaves nothing out.
+    /// What the scans of the project leave out (ADR 0102). The default leaves nothing out.
     ///
     /// # Errors
     /// `PRJ-201` if the project does not exist, otherwise a coded failure of the `STO` group.

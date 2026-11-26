@@ -3,7 +3,7 @@
 
 use codeskimr_application::access;
 use codeskimr_application::annotations::{AnnotationQuery, ContentTexts, annotations};
-use codeskimr_domain::{Annotation, AnnotationKind, AnnotationTarget, Principal};
+use codeskimr_domain::{Annotation, AnnotationKind, AnnotationTarget, Principal, Symbol};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -14,7 +14,7 @@ use crate::error::McpError;
 
 /// One annotation, with only what an agent needs; a field that is empty is left out.
 #[derive(Serialize)]
-struct Item {
+pub(super) struct Item {
     id: u64,
     /// `critical`, `note` or `task`.
     kind: &'static str,
@@ -51,7 +51,7 @@ struct Answer {
     annotations: Vec<Item>,
 }
 
-fn item(annotation: &Annotation) -> Item {
+pub(super) fn item(annotation: &Annotation) -> Item {
     let texts = ContentTexts::from(&annotation.content);
     Item {
         id: annotation.id.get(),
@@ -65,6 +65,15 @@ fn item(annotation: &Annotation) -> Item {
         due: texts.due,
         assignee: texts.assignee,
         without_target: annotation.without_target,
+    }
+}
+
+/// The target that selects the annotations of every overload of `symbol`.
+pub(super) fn target_of(symbol: Symbol) -> AnnotationTarget {
+    AnnotationTarget {
+        kind: symbol.kind,
+        name: symbol.qualified_name,
+        parameters: Vec::new(),
     }
 }
 
@@ -85,14 +94,7 @@ impl Tools {
         let status = optional_label(args.status.as_deref(), ARG_STATUS)?;
         let scope = self.scope(args.project)?;
         let target = match &args.symbol {
-            Some(text) => {
-                let symbol = self.find_symbol(&scope, text)?.symbol;
-                Some(AnnotationTarget {
-                    kind: symbol.kind,
-                    name: symbol.qualified_name,
-                    parameters: Vec::new(),
-                })
-            }
+            Some(text) => Some(target_of(self.find_symbol(&scope, text)?.symbol)),
             None => None,
         };
         let query = AnnotationQuery {

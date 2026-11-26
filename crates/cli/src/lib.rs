@@ -15,15 +15,18 @@ mod level2;
 mod locale;
 mod notes;
 mod parser;
+mod query;
+mod query_text;
 mod render;
 mod scope;
 mod warning;
 
 pub use args::{
     Action, AddAnnotation, AlertsAction, AnnotationFields, AnnotationsAction, ById, CheckArgs,
-    Clears, CodesArgs, CredentialAction, DismissAlerts, ExportArgs, GlobalOptions, Invocation,
-    Level2Action, ListAlerts, ListAnnotations, McpArgs, OpenArgs, PageArgs, Parsed, ProviderChoice,
-    ScanArgs, ScopeArgs, ServeArgs, StartArgs, SymbolArg, UpdateAnnotation,
+    Clears, CodesArgs, ContextQuery, CredentialAction, DismissAlerts, ExportArgs, GlobalOptions,
+    ImpactQuery, Invocation, Level2Action, ListAlerts, ListAnnotations, McpArgs, OpenArgs,
+    PageArgs, Parsed, ProviderChoice, QueryAction, QueryTarget, ScanArgs, ScopeArgs, ServeArgs,
+    StartArgs, SymbolArg, SymbolsQuery, UpdateAnnotation, UsagesQuery,
 };
 pub use check::{check_json, check_text};
 pub use codes::codes_text;
@@ -35,6 +38,7 @@ pub use error::CliError;
 pub use level2::{Level2Line, Level2Reason};
 pub use locale::language_from;
 pub use parser::parse;
+pub use query_text::{QueryKind, query_code_report, query_error_json, query_json, query_text};
 pub use render::{
     ScanSummary, StageLine, TrayLabels, credential_deleted, credential_stored, device_prompt,
     error_line, export_written, open_ready, open_url_warning, scan_finished, scan_json,

@@ -54,6 +54,9 @@ mod open;
 mod principal;
 #[cfg(any(windows, test))]
 mod private_acl;
+mod query_cli;
+#[cfg(test)]
+mod query_cli_tests;
 mod redact;
 mod refresh;
 mod retention;

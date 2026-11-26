@@ -1,4 +1,4 @@
-//! `codeskimr scope` (ADR 0101): the commands `scope.get` and `scope.set` of the registry run as
+//! `codeskimr scope` (ADR 0102): the commands `scope.get` and `scope.set` of the registry run as
 //! the local owner, and their answer is printed as text or, with `--json`, as the JSON the REST
 //! route returns.
 

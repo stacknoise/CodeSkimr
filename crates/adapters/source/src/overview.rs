@@ -1,4 +1,4 @@
-//! A listing of every file of a project folder for the scope page (ADR 0101): the walk of a scan,
+//! A listing of every file of a project folder for the scope page (ADR 0102): the walk of a scan,
 //! without the scope and without reading a file.
 
 use std::path::Path;

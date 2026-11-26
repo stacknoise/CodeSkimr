@@ -48,6 +48,11 @@ max_depth = 5
 # and takes snippets up to this size in bytes.
 default_similarity_percent = 50
 max_snippet_bytes = 32768
+# get_context lists this many callers, dependencies, files and annotations for the budget
+# short, medium and long (never more than max_limit).
+context_items_short = 3
+context_items_medium = 10
+context_items_long = 50
 
 # Snapshot retention (blueprint 6): the last N snapshots per project are kept.
 [snapshots]
@@ -147,7 +152,7 @@ max_memory_mb = 16384
 # Most files that a scan names when it had to leave them out (wrong encoding, parse time limit, not
 # readable); the summary counts the others.
 max_left_out_listed = 20
-# Most entries (languages and folders together) that the scope of one project may leave out (ADR 0101).
+# Most entries (languages and folders together) that the scope of one project may leave out (ADR 0102).
 max_scope_entries = 200
 # The overview of a project's scope lists folders down to this depth (the project folder is depth 0)
 # and at most this many of them; the others are counted.

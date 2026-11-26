@@ -13,6 +13,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
+use codeskimr_application::ids;
 use codeskimr_application::ports::{CodeIndex, ProjectRepository};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandExt, CommandId, Request};
 use codeskimr_codes::ErrorCode;
@@ -113,6 +114,8 @@ struct Project {
 struct Data {
     format: u32,
     snapshot: u64,
+    /// The number of the scan inside the project, shown in the banner.
+    scan_number: u64,
     project: Project,
     outline: Outline,
     symbols: BTreeMap<u64, SymbolOut>,
@@ -316,6 +319,7 @@ impl HtmlExport {
         Ok(Data {
             format: EXPORT_FORMAT,
             snapshot: snapshot.id.get(),
+            scan_number: ids::snapshot_number(snapshot.id),
             project: info,
             outline,
             symbols,

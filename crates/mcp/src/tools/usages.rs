@@ -18,13 +18,13 @@ use crate::error::{CodeReport, McpError};
 
 /// A symbol as one line of an answer.
 #[derive(Serialize)]
-struct Place {
-    id: u64,
-    qualified_name: String,
-    kind: &'static str,
+pub(super) struct Place {
+    pub id: u64,
+    pub qualified_name: String,
+    pub kind: &'static str,
 }
 
-fn place_of(symbol: &Symbol) -> Place {
+pub(super) fn place_of(symbol: &Symbol) -> Place {
     Place {
         id: symbol.id.get(),
         qualified_name: symbol.qualified_name.as_str().to_owned(),
@@ -32,7 +32,7 @@ fn place_of(symbol: &Symbol) -> Place {
     }
 }
 
-fn place(label: &SymbolLabel) -> Place {
+pub(super) fn place(label: &SymbolLabel) -> Place {
     Place {
         id: label.id.get(),
         qualified_name: label.qualified_name.as_str().to_owned(),
@@ -40,9 +40,9 @@ fn place(label: &SymbolLabel) -> Place {
     }
 }
 
+/// Where and how a symbol is used: what both `find_usages` and `get_context` say of a reference.
 #[derive(Serialize)]
-struct Usage {
-    depth: u32,
+pub(super) struct Site {
     kind: &'static str,
     /// `certain` or `probable`; a probable usage is the resolver's best guess.
     confidence: &'static str,
@@ -51,20 +51,33 @@ struct Usage {
     path: String,
     line: u32,
     column: u32,
-    from: Place,
-    to: Place,
 }
 
-fn usage(entry: &UsageEntry) -> Usage {
+pub(super) fn site(entry: &UsageEntry) -> Site {
     let start = entry.reference.span.start();
-    Usage {
-        depth: entry.depth,
+    Site {
         kind: entry.reference.kind.label(),
         confidence: entry.reference.confidence.label(),
         verified: entry.reference.verified,
         path: entry.path.as_str().to_owned(),
         line: start.line + LINE_OFFSET,
         column: start.column + COLUMN_OFFSET,
+    }
+}
+
+#[derive(Serialize)]
+struct Usage {
+    depth: u32,
+    #[serde(flatten)]
+    site: Site,
+    from: Place,
+    to: Place,
+}
+
+fn usage(entry: &UsageEntry) -> Usage {
+    Usage {
+        depth: entry.depth,
+        site: site(entry),
         from: place(&entry.from),
         to: place(&entry.to),
     }
@@ -227,7 +240,7 @@ impl Tools {
             depth.clamped.then_some(depth.value),
         );
         let usages: Vec<Usage> = page.entries.iter().map(usage).collect();
-        let verified = usages.iter().filter(|found| found.verified).count();
+        let verified = usages.iter().filter(|found| found.site.verified).count();
         to_json(&UsagesAnswer {
             snapshot: scope.info,
             symbol: place_of(&found.symbol),

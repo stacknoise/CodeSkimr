@@ -499,7 +499,7 @@ fn register_projects(
     register_scans(registry, catalog, context)
 }
 
-/// The two commands of the scope of a project (ADR 0101).
+/// The two commands of the scope of a project (ADR 0102).
 pub(crate) fn register_scope(
     registry: &mut Registry,
     catalog: &Arc<SqliteStore>,

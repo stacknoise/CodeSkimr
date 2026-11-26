@@ -181,6 +181,12 @@ pub struct McpLimits {
     pub default_similarity_percent: u32,
     /// Largest snippet `find_similar_code` takes, in bytes.
     pub max_snippet_bytes: u32,
+    /// Entries in each list of the answer of `get_context` for the budget `short`.
+    pub context_items_short: u32,
+    /// Entries in each list of the answer of `get_context` for the budget `medium`.
+    pub context_items_medium: u32,
+    /// Entries in each list of the answer of `get_context` for the budget `long`.
+    pub context_items_long: u32,
 }
 
 /// Snapshot retention.
@@ -249,7 +255,7 @@ pub struct Scan {
     /// Most files a scan names when it left them out; the others are only counted.
     pub max_left_out_listed: u32,
     /// Most entries (languages and folders together) that the scope of one project may leave out
-    /// (ADR 0101).
+    /// (ADR 0102).
     pub max_scope_entries: u32,
     /// Depth down to which the overview of a project's scope lists folders; the project folder is
     /// depth 0.

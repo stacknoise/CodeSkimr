@@ -50,7 +50,7 @@ Allows or forbids level 2 (the indexers of ADR 0033, which run the build tools o
 
 ## `codeskimr scope <project>`
 
-Shows the scope of a project (ADR 0101): the languages and folders it leaves out of the scan, with the number of files per language and folder and the project files found in folders. `<project>` is the project id or the folder or Git URL, as for `export`. `--without-language`, `--with-language`, `--without-folder` and `--with-folder` (each may repeat) leave something out or take it back in; `--reset` takes everything back in first. Folders are paths relative to the project root. A change takes effect with the next scan. `--json` prints the answer of the command `scope.get` or `scope.set`. An invalid scope fails with `PRJ-103`.
+Shows the scope of a project (ADR 0102): the languages and folders it leaves out of the scan, with the number of files per language and folder and the project files found in folders. `<project>` is the project id or the folder or Git URL, as for `export`. `--without-language`, `--with-language`, `--without-folder` and `--with-folder` (each may repeat) leave something out or take it back in; `--reset` takes everything back in first. Folders are paths relative to the project root. A change takes effect with the next scan. `--json` prints the answer of the command `scope.get` or `scope.set`. An invalid scope fails with `PRJ-103`.
 
 ## `codeskimr open`
 
@@ -90,6 +90,23 @@ codeskimr export <project> --html <file>
 ```
 
 Writes the explorer, the dependency map, the usages and the search of a scanned project into one self-contained HTML file, without source text (`docs/export.md`). `<project>` is a project id or the folder or Git URL it was scanned from. The export page is the built UI: it is part of the program, and a UI folder (`ui.dir`) that exists is read instead. If the program was built without the UI and there is no folder with the built export page (`npm run build` in `web/`), the command stops with `EXP-201`; a project with more references than `export.max_references` (default 600000) is refused with `EXP-502`, a second export of the same project at the same time with `EXP-501`; an unwritable file is `EXP-601`.
+
+## `codeskimr symbols`, `usages`, `impact` and `context`
+
+```
+codeskimr symbols <query> [--kind KIND] [--limit N] [--project ID|FOLDER] [--json]
+codeskimr usages <symbol> [--direction incoming|outgoing] [--depth N] [--include-tests] [--limit N] [--project ID|FOLDER] [--json]
+codeskimr impact <symbol> [--limit N] [--project ID|FOLDER] [--json]
+codeskimr context <symbol> [--budget short|medium|long] [--project ID|FOLDER] [--json]
+```
+
+The questions of the MCP tools `search_symbols`, `find_usages`, `impact_of_change` and `get_context` (`docs/mcp.md`), asked from the command line, for scripts, CI and agents without MCP (ADR 0099). The commands call the same tools with the same limits (`mcp.default_limit`, `mcp.max_limit`, `mcp.default_depth`, `mcp.max_depth`, `mcp.context_items_*`), so a script and an agent get the same answer. `<symbol>` is an id or a qualified name. The project is the one that was scanned from the current folder, or the one named with `--project` (an id, or the folder or Git URL it was scanned from).
+
+- **Newest scan, no hidden scan.** The commands read the last scan of the project; they never scan by themselves. If a project folder has files that changed, were added or went away since that scan, the answer says so: `"stale": true` in JSON, a closing line in the text. `stale` is `null` if that cannot be told: a Git source, which only a scan updates, or a folder that cannot be read. `null` never means "current"; only `false` does. To find out, the command hashes the files like a scan does, without parsing them.
+- **Text.** One line per hit; `context` shows the symbol, its callers, dependencies, files and notes under headings (a heading is left out when its list is empty). Texts that come from the project lose their control characters. A closing line says if the answer was cut or is preliminary (unchecked usages).
+- **JSON.** The answer of the MCP tool with two more fields: `schema` (the version of the format, now `1`; it grows when a field changes its meaning or goes away) and `stale`. Nothing else is printed to standard output, no colours, no progress.
+- **Failures.** With `--json` a failure is JSON on standard output, `{ "schema": 1, "error": { "code", "description", "params" } }` with the registered code (`MCP-202` for an unknown symbol, `PRJ-201` for a project that is not registered, `MCP-203` for one without a scan, `MCP-101` for an invalid argument), and the exit code is `1`. Without `--json` the failure is the usual `error[CODE]: text` on standard error. A usage error (an unknown option, a `--direction` or `--budget` outside the list) is exit code `2`.
+- **UI.** The counterpart is the explorer, the search and the usages screen; `--json` is an exception of ADR 0092 whose counterpart is the REST interface.
 
 ## `codeskimr annotations` and `codeskimr alerts`
 

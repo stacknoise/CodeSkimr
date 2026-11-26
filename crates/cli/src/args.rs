@@ -64,7 +64,7 @@ pub struct ScanArgs {
     pub name: Option<String>,
 }
 
-/// Arguments of `codeskimr scope`: show the scope of a project, or change it first (ADR 0101).
+/// Arguments of `codeskimr scope`: show the scope of a project, or change it first (ADR 0102).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ScopeArgs {
     /// Id of the project, or the folder or Git URL it was scanned from.
@@ -367,9 +367,100 @@ pub enum AlertsAction {
     DismissAll(DismissAlerts),
 }
 
+/// What every query command takes: the project and the output form.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct QueryTarget {
+    /// Id of the project, or the folder or Git URL it was scanned from; the project of the
+    /// current folder if absent.
+    pub project: Option<String>,
+    /// Print JSON.
+    pub json: bool,
+}
+
+/// Arguments of `codeskimr symbols`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SymbolsQuery {
+    /// Part of the name.
+    pub query: String,
+    /// Only this kind.
+    pub kind: Option<String>,
+    /// Number of hits.
+    pub limit: Option<u32>,
+    /// Project and output.
+    pub target: QueryTarget,
+}
+
+/// Arguments of `codeskimr usages`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UsagesQuery {
+    /// Id or qualified name.
+    pub symbol: String,
+    /// `incoming` or `outgoing`.
+    pub direction: Option<String>,
+    /// Steps of the walk.
+    pub depth: Option<u32>,
+    /// References from tests count.
+    pub include_tests: bool,
+    /// Number of usages.
+    pub limit: Option<u32>,
+    /// Project and output.
+    pub target: QueryTarget,
+}
+
+/// Arguments of `codeskimr impact`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImpactQuery {
+    /// Id or qualified name.
+    pub symbol: String,
+    /// Number of symbols.
+    pub limit: Option<u32>,
+    /// Project and output.
+    pub target: QueryTarget,
+}
+
+/// Arguments of `codeskimr context`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ContextQuery {
+    /// Id or qualified name.
+    pub symbol: String,
+    /// `short`, `medium` or `long`.
+    pub budget: Option<String>,
+    /// Project and output.
+    pub target: QueryTarget,
+}
+
+/// What `codeskimr symbols`, `usages`, `impact` and `context` are asked to do. The limits and
+/// defaults are the configured ones of the MCP tools, so the answers are the same.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum QueryAction {
+    /// Searches symbols by name.
+    Symbols(SymbolsQuery),
+    /// Lists where a symbol is used, or what it uses.
+    Usages(UsagesQuery),
+    /// Lists what a change of a symbol can reach.
+    Impact(ImpactQuery),
+    /// Gives signature, callers, dependencies, files and notes of a symbol.
+    Context(ContextQuery),
+}
+
+impl QueryAction {
+    /// The project and the output form, whichever command it is.
+    #[must_use]
+    pub const fn target(&self) -> &QueryTarget {
+        match self {
+            Self::Symbols(SymbolsQuery { target, .. })
+            | Self::Usages(UsagesQuery { target, .. })
+            | Self::Impact(ImpactQuery { target, .. })
+            | Self::Context(ContextQuery { target, .. }) => target,
+        }
+    }
+}
+
 /// The command to run.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
+    /// `codeskimr symbols`, `usages`, `impact` or `context`.
+    Query(Box<QueryAction>),
     /// `codeskimr annotations`.
     Annotations(Box<AnnotationsAction>),
     /// `codeskimr alerts`.

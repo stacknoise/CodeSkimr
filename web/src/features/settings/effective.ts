@@ -37,6 +37,12 @@ export interface SettingGroup {
 
 const [loaded, setLoaded] = createSignal<EffectiveSettings | null>(null);
 const [failed, setFailed] = createSignal(false);
+const [search, setSearch] = createSignal("");
+
+/** The text the list of effective settings is narrowed to; it comes from the tab bar. */
+export const effectiveSearch = search;
+/** Narrows the list of effective settings. */
+export const setEffectiveSearch = setSearch;
 
 /** The settings as the last call got them; `null` before the first answer. */
 export const effectiveSettings = loaded;

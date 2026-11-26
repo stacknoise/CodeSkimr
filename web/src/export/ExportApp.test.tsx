@@ -20,7 +20,7 @@ beforeEach(() => {
 describe("ExportApp", () => {
   it("says which scan it is and that no usage has been verified", async () => {
     render(() => <ExportApp data={DATA} />);
-    expect(screen.getByText(/Export of demo · scan 4/)).toBeInTheDocument();
+    expect(screen.getByText(/Export of demo · scan 2/)).toBeInTheDocument();
     expect(screen.getByText(/0 verified, 3 unchecked/)).toBeInTheDocument();
     expect(screen.getByText(/source code is not included/)).toBeInTheDocument();
   });

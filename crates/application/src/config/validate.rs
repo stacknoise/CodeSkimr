@@ -232,7 +232,33 @@ fn check_mcp(mcp: &McpLimits) -> Result<(), ConfigError> {
         keys::MCP_DEFAULT_SIMILARITY_PERCENT,
         mcp.default_similarity_percent,
     )?;
-    positive(keys::MCP_MAX_SNIPPET_BYTES, mcp.max_snippet_bytes)
+    positive(keys::MCP_MAX_SNIPPET_BYTES, mcp.max_snippet_bytes)?;
+    check_context_items(mcp)
+}
+
+/// The three budgets of `get_context` are positive, grow from short to long and stay within
+/// `mcp.max_limit`.
+fn check_context_items(mcp: &McpLimits) -> Result<(), ConfigError> {
+    positive(keys::MCP_CONTEXT_ITEMS_SHORT, mcp.context_items_short)?;
+    if mcp.context_items_medium < mcp.context_items_short {
+        return fail(
+            keys::MCP_CONTEXT_ITEMS_MEDIUM,
+            Violation::MustNotBeBelow(keys::MCP_CONTEXT_ITEMS_SHORT),
+        );
+    }
+    if mcp.context_items_long < mcp.context_items_medium {
+        return fail(
+            keys::MCP_CONTEXT_ITEMS_LONG,
+            Violation::MustNotBeBelow(keys::MCP_CONTEXT_ITEMS_MEDIUM),
+        );
+    }
+    if mcp.context_items_long > mcp.max_limit {
+        return fail(
+            keys::MCP_CONTEXT_ITEMS_LONG,
+            Violation::MustNotExceed(keys::MCP_MAX_LIMIT),
+        );
+    }
+    Ok(())
 }
 
 fn check_level2(level2: &Level2) -> Result<(), ConfigError> {

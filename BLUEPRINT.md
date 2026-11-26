@@ -310,7 +310,7 @@ codeskimr/
   - `layer_graph` – the dependency map
   - `type_summary` – the metric strip
 - **Statistics (ADR 0091):** `symbol_statistics` (one row per type and callable with usage counts, measured values, test flag and the place in the order of path and name), `statistics_facets` and `statistics_complexity` (counts per group) and `snapshot_statistics` (which test folders the rows were counted for). Unlike the read models above they are **not** written in the transaction of the snapshot but right after it, in a thread of their own, so that the scan keeps its budget; a snapshot without these rows is valid and gets them at the first question of the statistics screen. A level 2 import deletes the rows of the snapshots it changed.
-- **Scope (ADR 0101):** the tables `scope_languages` and `scope_folders` in the file of the project hold the languages and folders the project leaves out; they are not tied to a snapshot and not touched by retention. An empty scope covers everything.
+- **Scope (ADR 0102):** the tables `scope_languages` and `scope_folders` in the file of the project hold the languages and folders the project leaves out; they are not tied to a snapshot and not touched by retention. An empty scope covers everything.
 - **Retention:** keep the last N snapshots per project (configurable, default from `config/default.toml`).
 - **Annotations (ADR 0068):** the tables `annotation`, `annotation_baseline` and `alert` are not tied to a snapshot and are not touched by retention. A symbol is found again by kind, qualified name and parameter types. Dismissed alerts are kept for `annotations.dismissed_retention_days`.
 - Schema migrations are versioned SQL files in `crates/adapters/storage/migrations/` (one set for the catalog, one for the project files), applied when a file is opened.
@@ -327,7 +327,7 @@ flowchart LR
 | Stage | Responsibility | Parallel |
 |---|---|---|
 | Fetch source | folder: nothing to do; Git: shallow clone or fetch | I/O |
-| Discover files | walk with `.gitignore`, apply the scope of the project (left-out folders are not entered, files of left-out languages are not hashed, ADR 0101), detect language, hash content, skip unchanged files | yes |
+| Discover files | walk with `.gitignore`, apply the scope of the project (left-out folders are not entered, files of left-out languages are not hashed, ADR 0102), detect language, hash content, skip unchanged files | yes |
 | Analyze | Tree-sitter per file, then run the language-pack queries and build symbols and members; the tree never leaves the adapter (ADR 0013) | yes (per file) |
 | Resolve references | map names to symbols (section 9) | yes (per file, after a global symbol table pass) |
 | Compute metrics | LOC, CC, MI, Ce, Ca, instability | yes |
@@ -471,8 +471,9 @@ codeskimr scan <path|git-url>     scan and print a summary (--json for machines,
 codeskimr serve                   start the server without opening a browser
 codeskimr mcp                     MCP over stdio
 codeskimr export <project> --html <file>
-codeskimr scope <project>         show or change the languages and folders a project leaves out (ADR 0101)
+codeskimr scope <project>         show or change the languages and folders a project leaves out (ADR 0102)
 codeskimr check <path>            run the convention checks (for CI)
+codeskimr symbols|usages|impact|context <query|symbol>   the questions of the MCP tools `search_symbols`, `find_usages`, `impact_of_change`, `get_context` for scripts and CI (`--json` with `schema` and `stale`, ADR 0099)
 codeskimr codes [<code>]          list error codes / explain one code
 ```
 
@@ -501,6 +502,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | `get_symbol` | symbol id or qualified name | signature, doc, members, metrics, layer, origin |
 | `find_usages` | symbol, direction, depth, include_tests | references with kind, location, confidence |
 | `impact_of_change` | symbol | affected symbols, layers, public interfaces |
+| `get_context` | symbol, budget? | signature, doc, callers (verified first), dependencies, affected files and annotations in one answer, cut by the budget (ADR 0099) |
 | `get_dependencies` | symbol or namespace, direction | edges with counts and violations |
 | `find_similar_code` | code snippet or symbol | existing functions with similar structure ("does this already exist?") |
 | `find_constants` | query | existing constants, config keys and i18n keys |
@@ -1317,10 +1319,15 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-21 (`docs/error
 - **Provider panel:** name, issuer, client id, client secret (shows only "in keystore"), redirect URI, status, "Test connection".
 - **Group mapping:** claim value to group, note that it is evaluated at every sign-in and never grants admin. Option to switch local password sign-in off.
 
-### B.13 Settings: themes and language (`Themes.dc.html`)
+### B.13 Settings: five tabs (`Themes.dc.html`, `SettingsTabs.html`)
 
-- **Theme cards** (Hell, Petrol, Dunkel) with live miniature preview, name, short description, colour strip and "Select" or "Selected" pill. Option "Follow system setting".
-- **Language** select. Note that theme and language are stored per user.
+The screen has five tabs on top (ADR 0098) and one search field at the end of the tab bar; the search narrows the effective settings and shows that tab.
+
+- **Appearance:** theme cards (Hell, Petrol, Dunkel) with live miniature preview, name, short description, colour strip and "Select" or "Selected" pill; option "Follow system setting". Language select. Note that theme and language are stored per user.
+- **Analysis:** the way to the layer editor; the tools for stage 2 (ADR 0033).
+- **Access:** the Git logins; the editor link (read-only).
+- **Effective settings:** the values with their origin, read-only (mock 22).
+- **Info:** the configuration file that was read and the flags of the start; the way to the error codes. The version stands in the header.
 
 ### B.14 Annotations (`Annotations.dc.html`)
 

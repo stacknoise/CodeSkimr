@@ -17,7 +17,11 @@ pub enum IndexerError {
     OutputTooLarge,
     /// The run used more than `level2.max_memory_mb`.
     #[error("{}", ErrorCode::IndexerMemoryLimit.description())]
-    MemoryLimit,
+    MemoryLimit {
+        /// The end of the console output, after redaction; empty if the watch stopped the run
+        /// and the indexer did not say it ran out of memory itself.
+        excerpt: String,
+    },
     /// The run could not be started, ended with an error or wrote no index.
     #[error("{}", ErrorCode::IndexerFailed.description())]
     Failed {
@@ -55,7 +59,7 @@ impl Coded for IndexerError {
             Self::Unavailable(_) => ErrorCode::IndexerUnavailable,
             Self::Timeout => ErrorCode::IndexerTimeout,
             Self::OutputTooLarge => ErrorCode::IndexerOutputTooLarge,
-            Self::MemoryLimit => ErrorCode::IndexerMemoryLimit,
+            Self::MemoryLimit { .. } => ErrorCode::IndexerMemoryLimit,
             Self::Failed { .. } => ErrorCode::IndexerFailed,
             Self::NotConfirmed(cause) => cause.code(),
             Self::Cancelled => ErrorCode::ScanCancelled,

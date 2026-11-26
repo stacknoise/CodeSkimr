@@ -45,6 +45,8 @@ fn the_page_holds_the_symbols_and_the_usages_of_the_scan() {
     let project = fixture.scanned();
     let data = fixture.data(project);
     assert_eq!(data["format"], 1);
+    // The first scan of a project is scan 1, not the raw id with the project number in it (#747).
+    assert_eq!(data["scan_number"], 1);
     assert_eq!(data["project"]["name"], "app");
     let symbols = data["symbols"].as_object().unwrap();
     let names: Vec<_> = symbols

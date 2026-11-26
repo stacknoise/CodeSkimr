@@ -54,7 +54,7 @@ function Banner(props: { data: ExportData }) {
       <b>
         {t(I18N_KEYS.EXPORT_BANNER, {
           project: project.name,
-          snapshot: props.data.snapshot,
+          snapshot: props.data.scan_number,
           date: date(),
         })}
         {project.commit

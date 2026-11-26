@@ -1,5 +1,5 @@
 //! The commands behind the scope of a project: which languages and folders its scans cover
-//! (ADR 0101). The code stays one project; nothing is loaded twice.
+//! (ADR 0102). The code stays one project; nothing is loaded twice.
 
 use std::sync::Arc;
 
