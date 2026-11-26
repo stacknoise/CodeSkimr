@@ -53,17 +53,6 @@
     gap: var(--space-12);
 }
 
-.search {
-    width: 260px;
-    height: 32px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-button);
-    padding: 0 var(--space-10);
-    background: var(--surface);
-    color: var(--ink);
-    font: 13px var(--font-sans);
-}
-
 .check {
     display: flex;
     align-items: center;

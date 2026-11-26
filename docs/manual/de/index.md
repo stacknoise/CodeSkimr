@@ -35,6 +35,8 @@ Oberfläche und Meldungen gibt es auf Deutsch und Englisch. Die Browser-Oberflä
 
 ## Aussehen der Oberfläche
 
-Es gibt drei Themes: Hell, Petrol (Standard) und Dunkel. Wählen Sie in den Einstellungen; die Karte zeigt eine Live-Vorschau. Beim ersten Start bekommt ein dunkles Betriebssystem das Theme Dunkel.
+Die Einstellungen haben fünf Reiter: Darstellung, Analyse, Zugänge, Wirksame Einstellungen und Info. Das Suchfeld rechts neben den Reitern sucht in den wirksamen Einstellungen.
+
+Es gibt drei Themes: Hell, Petrol (Standard) und Dunkel. Wählen Sie in den Einstellungen im Reiter **Darstellung**; die Karte zeigt eine Live-Vorschau. Beim ersten Start bekommt ein dunkles Betriebssystem das Theme Dunkel.
 
 Theme und Sprache merkt sich **der Server** (Datei `preferences.json` im Datenordner, siehe [Installation](installation.md#wo-die-daten-liegen)), jeder Browser, der dieselbe Installation öffnet, zeigt also dieselbe Wahl. Der Browser behält eine Kopie, damit der erste Bildschirm ohne Anfrage auskommt; hat der Server eine Wahl gespeichert, gilt sie vor der Kopie. Die Datei enthält kein Geheimnis.

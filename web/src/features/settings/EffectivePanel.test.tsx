@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { answer, serve, useServerSession } from "../../tests/commands";
-import { EffectivePanel } from "./EffectivePanel";
+import { ConfigSourcesPanel, EffectivePanel } from "./EffectivePanel";
+import { setEffectiveSearch } from "./effective";
 import type { EffectiveSettings } from "./effective";
 
 const LISTING: EffectiveSettings = {
@@ -18,6 +19,8 @@ const LISTING: EffectiveSettings = {
 };
 
 useServerSession();
+
+beforeEach(() => setEffectiveSearch(""));
 
 async function shown() {
   serve({ "settings.effective": () => answer(LISTING) });
@@ -38,17 +41,19 @@ describe("EffectivePanel", () => {
   });
 
   it("names the file that was read and the flags of the start", async () => {
-    await shown();
+    serve({ "settings.effective": () => answer(LISTING) });
+    render(() => <ConfigSourcesPanel />);
+    await screen.findByText("/home/me/config.toml");
     expect(screen.getByText("/home/me/config.toml")).toBeInTheDocument();
     expect(screen.getByText("--set level2.timeout_seconds=1800")).toBeInTheDocument();
   });
 
   it("narrows the list by search and to the values that differ from the default", async () => {
     await shown();
-    fireEvent.input(screen.getByLabelText("Search a setting …"), { target: { value: "port" } });
-    expect(screen.getByText("server.port")).toBeInTheDocument();
+    setEffectiveSearch("port");
+    expect(await screen.findByText("server.port")).toBeInTheDocument();
     expect(screen.queryByText("scan.max_workers")).toBeNull();
-    fireEvent.input(screen.getByLabelText("Search a setting …"), { target: { value: "" } });
+    setEffectiveSearch("");
     fireEvent.click(screen.getByLabelText("Only values that differ from the default"));
     expect(screen.queryByText("server.port")).toBeNull();
     expect(screen.getByText("3 of 6 settings shown")).toBeInTheDocument();
@@ -74,6 +79,12 @@ describe("EffectivePanel", () => {
   it("says so when the settings cannot be loaded", async () => {
     serve({});
     render(() => <EffectivePanel />);
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+  });
+
+  it("says so on the tab Info when the configuration file cannot be read", async () => {
+    serve({});
+    render(() => <ConfigSourcesPanel />);
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
   });
 });

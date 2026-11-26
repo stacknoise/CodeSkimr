@@ -1316,10 +1316,15 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-21 (`docs/error
 - **Provider panel:** name, issuer, client id, client secret (shows only "in keystore"), redirect URI, status, "Test connection".
 - **Group mapping:** claim value to group, note that it is evaluated at every sign-in and never grants admin. Option to switch local password sign-in off.
 
-### B.13 Settings: themes and language (`Themes.dc.html`)
+### B.13 Settings: five tabs (`Themes.dc.html`, `SettingsTabs.html`)
 
-- **Theme cards** (Hell, Petrol, Dunkel) with live miniature preview, name, short description, colour strip and "Select" or "Selected" pill. Option "Follow system setting".
-- **Language** select. Note that theme and language are stored per user.
+The screen has five tabs on top (ADR 0098) and one search field at the end of the tab bar; the search narrows the effective settings and shows that tab.
+
+- **Appearance:** theme cards (Hell, Petrol, Dunkel) with live miniature preview, name, short description, colour strip and "Select" or "Selected" pill; option "Follow system setting". Language select. Note that theme and language are stored per user.
+- **Analysis:** the way to the layer editor; the tools for stage 2 (ADR 0033).
+- **Access:** the Git logins; the editor link (read-only).
+- **Effective settings:** the values with their origin, read-only (mock 22).
+- **Info:** the configuration file that was read and the flags of the start; the way to the error codes. The version stands in the header.
 
 ### B.14 Annotations (`Annotations.dc.html`)
 
