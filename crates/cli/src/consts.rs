@@ -251,8 +251,10 @@ pub mod arg {
     pub const TO_LAYER: &str = "to_layer";
     /// `{ $stale }`: files that changed since the scan.
     pub const STALE: &str = "stale";
-    /// `{ $reason }`: why level 2 was skipped.
+    /// `{ $reason }`: why level 2 was skipped, or why a symbol counts as unused.
     pub const REASON: &str = "reason";
+    /// `{ $assessment }`: how much "no usage found" says about a symbol.
+    pub const ASSESSMENT: &str = "assessment";
     /// `{ $group }`: the id prefix of the group of an error code.
     pub const GROUP: &str = "group";
     /// `{ $description }`: the English developer description of an error code.
@@ -367,6 +369,20 @@ pub const COMMAND_USAGES: &str = "usages";
 pub const COMMAND_IMPACT: &str = "impact";
 /// Sub-command that gives the context of a symbol in one answer.
 pub const COMMAND_CONTEXT: &str = "context";
+/// Sub-command that lists the symbols without a usage.
+pub const COMMAND_UNUSED: &str = "unused";
+/// Option of `unused`: only symbols of this language.
+pub const ARG_LANGUAGE: &str = "language";
+/// Placeholder shown for the language.
+pub const VALUE_LANGUAGE: &str = "LANGUAGE";
+/// Option of `unused`: only symbols with this assessment.
+pub const ARG_ASSESSMENT: &str = "assessment";
+/// Placeholder shown for the assessment.
+pub const VALUE_ASSESSMENT: &str = "ASSESSMENT";
+/// The assessments the command line accepts.
+pub const ASSESSMENTS: [&str; 3] = ["likely", "public", "approximate"];
+/// The groups of kinds `unused` accepts.
+pub const UNUSED_KINDS: [&str; 3] = ["all", "types", "functions"];
 /// Argument id of the search text of `symbols`.
 pub const ARG_QUERY_TEXT: &str = "query-text";
 /// Placeholder shown for the search text.
@@ -419,6 +435,18 @@ pub mod key {
     pub const SYMBOLS: &str = "symbols";
     /// The symbol of `context`.
     pub const SYMBOL: &str = "symbol";
+    /// The symbols without a usage of `unused`.
+    pub const UNUSED: &str = "unused";
+    /// The symbols the exception list takes out, in `unused`.
+    pub const LEFT_OUT: &str = "left_out";
+    /// The counts of `unused`.
+    pub const COUNTS: &str = "counts";
+    /// The entry of the exception list that takes a symbol out.
+    pub const RULE: &str = "rule";
+    /// Why a symbol counts as unused.
+    pub const REASON: &str = "reason";
+    /// How much "no usage found" says about a symbol.
+    pub const ASSESSMENT: &str = "assessment";
     /// The callers of `context`.
     pub const CALLERS: &str = "callers";
     /// The dependencies of `context`.

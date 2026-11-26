@@ -9,7 +9,8 @@ use codeskimr_codes::i18n::{
     CLI_CONTEXT_CALLERS, CLI_CONTEXT_DEPENDENCIES, CLI_CONTEXT_DEPENDENCY_LINE, CLI_CONTEXT_FILE,
     CLI_CONTEXT_FILES, CLI_CONTEXT_HEAD, CLI_CONTEXT_LAYER, CLI_CONTEXT_NOTE_LINE,
     CLI_CONTEXT_NOTES, CLI_CONTEXT_SIGNATURE, CLI_QUERY_CUT, CLI_QUERY_IMPACT_LINE, CLI_QUERY_NONE,
-    CLI_QUERY_PRELIMINARY, CLI_QUERY_STALE, CLI_QUERY_SYMBOL_LINE, CLI_QUERY_USAGE_LINE,
+    CLI_QUERY_PRELIMINARY, CLI_QUERY_STALE, CLI_QUERY_SYMBOL_LINE, CLI_QUERY_UNUSED_LEFT_OUT,
+    CLI_QUERY_UNUSED_LEFT_OUT_LINE, CLI_QUERY_UNUSED_LINE, CLI_QUERY_USAGE_LINE,
 };
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde_json::{Map, Value};
@@ -30,6 +31,8 @@ pub enum QueryKind {
     Impact,
     /// `context`.
     Context,
+    /// `unused`.
+    Unused,
 }
 
 /// The answer of a tool as the JSON of a command: the fields of the answer plus `schema` (the
@@ -127,16 +130,27 @@ fn entries<'a>(value: &'a Value, name: &str) -> &'a [Value] {
 
 /// A line about a symbol: kind, name, file, id and the step a walk reached it in.
 fn named_line(speak: &Speaker<'_>, message: &str, found: &Value) -> Result<String, I18nError> {
-    speak.say(
-        message,
-        &[
-            (arg::KIND, text(field(found, key::KIND))),
-            (arg::NAME, text(field(found, key::QUALIFIED_NAME))),
-            (arg::PATH, text(field(found, key::PATH))),
-            (arg::ID, count(found, key::ID)),
-            (arg::DEPTH, count(found, key::DEPTH)),
-        ],
-    )
+    let more = [
+        (arg::ID, count(found, key::ID)),
+        (arg::DEPTH, count(found, key::DEPTH)),
+    ];
+    identified_line(speak, message, found, more)
+}
+
+/// A line that starts with what names a symbol (kind, qualified name, file) and adds `more`.
+fn identified_line<const N: usize>(
+    speak: &Speaker<'_>,
+    message: &str,
+    found: &Value,
+    more: [(&'static str, FluentValue<'static>); N],
+) -> Result<String, I18nError> {
+    let mut named = vec![
+        (arg::KIND, text(field(found, key::KIND))),
+        (arg::NAME, text(field(found, key::QUALIFIED_NAME))),
+        (arg::PATH, text(field(found, key::PATH))),
+    ];
+    named.extend(more);
+    speak.say(message, &named)
 }
 
 fn symbol_line(speak: &Speaker<'_>, hit: &Value) -> Result<String, I18nError> {
@@ -189,6 +203,24 @@ fn note_line(speak: &Speaker<'_>, note: &Value) -> Result<String, I18nError> {
             (arg::KIND, text(field(note, key::KIND))),
             (arg::TEXT, text(both.trim().to_owned())),
         ],
+    )
+}
+
+fn unused_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
+    let more = [
+        (arg::ASSESSMENT, text(field(found, key::ASSESSMENT))),
+        (arg::REASON, text(field(found, key::REASON))),
+    ];
+    identified_line(speak, CLI_QUERY_UNUSED_LINE, found, more)
+}
+
+fn left_out_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
+    let reason = field(&child(found, key::RULE), key::REASON);
+    identified_line(
+        speak,
+        CLI_QUERY_UNUSED_LEFT_OUT_LINE,
+        found,
+        [(arg::TEXT, text(reason))],
     )
 }
 
@@ -267,12 +299,35 @@ fn list_lines(
     listed.iter().map(|entry| line(speak, entry)).collect()
 }
 
+/// The symbols without a usage, then those the exception list takes out with their reason.
+fn unused_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<String>, I18nError> {
+    let mut lines = list_lines(speak, (answer, key::UNUSED), unused_line)?;
+    let left_out = entries(answer, key::LEFT_OUT);
+    if !left_out.is_empty() {
+        let numbers = [
+            (arg::SHOWN, FluentValue::from(left_out.len())),
+            (
+                arg::TOTAL,
+                child(&child(answer, key::COUNTS), key::LEFT_OUT)
+                    .as_u64()
+                    .map_or_else(|| FluentValue::from(left_out.len()), FluentValue::from),
+            ),
+        ];
+        lines.push(speak.say(CLI_QUERY_UNUSED_LEFT_OUT, &numbers)?);
+        for entry in left_out {
+            lines.push([LIST_INDENT, left_out_line(speak, entry)?.as_str()].concat());
+        }
+    }
+    Ok(lines)
+}
+
 fn body(speak: &Speaker<'_>, kind: QueryKind, answer: &Value) -> Result<Vec<String>, I18nError> {
     match kind {
         QueryKind::Symbols => list_lines(speak, (answer, key::HITS), symbol_line),
         QueryKind::Usages => list_lines(speak, (answer, key::USAGES), usage_line),
         QueryKind::Impact => list_lines(speak, (answer, key::SYMBOLS), impact_line),
         QueryKind::Context => context_lines(speak, answer),
+        QueryKind::Unused => unused_lines(speak, answer),
     }
 }
 

@@ -2,7 +2,7 @@
 
 use codeskimr_cli::{
     Action, ContextQuery, ImpactQuery, Parsed, QueryAction, QueryKind, QueryTarget, SymbolsQuery,
-    UsagesQuery, parse, query_code_report, query_error_json, query_json, query_text,
+    UnusedQuery, UsagesQuery, parse, query_code_report, query_error_json, query_json, query_text,
 };
 use codeskimr_i18n::Messages;
 use serde_json::{Value, json};
@@ -127,5 +127,70 @@ fn the_text_drops_control_characters_of_names_and_says_when_nothing_was_found() 
         QueryKind::Symbols,
         (&json!({"hits": []}), None),
     );
+    assert_eq!(none.unwrap(), "Nichts gefunden.");
+}
+
+#[test]
+fn unused_reads_its_options_and_refuses_values_outside_its_lists() {
+    assert_eq!(
+        action(&[
+            "codeskimr",
+            "unused",
+            "--kind",
+            "functions",
+            "--language",
+            "csharp",
+            "--assessment",
+            "likely",
+            "--include-tests",
+            "--limit",
+            "3",
+        ]),
+        QueryAction::Unused(UnusedQuery {
+            kind: Some("functions".to_owned()),
+            language: Some("csharp".to_owned()),
+            assessment: Some("likely".to_owned()),
+            include_tests: true,
+            limit: Some(3),
+            target: QueryTarget::default(),
+        })
+    );
+    let messages = Messages::load().unwrap();
+    for arguments in [
+        ["codeskimr", "unused", "--assessment", "dead"],
+        ["codeskimr", "unused", "--kind", "everything"],
+    ] {
+        assert!(parse(arguments.iter().copied(), &messages, "en").is_err());
+    }
+}
+
+#[test]
+fn the_text_of_unused_names_the_reason_and_lists_what_the_exception_list_left_out() {
+    let messages = Messages::load().unwrap();
+    let answer = json!({
+        "counts": {"left_out": 1},
+        "unused": [{
+            "kind": "function", "qualified_name": "Demo.Shop.Hidden", "path": "Shop.cs",
+            "assessment": "likely", "reason": "private"
+        }],
+        "left_out": [{
+            "kind": "function", "qualified_name": "Demo.Shop.Migrate", "path": "Shop.cs",
+            "rule": {"reason": "called by the migration tool"}
+        }]
+    });
+    let text = query_text(&messages, "en", QueryKind::Unused, (&answer, None)).unwrap();
+    assert!(
+        text.contains("Demo.Shop.Hidden  Shop.cs  (likely, private)"),
+        "{text}"
+    );
+    assert!(
+        text.contains("Left out by the exception list (1 of 1):"),
+        "{text}"
+    );
+    assert!(
+        text.contains("because: called by the migration tool"),
+        "{text}"
+    );
+    let none = query_text(&messages, "de", QueryKind::Unused, (&json!({}), None));
     assert_eq!(none.unwrap(), "Nichts gefunden.");
 }

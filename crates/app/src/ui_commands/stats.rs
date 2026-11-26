@@ -27,7 +27,8 @@ use super::consts::{
     STATS_RANKING, STATS_RANKING_DESCRIPTION, STATS_RANKING_TITLE, STATS_TOP,
 };
 use super::rating;
-use super::unused::{self, Judged, Judgement};
+use crate::unused_symbols::rules_of;
+use codeskimr_application::unused::{self as judging, Judged, Judgement};
 
 /// What a ranking sorts by, as the screen names it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -402,7 +403,7 @@ impl StatsPorts {
     /// The exception list of the project (ADR 0101); empty if it has none.
     fn rules(&self, project: u64) -> Result<Vec<UnusedIgnore>, CodedError> {
         let project = self.projects.project(ProjectId::new(project))?;
-        unused::rules_of(&project)
+        rules_of(&project)
     }
 
     /// The symbols without usages of the snapshot, split by the exception list.
@@ -415,7 +416,7 @@ impl StatsPorts {
         let unused = self
             .statistics
             .unused_facts(snapshot.id, query, self.setup())?;
-        Ok(unused::judge(
+        Ok(judging::judge(
             unused,
             &Judgement {
                 include_tests: query.include_tests,
