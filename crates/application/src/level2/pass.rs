@@ -20,7 +20,6 @@ use super::report::{LanguageReport, Level2Outcome, Level2Result, Skipped};
 use super::tally::Tally;
 use crate::cancel::CancelToken;
 use crate::config::Level2;
-use crate::consts::WORKSPACE_SEPARATOR;
 use crate::error::CodedError;
 use crate::events::{Event, EventBus, Level2Progressed};
 use crate::ids::{IdSequence, ProjectIds, project_of_snapshot};
@@ -426,10 +425,9 @@ fn in_workspace(files: &[SourceFile], workspace: Option<&RelativePath>) -> Vec<S
     let Some(folder) = workspace else {
         return files.to_vec();
     };
-    let prefix = [folder.as_str(), ""].join(WORKSPACE_SEPARATOR);
     files
         .iter()
-        .filter(|file| file.path.as_str().starts_with(&prefix))
+        .filter(|file| file.path.is_below(folder))
         .cloned()
         .collect()
 }

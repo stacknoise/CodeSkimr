@@ -17,8 +17,8 @@ use tempfile::TempDir;
 
 use crate::consts::{
     BYTES_PER_MB, EXCERPT_BYTES, HEAP_SHARE_PERCENT, HOME_DIR_NAME, INDEX_FILE_NAME, LOG_CODE,
-    LOG_EXCERPT, LOG_INDEXER, OUTPUT_DIR_PREFIX, PATH_ENV, PATH_SEPARATOR, PERCENT,
-    PLACEHOLDER_HEAP_MB, PROJECT_FILE_WILDCARD, SCRATCH_DIR_NAME, SURVIVED_CODE,
+    LOG_EXCERPT, LOG_INDEXER, OUTPUT_DIR_PREFIX, PATH_ENV, PERCENT, PLACEHOLDER_HEAP_MB,
+    PROJECT_FILE_WILDCARD, SCRATCH_DIR_NAME, SURVIVED_CODE,
 };
 use crate::env::{self, Environment, Folders};
 use crate::error::{FailureReason, IndexerError};
@@ -427,16 +427,18 @@ fn outermost_project_folders(
     let mut checked: HashMap<String, bool> = HashMap::new();
     let mut found: BTreeSet<RelativePath> = BTreeSet::new();
     for file in files {
-        let folders: Vec<&str> = file.as_str().split(PATH_SEPARATOR).collect();
-        let Some((_, parents)) = folders.split_last() else {
-            continue;
-        };
-        for depth in 1..=parents.len() {
-            let folder = parents.iter().take(depth).copied().collect::<Vec<_>>();
-            let key = folder.join(PATH_SEPARATOR);
+        // The folders of the file from the outermost to the innermost.
+        let mut folders: Vec<&Path> = Path::new(file.as_str())
+            .ancestors()
+            .skip(1)
+            .filter(|folder| !folder.as_os_str().is_empty())
+            .collect();
+        folders.reverse();
+        for folder in folders {
+            let key = folder.to_string_lossy().into_owned();
             let holds = *checked
                 .entry(key.clone())
-                .or_insert_with(|| folder_holds(wanted, &root.join(&key)));
+                .or_insert_with(|| folder_holds(wanted, &root.join(folder)));
             if holds {
                 found.extend(RelativePath::new(key).ok());
                 break;

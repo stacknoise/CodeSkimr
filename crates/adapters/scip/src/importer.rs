@@ -9,7 +9,7 @@ use codeskimr_application::ports::{ImportRequest, Imported, ReferenceImporter, S
 use codeskimr_domain::{FolderPath, Reference, RelativePath};
 
 use crate::columns::convert_columns;
-use crate::consts::{FIRST_LINE, MAX_REFERENCES_PER_IMPORT, PATH_JOIN};
+use crate::consts::{FIRST_LINE, MAX_REFERENCES_PER_IMPORT};
 use crate::create::Creation;
 use crate::decode::read_index;
 use crate::mapping::{SnapshotView, import_with_sites};
@@ -57,12 +57,14 @@ fn creation_of<'a>(request: &ImportRequest<'a>) -> Creation<'a> {
 /// Puts the folder of the run in front of every document: the indexer named its files relative
 /// to the folder it ran in, the snapshot names them relative to the project (ADR 0099).
 fn place_in_workspace(index: &mut ScipIndex, workspace: &RelativePath) {
-    for document in &mut index.documents {
-        let joined = [workspace.as_str(), document.path.as_str()].join(PATH_JOIN);
-        if let Ok(path) = RelativePath::new(joined) {
-            document.path = path;
-        }
-    }
+    // A document whose path cannot be placed is dropped, never mapped onto a file of the root.
+    index.documents.retain_mut(|document| {
+        document
+            .path
+            .in_folder(workspace)
+            .map(|path| document.path = path)
+            .is_some()
+    });
 }
 
 impl ReferenceImporter for ScipImporter {

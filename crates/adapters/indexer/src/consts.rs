@@ -124,8 +124,6 @@ pub const KILL_WAIT: Duration = Duration::from_secs(10);
 pub const KILL_POLL: Duration = Duration::from_millis(10);
 /// Value of the log field `code` when a stopped indexer was still running after the kill.
 pub const SURVIVED_CODE: &str = "indexer-survived-kill";
-/// Separates the folders of a project-relative path.
-pub const PATH_SEPARATOR: &str = "/";
 /// Start of a project file name that matches any prefix (`*.sln`).
 pub const PROJECT_FILE_WILDCARD: char = '*';
 /// Placeholder in a `memory_env` value of a pack: the heap share of the memory limit, in megabytes.
