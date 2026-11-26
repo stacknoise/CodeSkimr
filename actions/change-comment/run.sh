@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Scans base and head of a pull request and upserts one comment with the change impact.
-# Draft: the exact CLI arguments are checked when `codeskimr change --markdown` has landed.
 set -euo pipefail
 
 marker='<!-- codeskimr-change -->'
@@ -21,11 +20,8 @@ git checkout --quiet "$CS_HEAD_SHA"
 "$cs" scan .
 
 body="$work/comment.md"
-"$cs" change . --markdown --lang "$CS_LANG" > "$body"
+CODESKIMR_LANG="$CS_LANG" "$cs" change . --markdown > "$body"
 
-if [ "${CS_FAIL_ON}" != none ]; then
-  "$cs" change . --json > "$work/change.json"
-fi
 
 comment_id=$(gh api "repos/${CS_REPO}/issues/${CS_PR}/comments" --paginate \
   --jq "map(select(.body | startswith(\"${marker}\"))) | first | .id // empty")
@@ -36,3 +32,16 @@ elif [ -n "$comment_id" ]; then
 else
   gh api -X POST "repos/${CS_REPO}/issues/${CS_PR}/comments" -F "body=@${body}" > /dev/null
 fi
+
+case "$CS_FAIL_ON" in
+  none) ;;
+  new-layer-violation | new-cycle)
+    field="new_violations"; [ "$CS_FAIL_ON" = new-cycle ] && field="new_cycles"
+    count=$("$cs" change . --json | jq ".layers.${field} | length")
+    if [ "$count" -gt 0 ]; then
+      echo "::error::CodeSkimr found ${count} ${CS_FAIL_ON} in this pull request."
+      exit 1
+    fi
+    ;;
+  *) echo "::error::Unknown fail-on value: ${CS_FAIL_ON}"; exit 2 ;;
+esac

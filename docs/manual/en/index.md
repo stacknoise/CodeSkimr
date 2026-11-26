@@ -16,6 +16,7 @@ Everything runs on your machine. The server only listens on `127.0.0.1`; your co
 | Notes, tasks, critical marks | mark symbols as critical, write notes, track tasks, get alerts when a critical symbol changes | [Notes, tasks and critical marks](annotations.md) |
 | Language indexers (level 2) | make usages exact by letting the language's own tool check them; off by default | [Language indexers](indexers.md) |
 | MCP server | give code agents the same knowledge | [MCP setup](mcp.md) |
+| Pull request comment | the impact of a change in every pull request | [PR comment](pr-comment.md) |
 | Sources and credentials | scan private Git repositories without putting secrets anywhere | [Sources and credentials](sources-and-credentials.md) |
 | HTML export | one self-contained file of a project for people without CodeSkimr | [HTML export](export.md) |
 | Error codes | what a code such as `SRC-401` means and what to do | [Error codes](errors.md) |

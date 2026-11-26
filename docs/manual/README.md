@@ -16,6 +16,7 @@ CodeSkimr scannt Code-Repositories und macht sie als Dokumentation navigierbar: 
 | Notes, tasks, critical marks / Notizen, Aufgaben, kritische Markierungen | [en/annotations.md](en/annotations.md) | [de/anmerkungen.md](de/anmerkungen.md) |
 | Language indexers / Sprach-Indexer | [en/indexers.md](en/indexers.md) | [de/indexer.md](de/indexer.md) |
 | MCP setup / MCP einrichten | [en/mcp.md](en/mcp.md) | [de/mcp.md](de/mcp.md) |
+| PR comment / PR-Kommentar | [en/pr-comment.md](en/pr-comment.md) | [de/pr-comment.md](de/pr-comment.md) |
 | Sources and credentials / Quellen und Zugangsdaten | [en/sources-and-credentials.md](en/sources-and-credentials.md) | [de/quellen-und-zugangsdaten.md](de/quellen-und-zugangsdaten.md) |
 | HTML export / HTML-Export | [en/export.md](en/export.md) | [de/export.md](de/export.md) |
 | Error codes / Fehlercodes | [en/errors.md](en/errors.md) | [de/fehler.md](de/fehler.md) |
