@@ -4,7 +4,9 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use codeskimr_application::config::{Config, ConfigLayer, LayerSource, PROJECT_CONFIG_FILE, Rules};
+use codeskimr_application::config::{
+    Config, ConfigLayer, CycleRule, LayerSource, PROJECT_CONFIG_FILE, Rules,
+};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_application::rules::{BASELINE_FILE, Baseline, Outcome, report};
@@ -198,10 +200,11 @@ impl Command for RulesShow {
     fn execute(&self, request: Request<'_, Self>) -> Result<RulesOut, CodedError> {
         let (project, snapshot) = self.ports.project_and_newest(request.input.project)?;
         let (rules, baseline) = files_of(&project.source)?;
+        let cycles = rules.cycles == CycleRule::Deny;
         let Some(snapshot) = snapshot else {
             return Ok(RulesOut {
                 scanned: false,
-                cycles: false,
+                cycles,
                 held_on: None,
                 rules: Vec::new(),
                 resolved: 0,
@@ -223,7 +226,7 @@ impl Command for RulesShow {
             .collect();
         Ok(RulesOut {
             scanned: true,
-            cycles: rules.cycles == codeskimr_application::config::CycleRule::Deny,
+            cycles,
             held_on: answer.held_on.clone(),
             old: answer.old_burdens(),
             new: answer.new_violations(),

@@ -2,12 +2,28 @@
 
 use std::fs;
 
+use std::num::NonZeroU32;
+
+use codeskimr_domain::{FolderPath, Project, ProjectId, ProjectName, ProjectSource};
+use codeskimr_storage::SqliteStore;
 use serde_json::{Value, json};
 
 use super::stats_tests::project;
 use super::tests::Fixture;
 
 const FORBID: &str = "[[rules.forbid]]\nfrom = \"Demo.Shop\"\nto = \"Demo.Calculator\"\nreason = \"shop must not count\"\n\n[[rules.forbid]]\nfrom = \"Demo.Calculator\"\nto = \"Demo.Shop\"\n";
+
+/// A scanned project whose project file holds `rules`.
+fn with_rules(rules: &str) -> (Fixture, u64) {
+    let fixture = Fixture::installed(None);
+    let id = project(&fixture);
+    fs::write(
+        fixture.root.path().join("app").join(".codeskimr.toml"),
+        rules,
+    )
+    .unwrap();
+    (fixture, id)
+}
 
 fn show(fixture: &Fixture, id: u64) -> Value {
     fixture
@@ -17,10 +33,7 @@ fn show(fixture: &Fixture, id: u64) -> Value {
 
 #[test]
 fn a_forbidden_use_is_shown_with_every_place_and_a_kept_rule_has_none() {
-    let fixture = Fixture::installed(None);
-    let id = project(&fixture);
-    let app = fixture.root.path().join("app");
-    fs::write(app.join(".codeskimr.toml"), FORBID).unwrap();
+    let (fixture, id) = with_rules(FORBID);
     let answer = show(&fixture, id);
     assert_eq!(answer["scanned"], true);
     assert_eq!(
@@ -52,10 +65,8 @@ fn a_forbidden_use_is_shown_with_every_place_and_a_kept_rule_has_none() {
 
 #[test]
 fn a_held_state_makes_the_violation_an_old_burden() {
-    let fixture = Fixture::installed(None);
-    let id = project(&fixture);
+    let (fixture, id) = with_rules(FORBID);
     let app = fixture.root.path().join("app");
-    fs::write(app.join(".codeskimr.toml"), FORBID).unwrap();
     let held = "held_on = \"2026-11-26\"\n\n[[entries]]\nrule = \"forbid:Demo.Shop>Demo.Calculator\"\nfrom = \"Demo.Shop.Total\"\nto = \"Demo.Calculator.Add\"\n\n[[entries]]\nrule = \"forbid:Demo.Shop>Demo.Calculator\"\nfrom = \"Demo.Shop.Gone\"\nto = \"Demo.Calculator.Add\"\n";
     fs::write(app.join(".codeskimr-baseline.toml"), held).unwrap();
     let answer = show(&fixture, id);
@@ -70,16 +81,38 @@ fn a_held_state_makes_the_violation_an_old_burden() {
 }
 
 #[test]
-fn a_project_without_rules_shows_none_and_a_broken_file_fails() {
+fn a_project_without_rules_shows_none() {
     let fixture = Fixture::installed(None);
     let id = project(&fixture);
     assert_eq!(show(&fixture, id)["rules"], json!([]));
+}
+
+#[test]
+fn a_broken_project_file_or_held_state_fails_with_its_code() {
+    let (fixture, id) = with_rules("[[rules.forbid]]\nfrom = \"A\"\nto = \"A.B\"\n");
+    let call = || fixture.call("rules.show", json!({ "project": id }));
+    assert_eq!(call(), Err("CFG-101"));
     let app = fixture.root.path().join("app");
-    fs::write(
-        app.join(".codeskimr.toml"),
-        "[[rules.forbid]]\nfrom = \"A\"\nto = \"A.B\"\n",
-    )
-    .unwrap();
-    let failed = fixture.call("rules.show", json!({ "project": id }));
-    assert!(failed.is_err(), "{failed:?}");
+    fs::write(app.join(".codeskimr.toml"), FORBID).unwrap();
+    fs::write(app.join(".codeskimr-baseline.toml"), "held_on = [").unwrap();
+    assert_eq!(call(), Err("CFG-102"));
+}
+
+#[test]
+fn a_project_without_a_scan_is_not_judged_but_says_whether_cycles_are_denied() {
+    let fixture = Fixture::installed(None);
+    let app = fixture.root.path().join("app");
+    fs::write(app.join(".codeskimr.toml"), "[rules]\ncycles = \"deny\"\n").unwrap();
+    let store = SqliteStore::open(&fixture.locations.database(), NonZeroU32::MIN).unwrap();
+    let project = Project {
+        id: ProjectId::new(7),
+        name: ProjectName::new("fresh").unwrap(),
+        source: ProjectSource::Folder(FolderPath::new(&fixture.folder()).unwrap()),
+        layers: Vec::new(),
+    };
+    store.save_project(&project).unwrap();
+    let answer = show(&fixture, 7);
+    assert_eq!(answer["scanned"], false);
+    assert_eq!(answer["cycles"], true);
+    assert_eq!(answer["rules"], json!([]));
 }
