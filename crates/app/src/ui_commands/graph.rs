@@ -206,7 +206,7 @@ fn boxes_out(map: &LayerMap, look: &Graph) -> Vec<BoxOut> {
 
 /// The stripes behind the rows: one per layer that owns a box, as high as its boxes plus half
 /// the gap between rows above and below.
-fn bands_out(layers: &[Layer], boxes: &[BoxOut], look: &Graph) -> Vec<BandOut> {
+pub(super) fn bands_out(layers: &[Layer], boxes: &[BoxOut], look: &Graph) -> Vec<BandOut> {
     let pad = look.rank_gap / BAND_PAD_DIVISOR;
     layers
         .iter()

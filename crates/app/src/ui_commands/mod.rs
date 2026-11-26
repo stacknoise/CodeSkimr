@@ -19,6 +19,7 @@ mod export;
 mod export_tests;
 mod graph;
 mod graph_focus;
+mod graph_modules;
 mod graph_types;
 mod graph_wrap;
 mod indexers;
@@ -115,6 +116,7 @@ use credentials::{DeleteCredential, ListCredentials, SetCredential};
 use explorer::{ExplorerOutline, ExplorerPorts};
 pub(crate) use export::{ExportInput, HtmlExport};
 use graph::{GraphLayers, GraphPorts};
+use graph_modules::GraphModules;
 use indexers::ListIndexers;
 use layers::{LayersGet, LayersSet};
 use level2::Level2StatusCommand;
@@ -482,6 +484,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<DeleteCredential>()?;
     expose_index_views(api)?;
     api.expose::<GraphLayers>()?;
+    api.expose::<GraphModules>()?;
     expose_project_file(api)?;
     api.expose::<StatusInfo>()?;
     api.expose::<StatsOverview>()?;
@@ -710,12 +713,14 @@ fn register_graph(
     store: &Arc<SqliteStore>,
     look: Graph,
 ) -> Result<(), CodedError> {
+    let ports = graph_ports(store, look);
     add(
         registry,
         GraphLayers {
-            ports: graph_ports(store, look),
+            ports: Arc::clone(&ports),
         },
-    )
+    )?;
+    add(registry, GraphModules { ports })
 }
 
 fn register_explorer(

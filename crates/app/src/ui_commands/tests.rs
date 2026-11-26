@@ -164,7 +164,7 @@ impl Fixture {
 }
 
 /// Every command of the registry, in the order the API lists them.
-const COMMAND_IDS: [&str; 52] = [
+const COMMAND_IDS: [&str; 53] = [
     "alerts.dismiss",
     "alerts.dismiss_all",
     "alerts.list",
@@ -184,6 +184,7 @@ const COMMAND_IDS: [&str; 52] = [
     "explorer.symbol",
     "export.html",
     "graph.layers",
+    "graph.modules",
     "layers.get",
     "layers.set",
     "level2.revoke",
@@ -553,6 +554,7 @@ fn a_token_without_the_read_right_is_refused() {
         "explorer.source",
         "explorer.symbol",
         "graph.layers",
+        "graph.modules",
         "search.query",
         "stats.overview",
         "stats.ranking",
@@ -1380,4 +1382,69 @@ fn a_rename_preview_refuses_a_bad_name_and_a_caller_without_the_right_to_read() 
     }
     let refused = fixture.call_as(principal::nobody(), "rename.preview", input);
     assert_eq!(refused.unwrap_err(), "AUTH-401");
+}
+
+const RING_UI: &str = "using Demo.Core;\n\nnamespace Demo.Ui;\n\npublic class Screen\n{\n    public int Show() { Engine engine = new Engine(); return engine.Run(); }\n    public int Title() { return 1; }\n}\n";
+const RING_CORE: &str = "using Demo.Ui;\n\nnamespace Demo.Core;\n\npublic class Engine\n{\n    public int Run() { Screen screen = new Screen(); return screen.Title(); }\n}\n";
+const RING_RULES: &str = "[[layers]]\nname = \"ui\"\nnamespaces = [\"Demo.Ui\"]\nmay_use = [\"core\"]\n\n[[layers]]\nname = \"core\"\nnamespaces = [\"Demo.Core\"]\nmay_use = []\n";
+
+/// The answer of `graph.modules` for two namespaces that use each other.
+fn module_map(extra: &serde_json::Value) -> serde_json::Value {
+    let fixture = Fixture::new();
+    let app = fixture.root.path().join("app");
+    fs::write(app.join("Screen.cs"), RING_UI).unwrap();
+    fs::write(app.join("Engine.cs"), RING_CORE).unwrap();
+    fs::write(app.join(".codeskimr.toml"), RING_RULES).unwrap();
+    let mut input = json!({ "project": added(&fixture) });
+    input
+        .as_object_mut()
+        .unwrap()
+        .extend(extra.as_object().unwrap().clone());
+    fixture.call("graph.modules", input).unwrap()
+}
+
+#[test]
+fn the_module_map_lists_the_modules_with_their_coupling_and_layer() {
+    let map = module_map(&json!({}));
+    assert!(map["snapshot"].is_u64());
+    let rows = map["modules"].as_array().unwrap();
+    let ui = rows.iter().find(|row| row["name"] == "Demo.Ui").unwrap();
+    assert_eq!(ui["layer"], "ui");
+    assert!(ui["incoming"].as_u64().unwrap() > 0);
+    assert!(ui["outgoing"].as_u64().unwrap() > 0);
+    assert!(ui["stability"].is_u64());
+    assert_eq!(ui["in_cycle"], true);
+    assert_eq!(map["modules_more"], 0);
+    let boxes = map["boxes"].as_array().unwrap();
+    assert_eq!(boxes.len(), rows.len());
+    assert!(boxes.iter().any(|one| one["name"] == "Demo.Core"));
+}
+
+#[test]
+fn the_module_map_names_the_cycle_the_edge_that_ends_it_and_the_layer_violation() {
+    let map = module_map(&json!({}));
+    let cycles = map["cycles"].as_array().unwrap();
+    assert_eq!(cycles.len(), 1);
+    assert_eq!(cycles[0]["modules"], json!(["Demo.Core", "Demo.Ui"]));
+    assert_eq!(cycles[0]["resolution"].as_array().unwrap().len(), 1);
+    let violations = map["violations"].as_array().unwrap();
+    assert_eq!(violations.len(), 1);
+    assert_eq!(violations[0]["edge"]["from"], "Demo.Core");
+    assert_eq!(violations[0]["from_layer"], "core");
+    assert_eq!(violations[0]["to_layer"], "ui");
+    let links = map["links"].as_array().unwrap();
+    assert!(links.iter().all(|link| link["in_cycle"] == true));
+    assert!(links.iter().any(|link| link["violates_layering"] == true));
+}
+
+#[test]
+fn the_module_map_of_a_project_without_a_scan_is_empty() {
+    let fixture = Fixture::new();
+    let unscanned = fixture.register_unscanned();
+    let map = fixture
+        .call("graph.modules", json!({ "project": unscanned }))
+        .unwrap();
+    assert!(map["snapshot"].is_null());
+    assert_eq!(map["modules"], json!([]));
+    assert_eq!(map["cycles"], json!([]));
 }
