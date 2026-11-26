@@ -515,6 +515,16 @@ fn the_size_of_a_graph_box_must_be_positive() {
             "graph.row_boxes",
             Violation::MustBePositive,
         ),
+        (
+            "[graph]\nrisk_max = 0\n",
+            "graph.risk_max",
+            Violation::MustBePositive,
+        ),
+        (
+            "[graph]\nmax_modules = 0\n",
+            "graph.max_modules",
+            Violation::MustBePositive,
+        ),
     ]);
 }
 

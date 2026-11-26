@@ -192,12 +192,7 @@ fn violation_out(
 /// The modules the picture and the table keep: the `max` with the most references, by position.
 fn kept(graph: &NamespaceGraph, coupling: &[ModuleCoupling], max: usize) -> Vec<usize> {
     let mut all: Vec<usize> = (0..graph.namespaces.len()).collect();
-    let weight = |at: &usize| {
-        coupling
-            .get(*at)
-            .map_or(0, |one| u64::from(one.incoming) + u64::from(one.outgoing))
-    };
-    all.sort_by_key(|at| (std::cmp::Reverse(weight(at)), *at));
+    all.sort_by_key(|&at| (std::cmp::Reverse(weight(coupling, at)), at));
     all.truncate(max);
     all.sort_unstable();
     all
@@ -389,6 +384,20 @@ impl Command for GraphModules {
     }
 }
 
+/// How many references a module has with all others, both directions.
+fn weight(coupling: &[ModuleCoupling], at: usize) -> u64 {
+    coupling.get(at).map_or(0, |one| {
+        u64::from(one.incoming).saturating_add(u64::from(one.outgoing))
+    })
+}
+
+/// The table rows of the kept modules, the most referenced first.
+fn rows_of(facts: &Facts<'_>, shown: &[usize]) -> Vec<ModuleRow> {
+    let mut order: Vec<usize> = shown.to_vec();
+    order.sort_by_key(|&at| (std::cmp::Reverse(weight(facts.coupling, at)), at));
+    order.iter().filter_map(|&at| row_of(facts, at)).collect()
+}
+
 fn answer(
     ports: &GraphPorts,
     graph: &NamespaceGraph,
@@ -410,14 +419,9 @@ fn answer(
     let max = usize::try_from(ports.look.max_modules).unwrap_or(usize::MAX);
     let shown = kept(graph, &coupling, max);
     let (boxes, links, size) = picture(ports, &facts, &shown, &rings)?;
-    let mut rows: Vec<ModuleRow> = shown.iter().filter_map(|&at| row_of(&facts, at)).collect();
-    rows.sort_by(|a, b| {
-        (a.incoming + a.outgoing)
-            .cmp(&(b.incoming + b.outgoing))
-            .reverse()
-    });
     let bands = bands_out(layers, &boxes, &ports.look);
     let reach = bands.iter().map(|band| band.y + band.height).max();
+    let left_out = graph.namespaces.len().saturating_sub(shown.len());
     Ok(ModulesOut {
         snapshot: None,
         width: size.width,
@@ -425,8 +429,8 @@ fn answer(
         boxes,
         bands,
         links,
-        modules: rows,
-        modules_more: u32::try_from(graph.namespaces.len() - shown.len()).unwrap_or(u32::MAX),
+        modules: rows_of(&facts, &shown),
+        modules_more: u32::try_from(left_out).unwrap_or(u32::MAX),
         cycles: rings.iter().map(|ring| cycle_out(graph, ring)).collect(),
         violations: violations
             .iter()
@@ -434,4 +438,53 @@ fn answer(
             .collect(),
         risks: risks_out(graph, &coupling, &ports.look.risk_limits()),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use codeskimr_domain::{NamespaceNode, QualifiedName};
+
+    use super::*;
+
+    fn graph(count: usize, edges: &[(usize, usize, u32)]) -> NamespaceGraph {
+        NamespaceGraph {
+            namespaces: (0..count)
+                .map(|at| NamespaceNode {
+                    name: QualifiedName::new(format!("M{at}")).unwrap(),
+                    types: 1,
+                })
+                .collect(),
+            edges: edges
+                .iter()
+                .map(|&(from, to, count)| NamespaceEdge { from, to, count })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn the_kept_modules_are_the_most_referenced_ones_in_graph_order() {
+        let all = graph(4, &[(0, 1, 1), (2, 1, 9), (2, 3, 4)]);
+        let coupling = module_coupling(&all);
+        assert_eq!(kept(&all, &coupling, 2), [1, 2]);
+        assert_eq!(kept(&all, &coupling, 10), [0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn a_cut_leaves_the_rings_and_the_rows_of_the_rest_alone() {
+        let all = graph(3, &[(0, 1, 5), (1, 0, 4), (2, 0, 1)]);
+        let coupling = module_coupling(&all);
+        let rings = find_cycles(&all);
+        let facts = Facts {
+            graph: &all,
+            layers: &[],
+            coupling: &coupling,
+            ring_members: rings.iter().flat_map(|r| r.modules.clone()).collect(),
+            violations: &[],
+        };
+        let rows = rows_of(&facts, &kept(&all, &coupling, 2));
+        let names: Vec<&str> = rows.iter().map(|row| row.name.as_str()).collect();
+        assert_eq!(names, ["M0", "M1"]);
+        assert!(rows.iter().all(|row| row.in_cycle));
+        assert_eq!(rings.len(), 1);
+    }
 }
