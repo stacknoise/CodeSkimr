@@ -54,6 +54,7 @@ mod symbol;
 mod temp_file;
 #[cfg(test)]
 pub(crate) mod tests;
+mod ui_settings;
 mod unused;
 #[cfg(test)]
 mod unused_tests;
@@ -84,6 +85,7 @@ use crate::level2_runs::Level2Runs;
 use crate::locations::Locations;
 use crate::running::RunningScans;
 use crate::scan::BrowserRun;
+use crate::ui_settings::UiSettingsFile;
 use crate::wiring::{Secrets, index_runner, indexer_check, tool_checker};
 pub(crate) use alerts::{
     AlertListInput, AlertListOut, AlertsDismiss, AlertsDismissAll, AlertsList, DismissAllInput,
@@ -119,6 +121,7 @@ use source::ExplorerSource;
 use stats::{StatsOverview, StatsPorts, StatsRanking};
 use status::{BudgetTargets, StatusInfo};
 use symbol::ExplorerSymbol;
+use ui_settings::{GetUiSettings, SetIndexerMemory};
 use usages::{UsagesPorts, UsagesQuery};
 use usages_code::UsagesCode;
 
@@ -306,6 +309,7 @@ fn register_views(
     add(registry, status_info(config))?;
     register_explorer(registry, catalog, config.metrics.clone(), locations)?;
     register_preferences(registry, locations)?;
+    register_ui_settings(registry, locations)?;
     add(registry, effective_settings(locations, global)?)?;
     add(registry, export_command(catalog, config, locations))
 }
@@ -401,6 +405,13 @@ fn register_preferences(registry: &mut Registry, locations: &Locations) -> Resul
     add(registry, SetPreferences { file })
 }
 
+/// The two commands that keep the settings the UI saves in the data folder (ADR 0103).
+fn register_ui_settings(registry: &mut Registry, locations: &Locations) -> Result<(), CodedError> {
+    let file = UiSettingsFile::in_dir(&locations.data_dir);
+    add(registry, GetUiSettings { file: file.clone() })?;
+    add(registry, SetIndexerMemory { file })
+}
+
 /// Registers one command, with the registry's refusal as a coded failure.
 fn add<C: Command>(registry: &mut Registry, command: C) -> Result<(), CodedError> {
     registry.register(command).map_err(CodedError::caused_by)
@@ -438,6 +449,8 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<StatsRanking>()?;
     api.expose::<GetPreferences>()?;
     api.expose::<SetPreferences>()?;
+    api.expose::<GetUiSettings>()?;
+    api.expose::<SetIndexerMemory>()?;
     api.expose::<EffectiveSettings>()?;
     api.expose::<HtmlExport>()?;
     expose_annotations(api)

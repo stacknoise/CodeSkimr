@@ -56,6 +56,9 @@ pub enum Level2Outcome {
         dropped: u64,
         /// Of the dropped uses, those of code in folders the scan skipped (ADR 0061).
         outside_scan: u64,
+        /// Workspaces whose run or import failed while others of the same indexer ran through;
+        /// their files keep level 1 (ADR 0100).
+        failed_workspaces: u64,
     },
     /// Level 2 did not run or was not used.
     Skipped(Skipped),

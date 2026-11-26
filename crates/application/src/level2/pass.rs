@@ -276,7 +276,7 @@ impl Level2Pass {
                     tally.cancel();
                     break;
                 }
-                Err(reason) => tally.failed(reason, mine.len()),
+                Err(reason) => tally.failed(reason),
             }
         }
         tally.outcome()
@@ -415,6 +415,7 @@ impl Level2Pass {
             mapped: imported.mapped,
             dropped: imported.dropped,
             outside_scan: imported.outside_scan,
+            failed_workspaces: 0,
         };
         Ok((checked, fresh))
     }
