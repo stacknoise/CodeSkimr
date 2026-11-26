@@ -31,3 +31,32 @@ pub trait ReferenceSites: Send + Sync {
         files: &[RelativePath],
     ) -> Result<Vec<ReferenceSite>, CodedError>;
 }
+
+/// One place where a symbol refers to another: the line of the reference, not the declaration
+/// of the referring symbol (ADR 0104).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReferencePlace {
+    /// File that holds the reference.
+    pub path: RelativePath,
+    /// Range of the reference, zero-based.
+    pub span: Span,
+    /// The referring symbol.
+    pub from: QualifiedName,
+    /// The symbol it refers to.
+    pub to: QualifiedName,
+}
+
+/// Every certain reference of a snapshot, one after the other, so that a rule can look at them
+/// without holding millions of them (adapter: `codeskimr_storage`).
+pub trait ReferencePlaces: Send + Sync {
+    /// Hands each certain reference that is not of kind `test` and does not match several
+    /// symbols (the filter of the layer graph) to `visit`.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn for_each_reference(
+        &self,
+        snapshot: SnapshotId,
+        visit: &mut dyn FnMut(ReferencePlace),
+    ) -> Result<(), CodedError>;
+}

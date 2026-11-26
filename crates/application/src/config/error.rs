@@ -55,6 +55,9 @@ pub enum Violation {
     MustBeLayerRule,
     /// An entry of the exception list needs a reason and at least one path or symbol pattern.
     MustBeUnusedIgnore,
+    /// An architecture rule needs valid prefixes: a `forbid` rule two that do not contain each
+    /// other, a `public_api` rule a module and an inside below it.
+    MustBeArchitectureRule,
 }
 
 /// Errors that loading or validating the configuration can produce.

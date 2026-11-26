@@ -1,6 +1,8 @@
 //! Tests of the configuration: defaults, override chain and validation (blueprint section 14).
 
-use codeskimr_application::config::{Config, ConfigError, ConfigLayer, LayerSource, Violation};
+use codeskimr_application::config::{
+    Config, ConfigError, ConfigLayer, CycleRule, LayerSource, Violation,
+};
 use codeskimr_codes::{Coded, ErrorCode};
 
 fn user(text: &str) -> ConfigLayer {
@@ -743,4 +745,34 @@ fn an_exception_needs_a_reason_and_a_pattern() {
             Violation::MustBeUnusedIgnore,
         ),
     ]);
+}
+
+#[test]
+fn the_project_file_holds_architecture_rules() {
+    let defaults = Config::defaults().expect("defaults");
+    assert_eq!(defaults.rules.cycles, CycleRule::Off);
+    assert_eq!(defaults.rules.forbid.len(), 0);
+    let text = "[rules]\ncycles = \"deny\"\n\n[[rules.forbid]]\nfrom = \"A.Reports\"\nto = \"A.Checkout\"\nreason = \"split\"\n\n[[rules.public_api]]\nmodule = \"A.Data\"\ninternal = [\"A.Data.Internal\"]\n";
+    let config = Config::resolve(&[project(text)]).expect("valid rules");
+    assert_eq!(config.rules.cycles, CycleRule::Deny);
+    assert_eq!(config.rules.forbid[0].reason.as_deref(), Some("split"));
+    assert_eq!(config.rules.public_api[0].internal, ["A.Data.Internal"]);
+}
+
+#[test]
+fn an_architecture_rule_needs_valid_prefixes_that_make_sense() {
+    let bad = [
+        "[[rules.forbid]]\nfrom = \"A\"\nto = \"A.B\"\n",
+        "[[rules.forbid]]\nfrom = \"A.B\"\nto = \"A.B\"\n",
+        "[[rules.forbid]]\nfrom = \"\"\nto = \"A\"\n",
+        "[[rules.public_api]]\nmodule = \"A\"\ninternal = []\n",
+        "[[rules.public_api]]\nmodule = \"A\"\ninternal = [\"A\"]\n",
+        "[[rules.public_api]]\nmodule = \"A\"\ninternal = [\"B.Inner\"]\n",
+    ];
+    let cases: Vec<_> = bad
+        .iter()
+        .map(|text| (*text, "rules", Violation::MustBeArchitectureRule))
+        .collect();
+    assert_rejected(&cases);
+    assert!(Config::resolve(&[project("[rules]\ncycles = \"sometimes\"\n")]).is_err());
 }

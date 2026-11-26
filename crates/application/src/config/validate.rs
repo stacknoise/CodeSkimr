@@ -45,6 +45,7 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     check_annotations(&config.annotations)?;
     check_layers(config)?;
     check_unused(config)?;
+    check_rules(config)?;
     check_scan(&config.scan)?;
     check_level2(&config.level2)?;
     check_editor(&config.editor)?;
@@ -136,6 +137,20 @@ fn check_unused(config: &Config) -> Result<(), ConfigError> {
         Ok(())
     } else {
         fail(keys::UNUSED_IGNORE, Violation::MustBeUnusedIgnore)
+    }
+}
+
+fn check_rules(config: &Config) -> Result<(), ConfigError> {
+    let rules = &config.rules;
+    if rules.forbid.iter().all(super::model::ForbidRule::is_valid)
+        && rules
+            .public_api
+            .iter()
+            .all(super::model::PublicApiRule::is_valid)
+    {
+        Ok(())
+    } else {
+        fail(keys::RULES, Violation::MustBeArchitectureRule)
     }
 }
 
