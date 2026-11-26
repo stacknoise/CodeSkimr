@@ -12,13 +12,13 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_domain::{
     Layer, Layout, LayoutEdge, LayoutGraph, LayoutNode, ModuleCoupling, ModuleCycle, NamespaceEdge,
-    NamespaceGraph, NodeIndex, Permission, ProjectId, find_cycles, find_risks, module_coupling,
+    NamespaceGraph, NodeIndex, Permission, find_cycles, find_risks, module_coupling,
 };
 use serde::{Deserialize, Serialize};
 
 use super::consts::{GRAPH_MODULES, GRAPH_MODULES_DESCRIPTION, GRAPH_MODULES_TITLE};
-use super::graph::{BandOut, BoxOut, GraphPorts, LinkOut, bands_out, layer_index};
-use super::graph_types::{breadcrumb, short_name};
+use super::graph::{BandOut, BoxOut, GraphPorts, LinkOut, bands_out, layer_index, newest};
+use super::graph_focus::{name_of, namespace_box};
 use super::graph_wrap::{Extent, arrange};
 
 /// The input of `graph.modules`.
@@ -130,14 +130,6 @@ pub struct ModulesOut {
 /// Shows the modules of a project with cycles and coupling.
 pub struct GraphModules {
     pub(super) ports: Arc<GraphPorts>,
-}
-
-fn name_of(graph: &NamespaceGraph, at: usize) -> String {
-    graph
-        .namespaces
-        .get(at)
-        .map(|node| node.name.to_string())
-        .unwrap_or_default()
 }
 
 fn edge_out(graph: &NamespaceGraph, edge: &NamespaceEdge) -> EdgeOut {
@@ -304,7 +296,7 @@ fn picture(
     let mut boxes: Vec<BoxOut> = shown
         .iter()
         .zip(&layout.placements)
-        .map(|(&at, spot)| box_of(facts, at, spot, look.node_size()))
+        .map(|(&at, spot)| namespace_box(facts.graph, facts.layers, at, spot, look.node_size()))
         .collect();
     let links = links_of(facts, &drawn, rings);
     let size = arrange(
@@ -316,24 +308,6 @@ fn picture(
         look,
     );
     Ok((boxes, links, size))
-}
-
-fn box_of(
-    facts: &Facts<'_>,
-    at: usize,
-    spot: &codeskimr_domain::NodePlacement,
-    size: codeskimr_domain::NodeSize,
-) -> BoxOut {
-    let name = name_of(facts.graph, at);
-    let holder = layer_index(facts.layers, &name)
-        .and_then(|found| facts.layers.get(found))
-        .map(|layer| layer.name.as_str().to_owned());
-    let types = facts.graph.namespaces.get(at).map(|node| node.types);
-    BoxOut {
-        label: short_name(&name),
-        context: breadcrumb(&name),
-        ..BoxOut::placed(&name, spot, size, holder, types)
-    }
 }
 
 fn links_of(facts: &Facts<'_>, drawn: &[&NamespaceEdge], rings: &[ModuleCycle]) -> Vec<LinkOut> {
@@ -371,9 +345,7 @@ impl Command for GraphModules {
     fn execute(&self, request: Request<'_, Self>) -> Result<ModulesOut, CodedError> {
         access::require(request.principal, Permission::Read)?;
         let ports = &self.ports;
-        let id = ProjectId::new(request.input.project);
-        let project = ports.projects.project(id)?;
-        let Some(snapshot) = ports.index.latest_snapshot(id)? else {
+        let Some((project, snapshot)) = newest(ports, request.input.project)? else {
             return Ok(ModulesOut::default());
         };
         let depth = usize::try_from(request.input.depth).unwrap_or_default();
@@ -442,23 +414,13 @@ fn answer(
 
 #[cfg(test)]
 mod tests {
-    use codeskimr_domain::{NamespaceNode, QualifiedName};
-
+    use super::super::graph_focus::tests::graph as namespaces;
     use super::*;
 
     fn graph(count: usize, edges: &[(usize, usize, u32)]) -> NamespaceGraph {
-        NamespaceGraph {
-            namespaces: (0..count)
-                .map(|at| NamespaceNode {
-                    name: QualifiedName::new(format!("M{at}")).unwrap(),
-                    types: 1,
-                })
-                .collect(),
-            edges: edges
-                .iter()
-                .map(|&(from, to, count)| NamespaceEdge { from, to, count })
-                .collect(),
-        }
+        let names: Vec<String> = (0..count).map(|at| format!("M{at}")).collect();
+        let refs: Vec<&str> = names.iter().map(String::as_str).collect();
+        namespaces(&refs, edges)
     }
 
     #[test]

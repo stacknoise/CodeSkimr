@@ -10,8 +10,8 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{CodeIndex, ProjectRepository};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_domain::{
-    Layer, LayerEdge, LayerMap, NodePlacement, NodeSize, Permission, ProjectId, SnapshotId,
-    layer_map,
+    Layer, LayerEdge, LayerMap, NodePlacement, NodeSize, Permission, Project, ProjectId, Snapshot,
+    SnapshotId, layer_map,
 };
 use serde::{Deserialize, Serialize};
 
@@ -246,9 +246,7 @@ impl Command for GraphLayers {
     fn execute(&self, request: Request<'_, Self>) -> Result<GraphOut, CodedError> {
         access::require(request.principal, Permission::Read)?;
         let ports = &self.ports;
-        let id = ProjectId::new(request.input.project);
-        let project = ports.projects.project(id)?;
-        let Some(snapshot) = ports.index.latest_snapshot(id)? else {
+        let Some((project, snapshot)) = newest(ports, request.input.project)? else {
             return Ok(GraphOut::default());
         };
         let look = &ports.look;
@@ -279,6 +277,19 @@ impl Command for GraphLayers {
         out.height = out.height.max(reach.unwrap_or(0));
         Ok(out)
     }
+}
+
+/// The project and its newest snapshot; `None` before the first scan.
+pub(super) fn newest(
+    ports: &GraphPorts,
+    project: u64,
+) -> Result<Option<(Project, Snapshot)>, CodedError> {
+    let id = ProjectId::new(project);
+    let found = ports.projects.project(id)?;
+    Ok(ports
+        .index
+        .latest_snapshot(id)?
+        .map(|snapshot| (found, snapshot)))
 }
 
 fn layers_out(
