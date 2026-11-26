@@ -1,4 +1,5 @@
-//! `codeskimr symbols`, `usages`, `impact`, `context`, `unused` and `preview-rename`: the questions of the MCP tools
+//! `codeskimr symbols`, `usages`, `impact`, `context`, `unused` and `preview-rename`: the
+//! questions of the MCP tools
 //! of the same names, asked from the command line. The tools answer; this module adds what a
 //! script needs around the answer: the version of the format, whether the scan is out of date,
 //! and a failure as JSON with its registered code.

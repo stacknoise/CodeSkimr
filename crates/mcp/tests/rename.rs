@@ -103,7 +103,7 @@ fn a_symbol_that_already_has_the_new_name_in_its_scope_is_a_conflict() {
     // `Order()` and `Invoice()` differ only in the name: they clash.
     assert_eq!(conflicts[0]["same_signature"], true);
     let none = tools().preview_rename(&owner(), &args("Purchase")).unwrap();
-    assert!(none["conflicts"].as_array().unwrap().is_empty());
+    assert_eq!(none["conflicts"], serde_json::json!([]));
 }
 
 #[test]

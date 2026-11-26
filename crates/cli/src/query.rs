@@ -1,4 +1,5 @@
-//! The query commands `symbols`, `usages`, `impact`, `context`, `unused` and `preview-rename` (blueprint 10.2): their
+//! The query commands `symbols`, `usages`, `impact`, `context`, `unused` and `preview-rename`
+//! (blueprint 10.2): their
 //! definition with clap and the translation of their arguments. They ask the same questions as
 //! the MCP tools of the same names, so scripts, CI and agents without MCP get the same answers.
 

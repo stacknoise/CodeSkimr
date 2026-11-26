@@ -347,7 +347,7 @@ fn the_rename_preview_lists_the_declaration_and_the_usages_and_says_what_it_cann
         places,
         [("Caller.cs", "usage"), ("Target.cs", "declaration")]
     );
-    assert!(answer["conflicts"].as_array().unwrap().is_empty());
+    assert_eq!(answer["conflicts"], serde_json::json!([]));
     let text = world.run(&rename("Calculate", false), "en").unwrap();
     assert!(text.contains("CodeSkimr changes nothing"), "{text}");
     assert!(
@@ -378,7 +378,7 @@ fn the_rename_preview_finds_the_old_name_in_files_the_index_does_not_know() {
 fn the_rename_preview_finds_a_conflict_in_the_same_scope_and_refuses_a_bad_name() {
     let world = World::new();
     let answer = world.json(&rename("Run", true));
-    assert!(answer["conflicts"].as_array().unwrap().is_empty());
+    assert_eq!(answer["conflicts"], serde_json::json!([]));
     let clash = r"namespace Demo;
 
 public class Target

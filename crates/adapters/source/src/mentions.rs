@@ -129,12 +129,16 @@ mod tests {
     use super::*;
     use std::fs;
 
+    fn write_file(base: &std::path::Path, name: &str, text: &str) {
+        let target = base.join(name);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(target, text).unwrap();
+    }
+
     fn folder(files: &[(&str, &str)]) -> (tempfile::TempDir, FolderPath) {
         let dir = tempfile::tempdir().unwrap();
         for (name, text) in files {
-            let target = dir.path().join(name);
-            fs::create_dir_all(target.parent().unwrap()).unwrap();
-            fs::write(target, text).unwrap();
+            write_file(dir.path(), name, text);
         }
         let root = FolderPath::new(dir.path().to_str().unwrap()).unwrap();
         (dir, root)

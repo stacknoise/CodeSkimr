@@ -5,7 +5,7 @@
 //! `codeskimr preview-rename` and the dialog of the explorer all ask [`preview`], so they answer
 //! the same.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::HashSet;
 
 use codeskimr_domain::{
     Confidence, Direction, FolderPath, Project, SnapshotId, SymbolId, UsageQuery, Visibility,
@@ -207,7 +207,12 @@ pub struct RenameAsk<'a> {
 }
 
 /// The places that use one symbol (or a member of it that has its name) and its declarations.
-fn sites_of(ports: &RenamePorts<'_>, ask: &RenameAsk<'_>) -> Result<Vec<Site>, CodedError> {
+/// The places, and how many usages lay beyond the cap of the reverse-index read and are not
+/// among them.
+fn sites_of(
+    ports: &RenamePorts<'_>,
+    ask: &RenameAsk<'_>,
+) -> Result<(Vec<Site>, usize), CodedError> {
     let old = ask.symbol.symbol.name.as_str();
     let mut ids = vec![ask.symbol.symbol.id];
     ids.extend(
@@ -218,16 +223,19 @@ fn sites_of(ports: &RenamePorts<'_>, ask: &RenameAsk<'_>) -> Result<Vec<Site>, C
             .map(|member| member.id),
     );
     let mut sites = Vec::new();
+    let mut beyond = 0;
     for id in ids {
         sites.extend(declaration(ports, ask, id)?);
-        sites.extend(usages(ports, ask, id)?);
+        let (found, cut) = usages(ports, ask, id)?;
+        sites.extend(found);
+        beyond += cut;
     }
     // The same place twice is one place; the copy that level 2 verified stays.
     sites.sort_by_key(|site| (site.path.clone(), site.line, site.column, !site.verified));
     sites.dedup_by(|one, two| {
         (one.kind, &one.path, one.line, one.column) == (two.kind, &two.path, two.line, two.column)
     });
-    Ok(sites)
+    Ok((sites, beyond))
 }
 
 fn declaration(
@@ -257,7 +265,7 @@ fn usages(
     ports: &RenamePorts<'_>,
     ask: &RenameAsk<'_>,
     id: SymbolId,
-) -> Result<Vec<Site>, CodedError> {
+) -> Result<(Vec<Site>, usize), CodedError> {
     let query = UsageQuery {
         symbol: id,
         direction: Direction::Incoming,
@@ -267,7 +275,8 @@ fn usages(
     let page = ports
         .usages
         .usages(ask.snapshot, &query, RENAME_MAX_SITES)?;
-    Ok(page
+    let beyond = page.total.saturating_sub(page.entries.len());
+    let found = page
         .entries
         .into_iter()
         .map(|entry| {
@@ -285,7 +294,8 @@ fn usages(
                 container: Some(entry.from),
             }
         })
-        .collect())
+        .collect();
+    Ok((found, beyond))
 }
 
 /// The signature without the name, to tell a clash from an overload.
@@ -407,17 +417,18 @@ fn text_of(
 }
 
 fn count_layers(sites: &[Site]) -> Vec<LayerCount> {
-    let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
-    for layer in sites.iter().filter_map(|site| site.layer.as_deref()) {
-        *counts.entry(layer).or_default() += 1;
+    let mut counts: Vec<LayerCount> = Vec::new();
+    for layer in sites.iter().filter_map(|site| site.layer.as_ref()) {
+        match counts.iter_mut().find(|found| &found.layer == layer) {
+            Some(found) => found.count += 1,
+            None => counts.push(LayerCount {
+                layer: layer.clone(),
+                count: 1,
+            }),
+        }
     }
+    counts.sort_by(|one, two| one.layer.cmp(&two.layer));
     counts
-        .into_iter()
-        .map(|(layer, count)| LayerCount {
-            layer: layer.to_owned(),
-            count,
-        })
-        .collect()
 }
 
 /// What renaming the symbol to the new name would hit. Nothing is changed and nothing is stored.
@@ -427,13 +438,13 @@ fn count_layers(sites: &[Site]) -> Vec<LayerCount> {
 /// # Errors
 /// A coded failure of a port: the `STO` group of the index, `SRC-201` of the text search.
 pub fn preview(ports: &RenamePorts<'_>, ask: &RenameAsk<'_>) -> Result<RenamePreview, CodedError> {
-    let all = sites_of(ports, ask)?;
+    let (all, beyond) = sites_of(ports, ask)?;
     let text = text_of(ports, ask, &all)?;
     let files: HashSet<&str> = all.iter().map(|site| site.path.as_str()).collect();
     Ok(RenamePreview {
         new_name: ask.new_name.to_owned(),
         public_interface: ask.symbol.symbol.visibility == Some(Visibility::Public),
-        sites_total: all.len(),
+        sites_total: all.len() + beyond,
         verified: all.iter().filter(|site| site.verified).count(),
         files: files.len(),
         layers: count_layers(&all),
