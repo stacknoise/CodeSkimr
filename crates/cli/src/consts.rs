@@ -601,6 +601,24 @@ pub mod key {
     pub const TEXT: &str = "text";
 }
 
+/// The first line of `change --markdown`: a script that updates one comment on a pull request
+/// finds its own comment by it.
+pub const MARKDOWN_MARKER: &str = "<!-- codeskimr-change -->";
+/// Sub-command that lists the retained scans of a project.
+pub const COMMAND_SCANS: &str = "scans";
+/// Sub-command that compares two scans of a project.
+pub const COMMAND_COMPARE: &str = "compare";
+/// Sub-command that shows what the difference between two scans hits.
+pub const COMMAND_CHANGE: &str = "change";
+/// Option of `compare` and `change`: the older scan.
+pub const ARG_BASE: &str = "base";
+/// Option of `compare` and `change`: the newer scan.
+pub const ARG_SCAN_TARGET: &str = "target";
+/// Placeholder shown for the id of a scan.
+pub const VALUE_SNAPSHOT: &str = "SNAPSHOT";
+/// Flag of `change`: the answer as Markdown.
+pub const ARG_MARKDOWN: &str = "markdown";
+
 /// What a missing `layer` or `signature` is in the JSON.
 pub const JSON_NULL_TEXT: &str = "null";
 /// What a control character in a text of the project becomes.
@@ -614,3 +632,126 @@ pub const TITLE_SEPARATOR: &str = " ";
 
 /// The `kind` of a place of `preview-rename` that is a declaration, not a usage.
 pub const KIND_DECLARATION: &str = "declaration";
+
+/// Names, fields and numbers of the texts of `scans`, `compare` and `change` (ADR 0097).
+pub mod change {
+    /// The names of the arguments of the texts of this module.
+    pub mod name {
+        pub const COUNT: &str = "count";
+        pub const KEEP: &str = "keep";
+        pub const AVERAGE: &str = "average";
+        pub const SNAPSHOT: &str = "snapshot";
+        pub const CREATED: &str = "created";
+        pub const MODE: &str = "mode";
+        pub const FILES: &str = "files";
+        pub const CHANGED: &str = "changed";
+        pub const DURATION: &str = "duration";
+        pub const COMMIT: &str = "commit";
+        pub const MS: &str = "ms";
+        pub const BASE: &str = "base";
+        pub const BASE_TIME: &str = "base_time";
+        pub const TARGET: &str = "target";
+        pub const TARGET_TIME: &str = "target_time";
+        pub const ADDED: &str = "added";
+        pub const REMOVED: &str = "removed";
+        pub const MOVED: &str = "moved";
+        pub const KIND: &str = "kind";
+        pub const NAME: &str = "name";
+        pub const PATH: &str = "path";
+        pub const REASONS: &str = "reasons";
+        pub const FROM: &str = "from";
+        pub const TO: &str = "to";
+        pub const OUTCOME: &str = "outcome";
+        pub const PUBLIC: &str = "public";
+        pub const CERTAIN: &str = "certain";
+        pub const PROBABLE: &str = "probable";
+        pub const OPEN: &str = "open";
+        pub const CAUSE: &str = "cause";
+        pub const LINE: &str = "line";
+        pub const STATUS: &str = "status";
+        pub const SYMBOL: &str = "symbol";
+        pub const HOLDER: &str = "holder";
+        pub const NOTE: &str = "note";
+    }
+    /// The fields of the answer that only this module reads.
+    pub mod field_name {
+        pub const SCANS: &str = "scans";
+        pub const KEEP: &str = "keep";
+        pub const AVERAGE: &str = "average_ms";
+        pub const SNAPSHOT: &str = "snapshot";
+        pub const CREATED: &str = "created";
+        pub const MODE: &str = "mode";
+        pub const FILES: &str = "files";
+        pub const FILES_CHANGED: &str = "files_changed";
+        pub const DURATION: &str = "duration_ms";
+        pub const COMMIT: &str = "commit";
+        pub const BASE: &str = "base";
+        pub const TARGET: &str = "target";
+        pub const ADDED: &str = "added";
+        pub const REMOVED: &str = "removed";
+        pub const CHANGED: &str = "changed";
+        pub const MOVED: &str = "moved";
+        pub const REASONS: &str = "reasons";
+        pub const NARROWED: &str = "narrowed";
+        pub const CRITICAL: &str = "critical";
+        pub const OUTCOME: &str = "outcome";
+        pub const LAYERS: &str = "layers";
+        pub const NEW_VIOLATIONS: &str = "new_violations";
+        pub const NEW_CYCLES: &str = "new_cycles";
+        pub const TO: &str = "to";
+        pub const SUMMARY: &str = "summary";
+        pub const CHANGED_SYMBOLS: &str = "changed_symbols";
+        pub const PUBLIC_SYMBOLS: &str = "public_symbols";
+        pub const USAGES_CERTAIN: &str = "usages_certain";
+        pub const USAGES_PROBABLE: &str = "usages_probable";
+        pub const USAGES_NOT_TOUCHED: &str = "usages_not_touched";
+        pub const IMPACT: &str = "impact";
+        pub const CAUSE: &str = "cause";
+        pub const IS_CUT: &str = "is_cut";
+        pub const STATUS: &str = "status";
+        pub const SYMBOL: &str = "symbol";
+        pub const BASE_SYMBOL: &str = "base";
+        pub const TARGET_SYMBOL: &str = "target";
+    }
+
+    pub const SECONDS_PER_DAY: i64 = 86_400;
+    pub const SECONDS_PER_HOUR: i64 = 3_600;
+    pub const SECONDS_PER_MINUTE: i64 = 60;
+    pub const REASON_SEPARATOR: &str = ", ";
+    /// The `cause` of a symbol that is gone, as the answer says it.
+    pub const REMOVED_CAUSE: &str = "removed";
+    /// The `status` of a usage whose holder is untouched, as the answer says it.
+    pub const NOT_TOUCHED_STATUS: &str = "not_touched";
+    pub const BACKTICK: char = '`';
+    pub const APOSTROPHE: &str = "'";
+    pub const ERA_DAYS: i64 = 146_097;
+    pub const EPOCH_SHIFT: i64 = 719_468;
+    pub const YEAR_DAYS: i64 = 365;
+    pub const FOUR_YEARS_DAYS: i64 = 1_460;
+    pub const CENTURY_DAYS: i64 = 36_524;
+    pub const MONTH_CYCLE_MONTHS: i64 = 5;
+    pub const MONTH_CYCLE_DAYS: i64 = 153;
+    pub const MONTH_OFFSET: i64 = 2;
+    pub const MARCH_BASED_NEW_YEAR: i64 = 10;
+    pub const MARCH: i64 = 3;
+    pub const MONTHS_SHIFT_BACK: i64 = 9;
+    pub const YEARS_PER_ERA: i64 = 400;
+    pub const LEAP_CYCLE: i64 = 4;
+    pub const CENTURY: i64 = 100;
+    /// Number of list sections of `compare`.
+    pub const LIST_SECTIONS: usize = 4;
+    /// Number of arguments of the summary text.
+    pub const SUMMARY_ARGUMENTS: usize = 7;
+    /// Separates year, month and day.
+    pub const DATE_SEPARATOR: &str = "-";
+    /// Separates the date from the time.
+    pub const DATE_TIME_SEPARATOR: &str = " ";
+    /// Separates hour and minute.
+    pub const TIME_SEPARATOR: &str = ":";
+    /// Digits of a year.
+    pub const YEAR_WIDTH: usize = 4;
+    /// Digits of month, day, hour and minute.
+    pub const PAIR_WIDTH: usize = 2;
+    /// Fills a number up to its width.
+    pub const ZERO_DIGIT: &str = "0";
+}

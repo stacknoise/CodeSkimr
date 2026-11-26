@@ -777,6 +777,7 @@ fn assemble_with(
             reports: Arc::new(FakeReports),
             unused: Arc::new(FakeUnused),
             rules: Arc::new(FakeRules),
+            compare: Arc::new(FakeDiffs),
             mentions: Arc::new(FakeMentions),
             text: Arc::new(FakeText),
         },
@@ -1169,6 +1170,7 @@ pub fn tools_annotated(annotations: FakeAnnotations) -> Tools {
             reports: Arc::new(FakeReports),
             unused: Arc::new(FakeUnused),
             rules: Arc::new(FakeRules),
+            compare: Arc::new(FakeDiffs),
             mentions: Arc::new(FakeMentions),
             text: Arc::new(FakeText),
         },
@@ -1227,5 +1229,110 @@ impl codeskimr_application::ports::NameMentions for FakeMentions {
             items: all.into_iter().take(limits.max_items).collect(),
             skipped: 0,
         })
+    }
+}
+
+/// The comparison of the two newest scans: one removed method whose two usages are listed, one of
+/// them adapted and one on the checklist. A base that equals the target is the wrong order.
+pub struct FakeDiffs;
+
+fn scan_entry(id: u64) -> codeskimr_application::ports::ScanEntry {
+    codeskimr_application::ports::ScanEntry {
+        snapshot: SnapshotId::new(id),
+        created: codeskimr_domain::Timestamp(1_700_000_000 + i64::try_from(id).unwrap()),
+        commit: None,
+        mode: codeskimr_domain::ScanMode::Full,
+        files: 4,
+        symbols: 9,
+        duration_ms: Some(120),
+        files_changed: Some(1),
+    }
+}
+
+fn method(id: u64, name: &str) -> codeskimr_domain::SymbolFact {
+    codeskimr_domain::SymbolFact {
+        id: codeskimr_domain::SymbolId::new(id),
+        kind: codeskimr_domain::SymbolKind::Method,
+        qualified_name: codeskimr_domain::QualifiedName::new(name).unwrap(),
+        signature: Some("void Pay(int amount)".to_owned()),
+        visibility: Some(codeskimr_domain::Visibility::Public),
+        path: RelativePath::new("Checkout/Cart.cs").unwrap(),
+        content_hash: None,
+    }
+}
+
+fn usage(
+    line: u32,
+    status: codeskimr_application::compare::UsageStatus,
+    confidence: codeskimr_domain::Confidence,
+) -> codeskimr_application::compare::ImpactUsage {
+    let at = codeskimr_domain::Position { line, column: 4 };
+    codeskimr_application::compare::ImpactUsage {
+        from: codeskimr_application::ports::SymbolLabel {
+            id: codeskimr_domain::SymbolId::new(50 + u64::from(line)),
+            qualified_name: codeskimr_domain::QualifiedName::new("Shop.Orders.Place").unwrap(),
+            kind: codeskimr_domain::SymbolKind::Method,
+        },
+        path: RelativePath::new("Orders/Place.cs").unwrap(),
+        reference: codeskimr_domain::Reference {
+            id: codeskimr_domain::ReferenceId::new(u64::from(line)),
+            from: codeskimr_domain::SymbolId::new(50),
+            to: codeskimr_domain::SymbolId::new(7),
+            file: codeskimr_domain::FileId::new(1),
+            span: codeskimr_domain::Span::new(at, at).unwrap(),
+            kind: codeskimr_domain::ReferenceKind::Call,
+            confidence,
+            verified: false,
+        },
+        status,
+    }
+}
+
+fn sample_comparison(
+    request: &codeskimr_application::compare::ComparisonRequest,
+) -> codeskimr_application::compare::ScanComparison {
+    use codeskimr_application::compare::{Impact, LayerChanges, Listed, SymbolImpact, UsageStatus};
+    use codeskimr_domain::{Confidence, ImpactCause, ImpactSubject};
+    let removed = method(7, "Shop.Checkout.Cart.Pay");
+    let usages = vec![
+        usage(10, UsageStatus::NotTouched, Confidence::Certain),
+        usage(20, UsageStatus::Adapted, Confidence::Probable),
+    ];
+    codeskimr_application::compare::ScanComparison {
+        project: PROJECT,
+        base: scan_entry(request.base.map_or(1, SnapshotId::get)),
+        target: scan_entry(request.target.map_or(2, SnapshotId::get)),
+        added: Listed::cut(Vec::new(), 10),
+        removed: Listed::cut(vec![removed.clone()], 10),
+        changed: Listed::cut(Vec::new(), 10),
+        moved: Listed::cut(Vec::new(), 10),
+        critical: Vec::new(),
+        layers: LayerChanges::default(),
+        impact: request.with_impact.then(|| Impact {
+            symbols: Listed::cut(
+                vec![SymbolImpact {
+                    subject: ImpactSubject {
+                        symbol: removed,
+                        cause: ImpactCause::Removed,
+                    },
+                    usages: Listed::cut(usages, 1),
+                }],
+                10,
+            ),
+        }),
+    }
+}
+
+impl codeskimr_application::compare::ScanDiffs for FakeDiffs {
+    fn compare(
+        &self,
+        request: &codeskimr_application::compare::ComparisonRequest,
+    ) -> Result<codeskimr_application::compare::ScanComparison, CodedError> {
+        if request.base.is_some() && request.base == request.target {
+            return Err(CodedError::new(
+                codeskimr_codes::ErrorCode::ComparisonOrderInvalid,
+            ));
+        }
+        Ok(sample_comparison(request))
     }
 }

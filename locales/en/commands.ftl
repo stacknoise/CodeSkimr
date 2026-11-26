@@ -110,3 +110,7 @@ command-rename-preview-title = Check a rename
 command-rename-preview-description = Shows the places, name conflicts and text hits that a new name for a symbol would hit. Nothing is changed.
 command-graph-modules-title = Show modules and cycles
 command-graph-modules-description = Shows the modules of the newest scan with coupling and stability, the cycles between them with a suggestion how to end them, and modules that stand out.
+command-scans-compare-title = Compare two scans
+command-scans-compare-description = Compares two scans of a project that are kept (by default the newest and the one before it) and lists the symbols that were added, removed, changed or moved, the new layer violations and cycles, and the critical symbols the difference touches.
+command-scans-impact-title = Show what a change hits
+command-scans-impact-description = Compares two scans of a project that are kept and lists, for every removed symbol and every symbol whose signature or visibility changed, its direct usages in the older scan, split into adapted and not touched. Only direct usages are known.

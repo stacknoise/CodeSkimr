@@ -295,3 +295,11 @@ cli-context-files = Files a change can reach ({ $shown } of { $total }):
 cli-context-file = { $path }
 cli-context-notes = Notes ({ $shown } of { $total }):
 cli-context-note-line = { $kind }: { $text }
+# The commands scans, compare and change (ADR 0097).
+cli-cmd-scans = List the scans of a project that are kept, with time, kind, duration and changed files (the answer of the command scans.list)
+cli-cmd-compare = Compare two scans of a project: the symbols that were added, removed, changed or moved, the new layer violations and cycles, and the critical symbols the difference touches
+cli-cmd-change = Show what the difference between two scans hits: for every removed symbol and every symbol whose signature or visibility changed, its direct usages, and those that were not touched (the answer of the MCP tool impact_of_diff)
+cli-arg-compare-project = Id of the project, or the folder or Git URL it was scanned from (default: the current folder)
+cli-arg-compare-base = Id of the older scan (default: the scan before the target); `codeskimr scans` lists the ids
+cli-arg-compare-target = Id of the newer scan (default: the newest scan)
+cli-arg-markdown = Print the answer as Markdown for a comment on a pull request; cannot be combined with --json

@@ -11,8 +11,8 @@ use codeskimr_codes::i18n::{
     MCP_TOOL_FIND_CONSTANTS, MCP_TOOL_FIND_SIMILAR_CODE, MCP_TOOL_FIND_UNUSED,
     MCP_TOOL_FIND_USAGES, MCP_TOOL_GET_ALERTS, MCP_TOOL_GET_ARCHITECTURE, MCP_TOOL_GET_CONTEXT,
     MCP_TOOL_GET_DEPENDENCIES, MCP_TOOL_GET_PROJECT, MCP_TOOL_GET_SYMBOL,
-    MCP_TOOL_IMPACT_OF_CHANGE, MCP_TOOL_LIST_ANNOTATIONS, MCP_TOOL_PREVIEW_RENAME, MCP_TOOL_RESCAN,
-    MCP_TOOL_SEARCH_SYMBOLS,
+    MCP_TOOL_IMPACT_OF_CHANGE, MCP_TOOL_IMPACT_OF_DIFF, MCP_TOOL_LIST_ANNOTATIONS,
+    MCP_TOOL_PREVIEW_RENAME, MCP_TOOL_RESCAN, MCP_TOOL_SEARCH_SYMBOLS,
 };
 use codeskimr_domain::{Permission, Principal};
 use codeskimr_i18n::Messages;
@@ -30,15 +30,16 @@ use serde_json::Value;
 
 use crate::args::{
     AlertsArgs, AnnotationsArgs, ArchitectureArgs, ConstantsArgs, ContextArgs, ConventionsArgs,
-    DependenciesArgs, ImpactArgs, ProjectArgs, RenameArgs, RescanArgs, RulesArgs, SearchArgs,
-    SimilarArgs, SymbolArgs, UnusedArgs, UsagesArgs,
+    DependenciesArgs, DiffArgs, ImpactArgs, ProjectArgs, RenameArgs, RescanArgs, RulesArgs,
+    SearchArgs, SimilarArgs, SymbolArgs, UnusedArgs, UsagesArgs,
 };
 use crate::consts::{
     READ_TOOL_PERMISSION, SCAN_TOOL_PERMISSION, SERVER_NAME, SERVER_VERSION, TEXT_LANGUAGE,
     TOOL_CHECK_CONVENTIONS, TOOL_CHECK_RULES, TOOL_FIND_CONSTANTS, TOOL_FIND_SIMILAR_CODE,
     TOOL_FIND_UNUSED, TOOL_FIND_USAGES, TOOL_GET_ALERTS, TOOL_GET_ARCHITECTURE, TOOL_GET_CONTEXT,
     TOOL_GET_DEPENDENCIES, TOOL_GET_PROJECT, TOOL_GET_SYMBOL, TOOL_IMPACT_OF_CHANGE,
-    TOOL_LIST_ANNOTATIONS, TOOL_PREVIEW_RENAME, TOOL_RESCAN, TOOL_SEARCH_SYMBOLS,
+    TOOL_IMPACT_OF_DIFF, TOOL_LIST_ANNOTATIONS, TOOL_PREVIEW_RENAME, TOOL_RESCAN,
+    TOOL_SEARCH_SYMBOLS,
 };
 use crate::error::McpError;
 use crate::tools::Tools;
@@ -108,6 +109,7 @@ fn definitions(messages: &Messages) -> Result<Vec<Tool>, CodedError> {
         definition::<ArchitectureArgs>(messages, TOOL_GET_ARCHITECTURE, MCP_TOOL_GET_ARCHITECTURE)?,
         definition::<UsagesArgs>(messages, TOOL_FIND_USAGES, MCP_TOOL_FIND_USAGES)?,
         definition::<ImpactArgs>(messages, TOOL_IMPACT_OF_CHANGE, MCP_TOOL_IMPACT_OF_CHANGE)?,
+        definition::<DiffArgs>(messages, TOOL_IMPACT_OF_DIFF, MCP_TOOL_IMPACT_OF_DIFF)?,
         definition::<ContextArgs>(messages, TOOL_GET_CONTEXT, MCP_TOOL_GET_CONTEXT)?,
         definition::<DependenciesArgs>(messages, TOOL_GET_DEPENDENCIES, MCP_TOOL_GET_DEPENDENCIES)?,
         definition::<SimilarArgs>(messages, TOOL_FIND_SIMILAR_CODE, MCP_TOOL_FIND_SIMILAR_CODE)?,
@@ -176,7 +178,18 @@ impl McpServer {
         if access::require(&principal, required_permission(name)).is_err() {
             return failure(&unknown_tool());
         }
-        let outcome = match name {
+        let outcome = Self::invoke(tools, principal, name, arguments);
+        outcome.map_or_else(|error| failure(&error), CallToolResult::structured)
+    }
+
+    /// Runs the tool `name` for the first group of tools; the others are in [`Self::invoke_more`].
+    fn invoke(
+        tools: &Tools,
+        principal: Principal,
+        name: &str,
+        arguments: Option<JsonObject>,
+    ) -> Result<Value, McpError> {
+        match name {
             TOOL_SEARCH_SYMBOLS => call(arguments, |args| tools.search_symbols(&principal, &args)),
             TOOL_GET_SYMBOL => call(arguments, |args| tools.get_symbol(&principal, &args)),
             TOOL_GET_PROJECT => call(arguments, |args| tools.get_project(&principal, &args)),
@@ -187,6 +200,7 @@ impl McpServer {
             TOOL_IMPACT_OF_CHANGE => {
                 call(arguments, |args| tools.impact_of_change(&principal, &args))
             }
+            TOOL_IMPACT_OF_DIFF => call(arguments, |args| tools.impact_of_diff(&principal, &args)),
             TOOL_GET_CONTEXT => call(arguments, |args| tools.get_context(&principal, &args)),
             TOOL_GET_DEPENDENCIES => {
                 call(arguments, |args| tools.get_dependencies(&principal, &args))
@@ -194,6 +208,18 @@ impl McpServer {
             TOOL_LIST_ANNOTATIONS => {
                 call(arguments, |args| tools.list_annotations(&principal, &args))
             }
+            _ => Self::invoke_more(tools, principal, name, arguments),
+        }
+    }
+
+    /// Runs the tool `name` for the second group of tools.
+    fn invoke_more(
+        tools: &Tools,
+        principal: Principal,
+        name: &str,
+        arguments: Option<JsonObject>,
+    ) -> Result<Value, McpError> {
+        match name {
             TOOL_GET_ALERTS => call(arguments, |args| tools.get_alerts(&principal, &args)),
             TOOL_RESCAN => call(arguments, |args| tools.rescan(&principal, &args)),
             TOOL_FIND_SIMILAR_CODE => {
@@ -207,8 +233,7 @@ impl McpServer {
                 call(arguments, |args| tools.check_conventions(&principal, &args))
             }
             _ => Err(unknown_tool()),
-        };
-        outcome.map_or_else(|error| failure(&error), CallToolResult::structured)
+        }
     }
 }
 

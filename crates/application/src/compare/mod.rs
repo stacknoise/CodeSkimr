@@ -11,6 +11,7 @@ mod impact;
 mod layers;
 pub mod report;
 mod select;
+mod wire;
 
 use std::sync::Arc;
 
@@ -25,6 +26,10 @@ use crate::ports::{
 pub use report::{
     ComparisonRequest, CriticalChange, CriticalOutcome, Impact, ImpactUsage, LayerChange,
     LayerChanges, Listed, ScanComparison, SymbolImpact, UsageStatus,
+};
+pub use wire::{
+    ComparisonAnswer, CriticalOut, HolderOut, LayerEdgeOut, LayersOut, ListedOut, MatchedOut,
+    ScanListAnswer, ScanOut, SummaryOut, SymbolImpactOut, SymbolOut, UsageOut,
 };
 
 /// The limits of the lists of a comparison (`compare.*`).
@@ -56,6 +61,22 @@ pub struct ComparePorts {
     pub usages: Arc<dyn UsageIndex>,
     /// The critical marks of the project.
     pub annotations: Arc<dyn AnnotationStore>,
+}
+
+/// What the surfaces ask: the comparison of two scans. [`ScanComparer`] answers it; a surface
+/// that only needs the answer takes this trait, so a test can stand in for the stores.
+pub trait ScanDiffs: Send + Sync {
+    /// Compares the scans the request names; see [`ScanComparer::compare`].
+    ///
+    /// # Errors
+    /// `CMP-201`, `CMP-101`, `CMP-301` or a failure of the `STO` group.
+    fn compare(&self, request: &ComparisonRequest) -> Result<ScanComparison, CodedError>;
+}
+
+impl ScanDiffs for ScanComparer {
+    fn compare(&self, request: &ComparisonRequest) -> Result<ScanComparison, CodedError> {
+        Self::compare(self, request)
+    }
 }
 
 /// Compares two retained scans of a project and lists what the difference hits.

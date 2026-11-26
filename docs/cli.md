@@ -114,6 +114,25 @@ The questions of the MCP tools `search_symbols`, `find_usages`, `impact_of_chang
 - **Failures.** With `--json` a failure is JSON on standard output, `{ "schema": 1, "error": { "code", "description", "params" } }` with the registered code (`MCP-202` for an unknown symbol, `PRJ-201` for a project that is not registered, `MCP-203` for one without a scan, `MCP-101` for an invalid argument), and the exit code is `1`. Without `--json` the failure is the usual `error[CODE]: text` on standard error. A usage error (an unknown option, a `--direction` or `--budget` outside the list) is exit code `2`.
 - **UI.** The counterpart is the explorer, the search and the usages screen; `--json` is an exception of ADR 0092 whose counterpart is the REST interface.
 
+## `codeskimr scans`, `compare` and `change`
+
+```
+codeskimr scans [project] [--json]
+codeskimr compare [project] [--base ID] [--target ID] [--json]
+codeskimr change [project] [--base ID] [--target ID] [--json | --markdown]
+```
+
+The history of the scans and their comparison (ADR 0097, `docs/compare.md`). `[project]` is the first argument: an id, or the folder or Git URL the project was scanned from; without it the project of the current folder.
+
+The counterpart in the UI (ADR 0092) is the history of scans and the screen "Change" (#755, #758); `--json` has the REST commands `scans.list`, `scans.compare` and `scans.impact` as counterpart, `--markdown` the same answer rendered for a comment.
+
+- **`scans`.** Lists the scans of the project that are kept, newest first, with the id of the snapshot (the number `--base` and `--target` take), the time (UTC), the kind, the number of files, the files that scan changed, the duration and the commit. With `--json` the answer of the command `scans.list`.
+- **`compare`.** Compares two scans: the symbols that were added, removed, changed or moved, the new layer violations and cycles, and the critical symbols the difference touches. Without `--base` and `--target` the newest scan is the target and the scan before it the base; the base must be older than the target. With `--json` the answer of `scans.compare`; its `impact` is `null`.
+- **`change`.** The same comparison plus the impact: for every removed symbol and every symbol whose signature or visibility changed, its direct usages in the base scan, each *adapted* (the symbol that holds it changed too) or *not touched*. The *not touched* usages are the checklist. With `--json` the answer of `scans.impact` and of the MCP tool `impact_of_diff`. The name is `change`, not `impact`: `codeskimr impact <symbol>` is the question of the MCP tool `impact_of_change`.
+- **`change --markdown`.** The same answer as `--json`, as Markdown for a comment on a pull request (for instance by a GitHub Action). The first line is exactly `<!-- codeskimr-change -->`, so a script finds and updates its own comment. Then come the numbers (changed symbols, of them public, usages sure and probable, not touched), the checklist of the usages that were not touched (`- [ ] file:line kind of symbol (cause), in holder`), the new layer violations and cycles, the critical symbols the change touches, a line if the answer was cut, and the note on what the comparison does not see. The text follows the language of the command line. `--json` and `--markdown` exclude each other (usage error, exit code `2`).
+- **Limits.** The lists are cut to `compare.max_symbols` and the usages per symbol to `compare.max_usages`; the text and the Markdown say so, and `--json` gives `total` and `is_cut` for every list. Only direct usages are known: reflection, strings and other repositories are not seen, and every output says so.
+- **Failures.** `CMP-201` (a named scan is not kept, or the project has fewer than two scans), `CMP-101` (the base is not older than the target), `CMP-301` (the scans used other naming rules: a full scan makes them comparable), `PRJ-201` (project not registered). The JSON is the same as the one of the other query commands (`schema`, `stale` which is `null` here, failure as `error`). The commands read the stored scans; they never scan by themselves.
+
 ## `codeskimr annotations` and `codeskimr alerts`
 
 ```

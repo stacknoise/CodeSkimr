@@ -5,25 +5,28 @@
 
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use codeskimr_codes::i18n::{
-    CLI_ARG_ASSESSMENT, CLI_ARG_BUDGET, CLI_ARG_DEPTH, CLI_ARG_DIRECTION, CLI_ARG_HOLD,
-    CLI_ARG_INCLUDE_TESTS, CLI_ARG_JSON, CLI_ARG_KIND_FILTER, CLI_ARG_LANGUAGE_FILTER,
-    CLI_ARG_LIMIT, CLI_ARG_QUERY_NEW_NAME, CLI_ARG_QUERY_PROJECT, CLI_ARG_QUERY_SYMBOL,
-    CLI_ARG_QUERY_TEXT, CLI_ARG_UNUSED_KIND, CLI_CMD_CONTEXT, CLI_CMD_IMPACT,
-    CLI_CMD_PREVIEW_RENAME, CLI_CMD_RULES, CLI_CMD_SYMBOLS, CLI_CMD_UNUSED, CLI_CMD_USAGES,
+    CLI_ARG_ASSESSMENT, CLI_ARG_BUDGET, CLI_ARG_COMPARE_BASE, CLI_ARG_COMPARE_PROJECT,
+    CLI_ARG_COMPARE_TARGET, CLI_ARG_DEPTH, CLI_ARG_DIRECTION, CLI_ARG_HOLD, CLI_ARG_INCLUDE_TESTS,
+    CLI_ARG_JSON, CLI_ARG_KIND_FILTER, CLI_ARG_LANGUAGE_FILTER, CLI_ARG_LIMIT, CLI_ARG_MARKDOWN,
+    CLI_ARG_QUERY_NEW_NAME, CLI_ARG_QUERY_PROJECT, CLI_ARG_QUERY_SYMBOL, CLI_ARG_QUERY_TEXT,
+    CLI_ARG_UNUSED_KIND, CLI_CMD_CHANGE, CLI_CMD_COMPARE, CLI_CMD_CONTEXT, CLI_CMD_IMPACT,
+    CLI_CMD_PREVIEW_RENAME, CLI_CMD_RULES, CLI_CMD_SCANS, CLI_CMD_SYMBOLS, CLI_CMD_UNUSED,
+    CLI_CMD_USAGES,
 };
 
 use crate::args::{
-    ContextQuery, ImpactQuery, QueryAction, QueryTarget, RenameQuery, RulesQuery, SymbolsQuery,
-    UnusedQuery, UsagesQuery,
+    CompareQuery, ContextQuery, ImpactQuery, QueryAction, QueryTarget, RenameQuery, RulesQuery,
+    ScansQuery, SymbolsQuery, UnusedQuery, UsagesQuery,
 };
 use crate::consts::{
-    ARG_ASSESSMENT, ARG_BUDGET, ARG_DEPTH, ARG_DIRECTION, ARG_HOLD, ARG_INCLUDE_TESTS, ARG_JSON,
-    ARG_KIND, ARG_LANGUAGE, ARG_PROJECT, ARG_QUERY_NEW_NAME, ARG_QUERY_PROJECT, ARG_QUERY_SYMBOL,
-    ARG_QUERY_TEXT, ARG_ROWS, ASSESSMENTS, BUDGETS, COMMAND_CONTEXT, COMMAND_IMPACT,
-    COMMAND_PREVIEW_RENAME, COMMAND_RULES, COMMAND_SYMBOLS, COMMAND_UNUSED, COMMAND_USAGES,
-    DIRECTIONS, UNUSED_KINDS, VALUE_ASSESSMENT, VALUE_BUDGET, VALUE_DIRECTION, VALUE_KIND,
-    VALUE_LANGUAGE, VALUE_QUERY_NEW_NAME, VALUE_QUERY_PROJECT, VALUE_QUERY_SYMBOL,
-    VALUE_QUERY_TEXT, VALUE_ROWS,
+    ARG_ASSESSMENT, ARG_BASE, ARG_BUDGET, ARG_DEPTH, ARG_DIRECTION, ARG_HOLD, ARG_INCLUDE_TESTS,
+    ARG_JSON, ARG_KIND, ARG_LANGUAGE, ARG_MARKDOWN, ARG_PROJECT, ARG_QUERY_NEW_NAME,
+    ARG_QUERY_PROJECT, ARG_QUERY_SYMBOL, ARG_QUERY_TEXT, ARG_ROWS, ARG_SCAN_TARGET, ASSESSMENTS,
+    BUDGETS, COMMAND_CHANGE, COMMAND_COMPARE, COMMAND_CONTEXT, COMMAND_IMPACT,
+    COMMAND_PREVIEW_RENAME, COMMAND_RULES, COMMAND_SCANS, COMMAND_SYMBOLS, COMMAND_UNUSED,
+    COMMAND_USAGES, DIRECTIONS, UNUSED_KINDS, VALUE_ASSESSMENT, VALUE_BUDGET, VALUE_DIRECTION,
+    VALUE_KIND, VALUE_LANGUAGE, VALUE_QUERY_NEW_NAME, VALUE_QUERY_PROJECT, VALUE_QUERY_SYMBOL,
+    VALUE_QUERY_TEXT, VALUE_ROWS, VALUE_SNAPSHOT,
 };
 use crate::error::CliError;
 
@@ -186,7 +189,68 @@ fn rename_command(say: Say<'_>) -> Result<Command, CliError> {
     project_and_json(command, say)
 }
 
-/// The seven query commands.
+/// The project of `scans`, `compare` and `change` is the first argument, not an option.
+fn project_and_output(command: Command, say: Say<'_>, markdown: bool) -> Result<Command, CliError> {
+    let command = command
+        .arg(
+            Arg::new(ARG_QUERY_PROJECT)
+                .value_name(VALUE_QUERY_PROJECT)
+                .help(say(CLI_ARG_COMPARE_PROJECT)?),
+        )
+        .arg(
+            Arg::new(ARG_JSON)
+                .long(ARG_JSON)
+                .action(ArgAction::SetTrue)
+                .help(say(CLI_ARG_JSON)?),
+        );
+    if !markdown {
+        return Ok(command);
+    }
+    Ok(command.arg(
+        Arg::new(ARG_MARKDOWN)
+            .long(ARG_MARKDOWN)
+            .action(ArgAction::SetTrue)
+            .conflicts_with(ARG_JSON)
+            .help(say(CLI_ARG_MARKDOWN)?),
+    ))
+}
+
+fn scan_id(name: &'static str, help: String) -> Arg {
+    Arg::new(name)
+        .long(name)
+        .value_name(VALUE_SNAPSHOT)
+        .value_parser(clap::value_parser!(u64))
+        .help(help)
+}
+
+fn scans_command(say: Say<'_>) -> Result<Command, CliError> {
+    let command = Command::new(COMMAND_SCANS).about(say(CLI_CMD_SCANS)?);
+    project_and_output(command, say, false)
+}
+
+fn two_scans(command: Command, say: Say<'_>) -> Result<Command, CliError> {
+    Ok(command
+        .arg(scan_id(ARG_BASE, say(CLI_ARG_COMPARE_BASE)?))
+        .arg(scan_id(ARG_SCAN_TARGET, say(CLI_ARG_COMPARE_TARGET)?)))
+}
+
+fn compare_command(say: Say<'_>) -> Result<Command, CliError> {
+    let command = two_scans(
+        Command::new(COMMAND_COMPARE).about(say(CLI_CMD_COMPARE)?),
+        say,
+    )?;
+    project_and_output(command, say, false)
+}
+
+fn change_command(say: Say<'_>) -> Result<Command, CliError> {
+    let command = two_scans(
+        Command::new(COMMAND_CHANGE).about(say(CLI_CMD_CHANGE)?),
+        say,
+    )?;
+    project_and_output(command, say, true)
+}
+
+/// The ten query commands.
 ///
 /// # Errors
 /// `I18N-201` if a help text is missing.
@@ -199,6 +263,9 @@ pub fn commands(say: Say<'_>) -> Result<Vec<Command>, CliError> {
         unused_command(say)?,
         rules_command(say)?,
         rename_command(say)?,
+        scans_command(say)?,
+        compare_command(say)?,
+        change_command(say)?,
     ])
 }
 
@@ -212,6 +279,9 @@ pub fn is_query(name: &str) -> bool {
         COMMAND_UNUSED,
         COMMAND_RULES,
         COMMAND_PREVIEW_RENAME,
+        COMMAND_SCANS,
+        COMMAND_COMPARE,
+        COMMAND_CHANGE,
     ]
     .contains(&name)
 }
@@ -247,6 +317,20 @@ fn rename_action(matches: &ArgMatches) -> QueryAction {
     })
 }
 
+fn compare_query(matches: &ArgMatches) -> CompareQuery {
+    CompareQuery {
+        base: matches.get_one::<u64>(ARG_BASE).copied(),
+        newer: matches.get_one::<u64>(ARG_SCAN_TARGET).copied(),
+        markdown: matches
+            .try_get_one::<bool>(ARG_MARKDOWN)
+            .ok()
+            .flatten()
+            .copied()
+            == Some(true),
+        target: target(matches),
+    }
+}
+
 /// The request of the query command `name`; `name` is one for which [`is_query`] is true.
 pub fn action(name: &str, matches: &ArgMatches) -> QueryAction {
     let limit = || matches.get_one::<u32>(ARG_ROWS).copied();
@@ -277,6 +361,11 @@ pub fn action(name: &str, matches: &ArgMatches) -> QueryAction {
             target: target(matches),
         }),
         COMMAND_PREVIEW_RENAME => rename_action(matches),
+        COMMAND_SCANS => QueryAction::Scans(ScansQuery {
+            target: target(matches),
+        }),
+        COMMAND_COMPARE => QueryAction::Compare(compare_query(matches)),
+        COMMAND_CHANGE => QueryAction::Change(compare_query(matches)),
         _ => QueryAction::Context(ContextQuery {
             symbol: text(matches, ARG_QUERY_SYMBOL),
             budget: matches.get_one::<String>(ARG_BUDGET).cloned(),

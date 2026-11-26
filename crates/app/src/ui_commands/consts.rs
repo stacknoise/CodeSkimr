@@ -426,6 +426,18 @@ pub const SCANS_LIST: &str = "scans.list";
 pub const SCANS_LIST_TITLE: &str = i18n::COMMAND_SCANS_LIST_TITLE;
 /// Description key of `scans.list`.
 pub const SCANS_LIST_DESCRIPTION: &str = i18n::COMMAND_SCANS_LIST_DESCRIPTION;
+/// Id of the command that compares two scans of a project (ADR 0097).
+pub const SCANS_COMPARE: &str = "scans.compare";
+/// Title key of `scans.compare`.
+pub const SCANS_COMPARE_TITLE: &str = i18n::COMMAND_SCANS_COMPARE_TITLE;
+/// Description key of `scans.compare`.
+pub const SCANS_COMPARE_DESCRIPTION: &str = i18n::COMMAND_SCANS_COMPARE_DESCRIPTION;
+/// Id of the command that lists what the difference of two scans hits (ADR 0097).
+pub const SCANS_IMPACT: &str = "scans.impact";
+/// Title key of `scans.impact`.
+pub const SCANS_IMPACT_TITLE: &str = i18n::COMMAND_SCANS_IMPACT_TITLE;
+/// Description key of `scans.impact`.
+pub const SCANS_IMPACT_DESCRIPTION: &str = i18n::COMMAND_SCANS_IMPACT_DESCRIPTION;
 /// Id of the command that summarises a project for the statistics screen (ADR 0081).
 pub const STATS_OVERVIEW: &str = "stats.overview";
 /// Title key of `stats.overview`.
