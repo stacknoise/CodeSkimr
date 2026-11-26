@@ -287,8 +287,8 @@ pub struct Held {
 ///
 /// # Errors
 /// - `PRJ-101` for a Git project: it has no folder the file could stand in.
-/// - `CFG-101` / `CFG-102` if the project file or the held state cannot be read, a coded failure
-///   of the `STO` group, `CFG-104` if the file cannot be written.
+/// - `CFG-101` / `CFG-102` if the project file cannot be read (the old held state is replaced, so
+///   it is not read), a coded failure of the `STO` group, `CFG-104` if the file cannot be written.
 pub(crate) fn hold(
     references: &dyn ReferencePlaces,
     project: &Project,
@@ -333,8 +333,8 @@ impl Command for RulesHold {
     /// # Errors
     /// - `PRJ-201` for an unknown project, `PRJ-101` for a Git project (it has no folder for the
     ///   file), `MCP-203` before the first scan.
-    /// - `CFG-101` / `CFG-102` if the project file or the held state cannot be read, `CFG-104` if
-    ///   the file cannot be written.
+    /// - `CFG-101` / `CFG-102` if the project file cannot be read (the old held state is replaced,
+    ///   so it is not read), `CFG-104` if the file cannot be written.
     fn execute(&self, request: Request<'_, Self>) -> Result<Held, CodedError> {
         access::require(request.principal, Permission::Manage)?;
         let (project, snapshot) = self.ports.project_and_newest(request.input.project)?;
