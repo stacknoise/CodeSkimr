@@ -9,10 +9,10 @@ use codeskimr_codes::i18n::{
     CLI_CONTEXT_CALLERS, CLI_CONTEXT_DEPENDENCIES, CLI_CONTEXT_DEPENDENCY_LINE, CLI_CONTEXT_FILE,
     CLI_CONTEXT_FILES, CLI_CONTEXT_HEAD, CLI_CONTEXT_LAYER, CLI_CONTEXT_NOTE_LINE,
     CLI_CONTEXT_NOTES, CLI_CONTEXT_SIGNATURE, CLI_QUERY_CUT, CLI_QUERY_IMPACT_LINE, CLI_QUERY_NONE,
-    CLI_QUERY_PRELIMINARY, CLI_QUERY_RULES_CYCLE_LINE, CLI_QUERY_RULES_HEAD, CLI_QUERY_RULES_LINE,
-    CLI_QUERY_RULES_NONE, CLI_QUERY_RULES_RULE, CLI_QUERY_STALE, CLI_QUERY_SYMBOL_LINE,
-    CLI_QUERY_UNUSED_LEFT_OUT, CLI_QUERY_UNUSED_LEFT_OUT_LINE, CLI_QUERY_UNUSED_LINE,
-    CLI_QUERY_USAGE_LINE, CLI_RENAME_CONFLICT_LINE, CLI_RENAME_CONFLICTS,
+    CLI_QUERY_PRELIMINARY, CLI_QUERY_RULES_CYCLE_LINE, CLI_QUERY_RULES_HEAD, CLI_QUERY_RULES_HELD,
+    CLI_QUERY_RULES_LINE, CLI_QUERY_RULES_NONE, CLI_QUERY_RULES_RULE, CLI_QUERY_STALE,
+    CLI_QUERY_SYMBOL_LINE, CLI_QUERY_UNUSED_LEFT_OUT, CLI_QUERY_UNUSED_LEFT_OUT_LINE,
+    CLI_QUERY_UNUSED_LINE, CLI_QUERY_USAGE_LINE, CLI_RENAME_CONFLICT_LINE, CLI_RENAME_CONFLICTS,
     CLI_RENAME_DECLARATION_LINE, CLI_RENAME_DISCLAIMER, CLI_RENAME_HEAD, CLI_RENAME_NOT_SEARCHED,
     CLI_RENAME_PUBLIC, CLI_RENAME_SITES, CLI_RENAME_TEXT_LINE, CLI_RENAME_TEXTS,
 };
@@ -39,6 +39,8 @@ pub enum QueryKind {
     Unused,
     /// `rules`.
     Rules,
+    /// `rules --hold`.
+    RulesHeld,
     /// `preview-rename`.
     Rename,
 }
@@ -461,6 +463,15 @@ fn rules_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<String>, I18nE
     Ok(lines)
 }
 
+/// The one line that says the state was held.
+fn held_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<String>, I18nError> {
+    let numbers = [
+        (arg::DATE, text(field(answer, key::HELD_ON))),
+        (arg::ENTRIES, count(answer, key::ENTRIES)),
+    ];
+    Ok(vec![speak.say(CLI_QUERY_RULES_HELD, &numbers)?])
+}
+
 /// The preview of a rename: what the places, conflicts and text lines are, and what it cannot see.
 fn rename_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<String>, I18nError> {
     let sites = child(answer, key::SITES);
@@ -520,6 +531,7 @@ fn body(speak: &Speaker<'_>, kind: QueryKind, answer: &Value) -> Result<Vec<Stri
         QueryKind::Context => context_lines(speak, answer),
         QueryKind::Unused => unused_lines(speak, answer),
         QueryKind::Rules => rules_lines(speak, answer),
+        QueryKind::RulesHeld => held_lines(speak, answer),
         QueryKind::Rename => rename_lines(speak, answer),
     }
 }
