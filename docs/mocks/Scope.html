@@ -86,5 +86,5 @@ const dlg=`<div class="scrim"></div><div class="dlg" style="left:380px;top:150px
 <div class="pick sel"><span class="rd"></span><div><b>Im Projekt „kundenportal“ erfassen</b><div class="muted" style="margin-top:2px">Nichts wird doppelt gelesen. Empfohlen, wenn du den Zusammenhang sehen willst.</div></div></div>
 <div class="pick"><span class="rd"></span><div><b>Trotzdem als eigenes Projekt hinzufügen</b><div class="muted" style="margin-top:2px">Eigene Datenbank, eigene Scans. Der Code wird ein zweites Mal gelesen und gespeichert (ca. 38 Dateien).</div></div></div></div><div class="df"><span class="muted">Esc abbrechen</span><span class="sp"></span><span class="btn">Abbrechen</span><span class="btn pri">Weiter</span></div></div>`;
 html=shell(tabs('Übersicht')+`<div class="body"><div class="muted">Projektübersicht im Hintergrund …</div></div>`,dlg);}
-const b=document.getElementById('b');b.classList.add(th);b.innerHTML=html+`<span class="mark">Mock 26 · ${v}</span>`;
+const b=document.getElementById('b');b.classList.add(th);b.innerHTML=html;const mark=document.createElement('span');mark.className='mark';mark.textContent='Mock 26 · '+v;b.appendChild(mark);
 </script></body></html>
