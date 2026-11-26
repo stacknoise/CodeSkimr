@@ -21,7 +21,8 @@ use super::consts::{
     LAYERS_SET_TITLE,
 };
 use super::explorer::{ExplorerPorts, namespace_of};
-use crate::project_file::{PROJECT_FILE_MAX_BYTES, read_project_file};
+use crate::consts::PROJECT_FILE_MAX_BYTES;
+use crate::project_file::read_project_file;
 
 /// The input of `layers.get`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]

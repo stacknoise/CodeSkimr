@@ -559,3 +559,6 @@ pub mod note_arg {
 pub const STATISTICS_THREAD_NAME: &str = "statistics-count";
 /// Log event: the numbers of the statistics could not be counted after a scan.
 pub const LOG_STATISTICS_FAILED: &str = "statistics_count_failed";
+
+/// Largest project file that is read; a bigger one is refused.
+pub const PROJECT_FILE_MAX_BYTES: u64 = 1_048_576;

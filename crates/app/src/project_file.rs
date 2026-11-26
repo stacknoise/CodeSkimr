@@ -8,8 +8,7 @@ use std::path::Path;
 use codeskimr_application::error::CodedError;
 use codeskimr_codes::ErrorCode;
 
-/// Largest project file that is read; a bigger one is refused.
-pub const PROJECT_FILE_MAX_BYTES: u64 = 1_048_576;
+use crate::consts::PROJECT_FILE_MAX_BYTES;
 
 /// The text of the project file; empty if there is none. A link or anything but a file is
 /// refused, and no more than the limit is read, however the file grows while it is read.
