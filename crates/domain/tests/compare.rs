@@ -114,7 +114,7 @@ mod tests {
         let target = vec![with_hash(method(2, "A.f", "void f()"), "h1")];
         let found = compare_symbols(&base, &target);
         assert_eq!(found.changed[0].reasons, vec![ChangeReason::Content]);
-        assert!(found.impact_subjects().is_empty());
+        assert_eq!(found.impact_subjects().len(), 0);
     }
 
     #[test]
@@ -137,7 +137,7 @@ mod tests {
         assert_eq!(found.moved.len(), 1);
         assert!(found.moved[0].matched.reasons.is_empty() && !found.moved[0].renamed);
         assert!(found.added.is_empty() && found.removed.is_empty() && found.changed.is_empty());
-        assert!(found.impact_subjects().is_empty());
+        assert_eq!(found.impact_subjects().len(), 0);
     }
 
     #[test]
@@ -165,7 +165,7 @@ mod tests {
         let other_kind = with_hash(fact(3, SymbolKind::Function, "A.fresh", None), "same");
         let found = compare_symbols(&base, &[other_kind]);
         assert_eq!((found.removed.len(), found.added.len()), (1, 1));
-        assert!(found.moved.is_empty());
+        assert_eq!(found.moved.len(), 0);
     }
 
     #[test]
@@ -176,7 +176,7 @@ mod tests {
             with_hash(method(3, "A.two", "void two()"), "same"),
         ];
         let found = compare_symbols(&base, &target);
-        assert!(found.moved.is_empty());
+        assert_eq!(found.moved.len(), 0);
         assert_eq!((found.removed.len(), found.added.len()), (1, 2));
         let base = vec![
             with_hash(method(1, "A.a", "void a()"), "same"),
@@ -184,7 +184,7 @@ mod tests {
         ];
         let target = vec![with_hash(method(3, "A.c", "void c()"), "same")];
         let found = compare_symbols(&base, &target);
-        assert!(found.moved.is_empty());
+        assert_eq!(found.moved.len(), 0);
         assert_eq!((found.removed.len(), found.added.len()), (2, 1));
     }
 
@@ -195,7 +195,7 @@ mod tests {
         let mut fresh = method(2, "A.fresh", "void fresh()");
         fresh.content_hash = None;
         let found = compare_symbols(&[old], &[fresh]);
-        assert!(found.moved.is_empty());
+        assert_eq!(found.moved.len(), 0);
         assert_eq!((found.removed.len(), found.added.len()), (1, 1));
     }
 
