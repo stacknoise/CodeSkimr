@@ -115,9 +115,18 @@ impl CodeIndex for FakeIndex {
     fn search(
         &self,
         _snapshot: SnapshotId,
-        _query: &str,
+        query: &str,
         limit: u32,
     ) -> Result<Vec<SearchHit>, CodedError> {
+        if query == "Invoice" {
+            return Ok(vec![
+                hit(5, SymbolKind::Class, "App.Domain.Invoice"),
+                hit(6, SymbolKind::Class, "App.Billing.Invoice"),
+            ]);
+        }
+        if query == "Quote" {
+            return Ok(vec![hit(7, SymbolKind::Class, "App.Domain.Quote")]);
+        }
         let all = vec![
             hit(1, SymbolKind::Class, "App.Order"),
             hit(2, SymbolKind::Method, "App.Order.Total"),
@@ -136,6 +145,18 @@ impl CodeIndex for FakeIndex {
             SymbolKey::Id(id) => id.get() == 1,
             SymbolKey::Qualified(name) => name.as_str() == "App.Domain.Order",
         };
+        if matches!(key, SymbolKey::Id(id) if id.get() == 5) {
+            let mut other = detail();
+            other.symbol = symbol_named(5, SymbolKind::Class, "App.Domain.Invoice");
+            other.symbol.signature = Some("Invoice()".to_owned());
+            return Ok(Some(other));
+        }
+        if matches!(key, SymbolKey::Id(id) if id.get() == 7) {
+            let mut other = detail();
+            other.symbol = symbol_named(7, SymbolKind::Class, "App.Domain.Quote");
+            other.symbol.signature = Some("Quote(int count)".to_owned());
+            return Ok(Some(other));
+        }
         Ok(found.then(detail))
     }
 
@@ -721,6 +742,7 @@ fn assemble_with(
             annotations: Arc::new(FakeAnnotations::default()),
             reports: Arc::new(FakeReports),
             unused: Arc::new(FakeUnused),
+            mentions: Arc::new(FakeMentions),
         },
         limits,
         PROJECT,
@@ -1065,8 +1087,42 @@ pub fn tools_annotated(annotations: FakeAnnotations) -> Tools {
             annotations: Arc::new(annotations),
             reports: Arc::new(FakeReports),
             unused: Arc::new(FakeUnused),
+            mentions: Arc::new(FakeMentions),
         },
         limits(),
         PROJECT,
     )
+}
+
+/// Finds the old name in a configuration file and in a document, and in the line of the usage.
+pub struct FakeMentions;
+
+impl codeskimr_application::ports::NameMentions for FakeMentions {
+    fn mentions(
+        &self,
+        _root: &codeskimr_domain::FolderPath,
+        name: &str,
+        limits: &codeskimr_application::ports::MentionLimits,
+        except: &std::collections::HashSet<(String, u32)>,
+    ) -> Result<codeskimr_application::ports::Mentions, CodedError> {
+        let lines = [
+            ("src/app/service.cs", 11, format!("var x = {name}.Total();")),
+            ("config/app.json", 2, format!("\"audit\": [\"{name}\"]")),
+            ("docs/api.md", 119, format!("POST /orders calls {name}")),
+        ];
+        let all: Vec<_> = lines
+            .into_iter()
+            .filter(|(path, line, _)| !except.contains(&((*path).to_owned(), *line)))
+            .map(|(path, line, text)| codeskimr_application::ports::Mention {
+                path: RelativePath::new(path).unwrap(),
+                line,
+                text,
+            })
+            .collect();
+        Ok(codeskimr_application::ports::Mentions {
+            total: all.len(),
+            items: all.into_iter().take(limits.max_items).collect(),
+            skipped: 0,
+        })
+    }
 }

@@ -37,6 +37,8 @@ pub const TOOL_GET_ALERTS: &str = "get_alerts";
 pub const TOOL_GET_CONTEXT: &str = "get_context";
 /// Name of the tool that lists the symbols without a usage.
 pub const TOOL_FIND_UNUSED: &str = "find_unused";
+/// Name of the tool that shows what a new name for a symbol would hit.
+pub const TOOL_PREVIEW_RENAME: &str = "preview_rename";
 /// Name of the tool that scans the project again.
 pub const TOOL_RESCAN: &str = "rescan";
 
@@ -86,6 +88,8 @@ pub const ARG_QUERY: &str = "query";
 pub const ARG_KIND: &str = "kind";
 /// Name of the argument that cuts `find_unused` to one assessment.
 pub const ARG_ASSESSMENT: &str = "assessment";
+/// Argument name reported when its value is invalid: the new name of `preview_rename`.
+pub const ARG_NEW_NAME: &str = "new_name";
 /// Argument name reported when its value is invalid: the symbol.
 pub const ARG_SYMBOL: &str = "symbol";
 /// Argument name reported when its value is invalid: the direction of a walk.
@@ -132,3 +136,20 @@ pub const KIND_CONFIG: &str = "config";
 
 /// `kind` of the id of a translation message in the answer of `find_constants`.
 pub const KIND_I18N: &str = "i18n";
+
+/// Kind of a place of `preview_rename`: the declaration of the symbol.
+pub const KIND_DECLARATION: &str = "declaration";
+/// Kind of a place of `preview_rename`: a usage of the symbol.
+pub const KIND_USAGE: &str = "usage";
+/// Kind of a text line of `preview_rename`: a documentation file.
+pub const TEXT_DOCUMENTATION: &str = "documentation";
+/// Kind of a text line of `preview_rename`: a configuration file.
+pub const TEXT_CONFIGURATION: &str = "configuration";
+/// Kind of a text line of `preview_rename`: inside quotes in a code file.
+pub const TEXT_STRING: &str = "string";
+/// Kind of a text line of `preview_rename`: the argument of `nameof`.
+pub const TEXT_NAMEOF: &str = "nameof";
+/// Kind of a text line of `preview_rename`: a comment.
+pub const TEXT_COMMENT: &str = "comment";
+/// Kind of a text line of `preview_rename`: code that no usage explains.
+pub const TEXT_CODE: &str = "code";

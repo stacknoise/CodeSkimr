@@ -14,7 +14,7 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::ProjectId;
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::{HttpService, McpServer, Ports, Tools, serve_stdio};
-use codeskimr_source::{FolderKeys, FolderText};
+use codeskimr_source::{FolderKeys, FolderMentions, FolderText};
 use codeskimr_storage::SqliteStore;
 
 use crate::clock::SystemClock;
@@ -253,6 +253,7 @@ fn build_ports(
         annotations: store.clone(),
         reports: store.clone(),
         unused: Arc::new(JudgedUnused::new(store.clone(), config)),
+        mentions: Arc::new(FolderMentions::new(config.scan.excluded_folders.clone())),
         index: store,
     })
 }

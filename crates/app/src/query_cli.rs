@@ -1,4 +1,5 @@
-//! `codeskimr symbols`, `usages`, `impact`, `context` and `unused`: the questions of the MCP tools
+//! `codeskimr symbols`, `usages`, `impact`, `context`, `unused` and `preview-rename`: the
+//! questions of the MCP tools
 //! of the same names, asked from the command line. The tools answer; this module adds what a
 //! script needs around the answer: the version of the format, whether the scan is out of date,
 //! and a failure as JSON with its registered code.
@@ -10,13 +11,15 @@ use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{FileDiscovery, ProjectRepository};
 use codeskimr_cli::{
-    ContextQuery, ImpactQuery, QueryAction, QueryKind, SymbolsQuery, UnusedQuery, UsagesQuery,
-    query_code_report, query_error_json, query_json, query_text,
+    ContextQuery, ImpactQuery, QueryAction, QueryKind, RenameQuery, SymbolsQuery, UnusedQuery,
+    UsagesQuery, query_code_report, query_error_json, query_json, query_text,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Principal, ProjectId, ProjectSource};
 use codeskimr_i18n::Messages;
-use codeskimr_mcp::{ContextArgs, ImpactArgs, McpError, SearchArgs, Tools, UnusedArgs, UsagesArgs};
+use codeskimr_mcp::{
+    ContextArgs, ImpactArgs, McpError, RenameArgs, SearchArgs, Tools, UnusedArgs, UsagesArgs,
+};
 use codeskimr_storage::SqliteStore;
 use serde_json::Value;
 
@@ -103,6 +106,16 @@ fn ask(tools: &Tools, principal: Principal, action: &QueryAction) -> Result<Valu
         QueryAction::Impact(query) => tools.impact_of_change(&principal, &impact_args(query)),
         QueryAction::Context(query) => tools.get_context(&principal, &context_args(query)),
         QueryAction::Unused(query) => tools.find_unused(&principal, &unused_args(query)),
+        QueryAction::Rename(query) => tools.preview_rename(&principal, &rename_args(query)),
+    }
+}
+
+fn rename_args(query: &RenameQuery) -> RenameArgs {
+    RenameArgs {
+        symbol: query.symbol.clone(),
+        new_name: query.new_name.clone(),
+        project: None,
+        limit: query.limit,
     }
 }
 
@@ -180,6 +193,7 @@ const fn kind_of(action: &QueryAction) -> QueryKind {
         QueryAction::Impact(_) => QueryKind::Impact,
         QueryAction::Context(_) => QueryKind::Context,
         QueryAction::Unused(_) => QueryKind::Unused,
+        QueryAction::Rename(_) => QueryKind::Rename,
     }
 }
 

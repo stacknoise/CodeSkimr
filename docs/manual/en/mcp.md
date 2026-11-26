@@ -42,6 +42,7 @@ All tools only read, except `rescan` (and `get_project` runs the tool check, a f
 | `impact_of_change` | which symbols, layers and public interfaces a change can reach |
 | `get_context` | everything about one symbol in one call: signature, callers, dependencies, files a change can reach and notes; `budget` `short`, `medium` (default) or `long` says how much |
 | `find_unused` | which symbols have no usage, with the assessment and the reason; symbols that the exception list of the project (`[[unused.ignore]]` in `.codeskimr.toml`) takes out are listed apart with their reason |
+| `preview_rename` | what renaming a symbol would hit, without changing anything: the places that use it, symbols that already have the new name, and lines of the project folder (strings, configuration, documentation) that hold the old name |
 | `get_dependencies` | what a symbol, namespace or layer depends on, and whether that breaks the layering |
 | `get_architecture` | the layers and the dependencies between them |
 | `find_similar_code` | does this already exist? Give a `symbol` or a `snippet` with its `language` |
@@ -67,4 +68,4 @@ The agent runs as you, the local owner, and may read the project's structure. Re
 
 ## The same answers on the command line
 
-Scripts, CI and agents without MCP get the same answers from `codeskimr symbols <query>`, `codeskimr usages <symbol>`, `codeskimr impact <symbol>`, `codeskimr context <symbol>` and `codeskimr unused`. Add `--json` for JSON (with the version of the format in `schema`, and `stale: true` if files changed since the scan, `false` if not, `null` if that cannot be told; only `false` means current); without it you get text. The project is the one of the current folder, or `--project <id or folder>`. The commands read the last scan; they never scan by themselves. See `docs/cli.md`.
+Scripts, CI and agents without MCP get the same answers from `codeskimr symbols <query>`, `codeskimr usages <symbol>`, `codeskimr impact <symbol>`, `codeskimr context <symbol>`, `codeskimr unused` and `codeskimr preview-rename <symbol> <new-name>`. Add `--json` for JSON (with the version of the format in `schema`, and `stale: true` if files changed since the scan, `false` if not, `null` if that cannot be told; only `false` means current); without it you get text. The project is the one of the current folder, or `--project <id or folder>`. The commands read the last scan; they never scan by themselves. See `docs/cli.md`.

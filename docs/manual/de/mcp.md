@@ -42,6 +42,7 @@ Alle Werkzeuge lesen nur, außer `rescan` (und `get_project` führt die Werkzeug
 | `impact_of_change` | welche Symbole, Schichten und öffentlichen Schnittstellen eine Änderung erreichen kann |
 | `get_context` | alles zu einem Symbol in einem Aufruf: Signatur, Aufrufer, Abhängigkeiten, Dateien, die eine Änderung erreichen kann, und Anmerkungen; `budget` `short`, `medium` (Vorgabe) oder `long` sagt, wie viel |
 | `find_unused` | welche Symbole keine Verwendung haben, mit Einschätzung und Grund; Symbole, die die Ausnahmeliste des Projekts (`[[unused.ignore]]` in `.codeskimr.toml`) ausnimmt, stehen getrennt mit ihrem Grund |
+| `preview_rename` | was eine Umbenennung träfe, ohne etwas zu ändern: die Stellen, die das Symbol verwenden, Symbole, die den neuen Namen schon haben, und Zeilen im Projektordner (Zeichenketten, Konfiguration, Dokumentation) mit dem alten Namen |
 | `get_dependencies` | wovon ein Symbol, Namensraum oder eine Schicht abhängt und ob das die Schichtung verletzt |
 | `get_architecture` | die Schichten und die Abhängigkeiten zwischen ihnen |
 | `find_similar_code` | gibt es das schon? Ein `symbol` oder ein `snippet` mit seiner `language` angeben |
@@ -67,4 +68,4 @@ Der Agent läuft als Sie, der lokale Eigentümer, und darf die Struktur des Proj
 
 ## Dieselben Antworten auf der Kommandozeile
 
-Skripte, CI und Agenten ohne MCP bekommen dieselben Antworten mit `codeskimr symbols <Suche>`, `codeskimr usages <Symbol>`, `codeskimr impact <Symbol>`, `codeskimr context <Symbol>` und `codeskimr unused`. Mit `--json` kommt JSON (die Version des Formats steht in `schema`, und `stale: true` heißt: Dateien haben sich seit dem Scan geändert, `false` nicht, `null` nicht feststellbar; nur `false` heißt aktuell); ohne gibt es Text. Das Projekt ist das des aktuellen Ordners, oder `--project <ID oder Ordner>`. Die Befehle lesen den letzten Scan; sie scannen nie von selbst. Siehe `docs/cli.md`.
+Skripte, CI und Agenten ohne MCP bekommen dieselben Antworten mit `codeskimr symbols <Suche>`, `codeskimr usages <Symbol>`, `codeskimr impact <Symbol>`, `codeskimr context <Symbol>`, `codeskimr unused` und `codeskimr preview-rename <Symbol> <neuer Name>`. Mit `--json` kommt JSON (die Version des Formats steht in `schema`, und `stale: true` heißt: Dateien haben sich seit dem Scan geändert, `false` nicht, `null` nicht feststellbar; nur `false` heißt aktuell); ohne gibt es Text. Das Projekt ist das des aktuellen Ordners, oder `--project <ID oder Ordner>`. Die Befehle lesen den letzten Scan; sie scannen nie von selbst. Siehe `docs/cli.md`.

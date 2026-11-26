@@ -204,3 +204,8 @@ pub const LOG_REASON: &str = "reason";
 
 /// Name of the log field that carries the error code of a fallback.
 pub const LOG_CODE: &str = "code";
+
+/// A file with this byte is not text and is not searched for mentions of a name.
+pub const BINARY_MARKER: u8 = 0;
+/// Longest line text of a mention, in characters.
+pub const MENTION_TEXT_CHARS: usize = 240;

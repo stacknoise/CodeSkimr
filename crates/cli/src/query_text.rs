@@ -11,13 +11,16 @@ use codeskimr_codes::i18n::{
     CLI_CONTEXT_NOTES, CLI_CONTEXT_SIGNATURE, CLI_QUERY_CUT, CLI_QUERY_IMPACT_LINE, CLI_QUERY_NONE,
     CLI_QUERY_PRELIMINARY, CLI_QUERY_STALE, CLI_QUERY_SYMBOL_LINE, CLI_QUERY_UNUSED_LEFT_OUT,
     CLI_QUERY_UNUSED_LEFT_OUT_LINE, CLI_QUERY_UNUSED_LINE, CLI_QUERY_USAGE_LINE,
+    CLI_RENAME_CONFLICT_LINE, CLI_RENAME_CONFLICTS, CLI_RENAME_DECLARATION_LINE,
+    CLI_RENAME_DISCLAIMER, CLI_RENAME_HEAD, CLI_RENAME_NOT_SEARCHED, CLI_RENAME_PUBLIC,
+    CLI_RENAME_SITES, CLI_RENAME_TEXT_LINE, CLI_RENAME_TEXTS,
 };
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde_json::{Map, Value};
 
 use crate::consts::{
-    CONTROL_REPLACEMENT, JSON_NULL_TEXT, LINE_BREAK, LIST_INDENT, QUERY_SCHEMA_VERSION,
-    TITLE_SEPARATOR, arg, key,
+    CONTROL_REPLACEMENT, JSON_NULL_TEXT, KIND_DECLARATION, LINE_BREAK, LIST_INDENT,
+    QUERY_SCHEMA_VERSION, TITLE_SEPARATOR, arg, key,
 };
 
 /// Which query command an answer belongs to.
@@ -33,6 +36,8 @@ pub enum QueryKind {
     Context,
     /// `unused`.
     Unused,
+    /// `preview-rename`.
+    Rename,
 }
 
 /// The answer of a tool as the JSON of a command: the fields of the answer plus `schema` (the
@@ -224,6 +229,38 @@ fn left_out_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError
     )
 }
 
+fn conflict_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
+    let more = [(arg::CLASH, text(field(found, key::SAME_SIGNATURE)))];
+    identified_line(speak, CLI_RENAME_CONFLICT_LINE, found, more)
+}
+
+fn text_hit_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
+    speak.say(
+        CLI_RENAME_TEXT_LINE,
+        &[
+            (arg::PATH, text(field(found, key::PATH))),
+            (arg::LINE, count(found, key::LINE)),
+            (arg::KIND, text(field(found, key::KIND))),
+            (arg::TEXT, text(field(found, key::TEXT))),
+        ],
+    )
+}
+
+/// A place of `preview-rename`: a declaration or a usage, as `usages` shows it.
+fn site_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
+    if field(found, key::KIND) != KIND_DECLARATION {
+        return usage_line(speak, found);
+    }
+    speak.say(
+        CLI_RENAME_DECLARATION_LINE,
+        &[
+            (arg::PATH, text(field(found, key::PATH))),
+            (arg::LINE, count(found, key::LINE)),
+            (arg::COLUMN, count(found, key::COLUMN)),
+        ],
+    )
+}
+
 type Line = fn(&Speaker<'_>, &Value) -> Result<String, I18nError>;
 
 /// A list of `context` with a heading that says how many of how many are shown; nothing if it
@@ -321,6 +358,57 @@ fn unused_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<String>, I18n
     Ok(lines)
 }
 
+/// The preview of a rename: what the places, conflicts and text lines are, and what it cannot see.
+fn rename_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<String>, I18nError> {
+    let sites = child(answer, key::SITES);
+    let texts = child(answer, key::TEXT_HITS);
+    let head = [
+        (
+            arg::NAME,
+            text(field(&child(answer, key::SYMBOL), key::QUALIFIED_NAME)),
+        ),
+        (arg::NEW, text(field(answer, key::NEW_NAME))),
+    ];
+    let numbers = [
+        (arg::SHOWN, count(&sites, key::TOTAL)),
+        (arg::FILES, count(&sites, key::FILES)),
+        (arg::VERIFIED, count(&sites, key::VERIFIED)),
+    ];
+    let mut lines = vec![
+        speak.say(CLI_RENAME_HEAD, &head)?,
+        speak.say(CLI_RENAME_SITES, &numbers)?,
+    ];
+    for entry in entries(&sites, key::ITEMS) {
+        lines.push([LIST_INDENT, site_line(speak, entry)?.as_str()].concat());
+    }
+    let conflicts = json_list(answer, key::CONFLICTS);
+    lines.extend(section(
+        speak,
+        (CLI_RENAME_CONFLICTS, &conflicts),
+        conflict_line,
+    )?);
+    if texts.get(key::SEARCHED).and_then(Value::as_bool) == Some(true) {
+        lines.extend(section(speak, (CLI_RENAME_TEXTS, &texts), text_hit_line)?);
+    } else {
+        lines.push(speak.say(CLI_RENAME_NOT_SEARCHED, &[])?);
+    }
+    if answer.get(key::PUBLIC_INTERFACE).and_then(Value::as_bool) == Some(true) {
+        lines.push(speak.say(CLI_RENAME_PUBLIC, &[])?);
+    }
+    lines.push(speak.say(CLI_RENAME_DISCLAIMER, &[])?);
+    Ok(lines)
+}
+
+/// A list field of the answer as the `{ total, items }` form that [`section`] reads.
+fn json_list(answer: &Value, name: &str) -> Value {
+    let items = child(answer, name);
+    let total = items.as_array().map_or(0, Vec::len);
+    Value::Object(Map::from_iter([
+        (key::TOTAL.to_owned(), Value::from(total)),
+        (key::ITEMS.to_owned(), items),
+    ]))
+}
+
 fn body(speak: &Speaker<'_>, kind: QueryKind, answer: &Value) -> Result<Vec<String>, I18nError> {
     match kind {
         QueryKind::Symbols => list_lines(speak, (answer, key::HITS), symbol_line),
@@ -328,6 +416,7 @@ fn body(speak: &Speaker<'_>, kind: QueryKind, answer: &Value) -> Result<Vec<Stri
         QueryKind::Impact => list_lines(speak, (answer, key::SYMBOLS), impact_line),
         QueryKind::Context => context_lines(speak, answer),
         QueryKind::Unused => unused_lines(speak, answer),
+        QueryKind::Rename => rename_lines(speak, answer),
     }
 }
 

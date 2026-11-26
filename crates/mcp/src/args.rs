@@ -188,6 +188,22 @@ pub struct UnusedArgs {
     pub limit: Option<u32>,
 }
 
+/// Arguments of `preview_rename`.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[schemars(crate = "rmcp::schemars")]
+pub struct RenameArgs {
+    /// Id or qualified name of the symbol that would be renamed.
+    pub symbol: String,
+    /// The name it would get: letters, digits and underscores, not starting with a digit.
+    pub new_name: String,
+    /// Id of the project; the project of this server if left out.
+    pub project: Option<u64>,
+    /// Number of places and of text lines listed; the configured default if left out, never more
+    /// than the configured maximum. The counts are always whole.
+    pub limit: Option<u32>,
+}
+
 /// Arguments of `check_conventions`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
