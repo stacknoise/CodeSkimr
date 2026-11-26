@@ -226,7 +226,7 @@ impl DiscoverStage {
     fn carried(
         &self,
         mode: ScanMode,
-        files: &mut Vec<DiscoveredFile>,
+        files: &mut [DiscoveredFile],
         state: PreviousState,
     ) -> Result<Carried, CodedError> {
         let (ScanMode::Incremental, Some(snapshot)) = (mode, state.snapshot) else {
