@@ -11,7 +11,8 @@ use std::collections::{BTreeMap, HashMap};
 use crate::consts::{
     ASSESSMENT_APPROXIMATE, ASSESSMENT_LIKELY, ASSESSMENT_PUBLIC, EXTENSION_SEPARATOR, GROUP_ALL,
     GROUP_FUNCTIONS, GROUP_TYPES, ORDER_ALL, ORDER_CERTAIN, PATH_SEPARATOR, RANKING_COMPLEXITY,
-    RANKING_COUPLING, RANKING_MOST_USED, RANKING_SIZE, RANKING_UNUSED, TEST_NAME_JOINT,
+    RANKING_COUPLING, RANKING_MOST_USED, RANKING_SIZE, RANKING_UNUSED, REASON_APPROXIMATE,
+    REASON_INTERNAL, REASON_PRIVATE, REASON_PUBLIC, TEST_NAME_JOINT,
 };
 use crate::file::{LanguageId, RelativePath};
 use crate::qualified_name::QualifiedName;
@@ -179,6 +180,38 @@ impl Assessment {
             Some(Visibility::Private | Visibility::Internal | Visibility::Protected) => {
                 Self::Likely
             }
+            Some(Visibility::Public) | None => Self::Public,
+        }
+    }
+}
+
+labeled_enum!(
+    /// Why "no usage found" is judged as it is (ADR 0101): what the row of an unused symbol says
+    /// in a sentence. It follows from the visibility and the language, so it is never more than
+    /// the assessment knows.
+    UnusedReason {
+        /// Private: only its own class or file can use it, and nothing there does.
+        Private => REASON_PRIVATE,
+        /// Internal or protected: only the project (or a subclass) can use it, and nothing does.
+        Internal => REASON_INTERNAL,
+        /// Public or without a visibility: code outside the project may use it.
+        Public => REASON_PUBLIC,
+        /// The language is read as an approximation: a usage may have been missed.
+        Approximate => REASON_APPROXIMATE,
+    }
+);
+
+impl UnusedReason {
+    /// The reason for an unused symbol with `visibility` in a language whose usages are an
+    /// approximation or not; it agrees with [`Assessment::of`].
+    #[must_use]
+    pub const fn of(visibility: Option<Visibility>, approximate: bool) -> Self {
+        if approximate {
+            return Self::Approximate;
+        }
+        match visibility {
+            Some(Visibility::Private) => Self::Private,
+            Some(Visibility::Internal | Visibility::Protected) => Self::Internal,
             Some(Visibility::Public) | None => Self::Public,
         }
     }

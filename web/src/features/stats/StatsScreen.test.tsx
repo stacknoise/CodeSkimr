@@ -28,11 +28,12 @@ function row(id: number, name: string, patch: Partial<Row> = {}): Row {
     efferent: 2,
     afferent: 1,
     assessment: null,
+    reason: null,
     ...patch,
   };
 }
 
-const UNUSED = { likely: 2, public: 3, approximate: 1, tests_hidden: 7 };
+const UNUSED = { likely: 2, public: 3, approximate: 1, tests_hidden: 7, left_out: 0 };
 const OVERVIEW: Overview = {
   snapshot: 5,
   files: 12,
@@ -50,7 +51,7 @@ const OVERVIEW: Overview = {
   },
   top: {
     most_used: [row(1, "Cart")],
-    unused: [row(2, "orphan", { certain: 0, total: 0, assessment: "likely" })],
+    unused: [row(2, "orphan", { certain: 0, total: 0, assessment: "likely", reason: "private" })],
     complexity: [row(3, "checkout", { complexity: 17, complexity_rating: "bad" })],
     coupling: [row(4, "wire", { efferent: 22 })],
   },
@@ -60,6 +61,7 @@ const RANKING: RankingAnswer = {
   rows: [row(1, "Cart"), row(5, "Order", { certain: 1, total: 9 })],
   total: 2,
   unused: null,
+  left_out: [],
 };
 
 useServerSession();
@@ -282,16 +284,69 @@ describe("StatsScreen: rankings", () => {
   });
 
   it("explains what no usage means and splits the rows by assessment", async () => {
-    const orphan = row(2, "orphan", { certain: 0, total: 0, assessment: "public" });
+    const orphan = row(2, "orphan", {
+      certain: 0,
+      total: 0,
+      assessment: "public",
+      reason: "public",
+    });
     served({ ...RANKING, rows: [orphan], total: 1, unused: UNUSED });
     const table = await showRanking("No usage found");
     expect(screen.getByText(/does not mean dead code/)).toBeInTheDocument();
     expect(screen.getByText("Tests hidden")).toBeInTheDocument();
     expect(within(table).getByTitle("public: may be used from outside")).toBeInTheDocument();
+    expect(
+      within(table).getByText("public: users outside the project are possible"),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "very likely unused" }));
     await waitFor(() =>
       expect(inputs("stats.ranking").at(-1)).toMatchObject({ assessment: "likely" }),
     );
+  });
+
+  it("lists the symbols the exception list leaves out, with the rule on request", async () => {
+    const orphan = row(2, "orphan", {
+      certain: 0,
+      total: 0,
+      assessment: "likely",
+      reason: "private",
+    });
+    const kept = row(9, "Migrate", {
+      certain: 0,
+      total: 0,
+      assessment: "likely",
+      reason: "private",
+    });
+    const rule = { symbols: ["*.Migrate"], reason: "called by the migration tool" };
+    served({
+      ...RANKING,
+      rows: [orphan],
+      total: 1,
+      unused: { ...UNUSED, left_out: 1 },
+      left_out: [{ row: kept, rule }],
+    });
+    await showRanking("No usage found");
+    expect(await screen.findByText("Left out")).toBeInTheDocument();
+    expect(screen.getByText("Rule: “called by the migration tool”")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show rule" }));
+    expect(screen.getByText("*.Migrate")).toBeInTheDocument();
+    expect(screen.getByText(/^1 symbol does not appear in the number above/)).toBeInTheDocument();
+  });
+
+  it("counts all the symbols the list leaves out, not only the ones it shows", async () => {
+    const rule = { symbols: ["*.Migrate"], reason: "called by the migration tool" };
+    served({
+      ...RANKING,
+      rows: [row(2, "orphan")],
+      total: 1,
+      unused: { ...UNUSED, left_out: 5 },
+      left_out: [{ row: row(1, "Cart"), rule }],
+    });
+    await showRanking("No usage found");
+    expect(
+      await screen.findByText(/^5 symbols do not appear in the number above/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("1 of 5")).toBeInTheDocument();
   });
 
   it("draws the histogram and the hotspots in the complexity tab", async () => {

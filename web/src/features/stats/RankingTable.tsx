@@ -6,15 +6,7 @@ import { cx } from "../../shared/ui/cx";
 import { Pill } from "../../shared/ui/Pill";
 import { KindBadge } from "../explorer/KindBadge";
 import { count } from "../projects/format";
-import {
-  ASSESSMENTS,
-  OPEN_ARROW,
-  RATING_POOR,
-  TAB,
-  VISIBILITY_KEYS,
-  VISIBILITY_TEXT,
-  SCROLL_NEAREST,
-} from "./consts";
+import { ASSESSMENTS, OPEN_ARROW, RATING_POOR, TAB, REASON_TEXT, SCROLL_NEAREST } from "./consts";
 import { mostUsages } from "./geometry";
 import type { RankingName, Row } from "./types";
 import { UsageBar } from "./UsageBar";
@@ -23,7 +15,7 @@ import styles from "./RankingTable.module.css";
 /** The header of the value columns of each ranking. */
 const COLUMNS: Record<RankingName, MessageKey[]> = {
   most_used: [I18N_KEYS.STATS_COLUMN_USAGES],
-  unused: [I18N_KEYS.STATS_COLUMN_VISIBILITY, I18N_KEYS.STATS_COLUMN_ASSESSMENT],
+  unused: [I18N_KEYS.STATS_COLUMN_ASSESSMENT, I18N_KEYS.STATS_COLUMN_REASON],
   complexity: [I18N_KEYS.STATS_COLUMN_COMPLEXITY, I18N_KEYS.STATS_COLUMN_LINES],
   size: [I18N_KEYS.STATS_COLUMN_LINES, I18N_KEYS.STATS_COLUMN_COMPLEXITY],
   coupling: [I18N_KEYS.STATS_COLUMN_EFFERENT, I18N_KEYS.STATS_COLUMN_AFFERENT],
@@ -42,9 +34,8 @@ export function usageText(row: Row): string {
   );
 }
 
-function visibilityText(row: Row): string {
-  const known = VISIBILITY_TEXT[row.visibility ?? ""];
-  return t(known === undefined ? I18N_KEYS.STATS_VISIBILITY_NONE : VISIBILITY_KEYS[known]);
+function reasonText(row: Row): string {
+  return row.reason === null ? t(I18N_KEYS.STATS_VISIBILITY_NONE) : t(REASON_TEXT[row.reason]);
 }
 
 /** The pill with the assessment of a row without usages. */
@@ -77,10 +68,10 @@ function Values(props: { row: Row; ranking: RankingName; most: number }) {
         </td>
       </Match>
       <Match when={props.ranking === TAB.unused}>
-        <td>{visibilityText(props.row)}</td>
         <td>
           <AssessmentPill row={props.row} />
         </td>
+        <td>{reasonText(props.row)}</td>
       </Match>
       <Match when={props.ranking === TAB.complexity}>
         {complexity()}

@@ -20,7 +20,8 @@ pub use layer::ConfigLayer;
 pub use layer_file::with_layers;
 pub use model::{
     Annotations, Budgets, Config, Conventions, Editor, Export, Graph, KeySources, LayerRule,
-    Level2, McpLimits, MetricThresholds, Scan, Similarity, SnapshotRetention, Ui, Watcher,
+    Level2, McpLimits, MetricThresholds, Scan, Similarity, SnapshotRetention, Ui, Unused,
+    UnusedIgnore, Watcher,
 };
 
 use consts::NO_PREFIX;
