@@ -20,11 +20,12 @@ use codeskimr_i18n::{FluentValue, I18nError, Messages};
 use serde_json::Value;
 
 use crate::consts::change::{
-    APOSTROPHE, BACKTICK, CENTURY, CENTURY_DAYS, EPOCH_SHIFT, ERA_DAYS, FOUR_YEARS_DAYS,
-    LEAP_CYCLE, LIST_SECTIONS, MARCH, MARCH_BASED_NEW_YEAR, MONTH_CYCLE_DAYS, MONTH_CYCLE_MONTHS,
-    MONTH_OFFSET, MONTHS_SHIFT_BACK, NOT_TOUCHED_STATUS, REASON_SEPARATOR, REMOVED_CAUSE,
-    SECONDS_PER_DAY, SECONDS_PER_HOUR, SECONDS_PER_MINUTE, SUMMARY_ARGUMENTS, YEAR_DAYS,
-    YEARS_PER_ERA, field_name, name,
+    APOSTROPHE, BACKTICK, CENTURY, CENTURY_DAYS, DATE_SEPARATOR, DATE_TIME_SEPARATOR, EPOCH_SHIFT,
+    ERA_DAYS, FOUR_YEARS_DAYS, LEAP_CYCLE, LIST_SECTIONS, MARCH, MARCH_BASED_NEW_YEAR,
+    MONTH_CYCLE_DAYS, MONTH_CYCLE_MONTHS, MONTH_OFFSET, MONTHS_SHIFT_BACK, NOT_TOUCHED_STATUS,
+    PAIR_WIDTH, REASON_SEPARATOR, REMOVED_CAUSE, SECONDS_PER_DAY, SECONDS_PER_HOUR,
+    SECONDS_PER_MINUTE, SUMMARY_ARGUMENTS, TIME_SEPARATOR, YEAR_DAYS, YEAR_WIDTH, YEARS_PER_ERA,
+    ZERO_DIGIT, field_name, name,
 };
 use crate::consts::{LINE_BREAK, LIST_INDENT, MARKDOWN_MARKER, key};
 use crate::speech::{
@@ -57,7 +58,25 @@ fn time_text(seconds: i64) -> String {
         rest / SECONDS_PER_HOUR,
         rest % SECONDS_PER_HOUR / SECONDS_PER_MINUTE,
     );
-    format!("{year:04}-{month:02}-{day:02} {hour:02}:{minute:02}")
+    [
+        padded(year, YEAR_WIDTH),
+        DATE_SEPARATOR.to_owned(),
+        padded(month, PAIR_WIDTH),
+        DATE_SEPARATOR.to_owned(),
+        padded(day, PAIR_WIDTH),
+        DATE_TIME_SEPARATOR.to_owned(),
+        padded(hour, PAIR_WIDTH),
+        TIME_SEPARATOR.to_owned(),
+        padded(minute, PAIR_WIDTH),
+    ]
+    .concat()
+}
+
+/// The number with leading zeros up to `width` digits.
+fn padded(value: i64, width: usize) -> String {
+    let digits = value.to_string();
+    let fill = width.saturating_sub(digits.len());
+    [ZERO_DIGIT.repeat(fill), digits].concat()
 }
 
 /// The calendar date of a day counted from 1970-01-01 (the proleptic Gregorian calendar).

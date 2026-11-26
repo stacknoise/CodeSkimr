@@ -742,4 +742,16 @@ pub mod change {
     pub const LIST_SECTIONS: usize = 4;
     /// Number of arguments of the summary text.
     pub const SUMMARY_ARGUMENTS: usize = 7;
+    /// Separates year, month and day.
+    pub const DATE_SEPARATOR: &str = "-";
+    /// Separates the date from the time.
+    pub const DATE_TIME_SEPARATOR: &str = " ";
+    /// Separates hour and minute.
+    pub const TIME_SEPARATOR: &str = ":";
+    /// Digits of a year.
+    pub const YEAR_WIDTH: usize = 4;
+    /// Digits of month, day, hour and minute.
+    pub const PAIR_WIDTH: usize = 2;
+    /// Fills a number up to its width.
+    pub const ZERO_DIGIT: &str = "0";
 }
