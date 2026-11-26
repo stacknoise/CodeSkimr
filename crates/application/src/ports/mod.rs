@@ -23,6 +23,7 @@ mod query;
 mod references;
 mod report;
 mod rescan;
+mod scope;
 mod similarity;
 mod source;
 mod states;
@@ -50,6 +51,7 @@ pub use highlight::{SyntaxHighlighter, TokenClass, TokenSpan};
 pub use indexer::{
     IndexArtifact, IndexJob, IndexLimits, IndexRunner, IndexerSpec, IndexerStatus,
     PLACEHOLDER_OUTPUT, PLACEHOLDER_PROJECT, ToolIssue, ToolProblem, ToolSeen, ToolSpec,
+    matches_project_file,
 };
 pub use keys::{KeyEntry, KeyKind, KeySearch, ProjectKeys};
 pub use level2::{ImportRequest, Imported, ReferenceImporter};
@@ -64,6 +66,7 @@ pub use report::{
     LanguageLine, LanguageOutcome, LastScan, Level2Report, ReportWrite, ScanReport, ScanReportStore,
 };
 pub use rescan::{LeftOut, PathsReport, ProjectScanner, Rescanned, SkippedFile};
+pub use scope::{FolderLister, ListedFile, ScopeStore};
 pub use similarity::{SimilarHit, SimilarQuery, SimilarityIndex};
 pub use source::{
     DiscoveredFile, Excerpt, FetchedSource, FileDiscovery, SourceProvider, SourceText,

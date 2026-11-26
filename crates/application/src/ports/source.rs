@@ -1,7 +1,7 @@
 //! Getting the code to scan (adapter: `codeskimr_source`).
 
 use codeskimr_domain::{
-    CommitHash, ContentHash, FolderPath, LanguageId, ProjectSource, RelativePath, SourceFile,
+    CommitHash, ContentHash, FolderPath, LanguageId, ProjectSource, RelativePath, Scope, SourceFile,
 };
 
 use crate::cancel::CancelToken;
@@ -56,6 +56,24 @@ pub trait FileDiscovery: Send + Sync {
         previous: &[SourceFile],
         cancel: &CancelToken,
     ) -> Result<Vec<DiscoveredFile>, CodedError>;
+
+    /// Like [`FileDiscovery::discover`], but a file that `scope` leaves out is not part of the
+    /// result (ADR 0097). The default discovers everything and drops those files afterwards; an
+    /// adapter that can skip a folder or a language before it reads the files overrides it.
+    ///
+    /// # Errors
+    /// A coded failure such as `SRC-201` or `SRC-501`.
+    fn discover_scoped(
+        &self,
+        root: &FolderPath,
+        previous: &[SourceFile],
+        scope: &Scope,
+        cancel: &CancelToken,
+    ) -> Result<Vec<DiscoveredFile>, CodedError> {
+        let mut files = self.discover(root, previous, cancel)?;
+        files.retain(|file| scope.covers(&file.path, &file.language));
+        Ok(files)
+    }
 
     /// The paths of those `files` whose content below `root` is still the one in the list. A file
     /// that is gone, unreadable, not a regular file (a link or a pipe is never followed or waited

@@ -402,3 +402,16 @@ pub const ORIGIN_PROJECT: &str = "project";
 pub const ORIGIN_CLI: &str = "cli";
 /// Joins key and value in the text of a command line override.
 pub const OVERRIDE_JOIN: char = '=';
+
+/// Id of the command that shows what a project covers and what it leaves out.
+pub const SCOPE_GET: &str = "scope.get";
+/// Title key of `scope.get`.
+pub const SCOPE_GET_TITLE: &str = i18n::COMMAND_SCOPE_GET_TITLE;
+/// Description key of `scope.get`.
+pub const SCOPE_GET_DESCRIPTION: &str = i18n::COMMAND_SCOPE_GET_DESCRIPTION;
+/// Id of the command that stores what a project leaves out.
+pub const SCOPE_SET: &str = "scope.set";
+/// Title key of `scope.set`.
+pub const SCOPE_SET_TITLE: &str = i18n::COMMAND_SCOPE_SET_TITLE;
+/// Description key of `scope.set`.
+pub const SCOPE_SET_DESCRIPTION: &str = i18n::COMMAND_SCOPE_SET_DESCRIPTION;

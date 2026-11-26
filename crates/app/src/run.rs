@@ -34,7 +34,7 @@ use crate::watch::{self, Report};
 use crate::wiring::os_secrets;
 use crate::{
     annotations_cli, check, credential, export, level2_consent, level2_console, mcp, open, scan,
-    serve, start, tray, ui_commands,
+    scope_cli, serve, start, tray, ui_commands,
 };
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
@@ -188,6 +188,10 @@ fn run_invocation(
         Action::Open(args) => run_open(*args, invocation, &locations, env, (messages, language)),
         Action::Serve(_) => run_serve(invocation, &locations, (messages, language)),
         Action::Export(args) => run_export(args, invocation, &locations, messages, language),
+        Action::Scope(args) => {
+            let around = surroundings(invocation, &locations, (messages, language));
+            print_text(scope_cli::run_scope(args, &around))
+        }
         Action::Codes(args) => print_codes(args, messages, language),
         Action::Check(args) => {
             let report = check::run(args, &invocation.global, &locations, &current_dir)?;

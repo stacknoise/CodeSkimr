@@ -189,3 +189,23 @@ cli-codes-explain =
        *[no] a retry does not help
     }, since version { $since }.
 cli-codes-retired = This code is retired: nothing raises it any more, and its number stays reserved.
+
+cli-cmd-scope = Show or change which languages and folders a project covers
+cli-arg-scope-project = Id of the project, or the folder or Git URL it was scanned from
+cli-arg-without-language = Leave this language out of the scans (can be given more than once)
+cli-arg-with-language = Take this language back in (can be given more than once)
+cli-arg-without-folder = Leave this folder out of the scans, relative to the project folder (can be given more than once)
+cli-arg-with-folder = Take this folder back in (can be given more than once)
+cli-arg-scope-reset = Take everything back in before the other changes apply
+cli-scope-heading = Scope of project { $project }:
+cli-scope-language = { $state ->
+    [covered] Covered
+   *[left_out] Left out
+}: language { $language } ({ $files } files)
+cli-scope-folder = { $state ->
+    [covered] Covered
+   *[left_out] Left out
+}: folder { $path } ({ $files } files)
+cli-scope-more = { $count } more folders are not listed. Use --json for the whole answer.
+cli-scope-saved = The scope is saved. It applies from the next scan; the code stays one project.
+cli-scope-unchanged = The scope stays as it was.

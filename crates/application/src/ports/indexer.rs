@@ -11,6 +11,7 @@ use std::time::Duration;
 use codeskimr_domain::{LanguageId, SymbolKind};
 
 use crate::cancel::CancelToken;
+use crate::consts::PROJECT_FILE_WILDCARD;
 use crate::error::CodedError;
 
 use super::{RunPermit, ToolVersion};
@@ -74,6 +75,15 @@ pub struct IndexerSpec {
     /// files of a package and the folders do not decide (`lib.rs` for Rust, ADR 0061); empty if
     /// the pack names none.
     pub library_root: String,
+}
+
+/// Whether the file name `name` is the one `wanted` names; `*` at the start of `wanted` matches
+/// any prefix (`*.sln`).
+#[must_use]
+pub fn matches_project_file(wanted: &str, name: &str) -> bool {
+    wanted
+        .strip_prefix(PROJECT_FILE_WILDCARD)
+        .map_or_else(|| wanted == name, |suffix| name.ends_with(suffix))
 }
 
 /// Limits of one run, from `level2.*` of the configuration.

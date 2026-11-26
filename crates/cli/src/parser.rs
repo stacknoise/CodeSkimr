@@ -26,13 +26,14 @@ use crate::consts::{
     ARG_HTML, ARG_JSON, ARG_LANGUAGES, ARG_NAME, ARG_NO_BROWSER, ARG_PATHS, ARG_PRINT_URL,
     ARG_PROJECT, ARG_SET, ARG_SOURCE, ARG_WATCH, BINARY_NAME, COMMAND_ALERTS, COMMAND_ANNOTATIONS,
     COMMAND_CHECK, COMMAND_CODES, COMMAND_CREDENTIAL, COMMAND_EXPORT, COMMAND_LEVEL2, COMMAND_MCP,
-    COMMAND_OPEN, COMMAND_SCAN, COMMAND_SERVE, OVERRIDE_SEPARATOR, VALUE_BRANCH, VALUE_DIR,
-    VALUE_EXPORT_PROJECT, VALUE_FILE, VALUE_ID, VALUE_NAME, VALUE_OVERRIDE, VALUE_PATH,
+    COMMAND_OPEN, COMMAND_SCAN, COMMAND_SCOPE, COMMAND_SERVE, OVERRIDE_SEPARATOR, VALUE_BRANCH,
+    VALUE_DIR, VALUE_EXPORT_PROJECT, VALUE_FILE, VALUE_ID, VALUE_NAME, VALUE_OVERRIDE, VALUE_PATH,
     VALUE_SOURCE, VERSION,
 };
 use crate::credential;
 use crate::error::CliError;
 use crate::notes;
+use crate::scope;
 
 /// Reads `arguments`, the first of which is the program name.
 ///
@@ -75,6 +76,7 @@ fn definition(messages: &Messages, language: &str) -> Result<Command, CliError> 
         .subcommand(check_command(messages, language)?)
         .subcommand(codes::command(&say)?)
         .subcommand(export_command(messages, language)?)
+        .subcommand(scope::command(&say)?)
         .subcommand(credential::command(&say)?)
         .subcommand(consent::command(&say)?)
         .subcommand(notes::annotations_command(&say)?)
@@ -226,6 +228,7 @@ fn invocation(matches: &ArgMatches) -> Result<Invocation, CliError> {
             print_url: open.get_flag(ARG_PRINT_URL),
         }),
         Some((COMMAND_EXPORT, export)) => Action::Export(export_args(export)),
+        Some((COMMAND_SCOPE, scope)) => Action::Scope(scope::args(scope)),
         None => Action::Start(StartArgs {
             console: matches.get_flag(ARG_CONSOLE),
         }),

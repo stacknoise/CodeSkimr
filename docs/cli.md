@@ -48,6 +48,10 @@ Manages the credentials in the keystore of the operating system (blueprint 12.2,
 
 Allows or forbids level 2 (the indexers of ADR 0033, which run the build tools of the project) for one project. `<project>` is the project id or the folder or Git URL it was scanned from, as for `export`. `confirm` needs a terminal on standard input and output: it prints what level 2 runs and with which rights (file and network access, no sandbox, the binding to source, location and branch and not to a commit) then shows the name, the location (folder or Git address) and the branch of the project the argument resolved to (a numeric id is resolved too). A Git URL resolves only the default branch of that repository; a project at another branch is addressed by its id. It starts only if the user types the name of that project (no fixed word such as `yes`). The project is read again after the answer and nothing is stored if its name, location or branch changed in the meantime. Without a terminal it fails with `SEC-403`; nothing can pass the word as an argument or through a pipe. `revoke` forbids it again at once. Nothing else confirms level 2: not MCP, not the server, not watch mode (`tests/consent_origin.rs` checks the source). Only `codeskimr scan` starts the indexers; `scan` prints one line per language with an indexer: "Level 2: ... checked" or "skipped (reason)".
 
+## `codeskimr scope <project>`
+
+Shows the scope of a project (ADR 0097): the languages and folders it leaves out of the scan, with the number of files per language and folder and the project files found in folders. `<project>` is the project id or the folder or Git URL, as for `export`. `--without-language`, `--with-language`, `--without-folder` and `--with-folder` (each may repeat) leave something out or take it back in; `--reset` takes everything back in first. Folders are paths relative to the project root. A change takes effect with the next scan. `--json` prints the answer of the command `scope.get` or `scope.set`. An invalid scope fails with `PRJ-103`.
+
 ## `codeskimr open`
 
 ```

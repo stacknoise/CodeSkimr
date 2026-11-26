@@ -16,13 +16,14 @@ mod locale;
 mod notes;
 mod parser;
 mod render;
+mod scope;
 mod warning;
 
 pub use args::{
     Action, AddAnnotation, AlertsAction, AnnotationFields, AnnotationsAction, ById, CheckArgs,
     Clears, CodesArgs, CredentialAction, DismissAlerts, ExportArgs, GlobalOptions, Invocation,
     Level2Action, ListAlerts, ListAnnotations, McpArgs, OpenArgs, PageArgs, Parsed, ProviderChoice,
-    ScanArgs, ServeArgs, StartArgs, SymbolArg, UpdateAnnotation,
+    ScanArgs, ScopeArgs, ServeArgs, StartArgs, SymbolArg, UpdateAnnotation,
 };
 pub use check::{check_json, check_text};
 pub use codes::codes_text;

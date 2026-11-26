@@ -1139,6 +1139,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-21 (`docs/error
 | CFG-104 | `project_file_not_writable` | The project file `.codeskimr.toml` could not be written. |
 | CFG-105 | `level2_switch_off` | Level 2 is not enabled in the user configuration; the program does not enable it itself. |
 | PRJ-101 | `project_source_invalid` | The given source is neither an existing folder nor a valid Git URL. |
+| PRJ-103 | `project_scope_invalid` | The scope of a project names a folder that is not a folder inside the project (empty, absolute, with a drive, or leaving the project through ..), a language with an invalid name, or more entries than scan.max_scope_entries allows. |
 | PRJ-201 | `project_not_found` | No project with this id exists. |
 | PRJ-301 | `project_already_registered` | A project with the same source is already registered. |
 | PRJ-302 | `snapshot_in_progress` | A scan for this project is already running. |

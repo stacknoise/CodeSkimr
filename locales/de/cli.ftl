@@ -189,3 +189,23 @@ cli-codes-explain =
        *[no] ein neuer Versuch hilft nicht
     }, seit Version { $since }.
 cli-codes-retired = Dieser Code ist stillgelegt: nichts löst ihn mehr aus, die Nummer bleibt reserviert.
+
+cli-cmd-scope = Zeigen oder ändern, welche Sprachen und Ordner ein Projekt erfasst
+cli-arg-scope-project = Nummer des Projekts, oder der Ordner oder die Git-Adresse, von der es gescannt wurde
+cli-arg-without-language = Diese Sprache aus den Scans auslassen (mehrfach möglich)
+cli-arg-with-language = Diese Sprache wieder erfassen (mehrfach möglich)
+cli-arg-without-folder = Diesen Ordner aus den Scans auslassen, relativ zum Projektordner (mehrfach möglich)
+cli-arg-with-folder = Diesen Ordner wieder erfassen (mehrfach möglich)
+cli-arg-scope-reset = Zuerst alles wieder erfassen, danach die anderen Änderungen anwenden
+cli-scope-heading = Umfang von Projekt { $project }:
+cli-scope-language = { $state ->
+    [covered] Erfasst
+   *[left_out] Ausgelassen
+}: Sprache { $language } ({ $files } Dateien)
+cli-scope-folder = { $state ->
+    [covered] Erfasst
+   *[left_out] Ausgelassen
+}: Ordner { $path } ({ $files } Dateien)
+cli-scope-more = { $count } weitere Ordner sind nicht aufgeführt. Mit --json kommt die ganze Antwort.
+cli-scope-saved = Der Umfang ist gespeichert. Er gilt ab dem nächsten Scan; der Code bleibt ein Projekt.
+cli-scope-unchanged = Der Umfang bleibt, wie er war.

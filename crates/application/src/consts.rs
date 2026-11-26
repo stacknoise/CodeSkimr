@@ -169,3 +169,13 @@ pub const SEPARATOR_LEN: usize = 1;
 pub const COUNTER_BITS: u32 = 33;
 /// The highest project number a snapshot id can carry.
 pub const MAX_PROJECT_NUMBER: u64 = (1 << 20) - 1;
+/// Start of a project file name that matches any prefix (`*.sln`).
+pub const PROJECT_FILE_WILDCARD: char = '*';
+/// Longest name of a language in a scope, in characters; the ids of the packs are far shorter.
+pub const SCOPE_LANGUAGE_MAX_CHARS: usize = 64;
+/// Characters besides letters and digits that the name of a language may hold in a scope.
+pub const SCOPE_LANGUAGE_EXTRA: [char; 3] = ['-', '_', '+'];
+/// The part of a path that goes up one folder; it is never part of a folder of a scope.
+pub const PARENT_DIR: &str = "..";
+/// The mark of a drive in a Windows path (`C:`); a scope folder never names one.
+pub const DRIVE_MARK: char = ':';

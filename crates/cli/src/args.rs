@@ -64,6 +64,41 @@ pub struct ScanArgs {
     pub name: Option<String>,
 }
 
+/// Arguments of `codeskimr scope`: show the scope of a project, or change it first (ADR 0097).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ScopeArgs {
+    /// Id of the project, or the folder or Git URL it was scanned from.
+    pub project: String,
+    /// Languages to leave out.
+    pub without_languages: Vec<String>,
+    /// Languages to take back in.
+    pub with_languages: Vec<String>,
+    /// Folders to leave out.
+    pub without_folders: Vec<String>,
+    /// Folders to take back in.
+    pub with_folders: Vec<String>,
+    /// Take everything back in before the other changes apply.
+    pub reset: bool,
+    /// Print the answer as JSON.
+    pub json: bool,
+}
+
+impl ScopeArgs {
+    /// Whether the command changes the scope; without a change it only shows it.
+    #[must_use]
+    pub fn changes(&self) -> bool {
+        self.reset
+            || [
+                &self.without_languages,
+                &self.with_languages,
+                &self.without_folders,
+                &self.with_folders,
+            ]
+            .iter()
+            .any(|list| !list.is_empty())
+    }
+}
+
 /// Arguments of `codeskimr mcp`.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct McpArgs {
@@ -360,6 +395,8 @@ pub enum Action {
     Open(OpenArgs),
     /// `codeskimr export`.
     Export(ExportArgs),
+    /// `codeskimr scope`.
+    Scope(ScopeArgs),
 }
 
 /// A parsed command line.

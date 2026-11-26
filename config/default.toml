@@ -147,6 +147,12 @@ max_memory_mb = 16384
 # Most files that a scan names when it had to leave them out (wrong encoding, parse time limit, not
 # readable); the summary counts the others.
 max_left_out_listed = 20
+# Most entries (languages and folders together) that the scope of one project may leave out (ADR 0097).
+max_scope_entries = 200
+# The overview of a project's scope lists folders down to this depth (the project folder is depth 0)
+# and at most this many of them; the others are counted.
+overview_depth = 3
+overview_max_folders = 200
 
 # Level 2 references from SCIP indexes (ADR 0033). The whole table is read from the default file, the
 # user config file and command line flags only; a `level2` table in the `.codeskimr.toml` of a project

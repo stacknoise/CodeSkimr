@@ -559,3 +559,26 @@ pub mod note_arg {
 pub const STATISTICS_THREAD_NAME: &str = "statistics-count";
 /// Log event: the numbers of the statistics could not be counted after a scan.
 pub const LOG_STATISTICS_FAILED: &str = "statistics_count_failed";
+
+/// What `codeskimr scope` prints for a number of files that was not counted.
+pub const CLI_SCOPE_UNCOUNTED: &str = "?";
+/// Value of the select key that marks a language or folder that scans cover.
+pub const CLI_SCOPE_COVERED: &str = "covered";
+/// Value of the select key that marks a language or folder that scans leave out.
+pub const CLI_SCOPE_LEFT_OUT: &str = "left_out";
+
+/// Names of the arguments of the messages of `codeskimr scope`.
+pub mod scope_arg {
+    /// `{ $project }`: id of the project.
+    pub const PROJECT: &str = "project";
+    /// `{ $state }`: `covered` or `left_out`.
+    pub const STATE: &str = "state";
+    /// `{ $language }`: id of a language pack.
+    pub const LANGUAGE: &str = "language";
+    /// `{ $path }`: a folder of the project.
+    pub const PATH: &str = "path";
+    /// `{ $files }`: number of files, or `?`.
+    pub const FILES: &str = "files";
+    /// `{ $count }`: number of folders that are not listed.
+    pub const COUNT: &str = "count";
+}

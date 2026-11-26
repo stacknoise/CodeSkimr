@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use codeskimr_cli::{
     Action, CliError, CredentialAction, Level2Action, OpenArgs, Parsed, ProviderChoice, ScanArgs,
-    ServeArgs, StartArgs, language_from, parse, serve_started, start_keep_open,
+    ScopeArgs, ServeArgs, StartArgs, language_from, parse, serve_started, start_keep_open,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_i18n::Messages;
@@ -358,4 +358,57 @@ fn the_global_options_come_back_as_separate_arguments_the_parser_reads_again() {
         codeskimr_cli::GlobalOptions::default().arguments(),
         Vec::<std::ffi::OsString>::new()
     );
+}
+
+#[test]
+fn scope_takes_a_project_and_lists_of_languages_and_folders() {
+    let parsed = invocation(&[
+        "codeskimr",
+        "scope",
+        "7",
+        "--without-language",
+        "sql",
+        "--without-folder",
+        "docs",
+        "--without-folder",
+        "web/old",
+        "--with-language",
+        "rust",
+        "--with-folder",
+        "tools",
+        "--reset",
+        "--json",
+    ]);
+    assert_eq!(
+        parsed.action,
+        Action::Scope(ScopeArgs {
+            project: "7".to_owned(),
+            without_languages: vec!["sql".to_owned()],
+            with_languages: vec!["rust".to_owned()],
+            without_folders: vec!["docs".to_owned(), "web/old".to_owned()],
+            with_folders: vec!["tools".to_owned()],
+            reset: true,
+            json: true,
+        })
+    );
+}
+
+#[test]
+fn scope_without_a_change_only_shows() {
+    let parsed = invocation(&["codeskimr", "scope", "7"]);
+    let Action::Scope(args) = parsed.action else {
+        panic!("not the scope command");
+    };
+    assert!(!args.changes());
+    let changing = invocation(&["codeskimr", "scope", "7", "--reset"]);
+    let Action::Scope(args) = changing.action else {
+        panic!("not the scope command");
+    };
+    assert!(args.changes());
+}
+
+#[test]
+fn scope_without_a_project_is_a_usage_error() {
+    let error = run(&["codeskimr", "scope"]).unwrap_err();
+    assert_eq!(error.code(), ErrorCode::CliArgumentsInvalid);
 }

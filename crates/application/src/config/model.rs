@@ -247,6 +247,14 @@ pub struct Scan {
     pub max_memory_mb: u32,
     /// Most files a scan names when it left them out; the others are only counted.
     pub max_left_out_listed: u32,
+    /// Most entries (languages and folders together) that the scope of one project may leave out
+    /// (ADR 0097).
+    pub max_scope_entries: u32,
+    /// Depth down to which the overview of a project's scope lists folders; the project folder is
+    /// depth 0.
+    pub overview_depth: u32,
+    /// Most folders the overview of a project's scope lists; the others are counted.
+    pub overview_max_folders: u32,
 }
 
 /// Settings and limits of level 2: running indexers and importing their indexes (ADR 0033).

@@ -275,6 +275,9 @@ fn check_scan(scan: &Scan) -> Result<(), ConfigError> {
     positive(keys::MAX_CANDIDATES, scan.max_candidates)?;
     positive(keys::MAX_MEMORY_MB, scan.max_memory_mb)?;
     positive(keys::MAX_LEFT_OUT_LISTED, scan.max_left_out_listed)?;
+    positive(keys::MAX_SCOPE_ENTRIES, scan.max_scope_entries)?;
+    positive(keys::OVERVIEW_DEPTH, scan.overview_depth)?;
+    positive(keys::OVERVIEW_MAX_FOLDERS, scan.overview_max_folders)?;
     if scan.excluded_folders.is_empty() {
         return fail(keys::EXCLUDED_FOLDERS, Violation::MustNotBeEmpty);
     }
