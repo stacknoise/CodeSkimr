@@ -72,7 +72,7 @@ pub struct ContextArgs {
     #[serde(deserialize_with = "symbol_text")]
     #[schemars(with = "SymbolRef")]
     pub symbol: String,
-    #[schemars(extend("enum" = ["short", "medium", "long"]))]
+    #[schemars(extend("enum" = crate::consts::BUDGETS))]
     /// How much room the answer may take: `short` (a few entries per list, no documentation),
     /// `medium` (the default) or `long`. The number of entries per budget is configured.
     pub budget: Option<String>,

@@ -98,6 +98,8 @@ pub const BUDGET_SHORT: &str = "short";
 pub const BUDGET_MEDIUM: &str = "medium";
 /// Value of `budget`: as much as the configuration allows.
 pub const BUDGET_LONG: &str = "long";
+/// The values `budget` takes, as the schema of `get_context` lists them.
+pub const BUDGETS: [&str; 3] = [BUDGET_SHORT, BUDGET_MEDIUM, BUDGET_LONG];
 /// Argument name reported when its value is invalid: the depth of a walk.
 pub const ARG_DEPTH: &str = "depth";
 
