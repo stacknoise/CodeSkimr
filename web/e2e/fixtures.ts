@@ -191,10 +191,14 @@ export async function addScannedProject(
   harness: Harness,
   name: string,
   source: string,
+  extraFiles: Record<string, string> = {},
 ) {
   const folder = path.join(mkdtempSync(path.join(tmpdir(), "codeskimr-e2e-")), name);
   mkdirSync(folder);
   writeFileSync(path.join(folder, `${name}.cs`), source);
+  for (const [file, text] of Object.entries(extraFiles)) {
+    writeFileSync(path.join(folder, file), text);
+  }
   const { copy } = keepLaunchFile(await harness.launchFile());
   await page.goto(`file://${copy}`);
   await submitFolder(page, folder);
