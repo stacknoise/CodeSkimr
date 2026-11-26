@@ -25,6 +25,7 @@ use codeskimr_storage::SqliteStore;
 use serde_json::Value;
 
 use crate::annotations_cli::Surroundings;
+use crate::consts::NEW_VIOLATIONS;
 use crate::mcp::project_tools;
 use crate::wiring::{build_analysis, open_store};
 use crate::{config_files, export, principal};
@@ -206,9 +207,6 @@ const fn kind_of(action: &QueryAction) -> QueryKind {
         QueryAction::Rename(_) => QueryKind::Rename,
     }
 }
-
-/// The field of the answer of `rules` that counts the violations the held state does not have.
-const NEW_VIOLATIONS: &str = "new";
 
 /// What a query command prints, and whether the answer is one that fails a check.
 pub struct Answered {
