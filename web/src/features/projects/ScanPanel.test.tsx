@@ -18,7 +18,7 @@ const REPORT: ScanReport = {
     at: 1_700_000_000,
     origin: "browser",
     languages: [
-      { language: "csharp", outcome: "checked", files: 328, stale: 3 },
+      { language: "csharp", outcome: "checked", files: 328, stale: 3, failed_workspaces: 2 },
       { language: "typescript", outcome: "skipped", reason: "tools_unavailable" },
       { language: "java", outcome: "failed", code: "RES-501" },
       { language: "rust", outcome: "skipped", reason: "no_project_file" },
@@ -66,7 +66,9 @@ function rescanBody(): unknown {
 describe("the report of the last scan", () => {
   it("says at which stage the last scan ran and who started it, and what stage 2 did", async () => {
     const panel = await selected();
-    expect(within(panel).getByText("C# · 328 files · 3 outdated")).toBeInTheDocument();
+    expect(
+      within(panel).getByText("C# · 328 files · 3 outdated · 2 workspaces failed"),
+    ).toBeInTheDocument();
     expect(
       within(panel).getByText(/the indexer or a tool it needs is missing/),
     ).toBeInTheDocument();
@@ -98,7 +100,9 @@ describe("the report of the last scan", () => {
   it("says the same in German", async () => {
     setLanguage("de");
     const panel = await selected();
-    expect(within(panel).getByText("C# · 328 Dateien · 3 veraltet")).toBeVisible();
+    expect(
+      within(panel).getByText("C# · 328 Dateien · 3 veraltet · 2 Workspaces fehlgeschlagen"),
+    ).toBeVisible();
     expect(within(panel).getByText(/der Indexer oder ein Werkzeug dazu fehlt/)).toBeVisible();
     expect(within(panel).getByText(/Werkzeug installieren oder aktualisieren/)).toBeVisible();
   });
