@@ -177,14 +177,20 @@ export function ConfigSourcesPanel() {
   return (
     <section class={styles.panel} aria-label={t(I18N_KEYS.SETTINGS_SOURCES_TITLE)}>
       <h2>{t(I18N_KEYS.SETTINGS_SOURCES_TITLE)}</h2>
+      <Show when={effectiveFailed()}>
+        <p role="alert" class={styles.error}>
+          {t(I18N_KEYS.SETTINGS_EFFECTIVE_FAILED)}
+        </p>
+      </Show>
       <Show when={effectiveSettings()}>{(info) => <Sources info={info()} />}</Show>
     </section>
   );
 }
 
 /** The settings in effect: each value with the layer that set it (default, configuration file or
- * command line), narrowed by the search of the tab bar and by a switch to the values that differ from the default. It only
- * shows; a value is changed in the configuration file (mock "Wirksame Einstellungen"). */
+ * command line), narrowed by the search of the tab bar and by a switch to the values that differ
+ * from the default. It only shows; a value is changed in the configuration file (mock
+ * "Wirksame Einstellungen"). */
 export function EffectivePanel() {
   onMount(() => void loadEffectiveSettings());
   return (

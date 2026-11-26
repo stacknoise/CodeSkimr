@@ -81,4 +81,10 @@ describe("EffectivePanel", () => {
     render(() => <EffectivePanel />);
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
   });
+
+  it("says so on the tab Info when the configuration file cannot be read", async () => {
+    serve({});
+    render(() => <ConfigSourcesPanel />);
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+  });
 });
