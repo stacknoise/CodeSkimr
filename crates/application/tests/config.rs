@@ -708,13 +708,8 @@ fn schemes_that_run_code_or_read_files_are_never_editor_schemes() {
 
 #[test]
 fn the_project_file_keeps_an_exception_list_for_unused_symbols() {
-    assert!(
-        Config::defaults()
-            .expect("defaults")
-            .unused
-            .ignore
-            .is_empty()
-    );
+    let defaults = Config::defaults().expect("defaults");
+    assert_eq!(defaults.unused.ignore.len(), 0);
     let text = "[[unused.ignore]]\npaths = [\"Data/Migrations/**\"]\nreason = \"called by the migration tool\"\n\n[[unused.ignore]]\nsymbols = [\"*.DesignTimeFactory\"]\npaths = [\"Data/*\"]\nreason = \"only for dotnet ef\"\n";
     let config = Config::resolve(&[project(text)]).expect("valid list");
     let [first, second] = config.unused.ignore.as_slice() else {
