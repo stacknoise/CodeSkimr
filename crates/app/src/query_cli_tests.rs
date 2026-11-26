@@ -6,8 +6,8 @@ use std::fs;
 use std::path::PathBuf;
 
 use codeskimr_cli::{
-    ContextQuery, GlobalOptions, ImpactQuery, QueryAction, QueryTarget, ScopeArgs, SymbolsQuery,
-    UnusedQuery, UsagesQuery,
+    ContextQuery, GlobalOptions, ImpactQuery, QueryAction, QueryTarget, RenameQuery, ScopeArgs,
+    SymbolsQuery, UnusedQuery, UsagesQuery,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_i18n::Messages;
@@ -315,4 +315,93 @@ fn every_assessment_and_kind_the_command_line_offers_is_accepted_by_the_tool() {
             assert!(world.run(&action, "en").is_ok(), "{assessment} {kind}");
         }
     }
+}
+
+fn rename(new_name: &str, json: bool) -> QueryAction {
+    QueryAction::Rename(RenameQuery {
+        symbol: SYMBOL.to_owned(),
+        new_name: new_name.to_owned(),
+        limit: None,
+        target: target(json),
+    })
+}
+
+#[test]
+fn the_rename_preview_lists_the_declaration_and_the_usages_and_says_what_it_cannot_know() {
+    let world = World::new();
+    let answer = world.json(&rename("Calculate", true));
+    assert_eq!(answer["schema"], 1);
+    assert_eq!(answer["new_name"], "Calculate");
+    let places: Vec<(&str, &str)> = answer["sites"]["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|site| {
+            (
+                site["path"].as_str().unwrap(),
+                site["kind"].as_str().unwrap(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        places,
+        [("Caller.cs", "usage"), ("Target.cs", "declaration")]
+    );
+    assert!(answer["conflicts"].as_array().unwrap().is_empty());
+    let text = world.run(&rename("Calculate", false), "en").unwrap();
+    assert!(text.contains("CodeSkimr changes nothing"), "{text}");
+    assert!(
+        text.contains("does not say whether the code compiles"),
+        "{text}"
+    );
+}
+
+#[test]
+fn the_rename_preview_finds_the_old_name_in_files_the_index_does_not_know() {
+    let world = World::new();
+    fs::write(
+        world.folder.join("notes.md"),
+        "Call Do in the host.\nDoes not match: Done.\n",
+    )
+    .unwrap();
+    let answer = world.json(&rename("Calculate", true));
+    let texts = &answer["text_hits"];
+    assert_eq!(texts["searched"], true);
+    assert_eq!(texts["total"], 1, "{texts}");
+    assert_eq!(texts["items"][0]["path"], "notes.md");
+    assert_eq!(texts["items"][0]["kind"], "documentation");
+    let text = world.run(&rename("Calculate", false), "en").unwrap();
+    assert!(text.contains("notes.md:1  documentation"), "{text}");
+}
+
+#[test]
+fn the_rename_preview_finds_a_conflict_in_the_same_scope_and_refuses_a_bad_name() {
+    let world = World::new();
+    let answer = world.json(&rename("Run", true));
+    assert!(answer["conflicts"].as_array().unwrap().is_empty());
+    let clash = r"namespace Demo;
+
+public class Target
+{
+    public static int Do(int x) { return x; }
+    public static int Calculate(int x) { return x; }
+}
+";
+    let session = scanned(&[("Target.cs", clash), ("Caller.cs", CALLER)]);
+    let other = World {
+        _root: session.root,
+        folder: session.folder,
+        data: session.data,
+        global: session.global,
+        messages: Messages::load().unwrap(),
+        _session: session.session,
+    };
+    let found = other.json(&rename("Calculate", true));
+    assert_eq!(
+        found["conflicts"][0]["qualified_name"],
+        "Demo.Target.Calculate"
+    );
+    assert_eq!(found["conflicts"][0]["same_signature"], true);
+    let failure = world.run(&rename("not a name", true), "en").unwrap_err();
+    assert_eq!(failure.code(), ErrorCode::ToolArgumentsInvalid);
 }

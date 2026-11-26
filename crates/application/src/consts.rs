@@ -179,3 +179,39 @@ pub const SCOPE_LANGUAGE_EXTRA: [char; 3] = ['-', '_', '+'];
 pub const PARENT_DIR: &str = "..";
 /// The mark of a drive in a Windows path (`C:`); a scope folder never names one.
 pub const DRIVE_MARK: char = ':';
+
+/// Most usages of one symbol that the rename preview reads; a symbol with more places than this
+/// is renamed by a tool, not by a list.
+pub const RENAME_MAX_SITES: u32 = 100_000;
+/// Largest file the text search of the rename preview reads, in bytes.
+pub const RENAME_MAX_FILE_BYTES: u64 = 2_097_152;
+/// How many symbols of the name search are looked at for a name conflict.
+pub const RENAME_CONFLICT_SEARCH_LIMIT: u32 = 100;
+/// Extensions of documentation files.
+pub const RENAME_DOC_EXTENSIONS: [&str; 6] = ["md", "mdx", "markdown", "txt", "rst", "adoc"];
+/// Extensions of configuration files.
+pub const RENAME_CONFIG_EXTENSIONS: [&str; 11] = [
+    "json",
+    "toml",
+    "yaml",
+    "yml",
+    "xml",
+    "ini",
+    "properties",
+    "config",
+    "env",
+    "cfg",
+    "conf",
+];
+/// What the compiler follows when a name changes: the argument of this call is a use of the name.
+pub const RENAME_NAMEOF: &str = "nameof(";
+/// Where a comment of a code file starts.
+pub const RENAME_COMMENT_PREFIXES: [&str; 6] = ["//", "#", "/*", "*", "--", ";"];
+/// Characters that open and close a string.
+pub const RENAME_QUOTES: [char; 3] = ['"', '\'', '`'];
+/// Quotes come in pairs: an odd number before a place means the place is inside a string.
+pub const RENAME_QUOTE_PAIR: usize = 2;
+/// Separates a file name from its extension.
+pub const RENAME_EXTENSION_SEPARATOR: char = '.';
+/// The extension of a file that has none.
+pub const RENAME_NO_EXTENSION: &str = "";

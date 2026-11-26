@@ -9,6 +9,7 @@ mod context;
 mod conventions;
 mod dependencies;
 mod project;
+mod rename;
 mod rescan;
 mod search;
 mod similar;
@@ -23,9 +24,9 @@ use codeskimr_application::config::{KeySources, McpLimits};
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    AnnotationStore, Clock, CodeIndex, ProjectCatalog, ProjectKeys, ProjectRepository,
-    ProjectScanner, ProjectToolCheck, ReferenceSites, ScanReportStore, SimilarityIndex,
-    SnippetFingerprinter, SymbolDetail, SymbolKey, UsageIndex,
+    AnnotationStore, Clock, CodeIndex, NameMentions, ProjectCatalog, ProjectKeys,
+    ProjectRepository, ProjectScanner, ProjectToolCheck, ReferenceSites, ScanReportStore,
+    SimilarityIndex, SnippetFingerprinter, SymbolDetail, SymbolKey, UsageIndex,
 };
 use codeskimr_application::unused::UnusedSymbols;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -104,6 +105,8 @@ pub struct Ports {
     pub reports: Arc<dyn ScanReportStore>,
     /// The symbols without a usage under the exception list of a project, for `find_unused`.
     pub unused: Arc<dyn UnusedSymbols>,
+    /// The lines of a project folder that hold a name, for `preview_rename`.
+    pub mentions: Arc<dyn NameMentions>,
 }
 
 /// The tools of the server; all of them only read except `rescan`.
@@ -125,6 +128,7 @@ pub struct Tools {
     annotations: Arc<dyn AnnotationStore>,
     reports: Arc<dyn ScanReportStore>,
     unused: Arc<dyn UnusedSymbols>,
+    mentions: Arc<dyn NameMentions>,
     limits: McpLimits,
     default_project: Option<ProjectId>,
 }
@@ -163,6 +167,7 @@ impl Tools {
             annotations: ports.annotations,
             reports: ports.reports,
             unused: ports.unused,
+            mentions: ports.mentions,
             limits,
             default_project,
         }
@@ -289,6 +294,10 @@ impl Tools {
 
     pub(crate) fn reports(&self) -> &dyn ScanReportStore {
         self.reports.as_ref()
+    }
+
+    pub(crate) fn mentions(&self) -> &dyn NameMentions {
+        self.mentions.as_ref()
     }
 
     pub(crate) fn unused_symbols(&self) -> &dyn UnusedSymbols {

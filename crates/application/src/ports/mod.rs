@@ -18,6 +18,7 @@ mod indexer;
 mod keys;
 mod level2;
 mod memory;
+mod mentions;
 mod outline;
 mod query;
 mod references;
@@ -56,6 +57,7 @@ pub use indexer::{
 pub use keys::{KeyEntry, KeyKind, KeySearch, ProjectKeys};
 pub use level2::{ImportRequest, Imported, ReferenceImporter};
 pub use memory::{MemoryGauge, MemoryLimit, MemoryWatch};
+pub use mentions::{Mention, MentionLimits, Mentions, NameMentions};
 pub use outline::{CodeOutline, MemberRow, OutlineNode};
 pub use query::{
     CodeIndex, CodeSpan, FileHit, MemberRef, ScanEntry, SearchHit, SymbolDetail, SymbolKey,

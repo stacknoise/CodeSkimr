@@ -19,6 +19,7 @@ pub mod metrics;
 pub mod pipeline;
 pub mod ports;
 pub mod registry;
+pub mod rename;
 pub mod report_view;
 pub mod resolve;
 pub mod scope;

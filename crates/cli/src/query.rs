@@ -1,4 +1,4 @@
-//! The query commands `symbols`, `usages`, `impact`, `context` and `unused` (blueprint 10.2): their
+//! The query commands `symbols`, `usages`, `impact`, `context`, `unused` and `preview-rename` (blueprint 10.2): their
 //! definition with clap and the translation of their arguments. They ask the same questions as
 //! the MCP tools of the same names, so scripts, CI and agents without MCP get the same answers.
 
@@ -6,20 +6,22 @@ use clap::{Arg, ArgAction, ArgMatches, Command};
 use codeskimr_codes::i18n::{
     CLI_ARG_ASSESSMENT, CLI_ARG_BUDGET, CLI_ARG_DEPTH, CLI_ARG_DIRECTION, CLI_ARG_INCLUDE_TESTS,
     CLI_ARG_JSON, CLI_ARG_KIND_FILTER, CLI_ARG_LANGUAGE_FILTER, CLI_ARG_LIMIT,
-    CLI_ARG_QUERY_PROJECT, CLI_ARG_QUERY_SYMBOL, CLI_ARG_QUERY_TEXT, CLI_ARG_UNUSED_KIND,
-    CLI_CMD_CONTEXT, CLI_CMD_IMPACT, CLI_CMD_SYMBOLS, CLI_CMD_UNUSED, CLI_CMD_USAGES,
+    CLI_ARG_QUERY_NEW_NAME, CLI_ARG_QUERY_PROJECT, CLI_ARG_QUERY_SYMBOL, CLI_ARG_QUERY_TEXT,
+    CLI_ARG_UNUSED_KIND, CLI_CMD_CONTEXT, CLI_CMD_IMPACT, CLI_CMD_PREVIEW_RENAME, CLI_CMD_SYMBOLS,
+    CLI_CMD_UNUSED, CLI_CMD_USAGES,
 };
 
 use crate::args::{
-    ContextQuery, ImpactQuery, QueryAction, QueryTarget, SymbolsQuery, UnusedQuery, UsagesQuery,
+    ContextQuery, ImpactQuery, QueryAction, QueryTarget, RenameQuery, SymbolsQuery, UnusedQuery,
+    UsagesQuery,
 };
 use crate::consts::{
     ARG_ASSESSMENT, ARG_BUDGET, ARG_DEPTH, ARG_DIRECTION, ARG_INCLUDE_TESTS, ARG_JSON, ARG_KIND,
-    ARG_LANGUAGE, ARG_PROJECT, ARG_QUERY_PROJECT, ARG_QUERY_SYMBOL, ARG_QUERY_TEXT, ARG_ROWS,
-    ASSESSMENTS, BUDGETS, COMMAND_CONTEXT, COMMAND_IMPACT, COMMAND_SYMBOLS, COMMAND_UNUSED,
-    COMMAND_USAGES, DIRECTIONS, UNUSED_KINDS, VALUE_ASSESSMENT, VALUE_BUDGET, VALUE_DIRECTION,
-    VALUE_KIND, VALUE_LANGUAGE, VALUE_QUERY_PROJECT, VALUE_QUERY_SYMBOL, VALUE_QUERY_TEXT,
-    VALUE_ROWS,
+    ARG_LANGUAGE, ARG_PROJECT, ARG_QUERY_NEW_NAME, ARG_QUERY_PROJECT, ARG_QUERY_SYMBOL,
+    ARG_QUERY_TEXT, ARG_ROWS, ASSESSMENTS, BUDGETS, COMMAND_CONTEXT, COMMAND_IMPACT,
+    COMMAND_PREVIEW_RENAME, COMMAND_SYMBOLS, COMMAND_UNUSED, COMMAND_USAGES, DIRECTIONS,
+    UNUSED_KINDS, VALUE_ASSESSMENT, VALUE_BUDGET, VALUE_DIRECTION, VALUE_KIND, VALUE_LANGUAGE,
+    VALUE_QUERY_NEW_NAME, VALUE_QUERY_PROJECT, VALUE_QUERY_SYMBOL, VALUE_QUERY_TEXT, VALUE_ROWS,
 };
 use crate::error::CliError;
 
@@ -155,7 +157,21 @@ fn unused_command(say: Say<'_>) -> Result<Command, CliError> {
     project_and_json(command, say)
 }
 
-/// The five query commands.
+fn rename_command(say: Say<'_>) -> Result<Command, CliError> {
+    let command = Command::new(COMMAND_PREVIEW_RENAME)
+        .about(say(CLI_CMD_PREVIEW_RENAME)?)
+        .arg(symbol(say)?)
+        .arg(
+            Arg::new(ARG_QUERY_NEW_NAME)
+                .value_name(VALUE_QUERY_NEW_NAME)
+                .help(say(CLI_ARG_QUERY_NEW_NAME)?)
+                .required(true),
+        )
+        .arg(limit(say)?);
+    project_and_json(command, say)
+}
+
+/// The six query commands.
 ///
 /// # Errors
 /// `I18N-201` if a help text is missing.
@@ -166,6 +182,7 @@ pub fn commands(say: Say<'_>) -> Result<Vec<Command>, CliError> {
         impact_command(say)?,
         context_command(say)?,
         unused_command(say)?,
+        rename_command(say)?,
     ])
 }
 
@@ -177,6 +194,7 @@ pub fn is_query(name: &str) -> bool {
         COMMAND_IMPACT,
         COMMAND_CONTEXT,
         COMMAND_UNUSED,
+        COMMAND_PREVIEW_RENAME,
     ]
     .contains(&name)
 }
@@ -190,6 +208,26 @@ fn target(matches: &ArgMatches) -> QueryTarget {
         project: matches.get_one::<String>(ARG_QUERY_PROJECT).cloned(),
         json: matches.get_flag(ARG_JSON),
     }
+}
+
+fn unused_action(matches: &ArgMatches) -> QueryAction {
+    QueryAction::Unused(UnusedQuery {
+        kind: matches.get_one::<String>(ARG_KIND).cloned(),
+        language: matches.get_one::<String>(ARG_LANGUAGE).cloned(),
+        assessment: matches.get_one::<String>(ARG_ASSESSMENT).cloned(),
+        include_tests: matches.get_flag(ARG_INCLUDE_TESTS),
+        limit: matches.get_one::<u32>(ARG_ROWS).copied(),
+        target: target(matches),
+    })
+}
+
+fn rename_action(matches: &ArgMatches) -> QueryAction {
+    QueryAction::Rename(RenameQuery {
+        symbol: text(matches, ARG_QUERY_SYMBOL),
+        new_name: text(matches, ARG_QUERY_NEW_NAME),
+        limit: matches.get_one::<u32>(ARG_ROWS).copied(),
+        target: target(matches),
+    })
 }
 
 /// The request of the query command `name`; `name` is one for which [`is_query`] is true.
@@ -215,14 +253,8 @@ pub fn action(name: &str, matches: &ArgMatches) -> QueryAction {
             limit: limit(),
             target: target(matches),
         }),
-        COMMAND_UNUSED => QueryAction::Unused(UnusedQuery {
-            kind: matches.get_one::<String>(ARG_KIND).cloned(),
-            language: matches.get_one::<String>(ARG_LANGUAGE).cloned(),
-            assessment: matches.get_one::<String>(ARG_ASSESSMENT).cloned(),
-            include_tests: matches.get_flag(ARG_INCLUDE_TESTS),
-            limit: limit(),
-            target: target(matches),
-        }),
+        COMMAND_UNUSED => unused_action(matches),
+        COMMAND_PREVIEW_RENAME => rename_action(matches),
         _ => QueryAction::Context(ContextQuery {
             symbol: text(matches, ARG_QUERY_SYMBOL),
             budget: matches.get_one::<String>(ARG_BUDGET).cloned(),

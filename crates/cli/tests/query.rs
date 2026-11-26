@@ -1,8 +1,9 @@
 //! The query commands: their arguments, and the JSON and text they print.
 
 use codeskimr_cli::{
-    Action, ContextQuery, ImpactQuery, Parsed, QueryAction, QueryKind, QueryTarget, SymbolsQuery,
-    UnusedQuery, UsagesQuery, parse, query_code_report, query_error_json, query_json, query_text,
+    Action, ContextQuery, ImpactQuery, Parsed, QueryAction, QueryKind, QueryTarget, RenameQuery,
+    SymbolsQuery, UnusedQuery, UsagesQuery, parse, query_code_report, query_error_json, query_json,
+    query_text,
 };
 use codeskimr_i18n::Messages;
 use serde_json::{Value, json};
@@ -193,4 +194,68 @@ fn the_text_of_unused_names_the_reason_and_lists_what_the_exception_list_left_ou
     );
     let none = query_text(&messages, "de", QueryKind::Unused, (&json!({}), None));
     assert_eq!(none.unwrap(), "Nichts gefunden.");
+}
+
+#[test]
+fn preview_rename_takes_the_symbol_and_the_new_name_and_both_are_required() {
+    assert_eq!(
+        action(&[
+            "codeskimr",
+            "preview-rename",
+            "Shop.Order.Place",
+            "Submit",
+            "--limit",
+            "5"
+        ]),
+        QueryAction::Rename(RenameQuery {
+            symbol: "Shop.Order.Place".to_owned(),
+            new_name: "Submit".to_owned(),
+            limit: Some(5),
+            target: QueryTarget::default(),
+        })
+    );
+    let messages = Messages::load().unwrap();
+    for arguments in [
+        vec!["codeskimr", "preview-rename"],
+        vec!["codeskimr", "preview-rename", "Shop.Order.Place"],
+    ] {
+        assert!(parse(arguments.iter().copied(), &messages, "en").is_err());
+    }
+}
+
+#[test]
+fn the_text_of_a_rename_preview_says_what_it_cannot_see() {
+    let messages = Messages::load().unwrap();
+    let answer = json!({
+        "symbol": {"qualified_name": "Shop.Order.Place"},
+        "new_name": "Submit",
+        "public_interface": true,
+        "sites": {"total": 2, "files": 2, "verified": 1, "items": [
+            {"kind": "declaration", "path": "Order.cs", "line": 5, "column": 3},
+            {"kind": "usage", "path": "Api.cs", "line": 41, "column": 9,
+             "confidence": "certain", "from": {"qualified_name": "Shop.Api.Post"}}
+        ]},
+        "conflicts": [{"kind": "method", "qualified_name": "Shop.Order.Submit",
+                       "path": "Order.cs", "same_signature": true}],
+        "text_hits": {"searched": true, "total": 1, "items": [
+            {"path": "appsettings.json", "line": 18, "kind": "configuration", "text": "\"Place\""}
+        ]}
+    });
+    let text = query_text(&messages, "en", QueryKind::Rename, (&answer, None)).unwrap();
+    for expected in [
+        "Rename preview: Shop.Order.Place -> Submit. CodeSkimr changes nothing.",
+        "Places that would have to change: 2 in 2 files (1 checked by the indexer)",
+        "Order.cs:5:3  declaration",
+        "Api.cs:41:9",
+        "Name conflicts (1 of 1):",
+        "same signature: the two clash",
+        "appsettings.json:18  configuration",
+        "The symbol is public.",
+        "does not say whether the code compiles",
+    ] {
+        assert!(text.contains(expected), "{expected}: {text}");
+    }
+    let unsearched = json!({"sites": {}, "text_hits": {"searched": false}});
+    let text = query_text(&messages, "de", QueryKind::Rename, (&unsearched, None)).unwrap();
+    assert!(text.contains("nicht nach Text durchsucht"), "{text}");
 }

@@ -231,6 +231,21 @@ cli-arg-budget = How much the answer holds: short, medium (default) or long
 cli-arg-unused-kind = Only these symbols: all (default), types or functions
 cli-arg-language-filter = Only symbols of this language, such as csharp or python
 cli-arg-assessment = Only symbols with this assessment: likely, public or approximate
+cli-cmd-preview-rename = Show what a new name for a symbol would hit: places in the code, name conflicts and text hits; changes nothing (the answer of preview_rename)
+cli-arg-query-new-name = The new name: letters, digits and underscores, not starting with a digit
+cli-rename-head = Rename preview: { $name } -> { $new }. CodeSkimr changes nothing.
+cli-rename-sites = Places that would have to change: { $shown } in { $files } files ({ $verified } checked by the indexer)
+cli-rename-declaration-line = { $path }:{ $line }:{ $column }  declaration
+cli-rename-conflicts = Name conflicts ({ $shown } of { $total }):
+cli-rename-conflict-line = { $kind } { $name }  { $path }  ({ $clash ->
+        [true] same signature: the two clash
+       *[other] different signature: maybe an overload
+    })
+cli-rename-texts = Text hits that CodeSkimr cannot attribute; please check them yourself ({ $shown } of { $total }):
+cli-rename-text-line = { $path }:{ $line }  { $kind }  { $text }
+cli-rename-not-searched = The project folder was not searched for text (no right to read source, or the project is not a folder). Strings, configuration and documentation are therefore missing.
+cli-rename-public = The symbol is public. CodeSkimr does not see callers outside this project.
+cli-rename-disclaimer = CodeSkimr does not say whether the code compiles afterwards. The compiler does.
 cli-query-none = Nothing found.
 cli-query-symbol-line = { $kind } { $name }  { $path }  (id { $id })
 cli-query-usage-line = { $path }:{ $line }:{ $column }  { $kind }, { $confidence }, in { $name }

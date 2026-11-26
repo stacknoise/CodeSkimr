@@ -255,6 +255,12 @@ pub mod arg {
     pub const REASON: &str = "reason";
     /// `{ $assessment }`: how much "no usage found" says about a symbol.
     pub const ASSESSMENT: &str = "assessment";
+    /// `{ $new }`: the proposed new name.
+    pub const NEW: &str = "new";
+    /// `{ $verified }`: number of places that level 2 verified.
+    pub const VERIFIED: &str = "verified";
+    /// `{ $clash }`: whether two signatures are the same.
+    pub const CLASH: &str = "clash";
     /// `{ $group }`: the id prefix of the group of an error code.
     pub const GROUP: &str = "group";
     /// `{ $description }`: the English developer description of an error code.
@@ -387,6 +393,12 @@ pub const COMMAND_IMPACT: &str = "impact";
 pub const COMMAND_CONTEXT: &str = "context";
 /// Sub-command that lists the symbols without a usage.
 pub const COMMAND_UNUSED: &str = "unused";
+/// Sub-command that shows what a new name for a symbol would hit.
+pub const COMMAND_PREVIEW_RENAME: &str = "preview-rename";
+/// Argument id of the new name of `preview-rename`.
+pub const ARG_QUERY_NEW_NAME: &str = "query-new-name";
+/// Placeholder shown for the new name.
+pub const VALUE_QUERY_NEW_NAME: &str = "NEW_NAME";
 /// Option of `unused`: only symbols of this language.
 pub const ARG_LANGUAGE: &str = "language";
 /// Placeholder shown for the language.
@@ -451,6 +463,24 @@ pub mod key {
     pub const SYMBOLS: &str = "symbols";
     /// The symbol of `context`.
     pub const SYMBOL: &str = "symbol";
+    /// The places of `preview-rename`.
+    pub const SITES: &str = "sites";
+    /// The name conflicts of `preview-rename`.
+    pub const CONFLICTS: &str = "conflicts";
+    /// The text lines of `preview-rename`.
+    pub const TEXT_HITS: &str = "text_hits";
+    /// The proposed name of `preview-rename`.
+    pub const NEW_NAME: &str = "new_name";
+    /// Whether the text of the project folder was searched.
+    pub const SEARCHED: &str = "searched";
+    /// Whether the symbol is public and used by code the answer cannot see.
+    pub const PUBLIC_INTERFACE: &str = "public_interface";
+    /// Places that level 2 verified.
+    pub const VERIFIED: &str = "verified";
+    /// Files that hold places.
+    pub const FILES: &str = "files";
+    /// Whether a name conflict has the same signature.
+    pub const SAME_SIGNATURE: &str = "same_signature";
     /// The symbols without a usage of `unused`.
     pub const UNUSED: &str = "unused";
     /// The symbols the exception list takes out, in `unused`.
@@ -521,3 +551,6 @@ pub const CONTROL_REPLACEMENT: char = ' ';
 pub const LIST_INDENT: &str = "  ";
 /// Separates the title of an annotation from its text.
 pub const TITLE_SEPARATOR: &str = " ";
+
+/// The `kind` of a place of `preview-rename` that is a declaration, not a usage.
+pub const KIND_DECLARATION: &str = "declaration";
