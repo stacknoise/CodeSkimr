@@ -145,3 +145,8 @@ export const PANEL_PANE_BOUNDS = { initial: 320, min: 240, max: 720 } as const;
 /** The wider panel of the level "Modules", which holds a table, and the key it is remembered under. */
 export const MODULES_PANE_KEY = "graph.modules-panel";
 export const MODULES_PANE_BOUNDS = { initial: 540, min: 360, max: 900 } as const;
+
+/** What the stability column shows for a module without any dependency. */
+export const NO_STABILITY = "–";
+/** The ARIA role of a hint in the panel of the modules. */
+export const NOTE_ROLE = "note";

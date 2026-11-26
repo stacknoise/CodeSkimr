@@ -78,10 +78,6 @@ test.describe("the dependency map", () => {
         theme,
       );
       await expect(panel).toBeVisible();
-      const dir = process.env["MODULES_SHOT"];
-      if (dir !== undefined) {
-        await page.screenshot({ path: path.join(dir, `modules-${theme}.png`) });
-      }
     }
     expect(await violations()).toEqual([]);
   });

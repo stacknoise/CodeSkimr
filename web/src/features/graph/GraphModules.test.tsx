@@ -3,25 +3,11 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, serve, useServerSession } from "../../tests/commands";
-import type { ProjectRow } from "../projects/types";
+import { PROJECT_ROW as ROW } from "../../tests/project-row";
 import { LEVEL } from "./consts";
 import { resetGraph, setGraphLevel } from "./graph";
 import { GraphScreen } from "./GraphScreen";
 import { stabilityText } from "./ModulesPanel";
-
-const ROW: ProjectRow = {
-  id: 1,
-  name: "shop",
-  kind: "folder",
-  location: "/work/shop",
-  branch: null,
-  commit: null,
-  scan: null,
-  types: 3,
-  loc: 10,
-  languages: [],
-  running: false,
-};
 
 const BOX = { width: 160, height: 44, order: 0, types: 5, symbol: null, context: "" };
 const MODULES = {

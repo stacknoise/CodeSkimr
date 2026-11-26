@@ -5,7 +5,14 @@ import { cx } from "../../shared/ui/cx";
 import { count } from "../projects/format";
 import { panelStyle } from "../../shared/layout/panelStyle";
 import { modulesPanelWidth } from "./layout";
-import { CYCLE_JOIN, PERCENT, STABILITY_DIGITS, STABILITY_ONE } from "./consts";
+import {
+  CYCLE_JOIN,
+  NOTE_ROLE,
+  NO_STABILITY,
+  PERCENT,
+  STABILITY_DIGITS,
+  STABILITY_ONE,
+} from "./consts";
 import type { ModuleCycle, ModuleRow, ModulesInfo } from "./types";
 import styles from "./ModulesPanel.module.css";
 
@@ -25,7 +32,7 @@ function Stability(props: { value: number | null }) {
         <i style={{ width: width() }} />
       </span>
       <span class={styles.mono}>
-        {props.value === null ? "–" : stabilityText(props.value, currentLanguage())}
+        {props.value === null ? NO_STABILITY : stabilityText(props.value, currentLanguage())}
       </span>
     </span>
   );
@@ -51,7 +58,12 @@ function Row(props: { row: ModuleRow; selected: boolean; onSelect: (name: string
   return (
     <tr class={cx(props.selected && styles.on)}>
       <td>
-        <button type="button" class={styles.name} onClick={() => props.onSelect(props.row.name)}>
+        <button
+          type="button"
+          class={styles.name}
+          aria-pressed={props.selected}
+          onClick={() => props.onSelect(props.row.name)}
+        >
           {props.row.name}
         </button>
         <div class={styles.badges}>
@@ -170,7 +182,7 @@ function Risks(props: { info: ModulesInfo }) {
         <h3>{t(I18N_KEYS.GRAPH_MODULES_RISKS_TITLE)}</h3>
         <For each={props.info.risks}>
           {(risk) => (
-            <div class={styles.risk} role="note">
+            <div class={styles.risk} role={NOTE_ROLE}>
               {t(I18N_KEYS.GRAPH_MODULES_RISK, {
                 module: risk.module,
                 stability: stabilityText(risk.stability, language()),

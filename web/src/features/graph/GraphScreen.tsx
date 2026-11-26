@@ -199,7 +199,7 @@ function MapPane(props: { state: MapState; actions: Actions; current: GraphData 
       </Show>
       <Legend
         critical={view.marked()}
-        cycles={graphLevel() === LEVEL.modules}
+        cycles={(modulesInfo()?.cycles.length ?? 0) > 0}
         layers={props.current.boxes.length}
         links={props.current.links.length}
         violations={violations(props.current.links).length}

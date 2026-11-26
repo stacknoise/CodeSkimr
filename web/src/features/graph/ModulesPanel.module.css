@@ -31,7 +31,7 @@
 }
 
 .table tr.on td {
-    background: var(--accent-soft, var(--line-soft));
+    background: var(--accent-bg);
 }
 
 .num {
@@ -96,12 +96,12 @@
 
 .bad {
     color: var(--bad);
-    background: var(--bad-soft, var(--line-soft));
+    background: var(--bad-bg);
 }
 
 .warn {
-    color: var(--warn, var(--muted));
-    background: var(--warn-soft, var(--line-soft));
+    color: var(--warn);
+    background: var(--warn-bg);
 }
 
 .explain {
@@ -146,7 +146,7 @@
     padding: var(--space-8) var(--space-16);
     border: 1px solid var(--accent);
     border-radius: var(--radius-card);
-    background: var(--accent-soft, transparent);
+    background: var(--accent-bg);
     font-size: 12.5px;
 }
 
