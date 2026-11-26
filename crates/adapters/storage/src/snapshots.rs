@@ -121,6 +121,7 @@ pub(crate) fn write_snapshot(
     timed(STEP_INTEGRITY, || integrity::check(conn, data))?;
     let stats = timed(STEP_READ_MODELS, || finish_read_models(conn, data))?;
     timed(STEP_PRUNE, || prune(conn, project, keep))?;
+    record_scan(conn, data)?;
     Ok(Snapshot {
         stats,
         ..header.clone()
@@ -259,6 +260,22 @@ fn insert_header(conn: &Connection, snapshot: &Snapshot) -> StorageResult<()> {
             i64::from(snapshot.stats.files),
             i64::from(snapshot.stats.symbols),
             i64::from(snapshot.stats.references),
+        ],
+    )?;
+    Ok(())
+}
+
+/// Stores how long the scan took and how many files it changed (ADR 0097).
+fn record_scan(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
+    let duration = data
+        .began
+        .map(|began| i64::try_from(began.elapsed().as_millis()).unwrap_or(i64::MAX));
+    conn.execute(
+        sql::SNAPSHOT_SCAN_SET,
+        params![
+            duration,
+            data.files_changed.map(i64::from),
+            column_int(data.snapshot.id.get())?,
         ],
     )?;
     Ok(())

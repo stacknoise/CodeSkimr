@@ -84,3 +84,24 @@ scan-left-out-unnamed = { $count ->
    *[other] { $count } Dateien wurden ausgelassen. Ihre Namen erscheinen nach dem nächsten Scan.
 }
 scan-files-unchanged = Keine Datei geändert · { $checked } geprüft
+
+scan-history-keep = { $count ->
+    [one] { NUMBER($count) } wird aufbewahrt
+   *[other] { NUMBER($count) } werden aufbewahrt
+}
+scan-history-column-time = Zeitpunkt
+scan-history-column-mode = Art
+scan-history-column-duration = Dauer
+scan-history-column-files = Dateien
+scan-history-column-changed = Geändert
+scan-history-current = aktuell
+scan-history-empty = Noch kein Scan.
+scan-history-note = Die Dauer wird je Scan gespeichert; ein Scan ohne Änderung schreibt keinen Eintrag und lässt Zeitpunkt und Dauer des Eintrags davor stehen.
+scan-history-last = Letzter Scan
+scan-history-files-changed = { $count ->
+    [one] { NUMBER($count) } Datei geändert seit dem vorigen
+   *[other] { NUMBER($count) } Dateien geändert seit dem vorigen
+}
+scan-history-average = Durchschnitt
+scan-history-average-hint = letzte { $count } Scans
+scan-history-failed = Die letzten Scans konnten nicht gelesen werden.

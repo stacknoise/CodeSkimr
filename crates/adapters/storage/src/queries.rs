@@ -1,7 +1,7 @@
 //! Queries on the read models.
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{FileHit, SearchHit};
+use codeskimr_application::ports::{FileHit, ScanEntry, SearchHit};
 use codeskimr_domain::{
     LayerEdge, LayerName, ProjectId, QualifiedName, RelativePath, Snapshot, SnapshotId, SymbolId,
     SymbolName,
@@ -263,6 +263,15 @@ impl ProjectDb {
     /// A coded `STO` failure.
     pub fn latest_snapshot(&self, project: ProjectId) -> Result<Option<Snapshot>, CodedError> {
         self.read(|conn| crate::headers::latest_snapshot(conn, project))
+            .map_err(CodedError::from)
+    }
+
+    /// The retained snapshots of a project, newest first (ADR 0097).
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn scan_history(&self, project: ProjectId) -> Result<Vec<ScanEntry>, CodedError> {
+        self.read(|conn| crate::headers::scan_history(conn, project))
             .map_err(CodedError::from)
     }
 }

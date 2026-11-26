@@ -36,7 +36,7 @@ use codeskimr_domain::{
     Fingerprints, FolderPath, LanguageId, Loc, Metric, MetricKind, MetricValue, ModelError,
     Permission, PermissionSet, Position, Principal, Project, ProjectId, ProjectName, ProjectSource,
     QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanLevel, ScanMode,
-    ScanOrigin, Snapshot, SnapshotId, SnapshotStats, SourceFile, Span, Symbol, SymbolCounts,
+    ScanOrigin, Scope, Snapshot, SnapshotId, SnapshotStats, SourceFile, Span, Symbol, SymbolCounts,
     SymbolId, SymbolKind, SymbolName, SymbolOrigin, SymbolPair, Timestamp,
 };
 use common::InMemoryConsent;
@@ -64,6 +64,8 @@ struct World {
     fail_at: Option<StageKind>,
     cancel_at: Option<(StageKind, CancelToken)>,
     previous: Previous,
+    /// What the project's scope leaves out.
+    scope: Scope,
     found: Option<Vec<(&'static str, bool)>>,
     missing_project: bool,
     panic_in_analyze: bool,
@@ -367,11 +369,15 @@ impl ProjectRepository for World {
         Ok(self.previous.index.clone())
     }
 
+    fn scope(&self, _: ProjectId) -> Result<Scope, CodedError> {
+        Ok(self.scope.clone())
+    }
+
     fn latest_state(&self, _: ProjectId) -> Result<PreviousState, CodedError> {
         Ok(PreviousState {
             files: self.previous.files.clone(),
             symbols: self.previous.index.symbols.clone(),
-            snapshot: Some(SnapshotId::new(9)),
+            snapshot: (!self.previous.files.is_empty()).then(|| SnapshotId::new(9)),
             names_stored: self.previous.names_stored,
             ambiguous_places: self.previous.ambiguous,
             skipped: self.previous.skipped.clone(),
@@ -619,6 +625,68 @@ fn full_scan_runs_all_stages_and_persists_once() {
     assert_eq!(world.persisted_count(), 1);
     assert_eq!(stages_seen(&events), StageKind::ALL);
     assert!(matches!(events.last(), Some(Event::SnapshotCreated(_))));
+}
+
+#[test]
+fn the_first_scan_of_a_project_is_timed_and_has_no_changed_files() -> Result<(), CodedError> {
+    let world = Arc::new(World::default());
+    let (_, _) = run(&world, ScanMode::Full);
+    let stored = world.last_persisted()?;
+    assert!(
+        stored.began.is_some(),
+        "the store is told when the scan began"
+    );
+    assert_eq!(stored.files_changed, None);
+    Ok(())
+}
+
+#[test]
+fn a_full_scan_counts_against_the_previous_snapshot_too() -> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        found: Some(vec![("a.rs", false), ("b.rs", true)]),
+        ..World::default()
+    });
+    let (_, _) = run(&world, ScanMode::Full);
+    assert_eq!(world.last_persisted()?.files_changed, Some(2));
+    Ok(())
+}
+
+#[test]
+fn a_file_left_out_for_good_is_not_counted_as_changed_while_it_looks_the_same()
+-> Result<(), CodedError> {
+    let world = after_a_skipped_file("h", &["d.rs", "e.rs"])?;
+    let (_, _) = run(&world, ScanMode::Incremental);
+    // `e.rs` is new; `d.rs` is the file the earlier scan left out and it is as it was.
+    assert_eq!(world.last_persisted()?.files_changed, Some(1));
+    Ok(())
+}
+
+#[test]
+fn files_the_project_scope_leaves_out_are_not_counted_as_gone() -> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        scope: Scope::new([model(LanguageId::new("rust"))?], []),
+        found: Some(vec![]),
+        ..World::default()
+    });
+    let (_, _) = run(&world, ScanMode::Full);
+    // Every file of the snapshot is Rust, which the scope leaves out: none of them is gone.
+    assert_eq!(world.last_persisted()?.files_changed, Some(0));
+    Ok(())
+}
+
+#[test]
+fn an_incremental_scan_counts_the_files_it_changed() -> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        found: Some(vec![("a.rs", false), ("b.rs", true)]),
+        ..World::default()
+    });
+    let (_, _) = run(&world, ScanMode::Incremental);
+    // `b.rs` changed and `c.rs` is gone; `a.rs` is as it was.
+    assert_eq!(world.last_persisted()?.files_changed, Some(2));
+    Ok(())
 }
 
 /// The paths, codes and `kept` marks of the files a finished scan left out; none for a scan that

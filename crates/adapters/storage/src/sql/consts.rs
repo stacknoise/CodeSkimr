@@ -67,6 +67,15 @@ pub const LATEST_SNAPSHOT_ID: &str = "SELECT MAX(id) FROM snapshots WHERE projec
 pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files, \
     symbols, refs FROM snapshots WHERE project_id = ?1 AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1) ORDER BY id DESC LIMIT 1";
 
+/// Stores how long the scan of a snapshot took and how many files it changed: duration in
+/// milliseconds, changed files, snapshot id (ADR 0097).
+pub const SNAPSHOT_SCAN_SET: &str =
+    "UPDATE snapshots SET duration_ms = ?1, files_changed = ?2 WHERE id = ?3";
+/// The retained snapshots of a project, newest first: project id (ADR 0097).
+pub const SCAN_HISTORY: &str = "SELECT id, commit_hash, created, mode, files, symbols, refs, \
+    duration_ms, files_changed FROM snapshots WHERE project_id = ?1 AND NOT EXISTS \
+    (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1) ORDER BY id DESC";
+
 /// Confirms a snapshot after a scan that found nothing changed: creation time, commit, mode (the
 /// label of an incremental scan), snapshot id.
 pub const SNAPSHOT_CONFIRM: &str =

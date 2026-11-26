@@ -41,6 +41,9 @@ mod projects_rename_tests;
 #[cfg(test)]
 mod projects_tests;
 mod rating;
+mod scans;
+#[cfg(test)]
+mod scans_tests;
 mod scope;
 #[cfg(test)]
 mod scope_tests;
@@ -118,6 +121,7 @@ use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
 use projects_pick::{FolderDialogInfo, PickFolder};
 use projects_remove::RemoveProject;
 use projects_rename::{RenameProject, SuggestName};
+use scans::{ScanListPorts, ScansList};
 pub(crate) use scope::{
     GetInput as ScopeGetInput, ScopeAnswer, ScopeGet, ScopeSet, SetInput as ScopeSetInput,
 };
@@ -313,6 +317,16 @@ fn register_views(
     register_usages(registry, catalog, config.mcp.max_depth)?;
     register_graph(registry, catalog, config.graph.clone())?;
     register_stats(registry, catalog, config)?;
+    add(
+        registry,
+        ScansList {
+            ports: Arc::new(ScanListPorts {
+                projects: catalog.clone(),
+                index: catalog.clone(),
+                keep: config.snapshots.retention_count,
+            }),
+        },
+    )?;
     add(registry, status_info(config))?;
     register_explorer(registry, catalog, config.metrics.clone(), locations)?;
     register_preferences(registry, locations)?;
@@ -458,6 +472,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<StatusInfo>()?;
     api.expose::<StatsOverview>()?;
     api.expose::<StatsRanking>()?;
+    api.expose::<ScansList>()?;
     api.expose::<GetPreferences>()?;
     api.expose::<SetPreferences>()?;
     api.expose::<GetUiSettings>()?;

@@ -2,7 +2,8 @@
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    CodeIndex, CodeSpan, FileHit, MemberRef, SearchHit, SymbolDetail, SymbolKey, TypeFocus,
+    CodeIndex, CodeSpan, FileHit, MemberRef, ScanEntry, SearchHit, SymbolDetail, SymbolKey,
+    TypeFocus,
 };
 use codeskimr_domain::{
     FileId, LanguageId, LayerEdge, Metric, MetricValue, NamespaceGraph, ProjectId, QualifiedName,
@@ -247,6 +248,10 @@ impl CodeIndex for ProjectDb {
 
     fn latest_snapshot(&self, project: ProjectId) -> Result<Option<Snapshot>, CodedError> {
         Self::latest_snapshot(self, project)
+    }
+
+    fn scan_history(&self, project: ProjectId) -> Result<Vec<ScanEntry>, CodedError> {
+        Self::scan_history(self, project)
     }
 
     // codeskimr: allow CHK-102 hands the port call to the search of the store

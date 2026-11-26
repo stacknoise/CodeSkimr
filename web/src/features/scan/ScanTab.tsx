@@ -20,6 +20,7 @@ import {
   STATE,
 } from "./consts";
 import { scanRuns } from "./events";
+import { History } from "./History";
 import { Languages } from "./Languages";
 import { LeftOut } from "./LeftOut";
 import { Pipeline } from "./Pipeline";
@@ -193,6 +194,7 @@ export function ScanTab(props: { row: ProjectRow }) {
         <Languages languages={props.row.languages} />
       </Show>
       <LeftOut row={props.row} />
+      <History row={props.row} />
     </div>
   );
 }

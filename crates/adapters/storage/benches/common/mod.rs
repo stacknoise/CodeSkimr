@@ -92,6 +92,8 @@ pub fn data(snapshot: u64, first_file: u64, content: Content) -> SnapshotData {
         pending: content.pending,
         dropped_references: Vec::new(),
         parse_micros: Vec::new(),
+        began: None,
+        files_changed: None,
         hashes: content.hashes,
         warnings: Vec::new(),
         ambiguous_places: None,

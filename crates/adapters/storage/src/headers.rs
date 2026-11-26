@@ -1,6 +1,7 @@
 //! The header of a snapshot as stored: the newest one of a project, its totals and the writing of
 //! references and metrics, shared by the writes of `snapshots` and `replace`.
 
+use codeskimr_application::ports::ScanEntry;
 use codeskimr_domain::{
     CommitHash, Metric, ProjectId, Reference, Snapshot, SnapshotId, SnapshotStats, Symbol,
     Timestamp, Visibility,
@@ -73,26 +74,31 @@ pub(crate) fn set_totals(
     Ok(())
 }
 
+/// The id, commit, time, mode and the three totals of a snapshot row, as stored.
+type SnapshotColumns = (i64, Option<String>, i64, String, (i64, i64, i64));
+
+/// Reads the leading columns every snapshot query selects.
+fn snapshot_columns(cols: &Cols) -> rusqlite::Result<SnapshotColumns> {
+    Ok((
+        cols.take::<i64>()?,
+        cols.take::<Option<String>>()?,
+        cols.take::<i64>()?,
+        cols.take::<String>()?,
+        (
+            cols.take::<i64>()?,
+            cols.take::<i64>()?,
+            cols.take::<i64>()?,
+        ),
+    ))
+}
+
 /// The newest snapshot of a project, if it has one.
 pub fn latest_snapshot(conn: &Connection, project: ProjectId) -> StorageResult<Option<Snapshot>> {
     let row = conn
         .query_row(
             sql::LATEST_SNAPSHOT,
             params![column_int(project.get())?],
-            |row| {
-                let cols = Cols::new(row);
-                Ok((
-                    cols.take::<i64>()?,
-                    cols.take::<Option<String>>()?,
-                    cols.take::<i64>()?,
-                    cols.take::<String>()?,
-                    (
-                        cols.take::<i64>()?,
-                        cols.take::<i64>()?,
-                        cols.take::<i64>()?,
-                    ),
-                ))
-            },
+            |row| snapshot_columns(&Cols::new(row)),
         )
         .optional()?;
     row.map(
@@ -169,4 +175,33 @@ pub(crate) fn insert_symbol(
         content_hash,
     ])?;
     Ok(())
+}
+
+/// The retained snapshots of `project` with the duration and the changed files of their scans,
+/// newest first (ADR 0097).
+pub fn scan_history(conn: &Connection, project: ProjectId) -> StorageResult<Vec<ScanEntry>> {
+    let mut statement = conn.prepare_cached(sql::SCAN_HISTORY)?;
+    let rows = statement.query_map(params![column_int(project.get())?], |row| {
+        let cols = Cols::new(row);
+        let head = snapshot_columns(&cols)?;
+        Ok((
+            head,
+            (cols.take::<Option<i64>>()?, cols.take::<Option<i64>>()?),
+        ))
+    })?;
+    let mut entries = Vec::new();
+    for row in rows {
+        let ((id, commit, created, mode, (files, symbols, _)), (duration, changed)) = row?;
+        entries.push(ScanEntry {
+            snapshot: SnapshotId::new(id_from(id)?),
+            created: Timestamp(created),
+            commit: commit.map(CommitHash::new).transpose()?,
+            mode: label_from(&mode)?,
+            files: small_from(files)?,
+            symbols: small_from(symbols)?,
+            duration_ms: duration.map(id_from).transpose()?,
+            files_changed: changed.map(small_from).transpose()?,
+        });
+    }
+    Ok(entries)
 }
