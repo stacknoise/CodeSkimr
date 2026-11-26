@@ -11,11 +11,11 @@ use codeskimr_application::ports::{
     Confirmation, Confirmed, ConsentGrant, ConsentRecord, ConsentStore, DependencyPage,
     DependencyQuery, FileHit, ImpactPage, LanguageShare, Level2Replacement, MemberRow, OutlineNode,
     PendingReference, PreviousIndex, PreviousState, ProjectCatalog, ProjectOverview,
-    ProjectRepository, RankedRows, RankingRequest, ReferenceSite, ReferenceSites, ReportWrite,
-    SameName, ScanEntry, ScanReport, ScanReportStore, ScopeStore, SearchHit, SimilarHit,
-    SimilarQuery, SimilarityIndex, SnapshotData, SnapshotStore, StatisticsSetup, StatisticsSummary,
-    StoredNames, StoredReferences, SymbolDetail, SymbolKey, SymbolState, SymbolStates,
-    ToolReportStore, TypeFocus, UnusedCounts, UsageIndex, UsagePage,
+    ProjectRepository, RankedRows, RankingRequest, ReferencePlace, ReferencePlaces, ReferenceSite,
+    ReferenceSites, ReportWrite, SameName, ScanEntry, ScanReport, ScanReportStore, ScopeStore,
+    SearchHit, SimilarHit, SimilarQuery, SimilarityIndex, SnapshotData, SnapshotStore,
+    StatisticsSetup, StatisticsSummary, StoredNames, StoredReferences, SymbolDetail, SymbolKey,
+    SymbolState, SymbolStates, ToolReportStore, TypeFocus, UnusedCounts, UsageIndex, UsagePage,
 };
 use codeskimr_domain::{
     Alert, AlertId, Annotation, AnnotationId, ContentHash, FileId, Fingerprints, LayerEdge,
@@ -151,6 +151,12 @@ impl SimilarityIndex for SqliteStore {
 impl ReferenceSites for SqliteStore {
     forward! { ReferenceSites via of_snapshot:
         fn references_from(&self, snapshot: SnapshotId, files: &[RelativePath]) -> Result<Vec<ReferenceSite>, CodedError>;
+    }
+}
+
+impl ReferencePlaces for SqliteStore {
+    forward! { ReferencePlaces via of_snapshot:
+        fn for_each_reference(&self, snapshot: SnapshotId, visit: &mut dyn FnMut(ReferencePlace)) -> Result<(), CodedError>;
     }
 }
 

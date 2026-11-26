@@ -130,6 +130,8 @@ pub mod keys {
     pub const LAYERS: &str = "layers";
     /// `unused.ignore`
     pub const UNUSED_IGNORE: &str = "unused.ignore";
+    /// `rules`
+    pub const RULES: &str = "rules";
     /// `unused`
     pub const UNUSED: &str = "unused";
     /// `ignore`, the key of the exception list inside `unused`.
