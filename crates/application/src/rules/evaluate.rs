@@ -68,8 +68,8 @@ fn crosses(layers: &[Layer], from: &str, to: &str) -> bool {
 /// The rules in the order the screen shows them: the layers (only if one of them limits what it
 /// may use, otherwise nothing can be violated), then `forbid` and `public_api` of the project file.
 fn rules_of<'a>(rules: &'a Rules, layers: &'a [Layer]) -> Vec<Rule<'a>> {
-    let limited = layers.iter().any(|layer| layer.may_use.is_some());
-    let layered = limited.then_some(Rule::Layers(layers));
+    let restricted = layers.iter().any(|layer| layer.may_use.is_some());
+    let layered = restricted.then_some(Rule::Layers(layers));
     layered
         .into_iter()
         .chain(rules.forbid.iter().map(Rule::Forbid))
