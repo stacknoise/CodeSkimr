@@ -33,3 +33,9 @@ A violation is one ring, not one reference. It shows the way round the ring (`A 
 ## Holding the state
 
 `codeskimr_application::rules::Baseline` is the content of `.codeskimr-baseline.toml` (`held_on` and one entry with `rule`, `from` and `to` per held violation). A violation with an entry is an old burden; one without is new. Entries whose violation is gone are reported as resolved. The file is meant to be committed.
+
+**Holding the state** replaces the whole file with every violation of the newest scan, with today's date (UTC, `YYYY-MM-DD`) in `held_on`: the button "Hold state" of the screen Rules, the command `rules.hold` (right to manage, like `unused.keep`) and `codeskimr rules --hold` do the same, so the console and the UI can do the same. Only a folder project has a place for the file; a Git project is refused with `PRJ-101`, a project without a scan with `MCP-203`. Entries whose violation is gone disappear this way, so the number of old burdens only goes down.
+
+## The layers
+
+If at least one layer of the project has a `may_use`, the layer rule (`CHK-103`, ADR 0054) is the first rule of the screen, the command and the tool, with the id `layers`. A violation is one referring symbol and one symbol of a layer it may not use, with every place, so it can be held like the others. `codeskimr check` and `check_conventions` keep reporting `CHK-103` for the files they look at.

@@ -7,6 +7,8 @@ use super::consts::ID_MODULES_JOIN;
 /// The kind of a rule (ADR 0105 to 0107; the layers are the rule of ADR 0054).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuleKind {
+    /// The layers of the project: a layer may only use the layers it lists (`CHK-103`).
+    Layers,
     /// `rules.cycles = "deny"`: modules must not depend on each other in a ring.
     Cycles,
     /// `[[rules.forbid]]`: module A must not use module B.

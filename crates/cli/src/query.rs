@@ -5,11 +5,11 @@
 
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use codeskimr_codes::i18n::{
-    CLI_ARG_ASSESSMENT, CLI_ARG_BUDGET, CLI_ARG_DEPTH, CLI_ARG_DIRECTION, CLI_ARG_INCLUDE_TESTS,
-    CLI_ARG_JSON, CLI_ARG_KIND_FILTER, CLI_ARG_LANGUAGE_FILTER, CLI_ARG_LIMIT,
-    CLI_ARG_QUERY_NEW_NAME, CLI_ARG_QUERY_PROJECT, CLI_ARG_QUERY_SYMBOL, CLI_ARG_QUERY_TEXT,
-    CLI_ARG_UNUSED_KIND, CLI_CMD_CONTEXT, CLI_CMD_IMPACT, CLI_CMD_PREVIEW_RENAME, CLI_CMD_RULES,
-    CLI_CMD_SYMBOLS, CLI_CMD_UNUSED, CLI_CMD_USAGES,
+    CLI_ARG_ASSESSMENT, CLI_ARG_BUDGET, CLI_ARG_DEPTH, CLI_ARG_DIRECTION, CLI_ARG_HOLD,
+    CLI_ARG_INCLUDE_TESTS, CLI_ARG_JSON, CLI_ARG_KIND_FILTER, CLI_ARG_LANGUAGE_FILTER,
+    CLI_ARG_LIMIT, CLI_ARG_QUERY_NEW_NAME, CLI_ARG_QUERY_PROJECT, CLI_ARG_QUERY_SYMBOL,
+    CLI_ARG_QUERY_TEXT, CLI_ARG_UNUSED_KIND, CLI_CMD_CONTEXT, CLI_CMD_IMPACT,
+    CLI_CMD_PREVIEW_RENAME, CLI_CMD_RULES, CLI_CMD_SYMBOLS, CLI_CMD_UNUSED, CLI_CMD_USAGES,
 };
 
 use crate::args::{
@@ -17,8 +17,8 @@ use crate::args::{
     UnusedQuery, UsagesQuery,
 };
 use crate::consts::{
-    ARG_ASSESSMENT, ARG_BUDGET, ARG_DEPTH, ARG_DIRECTION, ARG_INCLUDE_TESTS, ARG_JSON, ARG_KIND,
-    ARG_LANGUAGE, ARG_PROJECT, ARG_QUERY_NEW_NAME, ARG_QUERY_PROJECT, ARG_QUERY_SYMBOL,
+    ARG_ASSESSMENT, ARG_BUDGET, ARG_DEPTH, ARG_DIRECTION, ARG_HOLD, ARG_INCLUDE_TESTS, ARG_JSON,
+    ARG_KIND, ARG_LANGUAGE, ARG_PROJECT, ARG_QUERY_NEW_NAME, ARG_QUERY_PROJECT, ARG_QUERY_SYMBOL,
     ARG_QUERY_TEXT, ARG_ROWS, ASSESSMENTS, BUDGETS, COMMAND_CONTEXT, COMMAND_IMPACT,
     COMMAND_PREVIEW_RENAME, COMMAND_RULES, COMMAND_SYMBOLS, COMMAND_UNUSED, COMMAND_USAGES,
     DIRECTIONS, UNUSED_KINDS, VALUE_ASSESSMENT, VALUE_BUDGET, VALUE_DIRECTION, VALUE_KIND,
@@ -162,7 +162,13 @@ fn unused_command(say: Say<'_>) -> Result<Command, CliError> {
 fn rules_command(say: Say<'_>) -> Result<Command, CliError> {
     let command = Command::new(COMMAND_RULES)
         .about(say(CLI_CMD_RULES)?)
-        .arg(limit(say)?);
+        .arg(limit(say)?)
+        .arg(
+            Arg::new(ARG_HOLD)
+                .long(ARG_HOLD)
+                .action(ArgAction::SetTrue)
+                .help(say(CLI_ARG_HOLD)?),
+        );
     project_and_json(command, say)
 }
 
@@ -267,6 +273,7 @@ pub fn action(name: &str, matches: &ArgMatches) -> QueryAction {
         COMMAND_UNUSED => unused_action(matches),
         COMMAND_RULES => QueryAction::Rules(RulesQuery {
             limit: limit(),
+            hold: matches.get_flag(ARG_HOLD),
             target: target(matches),
         }),
         COMMAND_PREVIEW_RENAME => rename_action(matches),

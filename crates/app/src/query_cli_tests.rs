@@ -419,6 +419,15 @@ public class Target
 fn rules(json: bool) -> QueryAction {
     QueryAction::Rules(RulesQuery {
         limit: None,
+        hold: false,
+        target: target(json),
+    })
+}
+
+fn hold_rules(json: bool) -> QueryAction {
+    QueryAction::Rules(RulesQuery {
+        limit: None,
+        hold: true,
         target: target(json),
     })
 }
@@ -486,4 +495,23 @@ fn a_broken_rule_or_held_state_fails_the_command_with_its_code() {
     fs::write(&held_file, "[[entries\n").unwrap();
     let failure = world.run(&rules(true), "en").unwrap_err();
     assert!(failure.json().contains(failure.code().id()));
+}
+
+#[test]
+fn holding_the_state_from_the_command_line_makes_every_violation_an_old_burden() {
+    let world = World::new();
+    fs::write(world.folder.join(".codeskimr.toml"), FORBID).unwrap();
+    assert!(world.answered(&rules(true)).failing);
+    let held = world.answered(&hold_rules(true));
+    assert!(!held.failing);
+    let answer: Value = serde_json::from_str(&held.text).unwrap();
+    assert_eq!(answer["entries"], 2);
+    let file = fs::read_to_string(world.folder.join(".codeskimr-baseline.toml")).unwrap();
+    assert!(file.contains(answer["held_on"].as_str().unwrap()), "{file}");
+    assert!(!world.answered(&rules(true)).failing);
+    let text = world.answered(&hold_rules(false)).text;
+    assert!(
+        text.contains("2 violations now count as old burdens"),
+        "{text}"
+    );
 }

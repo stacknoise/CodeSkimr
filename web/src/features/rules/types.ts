@@ -23,14 +23,21 @@ export interface ViolationOut {
   ring: RingOut | null;
 }
 
+/** What one layer that limits its use may use. */
+export interface AllowedOut {
+  layer: string;
+  may_use: string[];
+}
+
 /** One rule with its violations. */
 export interface RuleOut {
   id: string;
-  kind: "cycles" | "forbid" | "public_api";
+  kind: "layers" | "cycles" | "forbid" | "public_api";
   from: string;
   to: string;
   internal: string[];
   reason: string | null;
+  allowed: AllowedOut[];
   violations: ViolationOut[];
   new: number;
 }
@@ -38,10 +45,17 @@ export interface RuleOut {
 /** The answer of `rules.show`. */
 export interface RulesOut {
   scanned: boolean;
+  holdable: boolean;
   cycles: boolean;
   held_on: string | null;
   rules: RuleOut[];
   resolved: number;
   old: number;
   new: number;
+}
+
+/** The answer of `rules.hold`: the day written into the file and how many violations it holds. */
+export interface HeldOut {
+  held_on: string;
+  entries: number;
 }

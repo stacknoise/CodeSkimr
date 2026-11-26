@@ -1025,7 +1025,7 @@ impl codeskimr_application::rules::RulesChecks for FakeRules {
         let layer = ConfigLayer::parse(LayerSource::Project, RULES).unwrap();
         let rules = Config::resolve(&[layer]).unwrap().rules;
         let held = codeskimr_application::rules::Baseline::parse(HELD)?;
-        codeskimr_application::rules::report(&rules, Some(&held), &Refs, snapshot)
+        codeskimr_application::rules::report(&rules, &[], Some(&held), &Refs, snapshot)
     }
 }
 
