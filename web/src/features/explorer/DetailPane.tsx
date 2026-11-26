@@ -15,6 +15,7 @@ import { openInEditor } from "./editor";
 import { explorerPlace, memberFromTable, selectType, shownHasLayer, shownMember } from "./explorer";
 import { MemberTable } from "./MemberTable";
 import { MetricStrip } from "./MetricStrip";
+import { openRename } from "../rename/rename";
 import type { MemberRow, SymbolInfo, Thresholds } from "./types";
 import styles from "./DetailPane.module.css";
 
@@ -47,8 +48,26 @@ function Action(props: { label: string; hotkey: string; onClick: () => void; dis
   );
 }
 
-/** The three buttons of the header: usages, the layer on the dependency map, the editor. */
-function Actions(props: { symbol: number }) {
+/** The button "Check a rename…": it opens the dialog for the shown symbol and changes nothing. */
+function RenameAction(props: { symbol: number; name: string }) {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        const project = activeProject();
+        if (project !== null) {
+          openRename({ project, symbol: props.symbol, name: props.name });
+        }
+      }}
+    >
+      {t(I18N_KEYS.RENAME_ACTION)}
+    </button>
+  );
+}
+
+/** The four buttons of the header: usages, the layer on the dependency map, the editor, and the
+ * check of a rename (which changes nothing). */
+function Actions(props: { symbol: number; name: string }) {
   return (
     <div class={styles.actions}>
       <Action
@@ -77,6 +96,7 @@ function Actions(props: { symbol: number }) {
           }
         }}
       />
+      <RenameAction symbol={props.symbol} name={props.name} />
     </div>
   );
 }
@@ -106,7 +126,7 @@ function Title(props: { info: SymbolInfo; member: MemberRow | null }) {
       <CounterChips counters={counters()} />
       <Pill tone={TONE.accent}>{kind()}</Pill>
       <Pill>{languageName(props.info.language)}</Pill>
-      <Actions symbol={shown().id} />
+      <Actions symbol={shown().id} name={shown().name} />
     </div>
   );
 }

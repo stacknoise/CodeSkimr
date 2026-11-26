@@ -136,20 +136,3 @@ pub const KIND_CONFIG: &str = "config";
 
 /// `kind` of the id of a translation message in the answer of `find_constants`.
 pub const KIND_I18N: &str = "i18n";
-
-/// Kind of a place of `preview_rename`: the declaration of the symbol.
-pub const KIND_DECLARATION: &str = "declaration";
-/// Kind of a place of `preview_rename`: a usage of the symbol.
-pub const KIND_USAGE: &str = "usage";
-/// Kind of a text line of `preview_rename`: a documentation file.
-pub const TEXT_DOCUMENTATION: &str = "documentation";
-/// Kind of a text line of `preview_rename`: a configuration file.
-pub const TEXT_CONFIGURATION: &str = "configuration";
-/// Kind of a text line of `preview_rename`: inside quotes in a code file.
-pub const TEXT_STRING: &str = "string";
-/// Kind of a text line of `preview_rename`: the argument of `nameof`.
-pub const TEXT_NAMEOF: &str = "nameof";
-/// Kind of a text line of `preview_rename`: a comment.
-pub const TEXT_COMMENT: &str = "comment";
-/// Kind of a text line of `preview_rename`: code that no usage explains.
-pub const TEXT_CODE: &str = "code";

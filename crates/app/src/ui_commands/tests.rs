@@ -152,7 +152,7 @@ impl Fixture {
 }
 
 /// Every command of the registry, in the order the API lists them.
-const COMMAND_IDS: [&str; 50] = [
+const COMMAND_IDS: [&str; 51] = [
     "alerts.dismiss",
     "alerts.dismiss_all",
     "alerts.list",
@@ -188,6 +188,7 @@ const COMMAND_IDS: [&str; 50] = [
     "projects.rescan",
     "projects.suggest_name",
     "projects.tools",
+    "rename.preview",
     "scans.list",
     "scope.get",
     "scope.set",
@@ -1302,4 +1303,62 @@ fn a_rescan_in_the_browser_shows_in_the_usages_of_the_running_server_at_once() {
     let after = fixture.call("usages.query", input).unwrap();
     assert!(places(&after) > places(&before));
     assert!(after["snapshot"].as_u64() > before["snapshot"].as_u64());
+}
+
+/// The input of a rename preview of `Calculator.Add` to `Plus`, with a text file that names it.
+fn rename_input(fixture: &Fixture) -> Value {
+    fs::write(
+        fixture.root.path().join("app/NOTES.md"),
+        "Call Add first.\n",
+    )
+    .unwrap();
+    let input = add_usages_input(fixture, CALLER, "both", 1);
+    json!({ "project": input["project"], "symbol": input["symbol"], "new_name": "Plus" })
+}
+
+#[test]
+fn a_rename_preview_lists_places_and_text_hits_and_changes_nothing() {
+    let fixture = Fixture::new();
+    let input = rename_input(&fixture);
+    let preview = fixture.call("rename.preview", input).unwrap();
+    assert_eq!(preview["old_name"], "Add");
+    assert_eq!(preview["new_name"], "Plus");
+    assert_eq!(preview["sites_total"], 2);
+    assert_eq!(preview["files"], 2);
+    assert_eq!(preview["text_searched"], true);
+    assert_eq!(preview["text_hits"][0]["path"], "NOTES.md");
+    assert_eq!(preview["text_hits"][0]["kind"], "documentation");
+    assert_eq!(
+        fs::read_to_string(fixture.root.path().join("app/NOTES.md")).unwrap(),
+        "Call Add first.\n"
+    );
+}
+
+#[test]
+fn a_rename_preview_without_the_right_to_read_source_does_not_search_the_folder() {
+    let fixture = Fixture::new();
+    let input = rename_input(&fixture);
+    let preview = fixture
+        .call_as(principal::reader(), "rename.preview", input)
+        .unwrap();
+    assert_eq!(preview["sites_total"], 2);
+    assert_eq!(preview["text_searched"], false);
+    assert_eq!(preview["text_total"], 0);
+}
+
+#[test]
+fn a_rename_preview_refuses_a_bad_name_and_a_caller_without_the_right_to_read() {
+    let fixture = Fixture::new();
+    let input = rename_input(&fixture);
+    for bad in ["", "two words", "Add"] {
+        let mut asked = input.clone();
+        asked["new_name"] = json!(bad);
+        assert_eq!(
+            fixture.call("rename.preview", asked).unwrap_err(),
+            "API-101",
+            "{bad:?}"
+        );
+    }
+    let refused = fixture.call_as(principal::nobody(), "rename.preview", input);
+    assert_eq!(refused.unwrap_err(), "AUTH-401");
 }

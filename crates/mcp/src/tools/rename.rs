@@ -2,20 +2,16 @@
 
 use codeskimr_application::access;
 use codeskimr_application::rename::{
-    self, Conflict, LayerCount, RenameAsk, RenamePorts, RenamePreview, Site, SiteKind, TextHit,
-    TextKind,
+    self, Conflict, LayerCount, RenameAsk, RenamePorts, RenamePreview, Site, TextHit,
 };
-use codeskimr_domain::{Confidence, FolderPath, Permission, Principal, ProjectSource};
+use codeskimr_domain::{Confidence, Principal};
 use serde::Serialize;
 use serde_json::Value;
 
 use super::usages::{Place, place_of};
 use super::{AppliedLimit, SnapshotInfo, Tools, to_json, truncation_notice};
 use crate::args::RenameArgs;
-use crate::consts::{
-    ARG_NEW_NAME, COLUMN_OFFSET, KIND_DECLARATION, KIND_USAGE, LINE_OFFSET, READ_TOOL_PERMISSION,
-    TEXT_CODE, TEXT_COMMENT, TEXT_CONFIGURATION, TEXT_DOCUMENTATION, TEXT_NAMEOF, TEXT_STRING,
-};
+use crate::consts::{ARG_NEW_NAME, COLUMN_OFFSET, LINE_OFFSET, READ_TOOL_PERMISSION};
 use crate::error::{CodeReport, McpError};
 
 #[derive(Serialize)]
@@ -106,10 +102,7 @@ struct Answer {
 
 fn site_row(site: &Site) -> SiteRow {
     SiteRow {
-        kind: match site.kind {
-            SiteKind::Declaration => KIND_DECLARATION,
-            SiteKind::Usage => KIND_USAGE,
-        },
+        kind: site.kind.label(),
         path: site.path.clone(),
         line: site.line + LINE_OFFSET,
         column: site.column + COLUMN_OFFSET,
@@ -129,23 +122,12 @@ fn conflict_row(conflict: &Conflict) -> ConflictRow {
     }
 }
 
-const fn text_label(kind: TextKind) -> &'static str {
-    match kind {
-        TextKind::Documentation => TEXT_DOCUMENTATION,
-        TextKind::Configuration => TEXT_CONFIGURATION,
-        TextKind::Text => TEXT_STRING,
-        TextKind::Nameof => TEXT_NAMEOF,
-        TextKind::Comment => TEXT_COMMENT,
-        TextKind::Unresolved => TEXT_CODE,
-    }
-}
-
 fn text_row(hit: &TextHit) -> TextRow {
     TextRow {
         path: hit.path.clone(),
         line: hit.line + LINE_OFFSET,
         text: hit.text.clone(),
-        kind: text_label(hit.kind),
+        kind: hit.kind.label(),
     }
 }
 
@@ -211,7 +193,7 @@ impl Tools {
             return Err(McpError::ArgumentsInvalid(ARG_NEW_NAME.to_owned()));
         }
         let limit = self.apply_limit(args.limit);
-        let root = searchable_root(*principal, &scope.project.source);
+        let root = rename::searchable_root(*principal, &scope.project.source);
         let preview = rename::preview(
             &RenamePorts {
                 index: self.index(),
@@ -228,17 +210,5 @@ impl Tools {
             },
         )?;
         to_json(&answer(scope.info, &preview, &limit))
-    }
-}
-
-/// The folder whose text may be searched: a folder source, if the caller may read source.
-fn searchable_root(principal: Principal, source: &ProjectSource) -> Option<FolderPath> {
-    match source {
-        ProjectSource::Folder(root)
-            if access::require(&principal, Permission::ReadSource).is_ok() =>
-        {
-            Some(root.clone())
-        }
-        _ => None,
     }
 }

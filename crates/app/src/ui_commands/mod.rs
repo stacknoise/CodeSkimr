@@ -41,6 +41,7 @@ mod projects_rename_tests;
 #[cfg(test)]
 mod projects_tests;
 mod rating;
+mod rename_preview;
 mod scans;
 #[cfg(test)]
 mod scans_tests;
@@ -81,7 +82,7 @@ use codeskimr_cli::GlobalOptions;
 use codeskimr_domain::{Author, LanguageId};
 use codeskimr_parsing::{Blake3Digest, TreeSitterHighlighter};
 use codeskimr_server::CommandApi;
-use codeskimr_source::FolderText;
+use codeskimr_source::{FolderMentions, FolderText};
 
 pub(crate) use status::{mark_ready, mark_started};
 
@@ -121,6 +122,7 @@ use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
 use projects_pick::{FolderDialogInfo, PickFolder};
 use projects_remove::RemoveProject;
 use projects_rename::{RenameProject, SuggestName};
+use rename_preview::{RenamePreviewCommand, RenamePreviewPorts};
 use scans::{ScanListPorts, ScansList};
 pub(crate) use scope::{
     GetInput as ScopeGetInput, ScopeAnswer, ScopeGet, ScopeSet, SetInput as ScopeSetInput,
@@ -315,6 +317,12 @@ fn register_views(
 ) -> Result<(), CodedError> {
     register_search(registry, catalog)?;
     register_usages(registry, catalog, config.mcp.max_depth)?;
+    add(
+        registry,
+        RenamePreviewCommand {
+            ports: rename_preview_ports(catalog, config),
+        },
+    )?;
     register_graph(registry, catalog, config.graph.clone())?;
     register_stats(registry, catalog, config)?;
     add(
@@ -458,12 +466,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ListCredentials>()?;
     api.expose::<SetCredential>()?;
     api.expose::<DeleteCredential>()?;
-    api.expose::<ExplorerOutline>()?;
-    api.expose::<ExplorerSymbol>()?;
-    api.expose::<ExplorerSource>()?;
-    api.expose::<SearchQuery>()?;
-    api.expose::<UsagesQuery>()?;
-    api.expose::<UsagesCode>()?;
+    expose_index_views(api)?;
     api.expose::<GraphLayers>()?;
     api.expose::<LayersGet>()?;
     api.expose::<LayersSet>()?;
@@ -480,6 +483,19 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<EffectiveSettings>()?;
     api.expose::<HtmlExport>()?;
     expose_annotations(api)
+}
+
+/// Makes the commands that read the index reachable over REST: explorer, search, usages and the
+/// check of a rename.
+fn expose_index_views(api: &mut CommandApi) -> Result<(), CodedError> {
+    api.expose::<ExplorerOutline>()?;
+    api.expose::<ExplorerSymbol>()?;
+    api.expose::<ExplorerSource>()?;
+    api.expose::<SearchQuery>()?;
+    api.expose::<UsagesQuery>()?;
+    api.expose::<UsagesCode>()?;
+    api.expose::<RenamePreviewCommand>()?;
+    Ok(())
 }
 
 /// Makes the commands of annotations and alerts reachable over REST.
@@ -729,6 +745,15 @@ fn usages_ports(store: &Arc<SqliteStore>, max_depth: u32) -> Arc<UsagesPorts> {
         text: Arc::new(FolderText),
         reports: store.clone(),
         max_depth,
+    })
+}
+
+fn rename_preview_ports(store: &Arc<SqliteStore>, config: &Config) -> Arc<RenamePreviewPorts> {
+    Arc::new(RenamePreviewPorts {
+        projects: store.clone(),
+        index: store.clone(),
+        usages: store.clone(),
+        mentions: Arc::new(FolderMentions::new(config.scan.excluded_folders.clone())),
     })
 }
 
