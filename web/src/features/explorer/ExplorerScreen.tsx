@@ -1,4 +1,4 @@
-import { createEffect, Match, on, Show, Switch } from "solid-js";
+import { createEffect, Match, on, onCleanup, Show, Switch } from "solid-js";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
@@ -31,6 +31,8 @@ import {
 import { openInEditor } from "./editor";
 import { useExplorerKeys } from "./keys";
 import { panelWidth, sourceWidth, treeWidth } from "./layout";
+import { closeRename, renameTarget } from "../rename/rename";
+import { RenameDialog } from "../rename/RenameDialog";
 import { Overview } from "./Overview";
 import { clearSource, loadSource } from "./source";
 import { SidePanel } from "./SidePanel";
@@ -217,6 +219,8 @@ export function ExplorerScreen() {
   useReadingOfTheProject();
   useReadingOfTheSource();
   useShortcuts(explorer);
+  // The check of a rename belongs to the screen: it goes when the screen does.
+  onCleanup(closeRename);
   return (
     <Switch>
       <Match when={activeProject() === null}>
@@ -236,6 +240,7 @@ export function ExplorerScreen() {
       </Match>
       <Match when={true}>
         <Columns explorer={explorer} />
+        <Show when={renameTarget()}>{(target) => <RenameDialog target={target()} />}</Show>
       </Match>
     </Switch>
   );

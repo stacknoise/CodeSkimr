@@ -217,3 +217,19 @@ pub const RENAME_EXTENSION_SEPARATOR: char = '.';
 pub const RENAME_NO_EXTENSION: &str = "";
 /// The one character besides letters and digits that a name may hold.
 pub const RENAME_UNDERSCORE: char = '_';
+/// Label of a place that is a declaration.
+pub const RENAME_SITE_DECLARATION: &str = "declaration";
+/// Label of a place that uses the symbol.
+pub const RENAME_SITE_USAGE: &str = "usage";
+/// Label of a text line in a documentation file.
+pub const RENAME_TEXT_DOCUMENTATION: &str = "documentation";
+/// Label of a text line in a configuration file.
+pub const RENAME_TEXT_CONFIGURATION: &str = "configuration";
+/// Label of a text line inside quotes.
+pub const RENAME_TEXT_STRING: &str = "string";
+/// Label of a text line with `nameof`.
+pub const RENAME_TEXT_NAMEOF: &str = "nameof";
+/// Label of a text line that is a comment.
+pub const RENAME_TEXT_COMMENT: &str = "comment";
+/// Label of a text line that no usage explains.
+pub const RENAME_TEXT_CODE: &str = "code";

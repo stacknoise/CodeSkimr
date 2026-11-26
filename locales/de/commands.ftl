@@ -102,3 +102,5 @@ command-scope-get-title = Umfang eines Projekts zeigen
 command-scope-get-description = Zeigt, welche Sprachen und Ordner ein Projekt erfasst und welche es auslässt, mit der Zahl der Dateien, gezählt im Ordner so, wie ein Scan ihn durchläuft.
 command-scope-set-title = Umfang eines Projekts festlegen
 command-scope-set-description = Speichert die Sprachen und Ordner, die die Scans eines Projekts auslassen. Die Änderung gilt ab dem nächsten Scan; der Code bleibt ein Projekt.
+command-rename-preview-title = Umbenennen prüfen
+command-rename-preview-description = Zeigt, welche Stellen, Namenskonflikte und Text-Treffer ein neuer Name für ein Symbol träfe. Es wird nichts geändert.

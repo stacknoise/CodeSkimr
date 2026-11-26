@@ -102,3 +102,5 @@ command-scope-get-title = Show scope of project
 command-scope-get-description = Shows which languages and folders a project covers and which it leaves out, with the number of files of each, counted in the folder as a scan would walk it.
 command-scope-set-title = Set scope of project
 command-scope-set-description = Stores the languages and folders that the scans of a project leave out. The change applies from the next scan; the code stays one project.
+command-rename-preview-title = Check a rename
+command-rename-preview-description = Shows the places, name conflicts and text hits that a new name for a symbol would hit. Nothing is changed.

@@ -190,6 +190,8 @@ pub const SYMBOL_DESCRIPTION: &str = i18n::COMMAND_EXPLORER_SYMBOL_DESCRIPTION;
 
 /// Lines are stored from 0, the screen counts from 1.
 pub const LINE_OFFSET: u32 = 1;
+/// Offset between the zero-based column of the index and the one-based column the screen shows.
+pub const COLUMN_OFFSET: u32 = 1;
 /// Longest chain of enclosing symbols in the breadcrumb.
 pub const BREADCRUMB_DEPTH: usize = 8;
 
@@ -457,3 +459,12 @@ pub const SCOPE_SET: &str = "scope.set";
 pub const SCOPE_SET_TITLE: &str = i18n::COMMAND_SCOPE_SET_TITLE;
 /// Description key of `scope.set`.
 pub const SCOPE_SET_DESCRIPTION: &str = i18n::COMMAND_SCOPE_SET_DESCRIPTION;
+
+/// Id of the command that previews a rename.
+pub const RENAME_PREVIEW: &str = "rename.preview";
+/// Title key of `rename.preview`.
+pub const RENAME_PREVIEW_TITLE: &str = i18n::COMMAND_RENAME_PREVIEW_TITLE;
+/// Description key of `rename.preview`.
+pub const RENAME_PREVIEW_DESCRIPTION: &str = i18n::COMMAND_RENAME_PREVIEW_DESCRIPTION;
+/// Most places and text lines `rename.preview` lists; the counts stay whole.
+pub const RENAME_PREVIEW_LIMIT: usize = 500;

@@ -8,13 +8,17 @@
 use std::collections::HashSet;
 
 use codeskimr_domain::{
-    Confidence, Direction, FolderPath, Project, SnapshotId, SymbolId, UsageQuery, Visibility,
+    Confidence, Direction, FolderPath, Permission, Principal, Project, ProjectSource, SnapshotId,
+    SymbolId, UsageQuery, Visibility,
 };
 
+use crate::access;
 use crate::consts::{
     RENAME_COMMENT_PREFIXES, RENAME_CONFIG_EXTENSIONS, RENAME_CONFLICT_SEARCH_LIMIT,
     RENAME_DOC_EXTENSIONS, RENAME_EXTENSION_SEPARATOR, RENAME_MAX_FILE_BYTES, RENAME_MAX_SITES,
-    RENAME_NAMEOF, RENAME_NO_EXTENSION, RENAME_QUOTE_PAIR, RENAME_QUOTES, RENAME_UNDERSCORE,
+    RENAME_NAMEOF, RENAME_NO_EXTENSION, RENAME_QUOTE_PAIR, RENAME_QUOTES, RENAME_SITE_DECLARATION,
+    RENAME_SITE_USAGE, RENAME_TEXT_CODE, RENAME_TEXT_COMMENT, RENAME_TEXT_CONFIGURATION,
+    RENAME_TEXT_DOCUMENTATION, RENAME_TEXT_NAMEOF, RENAME_TEXT_STRING, RENAME_UNDERSCORE,
 };
 use crate::error::CodedError;
 use crate::ports::{
@@ -60,6 +64,17 @@ pub enum SiteKind {
     Declaration,
     /// A place that uses the symbol.
     Usage,
+}
+
+impl SiteKind {
+    /// The word that answers of the tool, the command and the dialog use for the kind.
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Declaration => RENAME_SITE_DECLARATION,
+            Self::Usage => RENAME_SITE_USAGE,
+        }
+    }
 }
 
 /// One place of the code that a rename has to change.
@@ -116,6 +131,21 @@ pub enum TextKind {
     Unresolved,
 }
 
+impl TextKind {
+    /// The word that answers of the tool, the command and the dialog use for the kind.
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Documentation => RENAME_TEXT_DOCUMENTATION,
+            Self::Configuration => RENAME_TEXT_CONFIGURATION,
+            Self::Text => RENAME_TEXT_STRING,
+            Self::Nameof => RENAME_TEXT_NAMEOF,
+            Self::Comment => RENAME_TEXT_COMMENT,
+            Self::Unresolved => RENAME_TEXT_CODE,
+        }
+    }
+}
+
 /// One line that holds the old name as text and that no site explains.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextHit {
@@ -150,6 +180,20 @@ pub struct LayerCount {
     pub layer: String,
     /// Number of places.
     pub count: usize,
+}
+
+/// The folder whose text a rename preview may search: the folder of a folder project, if the caller
+/// may read source; `None` for a Git source or a caller without that right.
+#[must_use]
+pub fn searchable_root(principal: Principal, source: &ProjectSource) -> Option<FolderPath> {
+    match source {
+        ProjectSource::Folder(root)
+            if access::require(&principal, Permission::ReadSource).is_ok() =>
+        {
+            Some(root.clone())
+        }
+        _ => None,
+    }
 }
 
 /// The answer of [`preview`].
