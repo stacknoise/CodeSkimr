@@ -15,6 +15,7 @@ The layer rule exists (`CHK-103`, ADR 0054, ADR 0082), but its violations are vi
 5. **The layer rule is a rule of the page too.** Its violations come from the same references (a violation per symbol and forbidden layer, as in ADR 0082) and can be held like the others. `check_conventions` keeps reporting `CHK-103` as before.
 6. **Codes.** An invalid rule is `CFG-101` on the key `rules`. Violations of the new kinds get the code `CHK-107` (`rule_violation`) with the kind in the answer; it is registered with step 2, the first step that reports it.
 7. **Written like the layer editor.** The baseline is written only for a folder project (a Git project has no file the user owns) and needs the right to manage, as `unused.keep` does (ADR 0101, step 4).
+8. **Two deliberate differences from the mock.** The day of holding the state is shown in the ISO form (`2026-11-25`) because the file stores it that way and the screen must not translate a value it does not interpret. "Resolved" is a plain count, not a difference to the last held state: the page knows only the file, not an earlier run.
 
 ## Consequences
 
