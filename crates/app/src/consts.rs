@@ -582,3 +582,14 @@ pub mod scope_arg {
     /// `{ $count }`: number of folders that are not listed.
     pub const COUNT: &str = "count";
 }
+
+/// File in the data folder that holds the settings the UI saved (ADR 0103).
+pub const UI_SETTINGS_FILE: &str = "ui-settings.json";
+/// Largest settings file that is read; anything bigger is ignored.
+pub const UI_SETTINGS_MAX_BYTES: u64 = 4096;
+/// Header of the table of the configuration layer made from the saved memory limits.
+pub const UI_LAYER_HEADER: &str = "[level2.indexer_memory_mb]";
+/// Between a key and its value in a line of that layer.
+pub const UI_LAYER_ASSIGN: &str = " = ";
+/// Ending of a line of that layer.
+pub const UI_LAYER_NEWLINE: &str = "\n";

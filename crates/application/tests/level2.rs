@@ -225,6 +225,46 @@ mod cases {
         assert_eq!(settings.limits_of("scip-typescript"), settings.limits());
     }
 
+    fn scip_typescript_megabytes(layers: &[ConfigLayer]) -> u32 {
+        Config::resolve(layers).unwrap().level2.indexer_memory_mb["scip-typescript"]
+    }
+
+    #[test]
+    fn a_value_the_ui_saved_wins_over_the_user_file_and_loses_against_a_flag() {
+        let user = ConfigLayer::parse(
+            LayerSource::User,
+            "[level2.indexer_memory_mb]\nscip-typescript = 1000\n",
+        )
+        .unwrap();
+        let saved = ConfigLayer::parse(
+            LayerSource::Ui,
+            "[level2.indexer_memory_mb]\nscip-typescript = 2000\n",
+        )
+        .unwrap();
+        let flag =
+            ConfigLayer::from_overrides([("level2.indexer_memory_mb.scip-typescript", "3000")])
+                .unwrap();
+        assert_eq!(
+            scip_typescript_megabytes(&[user.clone(), saved.clone()]),
+            2000
+        );
+        assert_eq!(scip_typescript_megabytes(&[user, saved, flag]), 3000);
+    }
+
+    #[test]
+    fn an_indexer_limit_above_the_ceiling_is_refused() {
+        let ceiling = codeskimr_application::config::MAX_INDEXER_MEMORY_MB;
+        let layer = |megabytes: u32| {
+            ConfigLayer::parse(
+                LayerSource::User,
+                &format!("[level2.indexer_memory_mb]\nscip-java = {megabytes}\n"),
+            )
+            .unwrap()
+        };
+        assert!(Config::resolve(&[layer(ceiling)]).is_ok());
+        assert!(Config::resolve(&[layer(ceiling + 1)]).is_err());
+    }
+
     #[test]
     fn a_restricted_principal_may_neither_confirm_nor_start() {
         let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());

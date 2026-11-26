@@ -9,6 +9,9 @@ pub enum LayerSource {
     Default,
     /// The user config file.
     User,
+    /// The settings the UI saved in the data folder (ADR 0103); between the user file and the
+    /// project file.
+    Ui,
     /// `.codeskimr.toml` in the repository.
     Project,
     /// Command line flags.

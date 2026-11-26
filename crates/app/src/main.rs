@@ -82,6 +82,7 @@ mod tray;
 #[cfg(any(windows, target_os = "macos"))]
 mod tray_ui;
 mod ui_commands;
+mod ui_settings;
 mod watch;
 #[cfg(windows)]
 mod windows_owner;

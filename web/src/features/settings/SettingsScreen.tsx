@@ -22,6 +22,7 @@ import { CredentialsPanel } from "./CredentialsPanel";
 import { ConfigSourcesPanel, EffectivePanel } from "./EffectivePanel";
 import { effectiveSearch } from "./effective";
 import { searchSettings, settingsTab, showSettingsTab } from "./tab";
+import { IndexerMemoryPanel } from "./IndexerMemoryPanel";
 import { IndexersPanel } from "./IndexersPanel";
 import { ThemeCard } from "./ThemeCard";
 import { LANGUAGES } from "../../shared/i18n/consts";
@@ -185,6 +186,7 @@ function TabPage() {
       <Match when={settingsTab() === SETTINGS_TAB.analysis}>
         <LayersPanel />
         <IndexersPanel />
+        <IndexerMemoryPanel />
       </Match>
       <Match when={settingsTab() === SETTINGS_TAB.access}>
         <CredentialsPanel />
