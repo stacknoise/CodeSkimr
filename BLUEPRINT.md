@@ -474,7 +474,7 @@ codeskimr check <path>            run the convention checks (for CI)
 codeskimr codes [<code>]          list error codes / explain one code
 codeskimr scans <project>         list the retained scans with duration (ADR 0097, from 1.1)
 codeskimr compare <project>       compare two scans: added, removed, changed, moved (ADR 0097, from 1.1)
-codeskimr impact <project>        usages that a change hits, with the ones not touched (ADR 0097, from 1.1)
+codeskimr change <project>        usages that a change between two scans hits, with the ones not touched (ADR 0097, from 1.1)
 ```
 
 Everything the command line can do has a counterpart in the UI; the exceptions (the consent to level 2, the start options, `--json`) and the gaps still open are listed in ADR 0092.

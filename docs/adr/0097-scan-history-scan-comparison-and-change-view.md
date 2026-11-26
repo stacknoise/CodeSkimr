@@ -1,6 +1,6 @@
 # 0097 – Scan history, scan comparison and the view "Change"
 
-Status: accepted (version 1.1 "Change and agent package" decided by the product owner on 2026-11-23, history variant A of mock 28 on 2026-11-26, mocks of 1.1 approved on 2026-11-26; supersedes the plan of comparing snapshots in ADR 0068 "WP-103" and the entry "snapshot comparison" of ADR 0034)
+Status: accepted (version 1.1 "Change and agent package" decided by the product owner on 2026-11-23, history variant A of mock 28 on 2026-11-26, mocks of 1.1 approved on 2026-11-26; carries out the snapshot comparison that ADR 0068 ("WP-103") and the roadmap row "later" of the blueprint left for after 1.0)
 
 ## Context
 
@@ -30,8 +30,8 @@ Options 2 and (a). Details:
 5. **Choice of the two states.** The user picks two snapshots of the list or "previous" and "newest". A Git branch or commit as base (`--base main`) would need a scan of that state into a temporary snapshot; it is **not** part of this decision and becomes its own issue with its own ADR (it touches the retention, the clone and credentials).
 6. **Surfaces** (one use case in `codeskimr_application`, four ways in, same JSON with `"schema": 1`):
    - registry commands `scans.list`, `scans.compare` and `scans.impact` (permission `read`);
-   - CLI `codeskimr scans <project>`, `codeskimr compare <project> [--base <id>] [--target <id>]` and `codeskimr impact <project> [--base <id>] [--target <id>]`, each with `--json`; default base is the snapshot before the newest, default target the newest;
-   - MCP `impact_of_diff` (the only new tool in this decision; the list grows to 14);
+   - CLI `codeskimr scans <project>`, `codeskimr compare <project> [--base <id>] [--target <id>]` and `codeskimr change <project> [--base <id>] [--target <id>]` (not `impact`: that name is `codeskimr impact <symbol>` of ADR 0099, the question of the MCP tool `impact_of_change`), each with `--json`; default base is the snapshot before the newest, default target the newest;
+   - MCP `impact_of_diff` (the only new tool in this decision; the list grows by one, `get_context` of ADR 0099 adds another);
    - UI: the tab "Scan" gets the table of mock 28 a with the button "Compare with current"; a new screen "Change" (rail entry, mock 29 and `erw-auswirkung`) with the tabs "Impact" and "Comparison". Binding mocks: 28 a, 29 and `erw-auswirkung`; they are copied to `docs/mocks/` with the first UI package.
    Limits for the output (number of symbols, usages per symbol) come from `config/default.toml` (`compare.*`); the answers say when they are cut.
 7. **Retention.** A comparison reads two retained snapshots; a snapshot that retention removed is not offered. A running comparison holds a read transaction like any other read and does not block a scan.
@@ -44,4 +44,4 @@ Options 2 and (a). Details:
 - "Changed" is exactly as good as the content hash: a change of a comment or of whitespace is none, a change of an unrelated line inside a method is one.
 - The checklist "not touched" is exact to the symbol that holds the usage, not to the line. A usage in a method that changed for another reason counts as adapted; the view shows the line either way.
 - Renames inside one file with a changed body, and renames together with a move, show as removed and added.
-- Work packages, in this order, each its own PR: (1) this ADR with the blueprint changes; (2) migration 0023, duration and changed files stored and shown in the tab "Scan" (#711, #725); (3) domain and application: comparison and impact, with storage reads; (4) registry commands, REST, CLI and MCP; (5) the screen "Change" with the mocks; (6) documentation, manual and the acceptance on a real project.
+- Work packages, in this order, each its own PR: (1) this ADR with the blueprint changes; (2) migration 0023, duration and changed files stored and shown in the tab "Scan" (#755, covers #711 and #725); (3) domain and application: comparison and impact, with storage reads (#756); (4) registry commands, REST, CLI and MCP (#757); (5) the screen "Change" with the mocks (#758); (6) documentation, manual and the acceptance on a real project (#759).
