@@ -299,6 +299,20 @@ pub mod arg {
     pub const LINES: &str = "lines";
     /// A count that is above its maximum.
     pub const VALUE: &str = "value";
+    /// `{ $kind }`: the kind of a symbol, of a reference or of an annotation.
+    pub const KIND: &str = "kind";
+    /// `{ $column }`: one-based column of a usage.
+    pub const COLUMN: &str = "column";
+    /// `{ $confidence }`: `certain` or `probable`.
+    pub const CONFIDENCE: &str = "confidence";
+    /// `{ $depth }`: the step of a walk a symbol was reached in.
+    pub const DEPTH: &str = "depth";
+    /// `{ $shown }`: how many entries of a list are shown.
+    pub const SHOWN: &str = "shown";
+    /// `{ $total }`: how many entries a list has in all.
+    pub const TOTAL: &str = "total";
+    /// `{ $text }`: a text that was taken from the project as it is.
+    pub const TEXT: &str = "text";
     /// `{ $limit }`: the configured maximum.
     pub const LIMIT: &str = "limit";
     /// `{ $percent }`: similarity in percent.
@@ -344,3 +358,122 @@ pub const NO_VERSION: &str = "?";
 
 /// Separates the codes in a list of codes.
 pub const CODE_LIST_SEPARATOR: &str = ", ";
+
+/// Sub-command that searches symbols by name.
+pub const COMMAND_SYMBOLS: &str = "symbols";
+/// Sub-command that lists the usages of a symbol.
+pub const COMMAND_USAGES: &str = "usages";
+/// Sub-command that lists what a change of a symbol can reach.
+pub const COMMAND_IMPACT: &str = "impact";
+/// Sub-command that gives the context of a symbol in one answer.
+pub const COMMAND_CONTEXT: &str = "context";
+/// Argument id of the search text of `symbols`.
+pub const ARG_QUERY_TEXT: &str = "query-text";
+/// Placeholder shown for the search text.
+pub const VALUE_QUERY_TEXT: &str = "QUERY";
+/// Argument id of the symbol of `usages`, `impact` and `context`.
+pub const ARG_QUERY_SYMBOL: &str = "query-symbol";
+/// Placeholder shown for that symbol.
+pub const VALUE_QUERY_SYMBOL: &str = "SYMBOL";
+/// Argument id of the project of the query commands; the long flag is [`ARG_PROJECT`].
+pub const ARG_QUERY_PROJECT: &str = "query-project";
+/// Placeholder shown for it.
+pub const VALUE_QUERY_PROJECT: &str = "ID|FOLDER";
+/// Option of `usages`: which way the walk goes.
+pub const ARG_DIRECTION: &str = "direction";
+/// Placeholder shown for the direction.
+pub const VALUE_DIRECTION: &str = "DIRECTION";
+/// The directions the command line accepts.
+pub const DIRECTIONS: [&str; 2] = ["incoming", "outgoing"];
+/// Option of `usages`: how many steps the walk goes.
+pub const ARG_DEPTH: &str = "depth";
+/// Flag of `usages`: references from tests count.
+pub const ARG_INCLUDE_TESTS: &str = "include-tests";
+/// Option of `context`: how much room the answer takes.
+pub const ARG_BUDGET: &str = "budget";
+/// Placeholder shown for the budget.
+pub const VALUE_BUDGET: &str = "BUDGET";
+/// The budgets the command line accepts.
+pub const BUDGETS: [&str; 3] = ["short", "medium", "long"];
+/// Version of the JSON of the query commands (`schema`); it grows when a field changes meaning or
+/// goes away.
+pub const QUERY_SCHEMA_VERSION: u32 = 1;
+
+/// The names of the fields of the answers of the query commands, which are those of the MCP tools.
+pub mod key {
+    /// Version of the format; added to every answer.
+    pub const SCHEMA: &str = "schema";
+    /// Whether files changed since the scan; added to every answer.
+    pub const STALE: &str = "stale";
+    /// The registered code of a failure.
+    pub const CODE: &str = "code";
+    /// The failure of a command.
+    pub const ERROR: &str = "error";
+    /// An answer that is not an object, as a field.
+    pub const RESULT: &str = "result";
+    /// The hits of `symbols`.
+    pub const HITS: &str = "hits";
+    /// The usages of `usages`.
+    pub const USAGES: &str = "usages";
+    /// The symbols of `impact`.
+    pub const SYMBOLS: &str = "symbols";
+    /// The symbol of `context`.
+    pub const SYMBOL: &str = "symbol";
+    /// The callers of `context`.
+    pub const CALLERS: &str = "callers";
+    /// The dependencies of `context`.
+    pub const DEPENDENCIES: &str = "dependencies";
+    /// The files of `context`.
+    pub const AFFECTED_FILES: &str = "affected_files";
+    /// The annotations of `context`.
+    pub const ANNOTATIONS: &str = "annotations";
+    /// The entries of a list of `context`.
+    pub const ITEMS: &str = "items";
+    /// The number of entries a list has in all.
+    pub const TOTAL: &str = "total";
+    /// The notice that a list was cut.
+    pub const NOTICE: &str = "notice";
+    /// Whether an answer rests on unchecked references.
+    pub const PRELIMINARY: &str = "preliminary";
+    /// The id of a symbol.
+    pub const ID: &str = "id";
+    /// The kind of a symbol, a reference or an annotation.
+    pub const KIND: &str = "kind";
+    /// The qualified name of a symbol.
+    pub const QUALIFIED_NAME: &str = "qualified_name";
+    /// The file of a symbol or a usage.
+    pub const PATH: &str = "path";
+    /// The one-based line of a usage.
+    pub const LINE: &str = "line";
+    /// The first line of a symbol.
+    pub const FIRST_LINE: &str = "first_line";
+    /// The one-based column of a usage.
+    pub const COLUMN: &str = "column";
+    /// `certain` or `probable`.
+    pub const CONFIDENCE: &str = "confidence";
+    /// The step of a walk.
+    pub const DEPTH: &str = "depth";
+    /// The symbol that contains a usage.
+    pub const FROM: &str = "from";
+    /// The number of references of a dependency.
+    pub const COUNT: &str = "count";
+    /// The signature of a symbol.
+    pub const SIGNATURE: &str = "signature";
+    /// The layer of a symbol.
+    pub const LAYER: &str = "layer";
+    /// The documentation of a symbol.
+    pub const DOC: &str = "doc";
+    /// The title of an annotation.
+    pub const TITLE: &str = "title";
+    /// The text of an annotation.
+    pub const TEXT: &str = "text";
+}
+
+/// What a missing `layer` or `signature` is in the JSON.
+pub const JSON_NULL_TEXT: &str = "null";
+/// What a control character in a text of the project becomes.
+pub const CONTROL_REPLACEMENT: char = ' ';
+/// Puts the entries of a list below its heading.
+pub const LIST_INDENT: &str = "  ";
+/// Separates the title of an annotation from its text.
+pub const TITLE_SEPARATOR: &str = " ";

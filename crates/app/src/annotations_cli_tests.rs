@@ -22,6 +22,43 @@ use crate::scan::{self, Session};
 const TARGET: &str = "namespace Demo;\n\npublic class Target\n{\n    public static int Do(int x)\n    {\n        return x + 1;\n    }\n}\n";
 const PROJECT: &str = "1";
 
+/// A project folder with the given files, scanned once into a data folder of its own.
+pub(crate) struct Scanned {
+    pub(crate) root: tempfile::TempDir,
+    pub(crate) folder: PathBuf,
+    pub(crate) data: Locations,
+    pub(crate) session: Session,
+    pub(crate) global: GlobalOptions,
+}
+
+pub(crate) fn scanned(files: &[(&str, &str)]) -> Scanned {
+    let root = tempfile::tempdir().unwrap();
+    let folder = root.path().join("project");
+    fs::create_dir_all(&folder).unwrap();
+    for (name, text) in files {
+        fs::write(folder.join(name), text).unwrap();
+    }
+    let data = locations(&root.path().join("data"));
+    let args = ScanArgs {
+        source: folder.to_string_lossy().into_owned(),
+        branch: None,
+        credential: None,
+        json: false,
+        watch: false,
+        name: None,
+    };
+    let global = GlobalOptions::default();
+    let session = scan::open(scan::prepare(&args).unwrap(), &global, &data, &secrets()).unwrap();
+    session.scan_quick(ScanMode::Full).unwrap();
+    Scanned {
+        root,
+        folder,
+        data,
+        session,
+        global,
+    }
+}
+
 struct World {
     _root: tempfile::TempDir,
     folder: PathBuf,
@@ -33,29 +70,13 @@ struct World {
 
 impl World {
     fn new() -> Self {
-        let root = tempfile::tempdir().unwrap();
-        let folder = root.path().join("project");
-        fs::create_dir_all(&folder).unwrap();
-        fs::write(folder.join("Target.cs"), TARGET).unwrap();
-        let data = locations(&root.path().join("data"));
-        let args = ScanArgs {
-            source: folder.to_string_lossy().into_owned(),
-            branch: None,
-            credential: None,
-            json: false,
-            watch: false,
-            name: None,
-        };
-        let global = GlobalOptions::default();
-        let session =
-            scan::open(scan::prepare(&args).unwrap(), &global, &data, &secrets()).unwrap();
-        session.scan_quick(ScanMode::Full).unwrap();
+        let done = scanned(&[("Target.cs", TARGET)]);
         Self {
-            _root: root,
-            folder,
-            data,
-            session,
-            global,
+            _root: done.root,
+            folder: done.folder,
+            data: done.data,
+            session: done.session,
+            global: done.global,
             messages: Messages::load().unwrap(),
         }
     }

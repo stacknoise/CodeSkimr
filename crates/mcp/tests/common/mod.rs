@@ -44,6 +44,9 @@ pub fn limits() -> McpLimits {
         max_depth: 3,
         default_similarity_percent: 50,
         max_snippet_bytes: 64,
+        context_items_short: 1,
+        context_items_medium: 2,
+        context_items_long: 3,
     }
 }
 

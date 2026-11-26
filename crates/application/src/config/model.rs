@@ -181,6 +181,12 @@ pub struct McpLimits {
     pub default_similarity_percent: u32,
     /// Largest snippet `find_similar_code` takes, in bytes.
     pub max_snippet_bytes: u32,
+    /// Entries in each list of the answer of `get_context` for the budget `short`.
+    pub context_items_short: u32,
+    /// Entries in each list of the answer of `get_context` for the budget `medium`.
+    pub context_items_medium: u32,
+    /// Entries in each list of the answer of `get_context` for the budget `long`.
+    pub context_items_long: u32,
 }
 
 /// Snapshot retention.
