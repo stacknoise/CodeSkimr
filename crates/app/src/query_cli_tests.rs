@@ -1,5 +1,6 @@
-//! `codeskimr symbols`, `usages`, `impact`, `context` and `unused` over a real, scanned project: the JSON a
-//! script reads (`schema`, `stale`, the failure with its code) and the text a person reads.
+//! `codeskimr symbols`, `usages`, `impact`, `context` and `unused` over a real, scanned project:
+//! the JSON a script reads (`schema`, `stale`, the failure with its code) and the text a person
+//! reads.
 
 use std::fs;
 use std::path::PathBuf;

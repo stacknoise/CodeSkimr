@@ -411,8 +411,8 @@ pub struct UnusedQuery {
     pub target: QueryTarget,
 }
 
-/// What `codeskimr symbols`, `usages`, `impact`, `context` and `unused` are asked to do. The limits and
-/// defaults are the configured ones of the MCP tools, so the answers are the same.
+/// What `codeskimr symbols`, `usages`, `impact`, `context` and `unused` are asked to do. The
+/// limits and defaults are the configured ones of the MCP tools, so the answers are the same.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum QueryAction {
     /// Searches symbols by name.

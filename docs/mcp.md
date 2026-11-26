@@ -53,7 +53,6 @@ Both tools sit on the `UsageIndex` port (`docs/usages.md`) and share the rules o
 
 ## Context of a symbol
 
-
 `get_context` answers the question an agent asks before it changes a symbol, in one call instead of five (`get_symbol`, `find_usages`, `get_dependencies`, `impact_of_change`, `list_annotations`). Concept `K1` of the agent package, ADR 0099.
 
 - `symbol` is an id or a qualified name, as everywhere. `budget` is `short`, `medium` (default) or `long`, anything else is `MCP-101` with `params.detail = budget`. The budget sets how many entries each list holds: `mcp.context_items_short`, `mcp.context_items_medium` and `mcp.context_items_long` (3, 10 and 50; each at least the one before, the longest never above `mcp.max_limit`). `short` also leaves out the documentation text.

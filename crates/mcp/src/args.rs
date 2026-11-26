@@ -183,7 +183,8 @@ pub struct UnusedArgs {
     pub include_tests: Option<bool>,
     /// Id of the project; the project of this server if left out.
     pub project: Option<u64>,
-    /// Number of results; the configured default if left out, never more than the configured maximum.
+    /// Number of results; the configured default if left out, never more than the configured
+    /// maximum.
     pub limit: Option<u32>,
 }
 
