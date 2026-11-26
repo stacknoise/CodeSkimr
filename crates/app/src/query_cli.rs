@@ -1,7 +1,7 @@
-//! `codeskimr symbols`, `usages`, `impact`, `context` and `unused`: the questions of the MCP tools of the
-//! same names, asked from the command line. The tools answer; this module adds what a script
-//! needs around the answer: the version of the format, whether the scan is out of date, and a
-//! failure as JSON with its registered code.
+//! `codeskimr symbols`, `usages`, `impact`, `context` and `unused`: the questions of the MCP tools
+//! of the same names, asked from the command line. The tools answer; this module adds what a
+//! script needs around the answer: the version of the format, whether the scan is out of date,
+//! and a failure as JSON with its registered code.
 
 use std::path::Path;
 use std::sync::Arc;

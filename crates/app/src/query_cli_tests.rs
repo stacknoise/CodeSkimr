@@ -269,6 +269,7 @@ fn a_broken_exception_list_fails_the_command_with_its_code() {
         fs::write(&file, text).unwrap();
         let failure = world.run(&unused(true), "en").unwrap_err();
         assert_eq!(failure.code(), code, "{text}");
+        assert!(failure.json().contains(code.id()), "{text}");
     }
 }
 
