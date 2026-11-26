@@ -310,6 +310,7 @@ codeskimr/
   - `layer_graph` – the dependency map
   - `type_summary` – the metric strip
 - **Statistics (ADR 0091):** `symbol_statistics` (one row per type and callable with usage counts, measured values, test flag and the place in the order of path and name), `statistics_facets` and `statistics_complexity` (counts per group) and `snapshot_statistics` (which test folders the rows were counted for). Unlike the read models above they are **not** written in the transaction of the snapshot but right after it, in a thread of their own, so that the scan keeps its budget; a snapshot without these rows is valid and gets them at the first question of the statistics screen. A level 2 import deletes the rows of the snapshots it changed.
+- **Scope (ADR 0097):** the tables `scope_languages` and `scope_folders` in the file of the project hold the languages and folders the project leaves out; they are not tied to a snapshot and not touched by retention. An empty scope covers everything.
 - **Retention:** keep the last N snapshots per project (configurable, default from `config/default.toml`).
 - **Annotations (ADR 0068):** the tables `annotation`, `annotation_baseline` and `alert` are not tied to a snapshot and are not touched by retention. A symbol is found again by kind, qualified name and parameter types. Dismissed alerts are kept for `annotations.dismissed_retention_days`.
 - Schema migrations are versioned SQL files in `crates/adapters/storage/migrations/` (one set for the catalog, one for the project files), applied when a file is opened.
@@ -326,7 +327,7 @@ flowchart LR
 | Stage | Responsibility | Parallel |
 |---|---|---|
 | Fetch source | folder: nothing to do; Git: shallow clone or fetch | I/O |
-| Discover files | walk with `.gitignore`, detect language, hash content, skip unchanged files | yes |
+| Discover files | walk with `.gitignore`, apply the scope of the project (left-out folders are not entered, files of left-out languages are not hashed, ADR 0097), detect language, hash content, skip unchanged files | yes |
 | Analyze | Tree-sitter per file, then run the language-pack queries and build symbols and members; the tree never leaves the adapter (ADR 0013) | yes (per file) |
 | Resolve references | map names to symbols (section 9) | yes (per file, after a global symbol table pass) |
 | Compute metrics | LOC, CC, MI, Ce, Ca, instability | yes |
@@ -470,6 +471,7 @@ codeskimr scan <path|git-url>     scan and print a summary (--json for machines,
 codeskimr serve                   start the server without opening a browser
 codeskimr mcp                     MCP over stdio
 codeskimr export <project> --html <file>
+codeskimr scope <project>         show or change the languages and folders a project leaves out (ADR 0097)
 codeskimr check <path>            run the convention checks (for CI)
 codeskimr codes [<code>]          list error codes / explain one code
 ```
