@@ -40,6 +40,7 @@ All tools only read, except `rescan` (and `get_project` runs the tool check, a f
 | `get_symbol` | read signature, documentation, visibility, lines, layer, metrics and members of one symbol (id or qualified name) |
 | `find_usages` | who uses the symbol (`direction` `incoming`, default) or what it uses (`outgoing`); `depth`, `include_tests` |
 | `impact_of_change` | which symbols, layers and public interfaces a change can reach |
+| `get_context` | everything about one symbol in one call: signature, callers, dependencies, files a change can reach and notes; `budget` `short`, `medium` (default) or `long` says how much |
 | `get_dependencies` | what a symbol, namespace or layer depends on, and whether that breaks the layering |
 | `get_architecture` | the layers and the dependencies between them |
 | `find_similar_code` | does this already exist? Give a `symbol` or a `snippet` with its `language` |
@@ -62,3 +63,7 @@ Good habits for agents: call `find_similar_code` and `find_constants` before wri
 ## Safety
 
 The agent runs as you, the local owner, and may read the project's structure. Reading source text and starting a scan are separate permissions that the tools check. `check_conventions` only selects among the files of the project's own list; a path argument is never opened, so `..` or an absolute path selects nothing.
+
+## The same answers on the command line
+
+Scripts, CI and agents without MCP get the same answers from `codeskimr symbols <query>`, `codeskimr usages <symbol>`, `codeskimr impact <symbol>` and `codeskimr context <symbol>`. Add `--json` for JSON (with the version of the format in `schema`, and `stale: true` if files changed since the scan, `false` if not, `null` if that cannot be told; only `false` means current); without it you get text. The project is the one of the current folder, or `--project <id or folder>`. The commands read the last scan; they never scan by themselves. See `docs/cli.md`.

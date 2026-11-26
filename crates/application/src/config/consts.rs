@@ -84,6 +84,12 @@ pub mod keys {
     pub const MCP_DEFAULT_SIMILARITY_PERCENT: &str = "mcp.default_similarity_percent";
     /// `mcp.max_snippet_bytes`
     pub const MCP_MAX_SNIPPET_BYTES: &str = "mcp.max_snippet_bytes";
+    /// `mcp.context_items_short`
+    pub const MCP_CONTEXT_ITEMS_SHORT: &str = "mcp.context_items_short";
+    /// `mcp.context_items_medium`
+    pub const MCP_CONTEXT_ITEMS_MEDIUM: &str = "mcp.context_items_medium";
+    /// `mcp.context_items_long`
+    pub const MCP_CONTEXT_ITEMS_LONG: &str = "mcp.context_items_long";
     /// `snapshots.retention_count`
     pub const RETENTION_COUNT: &str = "snapshots.retention_count";
     /// `annotations.dismissed_retention_days`

@@ -20,17 +20,36 @@ struct Member {
     kind: &'static str,
 }
 
+/// Where a symbol is and what it is, as `get_symbol` and `get_context` both say it.
 #[derive(Serialize)]
-struct Answer {
-    snapshot: SnapshotInfo,
-    id: u64,
-    name: String,
+pub(super) struct Header {
     qualified_name: String,
     kind: &'static str,
     path: String,
     first_line: u32,
     last_line: u32,
     visibility: Option<&'static str>,
+}
+
+pub(super) fn header(detail: &SymbolDetail) -> Header {
+    let symbol = &detail.symbol;
+    Header {
+        qualified_name: symbol.qualified_name.as_str().to_owned(),
+        kind: symbol.kind.label(),
+        path: detail.path.as_str().to_owned(),
+        first_line: symbol.span.start().line + LINE_OFFSET,
+        last_line: symbol.span.end().line + LINE_OFFSET,
+        visibility: symbol.visibility.map(Visibility::label),
+    }
+}
+
+#[derive(Serialize)]
+struct Answer {
+    snapshot: SnapshotInfo,
+    id: u64,
+    name: String,
+    #[serde(flatten)]
+    header: Header,
     is_static: bool,
     /// `syntax` (level 1) or `index` (created by level 2, ADR 0055).
     origin: &'static str,
@@ -65,12 +84,7 @@ fn answer(
         snapshot: scope_info,
         id: symbol.id.get(),
         name: symbol.name.as_str().to_owned(),
-        qualified_name: symbol.qualified_name.as_str().to_owned(),
-        kind: symbol.kind.label(),
-        path: detail.path.as_str().to_owned(),
-        first_line: symbol.span.start().line + LINE_OFFSET,
-        last_line: symbol.span.end().line + LINE_OFFSET,
-        visibility: symbol.visibility.map(Visibility::label),
+        header: header(detail),
         is_static: symbol.is_static,
         origin: symbol.origin.label(),
         signature: symbol.signature.clone(),

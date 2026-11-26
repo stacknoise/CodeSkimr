@@ -189,3 +189,34 @@ cli-codes-explain =
        *[no] ein neuer Versuch hilft nicht
     }, seit Version { $since }.
 cli-codes-retired = Dieser Code ist stillgelegt: nichts löst ihn mehr aus, die Nummer bleibt reserviert.
+
+# Die Abfragebefehle symbols, usages, impact und context.
+cli-cmd-symbols = Symbole im neuesten Scan eines Projekts nach Namen suchen (die Antwort des MCP-Werkzeugs search_symbols)
+cli-cmd-usages = Auflisten, wo ein Symbol verwendet wird oder was es verwendet (die Antwort von find_usages)
+cli-cmd-impact = Auflisten, was eine Änderung eines Symbols erreichen kann (die Antwort von impact_of_change)
+cli-cmd-context = Signatur, Aufrufer, Abhängigkeiten, betroffene Dateien und Anmerkungen eines Symbols in einer Antwort (die Antwort von get_context)
+cli-arg-query-text = Teil des Symbolnamens; die Zeichen müssen in dieser Reihenfolge vorkommen
+cli-arg-query-symbol = Id oder qualifizierter Name des Symbols
+cli-arg-query-project = Id des Projekts, oder der Ordner oder die Git-URL, aus der es gescannt wurde (Standard: der aktuelle Ordner)
+cli-arg-kind-filter = Nur Symbole dieser Art, etwa class, function oder constant
+cli-arg-direction = incoming (wer das Symbol verwendet, Standard) oder outgoing (was es verwendet)
+cli-arg-depth = Schritte, die die Suche geht (mindestens 1; ohne Angabe der eingestellte Standard)
+cli-arg-include-tests = Verweise aus Testcode mitzählen
+cli-arg-budget = Wie viel die Antwort enthält: short, medium (Standard) oder long
+cli-query-none = Nichts gefunden.
+cli-query-symbol-line = { $kind } { $name }  { $path }  (Id { $id })
+cli-query-usage-line = { $path }:{ $line }:{ $column }  { $kind }, { $confidence }, in { $name }
+cli-query-impact-line = Schritt { $depth }  { $kind } { $name }  { $path }
+cli-query-cut = Die Antwort wurde auf die eingestellte Grenze gekürzt; mit --limit mehr, mit --json die Gesamtzahlen.
+cli-query-preliminary = Vorläufig: Einige Treffer stammen nur aus der Namensauflösung und wurden von keinem Indexer (Stufe 2) geprüft.
+cli-query-stale = Dateien haben sich seit dem letzten Scan geändert, die Antwort kann veraltet sein. Zuerst codeskimr scan ausführen.
+cli-context-head = { $kind } { $name }  ({ $path }:{ $line })
+cli-context-signature = Signatur: { $text }
+cli-context-layer = Schicht: { $text }
+cli-context-callers = Aufrufer ({ $shown } von { $total }):
+cli-context-dependencies = Abhängig von ({ $shown } von { $total }):
+cli-context-dependency-line = { $count } x { $kind } { $name }  { $path }
+cli-context-files = Dateien, die eine Änderung erreichen kann ({ $shown } von { $total }):
+cli-context-file = { $path }
+cli-context-notes = Anmerkungen ({ $shown } von { $total }):
+cli-context-note-line = { $kind }: { $text }

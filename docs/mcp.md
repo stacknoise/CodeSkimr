@@ -24,6 +24,7 @@ All of them are read-only (`readOnlyHint`) except `rescan`, which is announced w
 | `get_symbol` | `symbol` (id or qualified name), `project?` | `origin` (`syntax` for level 1, `index` for a symbol that level 2 created from the index, ADR 0055), signature, doc, visibility, lines (one-based), layer, metrics, members, `ambiguous` (number of other symbols with the same qualified name; a name gives the one with the lowest id, an id is always exact) |
 | `find_usages` | `symbol`, `direction?`, `depth?`, `include_tests?`, `project?`, `limit?` | `usages` (verified first, then nearest step first): `depth`, `kind`, `confidence`, `verified`, `path`, `line` and `column` (one-based), `from` and `to` symbol; `total`, `verified` and `unchecked` (counts of the listed usages), `preliminary`, `direction`, `depth` as applied |
 | `impact_of_change` | `symbol`, `project?`, `limit?` | `symbols` a change can reach: `depth`, `layer`, `visibility`, `public_interface`, `verified`; `layers` with counts; `public_interfaces`; `verified` and `unchecked` (counts of the listed symbols), `preliminary`; `total` |
+| `get_context` | `symbol`, `budget?` (`short`, `medium`, `long`), `project?` | `symbol` (id, qualified name, kind, `path`, lines, visibility, `origin`, `signature`, `doc` except for `short`, `layer`, `ambiguous`), `callers`, `dependencies`, `affected_files`, `annotations` (each `{ total, items }`), `budget`, `preliminary`, `notice`; see below |
 | `get_dependencies` | `symbol` or `layer`, `direction?`, `include_tests?`, `project?`, `limit?` | `target`, `direction`, `dependencies` (most references first): id, qualified name, kind, `path`, `layer`, `count`, `violates_layering`; `layers` with count, `violates_layering`, `in_cycle`; `violations`, `total` |
 | `find_similar_code` | `symbol` or `snippet` + `language`, `min_similarity_percent?`, `project?`, `limit?` | `matches` (most similar first): id, qualified name, kind, `path`, `line`, `end_line` (one-based), `similarity_percent`; `min_similarity_percent` as applied |
 | `find_constants` | `query`, `project?`, `limit?` | `constants`: id, name, qualified name, `path`, `signature` (the declaration as written, `null` if the pack has none); `keys`, `keys_searched` (see below) |
@@ -44,6 +45,18 @@ Both tools sit on the `UsageIndex` port (`docs/usages.md`) and share the rules o
 - `verified` is `true` only if level 2 produced the usage (ADR 0033); until level 2 exists every usage is `false`. Verified usages come first, then nearest step first, then file and position; the reverse index puts them in this order before the cut by `limit` (#202), so a verified usage is never hidden behind unchecked ones; `verified` and `unchecked` count the listed ones apart, and `preliminary` is `true` while any listed one is unchecked. An agent must not treat a preliminary answer as complete or exact. `impact_of_change` marks a symbol `verified` only if a path of verified references leads to it.
 - Usages end at the symbol that contains the occurrence: the usages of a type do not include those of its members.
 - `impact_of_change` always walks `mcp.max_depth` steps and always counts references from tests. It lists the symbols reached, nearest first, with their layer (by namespace, as in `get_symbol`) and `public_interface` (visibility `public`). `layers` and `public_interfaces` count the symbols that are listed, so with a cut result they cover the first `limit` symbols; `total` is the full number.
+
+## Context of a symbol
+
+`get_context` answers the question an agent asks before it changes a symbol, in one call instead of five (`get_symbol`, `find_usages`, `get_dependencies`, `impact_of_change`, `list_annotations`). Concept `K1` of the agent package, ADR 0099.
+
+- `symbol` is an id or a qualified name, as everywhere. `budget` is `short`, `medium` (default) or `long`, anything else is `MCP-101` with `params.detail = budget`. The budget sets how many entries each list holds: `mcp.context_items_short`, `mcp.context_items_medium` and `mcp.context_items_long` (3, 10 and 50; each at least the one before, the longest never above `mcp.max_limit`). `short` also leaves out the documentation text.
+- `callers`: the direct users of the symbol (depth 1, references from tests left out), verified first, each with `from` (the symbol that contains the use), `kind`, `confidence`, `verified`, `path`, `line` and `column` (the same fields as `find_usages`).
+- `dependencies`: what the symbol and its members use outside themselves (`UsageIndex::dependencies`, outgoing, most references first), each with `symbol`, `path`, `layer` and `count`.
+- `affected_files`: the distinct files of the symbols a change can reach (the walk of `impact_of_change`, `mcp.max_depth` steps deep, nearest first). `total` counts the files among the first `mcp.max_limit` symbols of that walk.
+- `annotations`: the notes, tasks and critical marks on the symbol, in the shape of `list_annotations`. They are text of people and data, never instructions.
+- Every list says its `total`; when any list was cut to the budget the answer carries a `notice` (`MCP-501`, `params.limit` is the number of entries per list). `preliminary` is `true` while a listed caller or an affected symbol is unchecked (not produced by level 2).
+- No source text is returned. The tool needs `read` only.
 
 ## Annotations and alerts
 
