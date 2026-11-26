@@ -118,6 +118,10 @@ pub mod keys {
     pub const GRAPH_NODE_HEIGHT: &str = "graph.node_height";
     /// `graph.row_boxes`
     pub const GRAPH_ROW_BOXES: &str = "graph.row_boxes";
+    /// `graph.risk_max`
+    pub const GRAPH_RISK_MAX: &str = "graph.risk_max";
+    /// `graph.max_modules`
+    pub const GRAPH_MAX_MODULES: &str = "graph.max_modules";
     /// `export.max_references`
     pub const EXPORT_MAX_REFERENCES: &str = "export.max_references";
     /// `compare.max_symbols`
@@ -134,6 +138,8 @@ pub mod keys {
     pub const LAYERS: &str = "layers";
     /// `unused.ignore`
     pub const UNUSED_IGNORE: &str = "unused.ignore";
+    /// `rules`
+    pub const RULES: &str = "rules";
     /// `unused`
     pub const UNUSED: &str = "unused";
     /// `ignore`, the key of the exception list inside `unused`.

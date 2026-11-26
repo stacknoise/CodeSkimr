@@ -1,4 +1,5 @@
-//! `codeskimr symbols`, `usages`, `impact`, `context` and `unused`: the questions of the MCP tools
+//! `codeskimr symbols`, `usages`, `impact`, `context`, `unused` and `preview-rename`: the
+//! questions of the MCP tools
 //! of the same names, asked from the command line. The tools answer; this module adds what a
 //! script needs around the answer: the version of the format, whether the scan is out of date,
 //! and a failure as JSON with its registered code.
@@ -10,17 +11,21 @@ use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{FileDiscovery, ProjectRepository};
 use codeskimr_cli::{
-    ContextQuery, ImpactQuery, QueryAction, QueryKind, SymbolsQuery, UnusedQuery, UsagesQuery,
-    query_code_report, query_error_json, query_json, query_text,
+    ContextQuery, ImpactQuery, QueryAction, QueryKind, RenameQuery, RulesQuery, SymbolsQuery,
+    UnusedQuery, UsagesQuery, query_code_report, query_error_json, query_json, query_text,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Principal, ProjectId, ProjectSource};
 use codeskimr_i18n::Messages;
-use codeskimr_mcp::{ContextArgs, ImpactArgs, McpError, SearchArgs, Tools, UnusedArgs, UsagesArgs};
+use codeskimr_mcp::{
+    ContextArgs, ImpactArgs, McpError, RenameArgs, RulesArgs, SearchArgs, Tools, UnusedArgs,
+    UsagesArgs,
+};
 use codeskimr_storage::SqliteStore;
 use serde_json::Value;
 
 use crate::annotations_cli::Surroundings;
+use crate::consts::NEW_VIOLATIONS;
 use crate::mcp::project_tools;
 use crate::wiring::{build_analysis, open_store};
 use crate::{config_files, export, principal};
@@ -103,6 +108,24 @@ fn ask(tools: &Tools, principal: Principal, action: &QueryAction) -> Result<Valu
         QueryAction::Impact(query) => tools.impact_of_change(&principal, &impact_args(query)),
         QueryAction::Context(query) => tools.get_context(&principal, &context_args(query)),
         QueryAction::Unused(query) => tools.find_unused(&principal, &unused_args(query)),
+        QueryAction::Rules(query) => tools.check_rules(&principal, &rules_args(query)),
+        QueryAction::Rename(query) => tools.preview_rename(&principal, &rename_args(query)),
+    }
+}
+
+fn rename_args(query: &RenameQuery) -> RenameArgs {
+    RenameArgs {
+        symbol: query.symbol.clone(),
+        new_name: query.new_name.clone(),
+        project: None,
+        limit: query.limit,
+    }
+}
+
+fn rules_args(query: &RulesQuery) -> RulesArgs {
+    RulesArgs {
+        project: None,
+        limit: query.limit,
     }
 }
 
@@ -180,7 +203,27 @@ const fn kind_of(action: &QueryAction) -> QueryKind {
         QueryAction::Impact(_) => QueryKind::Impact,
         QueryAction::Context(_) => QueryKind::Context,
         QueryAction::Unused(_) => QueryKind::Unused,
+        QueryAction::Rules(_) => QueryKind::Rules,
+        QueryAction::Rename(_) => QueryKind::Rename,
     }
+}
+
+/// What a query command prints, and whether the answer is one that fails a check.
+pub struct Answered {
+    /// JSON with `--json`, text otherwise.
+    pub text: String,
+    /// Whether the answer holds findings that fail a CI run: new violations of `rules`.
+    pub failing: bool,
+}
+
+/// Whether the answer of the command fails a check: only `rules` can, and only with new violations.
+fn failing(action: &QueryAction, answer: &Value) -> bool {
+    matches!(action, QueryAction::Rules(_))
+        && answer
+            .get(NEW_VIOLATIONS)
+            .and_then(Value::as_u64)
+            .unwrap_or_default()
+            > 0
 }
 
 /// Runs the query command and returns what to print: JSON with `--json`, text otherwise.
@@ -193,19 +236,22 @@ pub fn run(
     action: &QueryAction,
     around: &Surroundings<'_>,
     current_dir: &Path,
-) -> Result<String, QueryFailure> {
+) -> Result<Answered, QueryFailure> {
     let session = open(action, around, current_dir)?;
     let answer = ask(&session.tools, principal::resolve(), action)?;
     let stale = stale(&session, around);
-    if action.target().json {
-        return query_json(answer, stale)
-            .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError).into());
-    }
-    query_text(
-        around.messages,
-        around.language,
-        kind_of(action),
-        (&answer, stale),
-    )
-    .map_err(|error| CodedError::caused_by(error).into())
+    let failing = failing(action, &answer);
+    let text = if action.target().json {
+        query_json(answer, stale)
+            .map_err(|_| QueryFailure::from(CodedError::new(ErrorCode::UnexpectedInternalError)))?
+    } else {
+        query_text(
+            around.messages,
+            around.language,
+            kind_of(action),
+            (&answer, stale),
+        )
+        .map_err(|error| QueryFailure::from(CodedError::caused_by(error)))?
+    };
+    Ok(Answered { text, failing })
 }

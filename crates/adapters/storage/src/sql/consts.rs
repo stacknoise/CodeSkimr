@@ -371,6 +371,15 @@ pub const REFERENCE_SITES: &str = "SELECT f.path, a.qualified_name, a.start_line
     WHERE r.snapshot_id = ?1 AND r.kind <> ?2 AND r.confidence = ?3 \
     AND f.path = ?4 \
     ORDER BY a.start_line, a.start_column, r.id";
+/// Every certain reference of a snapshot that is not of kind `test`, with the place of the
+/// reference itself (ADR 0104): snapshot, kind to leave out, confidence.
+pub const REFERENCE_PLACES: &str = "SELECT f.path, r.start_line, r.start_column, \
+    r.end_line, r.end_column, a.qualified_name, b.qualified_name FROM snapshot_references r \
+    JOIN symbols a ON a.snapshot_id = r.snapshot_id AND a.id = r.from_symbol \
+    JOIN files f ON f.snapshot_id = r.snapshot_id AND f.id = r.file_id \
+    JOIN symbols b ON b.snapshot_id = r.snapshot_id AND b.id = r.to_symbol \
+    WHERE r.snapshot_id = ?1 AND r.kind <> ?2 AND r.confidence = ?3 \
+    ORDER BY f.path, r.start_line, r.start_column, r.id";
 /// Adds a layer graph edge: snapshot, from, to, count, violates, in cycle.
 pub const EDGE_INSERT: &str = "INSERT INTO layer_graph \
     (snapshot_id, from_layer, to_layer, edge_count, violates_layering, in_cycle) \

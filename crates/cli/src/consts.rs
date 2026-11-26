@@ -255,6 +255,24 @@ pub mod arg {
     pub const REASON: &str = "reason";
     /// `{ $assessment }`: how much "no usage found" says about a symbol.
     pub const ASSESSMENT: &str = "assessment";
+    /// `{ $new }`: the proposed new name, or how many violations are new.
+    pub const NEW: &str = "new";
+    /// `{ $held }`: how many violations the held state has, or whether one is held.
+    pub const HELD: &str = "held";
+    /// `{ $resolved }`: how many held violations are gone.
+    pub const RESOLVED: &str = "resolved";
+    /// `{ $places }`: how many places a violation has.
+    pub const PLACES: &str = "places";
+    /// `{ $rule }`: the id of a rule.
+    pub const RULE: &str = "rule";
+    /// `{ $to }`: the symbol a violation must not reach; `{ $from }` is the one that refers.
+    pub const TO: &str = "to";
+    /// `{ $from }`: the symbol that refers.
+    pub const FROM: &str = "from";
+    /// `{ $verified }`: number of places that level 2 verified.
+    pub const VERIFIED: &str = "verified";
+    /// `{ $clash }`: whether two signatures are the same.
+    pub const CLASH: &str = "clash";
     /// `{ $group }`: the id prefix of the group of an error code.
     pub const GROUP: &str = "group";
     /// `{ $description }`: the English developer description of an error code.
@@ -387,6 +405,14 @@ pub const COMMAND_IMPACT: &str = "impact";
 pub const COMMAND_CONTEXT: &str = "context";
 /// Sub-command that lists the symbols without a usage.
 pub const COMMAND_UNUSED: &str = "unused";
+/// Sub-command that judges the architecture rules of the project.
+pub const COMMAND_RULES: &str = "rules";
+/// Sub-command that shows what a new name for a symbol would hit.
+pub const COMMAND_PREVIEW_RENAME: &str = "preview-rename";
+/// Argument id of the new name of `preview-rename`.
+pub const ARG_QUERY_NEW_NAME: &str = "query-new-name";
+/// Placeholder shown for the new name.
+pub const VALUE_QUERY_NEW_NAME: &str = "NEW_NAME";
 /// Option of `unused`: only symbols of this language.
 pub const ARG_LANGUAGE: &str = "language";
 /// Placeholder shown for the language.
@@ -439,6 +465,8 @@ pub mod key {
     pub const STALE: &str = "stale";
     /// The registered code of a failure.
     pub const CODE: &str = "code";
+    /// The line of code a place of `preview-rename` stands on.
+    pub const SITE_CODE: &str = "code";
     /// The failure of a command.
     pub const ERROR: &str = "error";
     /// An answer that is not an object, as a field.
@@ -451,6 +479,38 @@ pub mod key {
     pub const SYMBOLS: &str = "symbols";
     /// The symbol of `context`.
     pub const SYMBOL: &str = "symbol";
+    /// The places of `preview-rename`.
+    pub const SITES: &str = "sites";
+    /// The name conflicts of `preview-rename`.
+    pub const CONFLICTS: &str = "conflicts";
+    /// The text lines of `preview-rename`.
+    pub const TEXT_HITS: &str = "text_hits";
+    /// The proposed name of `preview-rename`.
+    pub const NEW_NAME: &str = "new_name";
+    /// Whether the text of the project folder was searched.
+    pub const SEARCHED: &str = "searched";
+    /// Whether the symbol is public and used by code the answer cannot see.
+    pub const PUBLIC_INTERFACE: &str = "public_interface";
+    /// Places that level 2 verified.
+    pub const VERIFIED: &str = "verified";
+    /// Files that hold places.
+    pub const FILES: &str = "files";
+    /// Whether a name conflict has the same signature.
+    pub const SAME_SIGNATURE: &str = "same_signature";
+    /// The rules of `rules`.
+    pub const RULES: &str = "rules";
+    /// The violations of a rule.
+    pub const VIOLATIONS: &str = "violations";
+    /// The places of a violation.
+    pub const PLACES: &str = "places";
+    /// Whether a violation is an old burden, or how many there are.
+    pub const OLD: &str = "old";
+    /// How many violations are new.
+    pub const NEW: &str = "new";
+    /// How many held violations are gone.
+    pub const RESOLVED: &str = "resolved";
+    /// The symbol a violation must not reach.
+    pub const TO: &str = "to";
     /// The symbols without a usage of `unused`.
     pub const UNUSED: &str = "unused";
     /// The symbols the exception list takes out, in `unused`.
@@ -521,3 +581,6 @@ pub const CONTROL_REPLACEMENT: char = ' ';
 pub const LIST_INDENT: &str = "  ";
 /// Separates the title of an annotation from its text.
 pub const TITLE_SEPARATOR: &str = " ";
+
+/// The `kind` of a place of `preview-rename` that is a declaration, not a usage.
+pub const KIND_DECLARATION: &str = "declaration";

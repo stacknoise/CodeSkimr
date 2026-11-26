@@ -220,6 +220,17 @@ cli-cmd-usages = List where a symbol is used, or what it uses (the answer of fin
 cli-cmd-impact = List what a change of a symbol can reach (the answer of impact_of_change)
 cli-cmd-context = Give signature, callers, dependencies, affected files and notes of a symbol in one answer (the answer of get_context)
 cli-cmd-unused = List the symbols for which no usage was found, with the reason for each (the answer of find_unused)
+cli-cmd-rules = Judge the architecture rules of the project file against the newest scan; fails only for violations that the held state does not have (the answer of check_rules)
+cli-query-rules-head = Rules: { $new } new, { $held } held as old burdens, { $resolved } resolved.
+cli-query-rules-none = The project file declares no architecture rules.
+cli-query-rules-rule = { $rule }: { $new } new of { $total }
+cli-query-rules-line = { $from } -> { $to }  { $path }:{ $line }:{ $column }  ({ $held ->
+        [true] held
+       *[other] NEW
+    }, { $places ->
+        [one] 1 place
+       *[other] { $places } places
+    })
 cli-arg-query-text = Part of the symbol name; the characters must appear in this order
 cli-arg-query-symbol = Id or qualified name of the symbol
 cli-arg-query-project = Id of the project, or the folder or Git URL it was scanned from (default: the current folder)
@@ -231,6 +242,21 @@ cli-arg-budget = How much the answer holds: short, medium (default) or long
 cli-arg-unused-kind = Only these symbols: all (default), types or functions
 cli-arg-language-filter = Only symbols of this language, such as csharp or python
 cli-arg-assessment = Only symbols with this assessment: likely, public or approximate
+cli-cmd-preview-rename = Show what a new name for a symbol would hit: places in the code, name conflicts and text hits; changes nothing (the answer of preview_rename)
+cli-arg-query-new-name = The new name: letters, digits and underscores, not starting with a digit
+cli-rename-head = Rename preview: { $name } -> { $new }. CodeSkimr changes nothing.
+cli-rename-sites = Places that would have to change: { $shown } in { $files } files ({ $verified } checked by the indexer)
+cli-rename-declaration-line = { $path }:{ $line }:{ $column }  declaration
+cli-rename-conflicts = Name conflicts ({ $shown } of { $total }):
+cli-rename-conflict-line = { $kind } { $name }  { $path }  ({ $clash ->
+        [true] same signature: the two clash
+       *[other] different signature: maybe an overload
+    })
+cli-rename-texts = Text hits that CodeSkimr cannot attribute; please check them yourself ({ $shown } of { $total }):
+cli-rename-text-line = { $path }:{ $line }  { $kind }  { $text }
+cli-rename-not-searched = The project folder was not searched for text (no right to read source, or the project is not a folder). Strings, configuration and documentation are therefore missing.
+cli-rename-public = The symbol is public. CodeSkimr does not see callers outside this project.
+cli-rename-disclaimer = CodeSkimr does not say whether the code compiles afterwards. The compiler does.
 cli-query-none = Nothing found.
 cli-query-symbol-line = { $kind } { $name }  { $path }  (id { $id })
 cli-query-usage-line = { $path }:{ $line }:{ $column }  { $kind }, { $confidence }, in { $name }

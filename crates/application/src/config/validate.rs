@@ -45,6 +45,7 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     check_annotations(&config.annotations)?;
     check_layers(config)?;
     check_unused(config)?;
+    check_rules(config)?;
     check_scan(&config.scan)?;
     check_level2(&config.level2)?;
     check_editor(&config.editor)?;
@@ -52,6 +53,8 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     positive(keys::GRAPH_NODE_WIDTH, config.graph.node_width)?;
     positive(keys::GRAPH_NODE_HEIGHT, config.graph.node_height)?;
     positive(keys::GRAPH_ROW_BOXES, config.graph.row_boxes)?;
+    positive(keys::GRAPH_RISK_MAX, config.graph.risk_max)?;
+    positive(keys::GRAPH_MAX_MODULES, config.graph.max_modules)?;
     positive(keys::EXPORT_MAX_REFERENCES, config.export.max_references)?;
     positive(keys::COMPARE_MAX_SYMBOLS, config.compare.max_symbols)?;
     positive(keys::COMPARE_MAX_USAGES, config.compare.max_usages)
@@ -139,6 +142,38 @@ fn check_unused(config: &Config) -> Result<(), ConfigError> {
     } else {
         fail(keys::UNUSED_IGNORE, Violation::MustBeUnusedIgnore)
     }
+}
+
+fn check_rules(config: &Config) -> Result<(), ConfigError> {
+    let rules = &config.rules;
+    if has_twin_rules(rules) {
+        return fail(keys::RULES, Violation::MustBeArchitectureRule);
+    }
+    if rules.forbid.iter().all(super::model::ForbidRule::is_valid)
+        && rules
+            .public_api
+            .iter()
+            .all(super::model::PublicApiRule::is_valid)
+    {
+        Ok(())
+    } else {
+        fail(keys::RULES, Violation::MustBeArchitectureRule)
+    }
+}
+
+/// Whether two entries would get the same id of a rule: their violations could not be told apart in
+/// the held state (ADR 0104, point 3).
+fn has_twin_rules(rules: &super::model::Rules) -> bool {
+    let mut forbid = HashSet::new();
+    let mut modules = HashSet::new();
+    rules
+        .forbid
+        .iter()
+        .any(|rule| !forbid.insert((rule.from.as_str(), rule.to.as_str())))
+        || rules
+            .public_api
+            .iter()
+            .any(|rule| !modules.insert(rule.module.as_str()))
 }
 
 fn fail(key: &'static str, violation: Violation) -> Result<(), ConfigError> {

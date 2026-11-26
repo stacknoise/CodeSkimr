@@ -220,6 +220,17 @@ cli-cmd-usages = Auflisten, wo ein Symbol verwendet wird oder was es verwendet (
 cli-cmd-impact = Auflisten, was eine Änderung eines Symbols erreichen kann (die Antwort von impact_of_change)
 cli-cmd-context = Signatur, Aufrufer, Abhängigkeiten, betroffene Dateien und Anmerkungen eines Symbols in einer Antwort (die Antwort von get_context)
 cli-cmd-unused = Auflisten, für welche Symbole keine Verwendung gefunden wurde, mit dem Grund je Symbol (die Antwort von find_unused)
+cli-cmd-rules = Prüft die Architekturregeln der Projektdatei gegen den neuesten Scan; schlägt nur bei Verstößen fehl, die der festgehaltene Stand nicht hat (die Antwort von check_rules)
+cli-query-rules-head = Regeln: { $new } neu, { $held } als Altlast festgehalten, { $resolved } behoben.
+cli-query-rules-none = Die Projektdatei legt keine Architekturregeln fest.
+cli-query-rules-rule = { $rule }: { $new } neu von { $total }
+cli-query-rules-line = { $from } -> { $to }  { $path }:{ $line }:{ $column }  ({ $held ->
+        [true] festgehalten
+       *[other] NEU
+    }, { $places ->
+        [one] 1 Stelle
+       *[other] { $places } Stellen
+    })
 cli-arg-query-text = Teil des Symbolnamens; die Zeichen müssen in dieser Reihenfolge vorkommen
 cli-arg-query-symbol = Id oder qualifizierter Name des Symbols
 cli-arg-query-project = Id des Projekts, oder der Ordner oder die Git-URL, aus der es gescannt wurde (Standard: der aktuelle Ordner)
@@ -231,6 +242,21 @@ cli-arg-budget = Wie viel die Antwort enthält: short, medium (Standard) oder lo
 cli-arg-unused-kind = Nur diese Symbole: all (Standard), types oder functions
 cli-arg-language-filter = Nur Symbole dieser Sprache, etwa csharp oder python
 cli-arg-assessment = Nur Symbole mit dieser Einschätzung: likely, public oder approximate
+cli-cmd-preview-rename = Zeigen, was ein neuer Name für ein Symbol träfe: Stellen im Code, Namenskonflikte und Text-Treffer; ändert nichts (die Antwort von preview_rename)
+cli-arg-query-new-name = Der neue Name: Buchstaben, Ziffern und Unterstriche, nicht mit einer Ziffer beginnend
+cli-rename-head = Umbenennen prüfen: { $name } -> { $new }. CodeSkimr ändert nichts.
+cli-rename-sites = Stellen, die angepasst werden müssten: { $shown } in { $files } Dateien ({ $verified } vom Indexer geprüft)
+cli-rename-declaration-line = { $path }:{ $line }:{ $column }  Deklaration
+cli-rename-conflicts = Namenskonflikte ({ $shown } von { $total }):
+cli-rename-conflict-line = { $kind } { $name }  { $path }  ({ $clash ->
+        [true] gleiche Signatur: beide stoßen zusammen
+       *[other] andere Signatur: vielleicht ein Überladen
+    })
+cli-rename-texts = Text-Treffer, die CodeSkimr nicht zuordnen kann; bitte selbst prüfen ({ $shown } von { $total }):
+cli-rename-text-line = { $path }:{ $line }  { $kind }  { $text }
+cli-rename-not-searched = Der Projektordner wurde nicht nach Text durchsucht (kein Recht, Quelltext zu lesen, oder das Projekt ist kein Ordner). Zeichenketten, Konfiguration und Dokumentation fehlen deshalb.
+cli-rename-public = Das Symbol ist öffentlich. Aufrufer außerhalb dieses Projekts sieht CodeSkimr nicht.
+cli-rename-disclaimer = CodeSkimr sagt nicht, ob der Code danach kompiliert. Das prüft der Compiler.
 cli-query-none = Nichts gefunden.
 cli-query-symbol-line = { $kind } { $name }  { $path }  (Id { $id })
 cli-query-usage-line = { $path }:{ $line }:{ $column }  { $kind }, { $confidence }, in { $name }

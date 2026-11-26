@@ -446,7 +446,30 @@ pub struct UnusedQuery {
     pub target: QueryTarget,
 }
 
-/// What `codeskimr symbols`, `usages`, `impact`, `context` and `unused` are asked to do. The
+/// Arguments of `codeskimr rules`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RulesQuery {
+    /// Number of violations listed per rule.
+    pub limit: Option<u32>,
+    /// Project and output.
+    pub target: QueryTarget,
+}
+
+/// Arguments of `codeskimr preview-rename`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RenameQuery {
+    /// Id or qualified name of the symbol.
+    pub symbol: String,
+    /// The name it would get.
+    pub new_name: String,
+    /// Number of places and text lines listed.
+    pub limit: Option<u32>,
+    /// Project and output.
+    pub target: QueryTarget,
+}
+
+/// What `codeskimr symbols`, `usages`, `impact`, `context`, `unused`, `rules` and `preview-rename` are asked
+/// to do. The
 /// limits and defaults are the configured ones of the MCP tools, so the answers are the same.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum QueryAction {
@@ -460,6 +483,10 @@ pub enum QueryAction {
     Context(ContextQuery),
     /// Lists the symbols for which no usage was found, with the reason.
     Unused(UnusedQuery),
+    /// Judges the architecture rules of the project; fails only for new violations.
+    Rules(RulesQuery),
+    /// Shows what a new name for a symbol would hit; changes nothing.
+    Rename(RenameQuery),
 }
 
 impl QueryAction {
@@ -471,7 +498,9 @@ impl QueryAction {
             | Self::Usages(UsagesQuery { target, .. })
             | Self::Impact(ImpactQuery { target, .. })
             | Self::Context(ContextQuery { target, .. })
-            | Self::Unused(UnusedQuery { target, .. }) => target,
+            | Self::Unused(UnusedQuery { target, .. })
+            | Self::Rules(RulesQuery { target, .. })
+            | Self::Rename(RenameQuery { target, .. }) => target,
         }
     }
 }

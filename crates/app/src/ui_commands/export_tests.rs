@@ -2,7 +2,6 @@
 
 use std::num::NonZeroU32;
 
-use codeskimr_domain::{FolderPath, Project, ProjectId, ProjectName, ProjectSource};
 use codeskimr_storage::SqliteStore;
 use serde_json::{Value, json};
 
@@ -88,14 +87,7 @@ fn without_the_built_page_the_export_fails_with_its_code() {
 #[test]
 fn a_project_that_was_not_scanned_or_not_registered_is_refused() {
     let fixture = Fixture::installed(Some(PAGE));
-    let store = SqliteStore::open(&fixture.locations.database(), NonZeroU32::MIN).unwrap();
-    let project = Project {
-        id: ProjectId::new(1),
-        name: ProjectName::new("app").unwrap(),
-        source: ProjectSource::Folder(FolderPath::new(fixture.folder()).unwrap()),
-        layers: Vec::new(),
-    };
-    store.save_project(&project).unwrap();
+    fixture.registered(1);
     assert_eq!(
         fixture.call("export.html", json!({ "project": 1 })),
         Err("MCP-203")

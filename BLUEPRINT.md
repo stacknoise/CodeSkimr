@@ -473,7 +473,7 @@ codeskimr mcp                     MCP over stdio
 codeskimr export <project> --html <file>
 codeskimr scope <project>         show or change the languages and folders a project leaves out (ADR 0102)
 codeskimr check <path>            run the convention checks (for CI)
-codeskimr symbols|usages|impact|context <query|symbol>, codeskimr unused   the questions of the MCP tools `search_symbols`, `find_usages`, `impact_of_change`, `get_context`, `find_unused` for scripts and CI (`--json` with `schema` and `stale`, ADR 0099)
+codeskimr symbols|usages|impact|context <query|symbol>, codeskimr unused, codeskimr rules, codeskimr preview-rename <symbol> <new-name>   the questions of the MCP tools `search_symbols`, `find_usages`, `impact_of_change`, `get_context`, `find_unused`, `check_rules`, `preview_rename` for scripts and CI (`--json` with `schema` and `stale`, ADR 0099); `rules` exits with 1 only for new violations (ADR 0104)
 codeskimr codes [<code>]          list error codes / explain one code
 codeskimr scans <project>         list the retained scans with duration (ADR 0097, from 1.1)
 codeskimr compare <project>       compare two scans: added, removed, changed, moved (ADR 0097, from 1.1)
@@ -507,6 +507,8 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | `impact_of_change` | symbol | affected symbols, layers, public interfaces |
 | `get_context` | symbol, budget? | signature, doc, callers (verified first), dependencies, affected files and annotations in one answer, cut by the budget (ADR 0099) |
 | `find_unused` | kind?, language?, assessment?, include_tests? | symbols without a usage with assessment and reason, and those the exception list of the project takes out (ADR 0101) |
+| `check_rules` | project?, limit? | the architecture rules of the project file with their violations (code, places) and the held state; old burdens are marked, only new violations fail the CI (ADR 0104) |
+| `preview_rename` | symbol, new_name, limit? | what a new name would hit, changing nothing: places (verified or not), name conflicts, text lines of strings, configuration and documentation (ADR 0110) |
 | `get_dependencies` | symbol or namespace, direction | edges with counts and violations |
 | `find_similar_code` | code snippet or symbol | existing functions with similar structure ("does this already exist?") |
 | `find_constants` | query | existing constants, config keys and i18n keys |
@@ -762,6 +764,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
   - watcher debounce
   - level 2 (`level2.*`: switch, time, memory (global and per indexer) and output limits, index size, share of mappable uses). Only the user config, the values the UI saved (ADR 0103; today the memory limit per indexer) and CLI flags may set them; the project file cannot
   - excluded folders (`bin`, `obj`, `.git`, `node_modules`, `target`, `dist` …)
+  - architecture rules (`rules.*`, ADR 0104 to 0107): `cycles` (`off`), `[[rules.forbid]]` and `[[rules.public_api]]` tables of the project file; they only report, so the project file may set them. Old violations are held in `.codeskimr-baseline.toml` next to it
   - annotations (`annotations.*`, ADR 0068): `dismissed_retention_days` (30), `max_text_chars` (4000), `max_title_chars` (500), `max_assignee_chars` (100), `max_name_chars` (500), `max_parameter_chars` (200), `max_parameters` (32), `default_page_size` (100), `max_page_size` (500)
   - comparison of two scans (`compare.*`, ADR 0097): `max_symbols` (200, entries per list of symbols), `max_usages` (50, usages per symbol)
 - **Overrides,** applied in this order: user config file → the settings the UI saved in the data folder (ADR 0103; today the memory limit per indexer) → project config (`.codeskimr.toml` in the repository) → CLI flags. The project config may only lower `scan.max_source_mb`, `scan.parse_timeout_ms`, `scan.max_candidates` and `scan.max_memory_mb`, not raise them above the value of the defaults and the user file, so that a scanned repository cannot lift the protection of the scanning machine (ADR 0040).

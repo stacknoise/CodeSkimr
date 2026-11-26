@@ -56,3 +56,36 @@ graph-toggle-critical = Kritische hervorheben
 graph-toggle-critical-only = nur Kritische und ihre Nachbarn
 graph-legend-critical = Systemkritisch
 graph-critical-none = Auf dieser Karte ist kein Symbol kritisch.
+graph-mode-modules = Module
+graph-selected-module = Modul
+graph-modules-more = { $count } weitere Module werden hier nicht gezeigt; Zyklen und Auffälligkeiten zählen trotzdem alle Module.
+graph-modules-table-title = Module
+graph-modules-col-module = Modul
+graph-modules-col-in = ein
+graph-modules-col-out = aus
+graph-modules-col-stability = Stabilität
+graph-modules-col-types = Typen
+graph-modules-badge-cycle = im Zyklus
+graph-modules-badge-violations = { $count ->
+    [one] 1 Verstoß
+   *[other] { $count } Verstöße
+}
+graph-modules-explain = ein: so viele Stellen in anderen Modulen nutzen dieses. aus: so viele Stellen nutzt es in anderen Modulen. Stabilität = aus ÷ (ein + aus). 0 heißt: viele hängen davon ab und es hängt von wenig ab, es ändert sich besser selten; 1 heißt das Gegenteil.
+graph-modules-cycles-title = Zyklen
+graph-modules-cycles-none = Keine Zyklen zwischen Modulen.
+graph-modules-cycle-edge = { $from } → { $to }: { $count ->
+    [one] 1 Stelle
+   *[other] { $count } Stellen
+}
+graph-modules-cycle-resolve = Den Zyklus beendet man mit der schwächsten Kante: { $from } → { $to } ({ $count ->
+    [one] 1 Stelle
+   *[other] { $count } Stellen
+}).
+graph-modules-violations-title = Gegen die Schichtung
+graph-modules-violation = { $from } ({ $fromLayer }) → { $to } ({ $toLayer }): { $count ->
+    [one] 1 Stelle
+   *[other] { $count } Stellen
+}
+graph-modules-risks-title = Auffällig
+graph-modules-risk = { $module } (Stabilität { $stability }) wird von { $incoming } Stellen genutzt und hängt selbst von { $other } ab (Stabilität { $otherStability }), das sich häufiger ändert.
+graph-modules-legend-cycle = im Zyklus

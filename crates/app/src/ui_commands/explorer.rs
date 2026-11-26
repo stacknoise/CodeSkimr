@@ -26,6 +26,7 @@ pub struct ExplorerPorts {
     pub(super) text: Arc<dyn SourceText>,
     pub(super) highlighter: Arc<dyn SyntaxHighlighter>,
     pub(super) thresholds: MetricThresholds,
+    pub(super) references: Arc<dyn codeskimr_application::ports::ReferencePlaces>,
 }
 
 impl ExplorerPorts {

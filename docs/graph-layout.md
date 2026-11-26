@@ -34,6 +34,8 @@ Benchmark `graph_layout/nodes_200` is checked against `budgets.graph_layout_ms` 
 
 ## Wrapping long rows
 
+The tab "Modules" (`graph.modules`, ADR 0108) draws one box per module (a node of the namespace graph) in the row of its layer, the most referenced `graph.max_modules` of them; a module of no layer is placed by its edges. Rings between modules and edges against the layering are marked on the links.
+
 On the namespace level one layer can own hundreds of namespaces, which the layout puts into one row. The command `graph.layers` therefore wraps a row that is longer than `graph.row_boxes` into several lines (a grid, keeping the order of the crossing minimisation, centred) and leaves a margin of half a row gap around the picture, so that the stripe of a layer is symmetric around its boxes.
 
 The namespace level and the type level are built the same way: one namespace (or type) in the middle, the ones that use it above, the ones it uses below, each row in centred lines of at most `row_boxes` boxes on the axis of the middle one. On the namespace level up to 24 neighbours are drawn on each side (the most referenced first) and the rest is counted. The default middle is the namespace with the most references. A namespace name is split at its dots into the label of the box and a breadcrumb of the namespaces in front of it.

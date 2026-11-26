@@ -127,6 +127,18 @@ impl Fixture {
         added["project"].as_u64().unwrap()
     }
 
+    /// Registers the folder of the fixture as project `id` without scanning it.
+    pub(crate) fn registered(&self, id: u64) {
+        let store = SqliteStore::open(&self.locations.database(), NonZeroU32::MIN).unwrap();
+        let project = Project {
+            id: ProjectId::new(id),
+            name: ProjectName::new("app").unwrap(),
+            source: ProjectSource::Folder(FolderPath::new(self.folder()).unwrap()),
+            layers: Vec::new(),
+        };
+        store.save_project(&project).unwrap();
+    }
+
     pub(crate) fn folder(&self) -> String {
         self.root.path().join("app").to_string_lossy().into_owned()
     }
@@ -152,7 +164,7 @@ impl Fixture {
 }
 
 /// Every command of the registry, in the order the API lists them.
-const COMMAND_IDS: [&str; 50] = [
+const COMMAND_IDS: [&str; 53] = [
     "alerts.dismiss",
     "alerts.dismiss_all",
     "alerts.list",
@@ -172,6 +184,7 @@ const COMMAND_IDS: [&str; 50] = [
     "explorer.symbol",
     "export.html",
     "graph.layers",
+    "graph.modules",
     "layers.get",
     "layers.set",
     "level2.revoke",
@@ -188,6 +201,8 @@ const COMMAND_IDS: [&str; 50] = [
     "projects.rescan",
     "projects.suggest_name",
     "projects.tools",
+    "rename.preview",
+    "rules.show",
     "scans.list",
     "scope.get",
     "scope.set",
@@ -539,6 +554,7 @@ fn a_token_without_the_read_right_is_refused() {
         "explorer.source",
         "explorer.symbol",
         "graph.layers",
+        "graph.modules",
         "search.query",
         "stats.overview",
         "stats.ranking",
@@ -1302,4 +1318,133 @@ fn a_rescan_in_the_browser_shows_in_the_usages_of_the_running_server_at_once() {
     let after = fixture.call("usages.query", input).unwrap();
     assert!(places(&after) > places(&before));
     assert!(after["snapshot"].as_u64() > before["snapshot"].as_u64());
+}
+
+/// The input of a rename preview of `Calculator.Add` to `Plus`, with a text file that names it.
+fn rename_input(fixture: &Fixture) -> Value {
+    fs::write(
+        fixture.root.path().join("app/NOTES.md"),
+        "Call Add first.\n",
+    )
+    .unwrap();
+    let input = add_usages_input(fixture, CALLER, "both", 1);
+    json!({ "project": input["project"], "symbol": input["symbol"], "new_name": "Plus" })
+}
+
+#[test]
+fn a_rename_preview_lists_places_and_text_hits_and_changes_nothing() {
+    let fixture = Fixture::new();
+    let input = rename_input(&fixture);
+    let preview = fixture.call("rename.preview", input).unwrap();
+    assert_eq!(preview["old_name"], "Add");
+    assert_eq!(preview["new_name"], "Plus");
+    assert_eq!(preview["sites_total"], 2);
+    assert_eq!(preview["files"], 2);
+    assert_eq!(preview["text_searched"], true);
+    assert_eq!(
+        preview["sites"][0]["code"],
+        "public int Add(int a, int b) { return a + b; }"
+    );
+    assert_eq!(preview["sites"][1]["code"], "return calculator.Add(1, 2);");
+    assert_eq!(preview["text_hits"][0]["path"], "NOTES.md");
+    assert_eq!(preview["text_hits"][0]["kind"], "documentation");
+    assert_eq!(
+        fs::read_to_string(fixture.root.path().join("app/NOTES.md")).unwrap(),
+        "Call Add first.\n"
+    );
+}
+
+#[test]
+fn a_rename_preview_without_the_right_to_read_source_does_not_search_the_folder() {
+    let fixture = Fixture::new();
+    let input = rename_input(&fixture);
+    let preview = fixture
+        .call_as(principal::reader(), "rename.preview", input)
+        .unwrap();
+    assert_eq!(preview["sites_total"], 2);
+    assert_eq!(preview["text_searched"], false);
+    assert_eq!(preview["text_total"], 0);
+    assert_eq!(preview["sites"][0]["code"], Value::Null);
+}
+
+#[test]
+fn a_rename_preview_refuses_a_bad_name_and_a_caller_without_the_right_to_read() {
+    let fixture = Fixture::new();
+    let input = rename_input(&fixture);
+    for bad in ["", "two words", "Add"] {
+        let mut asked = input.clone();
+        asked["new_name"] = json!(bad);
+        assert_eq!(
+            fixture.call("rename.preview", asked).unwrap_err(),
+            "API-101",
+            "{bad:?}"
+        );
+    }
+    let refused = fixture.call_as(principal::nobody(), "rename.preview", input);
+    assert_eq!(refused.unwrap_err(), "AUTH-401");
+}
+
+const RING_UI: &str = "using Demo.Core;\n\nnamespace Demo.Ui;\n\npublic class Screen\n{\n    public int Show() { Engine engine = new Engine(); return engine.Run(); }\n    public int Title() { return 1; }\n}\n";
+const RING_CORE: &str = "using Demo.Ui;\n\nnamespace Demo.Core;\n\npublic class Engine\n{\n    public int Run() { Screen screen = new Screen(); return screen.Title(); }\n}\n";
+const RING_RULES: &str = "[[layers]]\nname = \"ui\"\nnamespaces = [\"Demo.Ui\"]\nmay_use = [\"core\"]\n\n[[layers]]\nname = \"core\"\nnamespaces = [\"Demo.Core\"]\nmay_use = []\n";
+
+/// The answer of `graph.modules` for two namespaces that use each other.
+fn module_map(extra: &serde_json::Value) -> serde_json::Value {
+    let fixture = Fixture::new();
+    let app = fixture.root.path().join("app");
+    fs::write(app.join("Screen.cs"), RING_UI).unwrap();
+    fs::write(app.join("Engine.cs"), RING_CORE).unwrap();
+    fs::write(app.join(".codeskimr.toml"), RING_RULES).unwrap();
+    let mut input = json!({ "project": added(&fixture) });
+    input
+        .as_object_mut()
+        .unwrap()
+        .extend(extra.as_object().unwrap().clone());
+    fixture.call("graph.modules", input).unwrap()
+}
+
+#[test]
+fn the_module_map_lists_the_modules_with_their_coupling_and_layer() {
+    let map = module_map(&json!({}));
+    assert!(map["snapshot"].is_u64());
+    let rows = map["modules"].as_array().unwrap();
+    let ui = rows.iter().find(|row| row["name"] == "Demo.Ui").unwrap();
+    assert_eq!(ui["layer"], "ui");
+    assert!(ui["incoming"].as_u64().unwrap() > 0);
+    assert!(ui["outgoing"].as_u64().unwrap() > 0);
+    assert!(ui["stability"].is_u64());
+    assert_eq!(ui["in_cycle"], true);
+    assert_eq!(map["modules_more"], 0);
+    let boxes = map["boxes"].as_array().unwrap();
+    assert_eq!(boxes.len(), rows.len());
+    assert!(boxes.iter().any(|one| one["name"] == "Demo.Core"));
+}
+
+#[test]
+fn the_module_map_names_the_cycle_the_edge_that_ends_it_and_the_layer_violation() {
+    let map = module_map(&json!({}));
+    let cycles = map["cycles"].as_array().unwrap();
+    assert_eq!(cycles.len(), 1);
+    assert_eq!(cycles[0]["modules"], json!(["Demo.Core", "Demo.Ui"]));
+    assert_eq!(cycles[0]["resolution"].as_array().unwrap().len(), 1);
+    let violations = map["violations"].as_array().unwrap();
+    assert_eq!(violations.len(), 1);
+    assert_eq!(violations[0]["edge"]["from"], "Demo.Core");
+    assert_eq!(violations[0]["from_layer"], "core");
+    assert_eq!(violations[0]["to_layer"], "ui");
+    let links = map["links"].as_array().unwrap();
+    assert!(links.iter().all(|link| link["in_cycle"] == true));
+    assert!(links.iter().any(|link| link["violates_layering"] == true));
+}
+
+#[test]
+fn the_module_map_of_a_project_without_a_scan_is_empty() {
+    let fixture = Fixture::new();
+    let unscanned = fixture.register_unscanned();
+    let map = fixture
+        .call("graph.modules", json!({ "project": unscanned }))
+        .unwrap();
+    assert!(map["snapshot"].is_null());
+    assert_eq!(map["modules"], json!([]));
+    assert_eq!(map["cycles"], json!([]));
 }

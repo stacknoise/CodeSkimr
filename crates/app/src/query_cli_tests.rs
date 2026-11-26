@@ -6,8 +6,8 @@ use std::fs;
 use std::path::PathBuf;
 
 use codeskimr_cli::{
-    ContextQuery, GlobalOptions, ImpactQuery, QueryAction, QueryTarget, ScopeArgs, SymbolsQuery,
-    UnusedQuery, UsagesQuery,
+    ContextQuery, GlobalOptions, ImpactQuery, QueryAction, QueryTarget, RenameQuery, RulesQuery,
+    ScopeArgs, SymbolsQuery, UnusedQuery, UsagesQuery,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_i18n::Messages;
@@ -52,7 +52,17 @@ impl World {
             messages: &self.messages,
             language,
         };
-        query_cli::run(action, &around, &self.folder)
+        query_cli::run(action, &around, &self.folder).map(|answered| answered.text)
+    }
+
+    fn answered(&self, action: &QueryAction) -> query_cli::Answered {
+        let around = Surroundings {
+            global: &self.global,
+            locations: &self.data,
+            messages: &self.messages,
+            language: "en",
+        };
+        query_cli::run(action, &around, &self.folder).unwrap()
     }
 
     fn json(&self, action: &QueryAction) -> Value {
@@ -315,4 +325,165 @@ fn every_assessment_and_kind_the_command_line_offers_is_accepted_by_the_tool() {
             assert!(world.run(&action, "en").is_ok(), "{assessment} {kind}");
         }
     }
+}
+
+fn rename(new_name: &str, json: bool) -> QueryAction {
+    QueryAction::Rename(RenameQuery {
+        symbol: SYMBOL.to_owned(),
+        new_name: new_name.to_owned(),
+        limit: None,
+        target: target(json),
+    })
+}
+
+#[test]
+fn the_rename_preview_lists_the_declaration_and_the_usages_and_says_what_it_cannot_know() {
+    let world = World::new();
+    let answer = world.json(&rename("Calculate", true));
+    assert_eq!(answer["schema"], 1);
+    assert_eq!(answer["new_name"], "Calculate");
+    let places: Vec<(&str, &str)> = answer["sites"]["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|site| {
+            (
+                site["path"].as_str().unwrap(),
+                site["kind"].as_str().unwrap(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        places,
+        [("Caller.cs", "usage"), ("Target.cs", "declaration")]
+    );
+    assert_eq!(answer["conflicts"], serde_json::json!([]));
+    let text = world.run(&rename("Calculate", false), "en").unwrap();
+    assert!(text.contains("CodeSkimr changes nothing"), "{text}");
+    assert!(
+        text.contains("does not say whether the code compiles"),
+        "{text}"
+    );
+}
+
+#[test]
+fn the_rename_preview_finds_the_old_name_in_files_the_index_does_not_know() {
+    let world = World::new();
+    fs::write(
+        world.folder.join("notes.md"),
+        "Call Do in the host.\nDoes not match: Done.\n",
+    )
+    .unwrap();
+    let answer = world.json(&rename("Calculate", true));
+    let texts = &answer["text_hits"];
+    assert_eq!(texts["searched"], true);
+    assert_eq!(texts["total"], 1, "{texts}");
+    assert_eq!(texts["items"][0]["path"], "notes.md");
+    assert_eq!(texts["items"][0]["kind"], "documentation");
+    let text = world.run(&rename("Calculate", false), "en").unwrap();
+    assert!(text.contains("notes.md:1  documentation"), "{text}");
+}
+
+#[test]
+fn the_rename_preview_finds_a_conflict_in_the_same_scope_and_refuses_a_bad_name() {
+    let world = World::new();
+    let answer = world.json(&rename("Run", true));
+    assert_eq!(answer["conflicts"], serde_json::json!([]));
+    let clash = r"namespace Demo;
+
+public class Target
+{
+    public static int Do(int x) { return x; }
+    public static int Calculate(int x) { return x; }
+}
+";
+    let session = scanned(&[("Target.cs", clash), ("Caller.cs", CALLER)]);
+    let other = World {
+        _root: session.root,
+        folder: session.folder,
+        data: session.data,
+        global: session.global,
+        messages: Messages::load().unwrap(),
+        _session: session.session,
+    };
+    let found = other.json(&rename("Calculate", true));
+    assert_eq!(
+        found["conflicts"][0]["qualified_name"],
+        "Demo.Target.Calculate"
+    );
+    assert_eq!(found["conflicts"][0]["same_signature"], true);
+    let failure = world.run(&rename("not a name", true), "en").unwrap_err();
+    assert_eq!(failure.code(), ErrorCode::ToolArgumentsInvalid);
+}
+
+fn rules(json: bool) -> QueryAction {
+    QueryAction::Rules(RulesQuery {
+        limit: None,
+        target: target(json),
+    })
+}
+
+const FORBID: &str = "[[rules.forbid]]\nfrom = \"Demo.Caller\"\nto = \"Demo.Target\"\n";
+const HELD: &str = "held_on = \"2026-11-25\"\n\n[[entries]]\nrule = \"forbid:Demo.Caller>Demo.Target\"\nfrom = \"Demo.Caller.Run\"\nto = \"Demo.Target.Do\"\n\n[[entries]]\nrule = \"forbid:Demo.Caller>Demo.Target\"\nfrom = \"Demo.Caller.Run\"\nto = \"Demo.Target\"\n";
+
+#[test]
+fn a_new_violation_of_a_rule_is_listed_with_its_place_and_fails_the_run() {
+    let world = World::new();
+    fs::write(world.folder.join(".codeskimr.toml"), FORBID).unwrap();
+    let answered = world.answered(&rules(true));
+    assert!(answered.failing);
+    let answer: Value = serde_json::from_str(&answered.text).unwrap();
+    // The class and its method are two references of the one call.
+    assert_eq!(answer["new"], 2);
+    let violation = &answer["rules"][0]["violations"][1];
+    assert_eq!(violation["from"], "Demo.Caller.Run");
+    assert_eq!(violation["to"], "Demo.Target.Do");
+    assert_eq!(violation["places"][0]["path"], "Caller.cs");
+    let text = world.answered(&rules(false)).text;
+    assert!(text.contains("Demo.Caller.Run -> Demo.Target.Do"), "{text}");
+    assert!(text.contains("NEW"), "{text}");
+}
+
+#[test]
+fn a_held_violation_is_an_old_burden_and_does_not_fail_the_run() {
+    let world = World::new();
+    fs::write(world.folder.join(".codeskimr.toml"), FORBID).unwrap();
+    fs::write(world.folder.join(".codeskimr-baseline.toml"), HELD).unwrap();
+    let answered = world.answered(&rules(true));
+    assert!(!answered.failing);
+    let answer: Value = serde_json::from_str(&answered.text).unwrap();
+    assert_eq!(answer["old"], 2);
+    assert_eq!(answer["new"], 0);
+    let text = world.answered(&rules(false)).text;
+    assert!(text.contains("held"), "{text}");
+}
+
+#[test]
+fn a_project_without_rules_says_so_and_does_not_fail() {
+    let world = World::new();
+    let answered = world.answered(&rules(false));
+    assert!(!answered.failing);
+    assert!(
+        answered.text.contains("no architecture rules"),
+        "{}",
+        answered.text
+    );
+}
+
+#[test]
+fn a_broken_rule_or_held_state_fails_the_command_with_its_code() {
+    let world = World::new();
+    let rules_file = world.folder.join(".codeskimr.toml");
+    let held_file = world.folder.join(".codeskimr-baseline.toml");
+    fs::write(
+        &rules_file,
+        "[[rules.forbid]]\nfrom = \"Demo\"\nto = \"Demo.Target\"\n",
+    )
+    .unwrap();
+    let failure = world.run(&rules(true), "en").unwrap_err();
+    assert_eq!(failure.code(), ErrorCode::ConfigInvalidValue);
+    fs::write(&rules_file, FORBID).unwrap();
+    fs::write(&held_file, "[[entries\n").unwrap();
+    let failure = world.run(&rules(true), "en").unwrap_err();
+    assert!(failure.json().contains(failure.code().id()));
 }

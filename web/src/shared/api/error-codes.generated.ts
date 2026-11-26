@@ -109,6 +109,7 @@ export type ErrorCode =
   | "CHK-104"
   | "CHK-105"
   | "CHK-106"
+  | "CHK-107"
 ;
 
 /** Static data of one error code. */
@@ -234,4 +235,5 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "CHK-104": { id: "CHK-104", name: "function_too_long", group: "CHK", class: "invalid_input", severity: "error", retryable: false, description: "A function exceeds the configured length.", since: "0.1.0", deprecated: false, messageKey: "error-CHK-104" },
   "CHK-105": { id: "CHK-105", name: "complexity_too_high", group: "CHK", class: "invalid_input", severity: "error", retryable: false, description: "A function exceeds the configured cognitive complexity.", since: "0.1.0", deprecated: false, messageKey: "error-CHK-105" },
   "CHK-106": { id: "CHK-106", name: "too_many_parameters", group: "CHK", class: "invalid_input", severity: "error", retryable: false, description: "A function has more parameters than the configured maximum.", since: "0.9.0", deprecated: false, messageKey: "error-CHK-106" },
+  "CHK-107": { id: "CHK-107", name: "rule_violation", group: "CHK", class: "invalid_input", severity: "error", retryable: false, description: "Code breaks an architecture rule of the project.", since: "1.2.0", deprecated: false, messageKey: "error-CHK-107" },
 };

@@ -79,6 +79,13 @@ pub const GRAPH_TITLE: &str = i18n::COMMAND_GRAPH_LAYERS_TITLE;
 /// Description key of `graph.layers`.
 pub const GRAPH_DESCRIPTION: &str = i18n::COMMAND_GRAPH_LAYERS_DESCRIPTION;
 
+/// Id of the command behind the tab "Modules" of the dependency map (ADR 0108).
+pub const GRAPH_MODULES: &str = "graph.modules";
+/// Title key of `graph.modules`.
+pub const GRAPH_MODULES_TITLE: &str = i18n::COMMAND_GRAPH_MODULES_TITLE;
+/// Description key of `graph.modules`.
+pub const GRAPH_MODULES_DESCRIPTION: &str = i18n::COMMAND_GRAPH_MODULES_DESCRIPTION;
+
 /// Id of the command of the quick search.
 pub const SEARCH_QUERY: &str = "search.query";
 /// Most hits the quick search returns.
@@ -330,6 +337,16 @@ pub const LAYERS_GET: &str = "layers.get";
 pub const LAYERS_GET_TITLE: &str = i18n::COMMAND_LAYERS_GET_TITLE;
 /// Description key of `layers.get`.
 pub const LAYERS_GET_DESCRIPTION: &str = i18n::COMMAND_LAYERS_GET_DESCRIPTION;
+/// Kind of a rule in the answer of `rules.show`: modules that must not use each other.
+pub const FORBID: &str = "forbid";
+/// Kind of a rule in the answer of `rules.show`: the inside of a module is closed.
+pub const PUBLIC_API: &str = "public_api";
+/// Id of the command that shows the architecture rules of a project and their violations.
+pub const RULES_SHOW: &str = "rules.show";
+/// Title key of `rules.show`.
+pub const RULES_SHOW_TITLE: &str = i18n::COMMAND_RULES_SHOW_TITLE;
+/// Description key of `rules.show`.
+pub const RULES_SHOW_DESCRIPTION: &str = i18n::COMMAND_RULES_SHOW_DESCRIPTION;
 /// Id of the command that keeps a symbol on purpose (an entry of `[[unused.ignore]]`).
 pub const UNUSED_KEEP: &str = "unused.keep";
 /// Title key of `unused.keep`.
@@ -447,3 +464,12 @@ pub const SCOPE_SET: &str = "scope.set";
 pub const SCOPE_SET_TITLE: &str = i18n::COMMAND_SCOPE_SET_TITLE;
 /// Description key of `scope.set`.
 pub const SCOPE_SET_DESCRIPTION: &str = i18n::COMMAND_SCOPE_SET_DESCRIPTION;
+
+/// Id of the command that previews a rename.
+pub const RENAME_PREVIEW: &str = "rename.preview";
+/// Title key of `rename.preview`.
+pub const RENAME_PREVIEW_TITLE: &str = i18n::COMMAND_RENAME_PREVIEW_TITLE;
+/// Description key of `rename.preview`.
+pub const RENAME_PREVIEW_DESCRIPTION: &str = i18n::COMMAND_RENAME_PREVIEW_DESCRIPTION;
+/// Most places and text lines `rename.preview` lists; the counts stay whole.
+pub const RENAME_PREVIEW_LIMIT: usize = 500;

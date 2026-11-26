@@ -5,6 +5,8 @@
 //! - [`WalkDiscovery`] implements `FileDiscovery`: `.gitignore`-aware walk, language detection by
 //!   extension, BLAKE3 content hashes, change detection against the previous snapshot.
 //! - [`FolderText`] implements `SourceText`: lines of a file of a folder source, never outside it.
+//! - [`FolderMentions`] implements `NameMentions`: the lines of a folder that hold a name, for the
+//!   rename preview.
 //! - [`ProjectRequirements`] implements `RequirementReader`: the versions a project names for
 //!   the tool check of ADR 0033 (reads a few files, runs no project code).
 //! - [`watch`] reports debounced file changes; [`publish_changes`] turns them into `FilesChanged`
@@ -20,6 +22,7 @@ mod hash;
 mod key_text;
 mod keys;
 mod languages;
+mod mentions;
 mod overview;
 mod paths;
 mod redact;
@@ -34,6 +37,7 @@ pub use fetcher::SourceFetcher;
 pub use git::{GitCache, Login};
 pub use keys::FolderKeys;
 pub use languages::LanguageMap;
+pub use mentions::FolderMentions;
 pub use overview::WalkLister;
 pub use redact::redact_credentials;
 pub use requirement::ProjectRequirements;
