@@ -1,6 +1,7 @@
 import { createSignal, For, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { showModuleInGraph } from "../graph/show";
 import {
   ARROW,
   INTERNAL_JOIN,
@@ -48,6 +49,13 @@ function CycleRow(props: { violation: ViolationOut; ring: RingOut }) {
           places: props.violation.places.length,
         })}
       </span>
+      <button
+        type="button"
+        class={styles.show}
+        onClick={() => showModuleInGraph(props.violation.from)}
+      >
+        {t(I18N_KEYS.RULES_RING_SHOW)}
+      </button>
       <Age old={props.violation.old} />
     </li>
   );

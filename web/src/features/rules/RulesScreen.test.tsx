@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@solidjs/testing-library";
 import { beforeEach, describe, expect, it } from "vitest";
+import { graphLevel, wantedLayer } from "../graph/graph";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, useServerSession } from "../../tests/commands";
@@ -144,6 +145,9 @@ describe("RulesScreen", () => {
     expect(await screen.findByText("No cycles between modules")).toBeInTheDocument();
     expect(screen.getByText("Shop.Data → Shop.Api → Shop.Data")).toBeInTheDocument();
     expect(screen.getByText("Resolvable over 1 edge with 1 place")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show in the graph" }));
+    expect(graphLevel()).toBe("modules");
+    expect(wantedLayer()).toBe("Shop.Data");
   });
 
   it("reads in German too", async () => {

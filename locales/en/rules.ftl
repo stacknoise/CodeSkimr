@@ -46,3 +46,4 @@ rules-ring-advice = Resolvable over { $edges ->
     [one] 1 place
    *[other] { $places } places
 }
+rules-ring-show = Show in the graph

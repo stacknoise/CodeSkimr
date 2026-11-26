@@ -46,3 +46,4 @@ rules-ring-advice = Auflösbar über { $edges ->
     [one] 1 Stelle
    *[other] { $places } Stellen
 }
+rules-ring-show = Im Graphen zeigen
