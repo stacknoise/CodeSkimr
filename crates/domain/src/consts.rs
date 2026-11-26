@@ -401,3 +401,46 @@ pub const ASSESSMENT_PUBLIC: &str = "public";
 pub const ASSESSMENT_APPROXIMATE: &str = "approximate";
 /// One whole in thousandths: the unit of the instability of a module (ADR 0108).
 pub const PERMILLE: u32 = 1000;
+
+/// Calendar arithmetic of `Timestamp::iso_date`: seconds per day.
+pub const SECONDS_PER_DAY: i64 = 86_400;
+/// Calendar arithmetic of `Timestamp::iso_date`: days before epoch.
+pub const DAYS_BEFORE_EPOCH: i64 = 719_468;
+/// Calendar arithmetic of `Timestamp::iso_date`: days per era.
+pub const DAYS_PER_ERA: i64 = 146_097;
+/// Calendar arithmetic of `Timestamp::iso_date`: years per era.
+pub const YEARS_PER_ERA: i64 = 400;
+/// Calendar arithmetic of `Timestamp::iso_date`: days per year.
+pub const DAYS_PER_YEAR: i64 = 365;
+/// Calendar arithmetic of `Timestamp::iso_date`: days per four years.
+pub const DAYS_PER_FOUR_YEARS: i64 = 1_460;
+/// Calendar arithmetic of `Timestamp::iso_date`: days per century.
+pub const DAYS_PER_CENTURY: i64 = 36_524;
+/// Calendar arithmetic of `Timestamp::iso_date`: last day of era.
+pub const LAST_DAY_OF_ERA: i64 = 146_096;
+/// Calendar arithmetic of `Timestamp::iso_date`: years per leap.
+pub const YEARS_PER_LEAP: i64 = 4;
+/// Calendar arithmetic of `Timestamp::iso_date`: years per century.
+pub const YEARS_PER_CENTURY: i64 = 100;
+/// Calendar arithmetic of `Timestamp::iso_date`: days of five months.
+pub const DAYS_OF_FIVE_MONTHS: i64 = 153;
+/// Calendar arithmetic of `Timestamp::iso_date`: month factor.
+pub const MONTH_FACTOR: i64 = 5;
+/// Calendar arithmetic of `Timestamp::iso_date`: month offset.
+pub const MONTH_OFFSET: i64 = 2;
+/// Calendar arithmetic of `Timestamp::iso_date`: months from march.
+pub const MONTHS_FROM_MARCH: i64 = 10;
+/// Calendar arithmetic of `Timestamp::iso_date`: march.
+pub const MARCH: i64 = 3;
+/// Calendar arithmetic of `Timestamp::iso_date`: january from march.
+pub const JANUARY_FROM_MARCH: i64 = 9;
+/// Calendar arithmetic of `Timestamp::iso_date`: february.
+pub const FEBRUARY: i64 = 2;
+/// Calendar arithmetic of `Timestamp::iso_date`: date separator.
+pub const DATE_SEPARATOR: &str = "-";
+/// Calendar arithmetic of `Timestamp::iso_date`: pad.
+pub const PAD: &str = "0";
+/// Calendar arithmetic of `Timestamp::iso_date`: year digits.
+pub const YEAR_DIGITS: usize = 4;
+/// Calendar arithmetic of `Timestamp::iso_date`: part digits.
+pub const PART_DIGITS: usize = 2;

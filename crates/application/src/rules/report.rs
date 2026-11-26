@@ -1,7 +1,7 @@
 //! The answer that the screen, the command and the tool give: every rule with its violations,
 //! judged against the held state (ADR 0104).
 
-use codeskimr_domain::SnapshotId;
+use codeskimr_domain::{Layer, SnapshotId};
 
 use super::baseline::{Baseline, BaselineEntry};
 use super::evaluate::evaluate;
@@ -38,17 +38,19 @@ impl RulesReport {
     }
 }
 
-/// Evaluates `rules` over `snapshot` and judges the result against `baseline`, if there is one.
+/// Evaluates the `layers` and `rules` over `snapshot` and judges the result against `baseline`, if
+/// there is one.
 ///
 /// # Errors
 /// A coded failure of the `STO` group.
 pub fn report(
     rules: &Rules,
+    layers: &[Layer],
     baseline: Option<&Baseline>,
     references: &dyn ReferencePlaces,
     snapshot: SnapshotId,
 ) -> Result<RulesReport, CodedError> {
-    let outcomes = evaluate(rules, references, snapshot)?;
+    let outcomes = evaluate(rules, layers, references, snapshot)?;
     Ok(match baseline {
         Some(held) => {
             let judged = held.judge(outcomes);

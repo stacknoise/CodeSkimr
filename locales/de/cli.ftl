@@ -222,6 +222,10 @@ cli-cmd-context = Signatur, Aufrufer, Abhängigkeiten, betroffene Dateien und An
 cli-cmd-unused = Auflisten, für welche Symbole keine Verwendung gefunden wurde, mit dem Grund je Symbol (die Antwort von find_unused)
 cli-cmd-rules = Prüft die Architekturregeln der Projektdatei gegen den neuesten Scan; schlägt nur bei Verstößen fehl, die der festgehaltene Stand nicht hat (die Antwort von check_rules)
 cli-query-rules-head = Regeln: { $new } neu, { $held } als Altlast festgehalten, { $resolved } behoben.
+cli-query-rules-held = { $entries ->
+    [one] Stand festgehalten am { $date }: 1 Verstoß gilt jetzt als Altlast. Die Datei .codeskimr-baseline.toml gehört ins Repository.
+   *[other] Stand festgehalten am { $date }: { $entries } Verstöße gelten jetzt als Altlast. Die Datei .codeskimr-baseline.toml gehört ins Repository.
+}
 cli-query-rules-none = Die Projektdatei legt keine Architekturregeln fest.
 cli-query-rules-rule = { $rule }: { $new } neu von { $total }
 cli-query-rules-line = { $from } -> { $to }  { $path }:{ $line }:{ $column }  ({ $held ->
@@ -231,6 +235,7 @@ cli-query-rules-line = { $from } -> { $to }  { $path }:{ $line }:{ $column }  ({
         [one] 1 Stelle
        *[other] { $places } Stellen
     })
+cli-arg-hold = Den Stand festhalten statt prüfen: alle jetzigen Verstöße gelten als Altlast; schreibt .codeskimr-baseline.toml neben die Projektdatei (nur Ordnerprojekte)
 cli-query-rules-cycle-line = { $chain }  ({ $modules } Module, schwächste Kante { $weakest ->
         [one] 1 Verweis
        *[other] { $weakest } Verweise

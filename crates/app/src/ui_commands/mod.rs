@@ -131,7 +131,8 @@ use projects_pick::{FolderDialogInfo, PickFolder};
 use projects_remove::RemoveProject;
 use projects_rename::{RenameProject, SuggestName};
 use rename_preview::{RenamePreviewCommand, RenamePreviewPorts};
-use rules::RulesShow;
+pub(crate) use rules::hold;
+use rules::{RulesHold, RulesShow};
 use scans::{ComparePorts, ScanListPorts, ScansCompare, ScansImpact, ScansList};
 pub(crate) use scope::{
     GetInput as ScopeGetInput, ScopeAnswer, ScopeGet, ScopeSet, SetInput as ScopeSetInput,
@@ -480,6 +481,7 @@ fn expose_project_file(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<LayersGet>()?;
     api.expose::<LayersSet>()?;
     api.expose::<RulesShow>()?;
+    api.expose::<RulesHold>()?;
     api.expose::<UnusedKeep>()?;
     api.expose::<UnusedLift>()?;
     Ok(())
@@ -715,6 +717,12 @@ fn register_project_file(
     add(
         registry,
         RulesShow {
+            ports: Arc::clone(ports),
+        },
+    )?;
+    add(
+        registry,
+        RulesHold {
             ports: Arc::clone(ports),
         },
     )?;

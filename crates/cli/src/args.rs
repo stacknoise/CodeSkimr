@@ -451,6 +451,8 @@ pub struct UnusedQuery {
 pub struct RulesQuery {
     /// Number of violations listed per rule.
     pub limit: Option<u32>,
+    /// Holds the state instead of judging: every violation of now becomes an old burden.
+    pub hold: bool,
     /// Project and output.
     pub target: QueryTarget,
 }
