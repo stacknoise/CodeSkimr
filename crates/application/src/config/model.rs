@@ -5,9 +5,10 @@ use codeskimr_domain::{
     QualifiedName,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::time::Duration;
 
+use super::consts::{MEMORY_FOLLOWS_GLOBAL, NO_INDEXER};
 use crate::consts::BYTES_PER_MIB;
 use crate::ports::IndexLimits;
 
@@ -278,6 +279,9 @@ pub struct Level2 {
     /// Pause in seconds after a run that the browser started has ended, before the same project
     /// may start another one from the browser (ADR 0072).
     pub ui_cooldown_seconds: u32,
+    /// Most memory in megabytes per indexer, by the name of the indexer; `0` means the indexer
+    /// follows `max_memory_mb` (ADR 0097).
+    pub indexer_memory_mb: BTreeMap<String, u32>,
 }
 
 /// The local server (blueprint 10.3).
@@ -432,12 +436,25 @@ impl Graph {
 }
 
 impl Level2 {
-    /// The limits of one indexer run.
+    /// The limits of one run of any indexer: the global memory limit.
     #[must_use]
     pub fn limits(&self) -> IndexLimits {
+        self.limits_of(NO_INDEXER)
+    }
+
+    /// The limits of one run of the indexer called `indexer`: its own memory limit if
+    /// `indexer_memory_mb` sets one, else the global one (ADR 0097).
+    #[must_use]
+    pub fn limits_of(&self, indexer: &str) -> IndexLimits {
+        let own = self
+            .indexer_memory_mb
+            .get(indexer)
+            .copied()
+            .filter(|megabytes| *megabytes != MEMORY_FOLLOWS_GLOBAL);
         IndexLimits {
             timeout: Duration::from_secs(u64::from(self.timeout_seconds)),
-            max_memory_bytes: u64::from(self.max_memory_mb).saturating_mul(BYTES_PER_MIB),
+            max_memory_bytes: u64::from(own.unwrap_or(self.max_memory_mb))
+                .saturating_mul(BYTES_PER_MIB),
             max_output_bytes: self.max_output_bytes,
         }
     }

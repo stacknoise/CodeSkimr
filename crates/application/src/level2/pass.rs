@@ -17,15 +17,17 @@ use codeskimr_domain::{
 use super::authorize_run;
 use super::renumber::renumbered;
 use super::report::{LanguageReport, Level2Outcome, Level2Result, Skipped};
+use super::tally::Tally;
 use crate::cancel::CancelToken;
 use crate::config::Level2;
+use crate::consts::WORKSPACE_SEPARATOR;
 use crate::error::CodedError;
 use crate::events::{Event, EventBus, Level2Progressed};
 use crate::ids::{IdSequence, ProjectIds, project_of_snapshot};
 use crate::ports::{
     ConsentStore, FileDiscovery, ImportRequest, Imported, IndexJob, IndexRunner, IndexerSpec,
     IndexerStatus, Level2Replacement, PreviousIndex, ProjectRepository, ReferenceImporter,
-    SnapshotStore, StoredNames,
+    RunPermit, SnapshotStore, StoredNames,
 };
 
 /// The ports and settings of the second pass, wired by the composition root.
@@ -250,27 +252,62 @@ impl Level2Pass {
             scan.root,
         )
         .map_err(Skipped::from)?;
-        if !self
+        let files: Vec<SourceFile> = scan
+            .files
+            .iter()
+            .filter(|file| group.languages.contains(&&file.language))
+            .cloned()
+            .collect();
+        let paths: Vec<&RelativePath> = files.iter().map(|file| &file.path).collect();
+        let workspaces = self
             .runner
-            .has_project_file(group.spec, permit.project_root())
-        {
+            .workspaces(group.spec, permit.project_root(), &paths);
+        if workspaces.is_empty() {
             return Err(Skipped::NoProjectFile);
         }
         if let IndexerStatus::Unavailable { problems, .. } = self.runner.check(group.spec) {
             return Err(Skipped::Unavailable(problems));
         }
+        let mut tally = Tally::default();
+        for workspace in &workspaces {
+            let mine = in_workspace(&files, workspace.as_ref());
+            match self.run_workspace(scan, group, (&permit, workspace.as_ref()), &mine) {
+                Ok((outcome, fresh)) => tally.checked(&outcome, fresh),
+                Err(Skipped::Cancelled) => {
+                    tally.cancel();
+                    break;
+                }
+                Err(reason) => tally.failed(reason, mine.len()),
+            }
+        }
+        tally.outcome()
+    }
+
+    /// One run of the indexer in `workspace` (`None`: the project root) over the `files` below it,
+    /// and the import of its index.
+    fn run_workspace(
+        &self,
+        scan: &Scan<'_>,
+        group: &Group<'_>,
+        (permit, workspace): (&RunPermit, Option<&RelativePath>),
+        files: &[SourceFile],
+    ) -> Result<(Level2Outcome, Snapshot), Skipped> {
+        if scan.cancel.is_cancelled() {
+            return Err(Skipped::Cancelled);
+        }
         let language = group.languages.first().copied().ok_or(Skipped::Stale)?;
         let job = IndexJob {
             language,
             spec: group.spec,
-            limits: self.settings.limits(),
-            permit: &permit,
+            limits: self.settings.limits_of(&group.spec.name),
+            workspace,
+            permit,
         };
         self.announce(scan.snapshot, language, Level2Stage::Running);
         let artifact = self.runner.run(&job, scan.cancel).map_err(Skipped::from)?;
-        let (current, stale) = self.unchanged(scan, group)?;
+        let (current, stale) = self.unchanged(scan, files)?;
         self.announce(scan.snapshot, language, Level2Stage::Importing);
-        let imported = self.import(scan, group.spec, artifact.path(), &current)?;
+        let imported = self.import(scan, (group.spec, workspace), artifact.path(), &current)?;
         if scan.cancel.is_cancelled() {
             return Err(Skipped::Cancelled);
         }
@@ -281,7 +318,7 @@ impl Level2Pass {
     fn import(
         &self,
         scan: &Scan<'_>,
-        spec: &IndexerSpec,
+        (spec, workspace): (&IndexerSpec, Option<&RelativePath>),
         index: &Path,
         files: &[SourceFile],
     ) -> Result<Imported, Skipped> {
@@ -289,6 +326,7 @@ impl Level2Pass {
         self.importer
             .import(&ImportRequest {
                 index,
+                workspace,
                 root: scan.root,
                 files,
                 symbols: &scan.index.symbols,
@@ -325,28 +363,25 @@ impl Level2Pass {
             .collect())
     }
 
-    /// The files of the group whose content is still the one of the snapshot, and the number of
-    /// those that changed. The hash is checked after the run, which may have taken minutes.
+    /// The `files` whose content is still the one of the snapshot, and the number of those that
+    /// changed. The hash is checked after the run, which may have taken minutes.
     fn unchanged(
         &self,
         scan: &Scan<'_>,
-        group: &Group<'_>,
+        group_files: &[SourceFile],
     ) -> Result<(Vec<SourceFile>, u64), Skipped> {
-        let wanted = |file: &&SourceFile| group.languages.contains(&&file.language);
-        let group_files: Vec<SourceFile> = scan.files.iter().filter(wanted).cloned().collect();
-        // Only the files of this group are read again, not the whole project (issue #231).
+        // Only the files of this run are read again, not the whole project (issue #231).
         let unchanged = self
             .discovery
-            .unchanged_files(scan.root, &group_files, scan.cancel)
+            .unchanged_files(scan.root, group_files, scan.cancel)
             .map_err(Skipped::from)?;
         let current: HashSet<&RelativePath> = unchanged.iter().collect();
-        let all = group_files.len();
         let kept: Vec<SourceFile> = group_files
             .iter()
             .filter(|file| current.contains(&file.path))
             .cloned()
             .collect();
-        let stale = u64::try_from(all.saturating_sub(kept.len())).unwrap_or(u64::MAX);
+        let stale = u64::try_from(group_files.len().saturating_sub(kept.len())).unwrap_or(u64::MAX);
         if kept.is_empty() {
             Err(Skipped::Stale)
         } else {
@@ -384,6 +419,19 @@ impl Level2Pass {
         };
         Ok((checked, fresh))
     }
+}
+
+/// The `files` that lie below `workspace` (`None`: the project root, all of them).
+fn in_workspace(files: &[SourceFile], workspace: Option<&RelativePath>) -> Vec<SourceFile> {
+    let Some(folder) = workspace else {
+        return files.to_vec();
+    };
+    let prefix = [folder.as_str(), ""].join(WORKSPACE_SEPARATOR);
+    files
+        .iter()
+        .filter(|file| file.path.as_str().starts_with(&prefix))
+        .cloned()
+        .collect()
 }
 
 /// The created symbols and the references of `imported` with ids reserved from the shared

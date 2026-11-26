@@ -193,6 +193,8 @@ mod cases {
         status: IndexerStatus,
         fails: Option<ErrorCode>,
         has_project_file: bool,
+        /// The workspaces the runner names; empty: the project root alone, if it has the file.
+        workspaces: Vec<&'static str>,
     }
 
     impl IndexRunner for Runner {
@@ -202,6 +204,26 @@ mod cases {
 
         fn has_project_file(&self, _: &IndexerSpec, _: &std::path::Path) -> bool {
             self.has_project_file
+        }
+
+        fn workspaces(
+            &self,
+            _: &IndexerSpec,
+            _: &std::path::Path,
+            _: &[&RelativePath],
+        ) -> Vec<Option<RelativePath>> {
+            if !self.workspaces.is_empty() {
+                return self
+                    .workspaces
+                    .iter()
+                    .map(|folder| RelativePath::new(*folder).ok())
+                    .collect();
+            }
+            if self.has_project_file {
+                vec![None]
+            } else {
+                Vec::new()
+            }
         }
 
         fn run(&self, _: &IndexJob<'_>, _: &CancelToken) -> Result<IndexArtifact, CodedError> {
@@ -219,6 +241,8 @@ mod cases {
         /// The import sites of the requests.
         sites: Mutex<Vec<(FileId, Span)>>,
         fails: Option<ErrorCode>,
+        /// The folder of each request, in order.
+        places: Mutex<Vec<Option<String>>>,
         cancels: Option<CancelToken>,
         /// The ids (of the importer's own numbering) of the symbols the import creates, each the
         /// child of the one before, and a use of the last.
@@ -250,6 +274,10 @@ mod cases {
     impl Importer {
         /// Remembers the files and the import sites of a request.
         fn remember(&self, request: &ImportRequest<'_>) {
+            self.places
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .push(request.workspace.map(|folder| folder.as_str().to_owned()));
             let paths = request
                 .files
                 .iter()
@@ -339,6 +367,7 @@ mod cases {
         creates: Vec<u64>,
         import_names: Vec<PendingReference>,
         names_fail: Option<ErrorCode>,
+        workspaces: Vec<&'static str>,
     }
 
     impl Default for Setup {
@@ -357,6 +386,7 @@ mod cases {
                 creates: Vec::new(),
                 import_names: Vec::new(),
                 names_fail: None,
+                workspaces: Vec::new(),
             }
         }
     }
@@ -401,10 +431,12 @@ mod cases {
                 status: setup.status.clone(),
                 fails: setup.run_fails,
                 has_project_file: setup.project_file == ProjectFile::Present,
+                workspaces: setup.workspaces.clone(),
             }),
             importer: Arc::new(Importer {
                 seen: Mutex::default(),
                 sites: Mutex::default(),
+                places: Mutex::default(),
                 fails: setup.import_fails,
                 cancels: setup.cancel_in_import.then(|| cancel.clone()),
                 creates: setup.creates.clone(),
@@ -568,6 +600,100 @@ mod cases {
         });
         assert_eq!(outcome.runs, 0);
         assert_level_one_stays(&outcome, &Skipped::NoProjectFile);
+    }
+
+    #[test]
+    fn every_workspace_gets_its_own_run_and_import() {
+        let (pass, fakes) = pass_for(
+            Setup {
+                files: vec![
+                    file(1, "cli/a.rs", "csharp"),
+                    file(2, "ext/x/b.rs", "csharp"),
+                    file(3, "loose.rs", "csharp"),
+                ],
+                workspaces: vec!["cli", "ext/x"],
+                ..Setup::default()
+            },
+            &CancelToken::new(),
+        );
+        let root = FolderPath::new("/work").unwrap();
+        let result = pass.run(
+            &Principal::local_owner(),
+            &snapshot(),
+            &root,
+            &CancelToken::new(),
+        );
+        assert_eq!(*fakes.runner.runs.lock().unwrap(), 2);
+        assert_eq!(
+            *fakes.importer.places.lock().unwrap(),
+            vec![Some("cli".to_owned()), Some("ext/x".to_owned())]
+        );
+        assert_eq!(
+            *fakes.importer.seen.lock().unwrap(),
+            vec![vec!["cli/a.rs".to_owned()], vec!["ext/x/b.rs".to_owned()]]
+        );
+        assert_eq!(counted(&result), Some((2, 0, 8, 6, 4)));
+    }
+
+    /// The numbers of the one checked language of a result: files, stale, mapped, dropped, outside.
+    fn counted(result: &Level2Result) -> Option<(u64, u64, u64, u64, u64)> {
+        match result.reports.as_slice() {
+            [
+                LanguageReport {
+                    outcome:
+                        Level2Outcome::Checked {
+                            files,
+                            stale,
+                            mapped,
+                            dropped,
+                            outside_scan,
+                        },
+                    ..
+                },
+            ] => Some((*files, *stale, *mapped, *dropped, *outside_scan)),
+            _ => None,
+        }
+    }
+
+    #[test]
+    fn a_workspace_that_fails_does_not_take_the_others_down() {
+        let outcome = run(Setup {
+            files: vec![
+                file(1, "cli/a.rs", "csharp"),
+                file(2, "ext/x/b.rs", "csharp"),
+            ],
+            changed: vec!["ext/x/b.rs"],
+            workspaces: vec!["cli", "ext/x"],
+            ..Setup::default()
+        });
+        assert_eq!(outcome.runs, 2);
+        assert_eq!(outcome.imports, vec![vec!["cli/a.rs".to_owned()]]);
+        assert!(matches!(
+            outcome.result.reports.as_slice(),
+            [LanguageReport {
+                outcome: Level2Outcome::Checked {
+                    files: 1,
+                    stale: 1,
+                    ..
+                },
+                ..
+            }]
+        ));
+    }
+
+    #[test]
+    fn when_every_workspace_fails_the_first_reason_is_reported() {
+        let outcome = run(Setup {
+            files: vec![
+                file(1, "cli/a.rs", "csharp"),
+                file(2, "ext/x/b.rs", "csharp"),
+            ],
+            run_fails: Some(ErrorCode::IndexerFailed),
+            workspaces: vec!["cli", "ext/x"],
+            ..Setup::default()
+        });
+        assert_eq!(outcome.runs, 2);
+        assert_level_one_stays(&outcome, &Skipped::Failed(ErrorCode::IndexerFailed));
     }
 
     #[test]

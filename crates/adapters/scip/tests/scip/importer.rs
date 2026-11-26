@@ -53,6 +53,7 @@ fn import(
         library_root: "",
         max_created_symbols: 0,
         import_sites: &[],
+        workspace: None,
     })
 }
 
@@ -92,6 +93,7 @@ fn a_missing_index_is_a_coded_failure_and_the_threshold_is_kept() {
         library_root: "",
         max_created_symbols: 0,
         import_sites: &[],
+        workspace: None,
     });
     assert_eq!(
         missing.expect_err("fails").code(),
@@ -185,4 +187,31 @@ fn the_importer_returns_the_symbols_it_creates_from_the_kinds_of_the_request() {
     assert!(created.qualified_name.as_str().ends_with(".Gen"));
     assert_eq!(imported.references.len(), 1);
     assert_eq!(imported.references.first().map(|r| r.to), Some(created.id));
+}
+
+#[test]
+fn an_index_of_a_workspace_names_its_files_relative_to_that_folder() {
+    let symbol = scip("ns/Svc#Run().");
+    let bytes = index(
+        "file:///p/src",
+        &[
+            document("a.cs", &[definition(&[2, 16, 19], &symbol)]),
+            document("b.cs", &[usage(&[3, 12, 15], &symbol)]),
+        ],
+    );
+    let (_dir, path) = written(&bytes);
+    let (files, symbols) = service_world();
+    let root = FolderPath::new("/work").expect("root");
+    let folder = RelativePath::new("src").expect("folder");
+    let import_at = |workspace| {
+        let mut asked = request(&path, &root, (&files, &symbols, &[]));
+        asked.min_mapped = 0.5;
+        asked.workspace = workspace;
+        ScipImporter::new(Arc::new(NoText)).import(&asked)
+    };
+    // Without the folder the documents are no files of the snapshot: nothing is covered.
+    assert!(import_at(None).map_or(true, |imported| imported.files.is_empty()));
+    let imported = import_at(Some(&folder)).expect("imports");
+    assert_eq!(imported.mapped, 1);
+    assert_ne!(imported.files.len(), 0);
 }

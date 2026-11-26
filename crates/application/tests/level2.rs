@@ -177,6 +177,55 @@ mod cases {
     }
 
     #[test]
+    fn an_indexer_may_have_a_memory_limit_of_its_own() {
+        let settings = config(&[(
+            LayerSource::User,
+            "[level2]\nmax_memory_mb = 512\n[level2.indexer_memory_mb]\nscip-typescript = 12288\n",
+        )])
+        .level2;
+        let megabytes = |name: &str| settings.limits_of(name).max_memory_bytes / (1024 * 1024);
+        assert_eq!(megabytes("scip-typescript"), 12288);
+        // Every other indexer, and the global limit itself, follows `max_memory_mb`.
+        assert_eq!(megabytes("rust-analyzer"), 512);
+        assert_eq!(megabytes("not-an-indexer"), 512);
+        assert_eq!(settings.limits().max_memory_bytes, 512 * 1024 * 1024);
+    }
+
+    #[test]
+    fn the_shipped_indexers_follow_the_global_limit() {
+        let settings = config(&[]).level2;
+        for name in [
+            "rust-analyzer",
+            "scip-dotnet",
+            "scip-java",
+            "scip-python",
+            "scip-typescript",
+        ] {
+            assert_eq!(settings.limits_of(name), settings.limits(), "{name}");
+        }
+    }
+
+    #[test]
+    fn the_name_of_an_unknown_indexer_is_refused() {
+        let layer = ConfigLayer::parse(
+            LayerSource::User,
+            "[level2.indexer_memory_mb]\nscip-typescrip = 8192\n",
+        )
+        .unwrap();
+        assert!(Config::resolve(&[layer]).is_err());
+    }
+
+    #[test]
+    fn the_project_file_cannot_raise_the_limit_of_an_indexer() {
+        let settings = config(&[(
+            LayerSource::Project,
+            "[level2.indexer_memory_mb]\nscip-typescript = 99999\n",
+        )])
+        .level2;
+        assert_eq!(settings.limits_of("scip-typescript"), settings.limits());
+    }
+
+    #[test]
     fn a_restricted_principal_may_neither_confirm_nor_start() {
         let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
         let nobody = Principal::limited(PermissionSet::none());
