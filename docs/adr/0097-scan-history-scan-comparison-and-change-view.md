@@ -24,7 +24,7 @@ Options 2 and (a). Details:
    - *added*: key only in the target;
    - *removed*: key only in the base;
    - *changed*, with one or more reasons: `signature` (the signature text differs), `visibility` (differs; narrowing is marked), `content` (the content hash differs, nothing else);
-   - *moved*: same key in another file, or a removed and an added symbol of the same kind in the same file with the same non-empty content hash and no other candidate on either side (a rename). A moved symbol is not also listed as removed and added. An ambiguous pair stays removed and added; the comparison never guesses.
+   - *moved*: same key in another file. A moved symbol is not also listed as removed and added. A renamed symbol has another key and is removed and added.
    A symbol without a content hash (level 2 symbols, for instance) can be *changed* by `signature` or `visibility` only. Both snapshots must come from the same scan naming rules; otherwise the comparison fails with a retryable error that asks for a full scan (the naming rules are stored per snapshot already).
 4. **Impact.** For every removed symbol and every symbol changed in `signature` or `visibility`, the direct usages in the **base** snapshot (the references that point at it) are listed with their confidence (sure, probable). A usage is *adapted* when the symbol it sits in is itself changed, moved or removed in the comparison, and *not touched* otherwise; the second group is the checklist. Changes in `content` only and added symbols are shown without a checklist (their usages cannot break by this change). Only direct usages are known: calls by reflection, in strings or from other repositories are not seen, and the view and every output say so. New layer violations and new cycles are those present in the target and not in the base (the layer graph is stored per snapshot); symbols marked critical (ADR 0068) are named when a change touches them.
 5. **Choice of the two states.** The user picks two snapshots of the list or "previous" and "newest". A Git branch or commit as base (`--base main`) would need a scan of that state into a temporary snapshot; it is **not** part of this decision and becomes its own issue with its own ADR (it touches the retention, the clone and credentials).
@@ -35,7 +35,7 @@ Options 2 and (a). Details:
    - UI: the tab "Scan" gets the table of mock 28 a with the button "Compare with current"; a new screen "Change" (rail entry, mock 29 and `erw-auswirkung`) with the tabs "Impact" and "Comparison". Binding mocks: 28 a, 29 and `erw-auswirkung`; they are copied to `docs/mocks/` with the first UI package.
    Limits for the output (number of symbols, usages per symbol) come from `config/default.toml` (`compare.*`); the answers say when they are cut.
 7. **Retention.** A comparison reads two retained snapshots; a snapshot that retention removed is not offered. A running comparison holds a read transaction like any other read and does not block a scan.
-8. **Texts and codes.** Texts in German and English (Fluent). A new error group `CMP` (snapshot not found, different naming rules, comparison cut) is registered with the package that uses it.
+8. **Texts and codes.** Texts in German and English (Fluent). A new error group `CMP` (snapshot not found, different naming rules, base not older than the target) is registered with the package that uses it.
 9. **No new dependency.**
 
 ## Consequences
@@ -43,5 +43,17 @@ Options 2 and (a). Details:
 - One change of the schema (migration 0025) and one use case serve the screen, the CLI and the agent. Trends and the live view (later) can reuse the comparison.
 - "Changed" is exactly as good as the content hash: a change of a comment or of whitespace is none, a change of an unrelated line inside a method is one.
 - The checklist "not touched" is exact to the symbol that holds the usage, not to the line. A usage in a method that changed for another reason counts as adapted; the view shows the line either way.
-- Renames inside one file with a changed body, and renames together with a move, show as removed and added.
+- A rename shows as removed and added, with or without a move; its usages reach the impact through *removed*.
 - Work packages, in this order, each its own PR: (1) this ADR with the blueprint changes; (2) migration 0025, duration and changed files stored and shown in the tab "Scan" (#755, covers #711 and #725); (3) domain and application: comparison and impact, with storage reads (#756); (4) registry commands, REST, CLI and MCP (#757); (5) the screen "Change" with the mocks (#758); (6) documentation, manual and the acceptance on a real project (#759).
+
+## Addendum 2026-11-26 (package 3)
+
+Decisions made while building work package 3 (#756); they correct decisions 3, 4 and 8 above where they differ.
+
+- **No rename detection.** The content hash contains the name of the symbol (`crates/adapters/parsing/src/content_hash.rs`), so a renamed symbol never has the same hash. A rename is *removed* and *added*; its usages reach the impact through *removed*. A second key without the name would be a decision of its own.
+- **"Comparison cut" is a field, not a code.** The lists of the answer carry `total` and `is_cut()` (limits `compare.max_symbols`, `compare.max_usages`). A cut is no failure, so no code exists for it.
+- **Codes of the group `CMP`.** `CMP-101` the base is not an older scan than the target (also the same scan twice); `CMP-201` a named snapshot is not retained, the project has fewer than two scans, or retention removed a scan while the comparison read it; `CMP-301` the two scans used different naming rules (retryable: a full scan makes them comparable; a scan without a record only matches another one without).
+- **Type aliases do not take part**, as `SymbolKind::is_type()` does not count them.
+- **`content` stands alone.** It is a reason only if signature and visibility are equal and both hashes exist and differ; a signature change alters the hash too and would only repeat itself.
+- **Only symbols of origin syntax (level 1) are compared.** What only level 2 delivers is left out, so a scan with level 2 against one without reports no false signature change.
+

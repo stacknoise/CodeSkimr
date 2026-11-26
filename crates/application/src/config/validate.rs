@@ -55,7 +55,9 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     positive(keys::GRAPH_ROW_BOXES, config.graph.row_boxes)?;
     positive(keys::GRAPH_RISK_MAX, config.graph.risk_max)?;
     positive(keys::GRAPH_MAX_MODULES, config.graph.max_modules)?;
-    positive(keys::EXPORT_MAX_REFERENCES, config.export.max_references)
+    positive(keys::EXPORT_MAX_REFERENCES, config.export.max_references)?;
+    positive(keys::COMPARE_MAX_SYMBOLS, config.compare.max_symbols)?;
+    positive(keys::COMPARE_MAX_USAGES, config.compare.max_usages)
 }
 
 fn check_conventions(conventions: &Conventions) -> Result<(), ConfigError> {

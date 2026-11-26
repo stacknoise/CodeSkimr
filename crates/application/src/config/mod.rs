@@ -20,8 +20,8 @@ pub use error::{ConfigError, LayerSource, Violation};
 pub use layer::ConfigLayer;
 pub use layer_file::with_layers;
 pub use model::{
-    Annotations, Budgets, Config, Conventions, CycleRule, Editor, Export, ForbidRule, Graph,
-    KeySources, LayerRule, Level2, McpLimits, MetricThresholds, PublicApiRule, Rules, Scan,
+    Annotations, Budgets, Compare, Config, Conventions, CycleRule, Editor, Export, ForbidRule,
+    Graph, KeySources, LayerRule, Level2, McpLimits, MetricThresholds, PublicApiRule, Rules, Scan,
     Similarity, SnapshotRetention, Ui, Unused, UnusedIgnore, Watcher,
 };
 pub use unused_file::{unused_ignore_in, with_unused_ignore};

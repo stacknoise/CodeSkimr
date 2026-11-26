@@ -219,6 +219,16 @@ Owner: `codeskimr_application, codeskimr_storage`
 | ANN-202 | `alert_not_found` | error | no | 0.1.0 | No alert with this id exists. |
 | ANN-301 | `critical_already_marked` | error | no | 0.1.0 | The symbol already has a critical mark; a symbol has at most one. |
 
+## CMP – Scan comparison and impact (ADR 0097)
+
+Owner: `codeskimr_application, codeskimr_storage`
+
+| Code | Name | Severity | Retryable | Since | Description |
+|---|---|---|---|---|---|
+| CMP-101 | `comparison_order_invalid` | error | no | 1.1.0 | The base of a comparison is not an older snapshot than its target; the base is the older scan, the target the newer one (ADR 0097). |
+| CMP-201 | `snapshot_not_found` | error | no | 1.1.0 | A snapshot of the comparison does not exist or retention has removed it; only the retained scans of the project can be compared, and a project with one scan has nothing to compare (ADR 0097). |
+| CMP-301 | `naming_rules_differ` | error | yes | 1.1.0 | The two snapshots were scanned with different naming rules, so their symbols cannot be matched by name; a full scan of the project writes a snapshot with the current rules and the comparison can be repeated (ADR 0097). |
+
 ## UI – Frontend
 
 Owner: `web`
