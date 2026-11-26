@@ -1,0 +1,30 @@
+name: CodeSkimr change comment
+description: Scans the base and the head of a pull request and writes the impact of the change as one comment that is updated on every push.
+inputs:
+  version:
+    description: Release of CodeSkimr to use, for example 1.1.0.
+    required: true
+  github-token:
+    description: Token that may write pull request comments.
+    default: ${{ github.token }}
+  language:
+    description: Language of the comment, de or en.
+    default: en
+  fail-on:
+    description: none, new-layer-violation or new-cycle.
+    default: none
+runs:
+  using: composite
+  steps:
+    - name: Scan both states and write the comment
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        CS_VERSION: ${{ inputs.version }}
+        CS_LANG: ${{ inputs.language }}
+        CS_FAIL_ON: ${{ inputs.fail-on }}
+        CS_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        CS_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        CS_PR: ${{ github.event.pull_request.number }}
+        CS_REPO: ${{ github.repository }}
+      run: bash "${{ github.action_path }}/run.sh"
