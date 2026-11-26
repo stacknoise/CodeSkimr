@@ -11,6 +11,6 @@ mod report;
 pub use baseline::{Baseline, BaselineEntry, Judged};
 pub use consts::BASELINE_FILE;
 pub use evaluate::evaluate;
-pub use port::RulesChecks;
 pub use model::{Outcome, Place, RuleKind, Violation};
+pub use port::RulesChecks;
 pub use report::{RulesReport, report};
