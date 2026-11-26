@@ -86,7 +86,7 @@ fn a_link_is_refused_and_never_followed() {
     let opener = Recorder::new(false);
     let refused = open_project_file(&opener, &folder(dir.path())).unwrap_err();
     assert_eq!(refused.code(), ErrorCode::ConfigParseFailed);
-    assert!(opener.opened().is_empty());
+    assert_eq!(opener.opened().len(), 0);
     assert_eq!(fs::read_to_string(&target).unwrap(), "secret");
 }
 
@@ -97,7 +97,7 @@ fn a_folder_in_place_of_the_file_is_refused() {
     let opener = Recorder::new(false);
     let refused = open_project_file(&opener, &folder(dir.path())).unwrap_err();
     assert_eq!(refused.code(), ErrorCode::ConfigParseFailed);
-    assert!(opener.opened().is_empty());
+    assert_eq!(opener.opened().len(), 0);
 }
 
 #[test]
