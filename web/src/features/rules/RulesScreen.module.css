@@ -175,6 +175,17 @@
     font-size: 12px;
 }
 
+.show {
+    padding: var(--space-4) var(--space-12);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-button);
+    background: var(--surface);
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
 .more {
     display: block;
     width: 100%;
