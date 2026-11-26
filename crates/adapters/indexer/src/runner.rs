@@ -301,10 +301,13 @@ fn workdir_of(job: &IndexJob<'_>) -> Result<PathBuf, IndexerError> {
         return Ok(root.to_path_buf());
     };
     let outside = || failed(FailureReason::Workspace, String::new());
-    let folder = std::fs::canonicalize(root.join(workspace.as_str())).map_err(|_| outside())?;
+    let wanted = root.join(workspace.as_str());
+    let folder = std::fs::canonicalize(&wanted).map_err(|_| outside())?;
     let base = std::fs::canonicalize(root).map_err(|_| outside())?;
     if folder.starts_with(&base) && folder.is_dir() {
-        Ok(folder)
+        // The resolved form is only for the check: on Windows it starts with `\\?\`, which the
+        // indexers do not all understand. The run gets the form of the project folder.
+        Ok(wanted)
     } else {
         Err(outside())
     }
