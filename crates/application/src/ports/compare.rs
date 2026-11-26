@@ -8,7 +8,7 @@ use crate::error::CodedError;
 /// read transaction and holds no lock a scan waits for.
 pub trait ComparisonSource: Send + Sync {
     /// The symbols of `snapshot` that take part in a comparison (`SymbolFact::takes_part`), of
-    /// every origin, with the file that declares each, ordered by id. Empty for a snapshot that
+    /// origin level 1 only (what only level 2 knows is not compared), with the file that declares each, ordered by id. Empty for a snapshot that
     /// does not exist or that retention has removed.
     ///
     /// # Errors

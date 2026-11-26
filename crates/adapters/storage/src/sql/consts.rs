@@ -547,11 +547,12 @@ pub const SNAPSHOT_NAMING_SET: &str = "UPDATE snapshots SET naming_rules = ?1 WH
 /// record existed: snapshot.
 pub const SNAPSHOT_NAMING_OF: &str = "SELECT naming_rules FROM snapshots WHERE id = ?1";
 /// The symbols of a snapshot that take part in a comparison, with the file that declares them: snapshot,
-/// JSON list of kind labels. Of every origin, in the order of the ids.
+/// JSON list of kind labels, origin of level 1. Only symbols of level 1, so a scan with level 2
+/// against one without shows no false change; in the order of the ids.
 pub const COMPARISON_FACTS: &str = "SELECT s.id, s.kind, s.qualified_name, s.signature, \
     s.visibility, f.path, s.content_hash \
     FROM symbol_rows s CROSS JOIN files f ON f.snapshot_id = ?1 AND f.id = s.file_id \
-    WHERE +s.kind IN (SELECT value FROM json_each(?2)) ORDER BY s.id";
+    WHERE s.origin = ?3 AND +s.kind IN (SELECT value FROM json_each(?2)) ORDER BY s.id";
 /// The naming rules of the newest snapshot of a project; no row without a snapshot, `NULL` for one
 /// from before the record existed.
 pub const SNAPSHOT_NAMING_LATEST: &str = "SELECT naming_rules FROM snapshots WHERE project_id = ?1 AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1) ORDER BY id DESC LIMIT 1";

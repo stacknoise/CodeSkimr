@@ -10,9 +10,9 @@ One use case, `codeskimr_application::compare::ScanComparer`, compares two retai
 
 ## Rules
 
-- **Identity.** Two symbols are the same symbol when kind, qualified name and parameter types are equal (`signature_parameters`, ADR 0068). Only types, callables, properties, fields, constants, events and enum members take part; namespaces, modules, parameters and type aliases do not.
+- **Identity.** Two symbols are the same symbol when kind, qualified name and parameter types are equal (`signature_parameters`, ADR 0068). Only types, callables, properties, fields, constants, events and enum members take part; namespaces, modules, parameters and type aliases do not. Only symbols of origin level 1 (syntax) are compared; symbols that only level 2 delivers are not, so a scan with level 2 against one without reports no false change.
 - **Classes.** A symbol only the target has is *added*, one only the base has is *removed*. A symbol in both is *changed* when the signature text differs (`signature`), the visibility differs (`visibility`, with the flag `narrowed`) or, if neither differs, the content hash differs (`content`). A symbol without a content hash can change by signature or visibility only.
-- **Moved.** The same key in another file is *moved*, and it also carries its reasons if it changed on the way. A removed and an added symbol of the same kind in the same file with the same non-empty content hash and no other candidate on either side is a *rename* (`renamed` is set; a rename compares no signature, because the name is part of it). Anything ambiguous stays removed and added; the comparison never guesses. If one key occurs several times in one snapshot, the symbols are paired by file first; a single leftover on each side is a move, anything else stays removed and added.
+- **Moved.** The same key in another file is *moved*, and it also carries its reasons if it changed on the way. A renamed symbol has another key, so it is *removed* and *added* (the content hash contains the name, so it cannot tie the two together); its usages come into the impact through *removed*. If one key occurs several times in one snapshot, the symbols are paired by file first; a single leftover on each side is a move, anything else stays removed and added.
 - **Order.** Every list is ordered by file, qualified name and id, so the same two scans always give the same answer.
 
 ## Choosing the scans
@@ -29,14 +29,14 @@ A comparison that was cut (see below) is not an error: the answer says it.
 
 ## Impact
 
-With `with_impact` the use case lists, for every removed symbol, every renamed symbol and every symbol that changed in `signature` or `visibility`, the **direct** usages in the **base** snapshot (`UsageIndex::usages`, one step, tests included) with their confidence (sure or probable). Every usage carries a status: *adapted* if the symbol that holds it is itself changed, moved or removed in the comparison, *not touched* otherwise. The *not touched* usages are the checklist (`SymbolImpact::not_touched`). Symbols changed in `content` only and added symbols have no usages listed: their usages cannot break by this change.
+With `with_impact` the use case lists, for every removed symbol and every symbol that changed in `signature` or `visibility`, the **direct** usages in the **base** snapshot (`UsageIndex::usages`, one step, tests included) with their confidence (sure or probable). Every usage carries a status: *adapted* if the symbol that holds it is itself changed, moved or removed in the comparison, *not touched* otherwise. The *not touched* usages are the checklist (`SymbolImpact::not_touched`). Symbols changed in `content` only and added symbols have no usages listed: their usages cannot break by this change.
 
 The checklist is exact to the symbol that holds the usage, not to the line: a usage in a method that changed for another reason counts as adapted. Only direct usages are known; calls by reflection, in strings or from other repositories are not seen, and every surface says so.
 
 ## Layers and critical symbols
 
 - `ScanComparison::layers` lists the layer edges that break the declared layering (`new_violations`) or lie on a dependency cycle (`new_cycles`) in the target and not in the base. It compares the stored layer graph (`CodeIndex::layer_edges`) of both snapshots, edge by edge (from layer, to layer).
-- `ScanComparison::critical` names the symbols with a critical mark (ADR 0068) that the difference removes, renames, moves or changes, found by the same key as the mark.
+- `ScanComparison::critical` names the symbols with a critical mark (ADR 0068) that the difference removes, moves or changes, found by the same key as the mark.
 
 ## Limits
 

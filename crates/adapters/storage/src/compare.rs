@@ -7,7 +7,7 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::ComparisonSource;
 use codeskimr_domain::{
     ContentHash, QualifiedName, RelativePath, SnapshotId, SymbolFact, SymbolId, SymbolKind,
-    Visibility, compares_kind,
+    SymbolOrigin, Visibility, compares_kind,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 
@@ -66,9 +66,14 @@ fn facts(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<SymbolFac
             .map(|kind| kind.label()),
     );
     let mut statement = conn.prepare_cached(sql::COMPARISON_FACTS)?;
-    let rows = statement.query_map(params![column_int(snapshot.get())?, kinds], |row| {
-        FactRow::read(&Cols::new(row))
-    })?;
+    let rows = statement.query_map(
+        params![
+            column_int(snapshot.get())?,
+            kinds,
+            SymbolOrigin::Syntax.label()
+        ],
+        |row| FactRow::read(&Cols::new(row)),
+    )?;
     rows.map(|row| row.map_err(StorageError::from)?.decode())
         .collect()
 }

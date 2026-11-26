@@ -3,8 +3,8 @@
 //! Pure logic on facts that a store hands over: no database, no snapshot ids. Two symbols are the
 //! same symbol when kind, qualified name and parameter types are equal (the key of ADR 0068).
 //! The result tells which symbols were *added*, *removed*, *changed* (signature, visibility or
-//! content) or *moved* (another file, or a rename that the content hash proves); it never guesses:
-//! an ambiguous pair stays removed and added.
+//! content) or *moved* (the same key in another file). A renamed symbol has another key, so it is
+//! removed and added; the comparison never guesses.
 
 use std::collections::{HashMap, HashSet};
 
@@ -122,23 +122,11 @@ pub struct Matched {
     pub reasons: Vec<ChangeReason>,
 }
 
-/// A symbol that is in another file now, or that was renamed inside its file.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Moved {
-    /// The two sides.
-    pub matched: Matched,
-    /// Whether the name changed: a removed and an added symbol of the same kind in the same file
-    /// with the same non-empty content hash and no other candidate on either side.
-    pub renamed: bool,
-}
-
 /// Why the usages of a base symbol are looked at (ADR 0097, decision 4).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ImpactCause {
     /// The symbol is gone.
     Removed,
-    /// The symbol has another name now.
-    Renamed,
     /// The signature or the visibility changed.
     Changed(Vec<ChangeReason>),
 }
@@ -161,8 +149,8 @@ pub struct Comparison {
     pub removed: Vec<SymbolFact>,
     /// Symbols of both that differ in place, with the reasons.
     pub changed: Vec<Matched>,
-    /// Symbols that moved to another file or were renamed.
-    pub moved: Vec<Moved>,
+    /// Symbols with the same key in another file.
+    pub moved: Vec<Matched>,
 }
 
 impl Comparison {
@@ -172,11 +160,11 @@ impl Comparison {
     pub fn touched_in_base(&self) -> HashSet<SymbolId> {
         let removed = self.removed.iter().map(|fact| fact.id);
         let changed = self.changed.iter().map(|matched| matched.base.id);
-        let moved = self.moved.iter().map(|moved| moved.matched.base.id);
+        let moved = self.moved.iter().map(|moved| moved.base.id);
         removed.chain(changed).chain(moved).collect()
     }
 
-    /// The symbols whose usages a change can break: the removed ones, the renamed ones and those
+    /// The symbols whose usages a change can break: the removed ones and those
     /// that changed in signature or visibility (also when they moved). Content-only changes and
     /// added symbols have none.
     #[must_use]
@@ -186,16 +174,7 @@ impl Comparison {
             cause: ImpactCause::Removed,
         });
         let changed = self.changed.iter().filter_map(breaking);
-        let moved = self.moved.iter().filter_map(|moved| {
-            if moved.renamed {
-                Some(ImpactSubject {
-                    symbol: moved.matched.base.clone(),
-                    cause: ImpactCause::Renamed,
-                })
-            } else {
-                breaking(&moved.matched)
-            }
-        });
+        let moved = self.moved.iter().filter_map(breaking);
         removed.chain(changed).chain(moved).collect()
     }
 
@@ -214,7 +193,7 @@ impl Comparison {
         self.changed
             .sort_by(|a, b| a.target.place().cmp(&b.target.place()));
         self.moved
-            .sort_by(|a, b| a.matched.target.place().cmp(&b.matched.target.place()));
+            .sort_by(|a, b| a.target.place().cmp(&b.target.place()));
     }
 }
 
@@ -242,11 +221,10 @@ fn narrows(from: Option<Visibility>, to: Option<Visibility>) -> bool {
     }
 }
 
-/// What differs between the two sides of a pair. A rename compares no signature, because the
-/// name is part of it.
-fn reasons_of(base: &SymbolFact, target: &SymbolFact, renamed: bool) -> Vec<ChangeReason> {
+/// What differs between the two sides of a pair.
+fn reasons_of(base: &SymbolFact, target: &SymbolFact) -> Vec<ChangeReason> {
     let mut reasons = Vec::new();
-    if !renamed && base.signature != target.signature {
+    if base.signature != target.signature {
         reasons.push(ChangeReason::Signature);
     }
     if base.visibility != target.visibility {
@@ -307,52 +285,6 @@ fn pair_group<'a>(bases: Group<'a>, mut targets: Group<'a>) -> Paired<'a> {
     paired
 }
 
-/// The key of a rename candidate: the file, the kind and the content hash.
-type RenameKey<'a> = (&'a RelativePath, SymbolKind, &'a ContentHash);
-
-fn rename_key(fact: &SymbolFact) -> Option<RenameKey<'_>> {
-    fact.content_hash
-        .as_ref()
-        .map(|hash| (&fact.path, fact.kind, hash))
-}
-
-/// Counts the symbols per rename key.
-fn count_by_rename_key<'a>(facts: &[&'a SymbolFact]) -> HashMap<RenameKey<'a>, usize> {
-    let mut counts = HashMap::new();
-    for key in facts.iter().filter_map(|fact| rename_key(fact)) {
-        *counts.entry(key).or_default() += 1;
-    }
-    counts
-}
-
-/// Takes the renames out of the removed and the added symbols: a pair whose key no other symbol
-/// of either side shares. Returns the renames; the rest stays in the two lists.
-fn take_renames<'a>(
-    removed: &mut Group<'a>,
-    added: &mut Group<'a>,
-) -> Vec<(&'a SymbolFact, &'a SymbolFact)> {
-    let removed_counts = count_by_rename_key(removed);
-    let added_counts = count_by_rename_key(added);
-    let sole = |counts: &HashMap<RenameKey<'_>, usize>, fact: &SymbolFact| {
-        rename_key(fact).is_some_and(|key| counts.get(&key) == Some(&1))
-    };
-    let mut renames = Vec::new();
-    let mut kept = Vec::new();
-    for base in std::mem::take(removed) {
-        let twin = added.iter().position(|target| {
-            sole(&removed_counts, base)
-                && sole(&added_counts, target)
-                && rename_key(target) == rename_key(base)
-        });
-        match twin {
-            Some(at) => renames.push((base, added.remove(at))),
-            None => kept.push(base),
-        }
-    }
-    *removed = kept;
-    renames
-}
-
 /// Compares the symbols of a base snapshot with those of a target snapshot.
 ///
 /// Only the symbols that [`SymbolFact::takes_part`] are looked at. The result lists every
@@ -368,32 +300,28 @@ pub fn compare_symbols(base: &[SymbolFact], target: &[SymbolFact]) -> Comparison
         paired.added.extend(found.added);
     }
     paired.added.extend(targets.into_values().flatten());
-    let renames = take_renames(&mut paired.removed, &mut paired.added);
     let mut comparison = Comparison {
         added: paired.added.into_iter().cloned().collect(),
         removed: paired.removed.into_iter().cloned().collect(),
         ..Comparison::default()
     };
     for (base, target) in paired.pairs {
-        sort_pair(&mut comparison, base, target, false);
-    }
-    for (base, target) in renames {
-        sort_pair(&mut comparison, base, target, true);
+        sort_pair(&mut comparison, base, target);
     }
     comparison.sort();
     comparison
 }
 
-/// Files a pair under moved (another file, or a rename) or changed (reasons), or drops it if the
+/// Files a pair under moved (another file) or changed (reasons), or drops it if the
 /// two sides are the same.
-fn sort_pair(comparison: &mut Comparison, base: &SymbolFact, target: &SymbolFact, renamed: bool) {
+fn sort_pair(comparison: &mut Comparison, base: &SymbolFact, target: &SymbolFact) {
     let matched = Matched {
         base: base.clone(),
         target: target.clone(),
-        reasons: reasons_of(base, target, renamed),
+        reasons: reasons_of(base, target),
     };
-    if renamed || base.path != target.path {
-        comparison.moved.push(Moved { matched, renamed });
+    if base.path != target.path {
+        comparison.moved.push(matched);
     } else if !matched.reasons.is_empty() {
         comparison.changed.push(matched);
     }

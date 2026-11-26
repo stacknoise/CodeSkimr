@@ -135,68 +135,21 @@ mod tests {
         let target = vec![in_file(method(2, "A.f", "void f()"), "src/b.rs")];
         let found = compare_symbols(&base, &target);
         assert_eq!(found.moved.len(), 1);
-        assert!(found.moved[0].matched.reasons.is_empty() && !found.moved[0].renamed);
+        assert_eq!(found.moved[0].reasons.len(), 0);
         assert!(found.added.is_empty() && found.removed.is_empty() && found.changed.is_empty());
         assert_eq!(found.impact_subjects().len(), 0);
     }
 
     #[test]
-    fn a_rename_needs_one_hash_match_in_the_same_file_and_kind() {
+    fn a_renamed_symbol_is_removed_and_added_and_its_usages_are_looked_at() {
         let base = vec![with_hash(method(1, "A.old", "void old()"), "same")];
         let target = vec![with_hash(method(2, "A.fresh", "void fresh()"), "same")];
         let found = compare_symbols(&base, &target);
-        assert_eq!(found.moved.len(), 1);
-        assert!(found.moved[0].renamed);
-        assert!(found.removed.is_empty() && found.added.is_empty());
+        assert_eq!((found.removed.len(), found.added.len()), (1, 1));
+        assert_eq!(found.moved.len(), 0);
         let subjects = found.impact_subjects();
         assert_eq!(subjects.len(), 1);
-        assert_eq!(subjects[0].cause, ImpactCause::Renamed);
-    }
-
-    #[test]
-    fn a_rename_in_another_file_or_of_another_kind_stays_removed_and_added() {
-        let base = vec![with_hash(method(1, "A.old", "void old()"), "same")];
-        let elsewhere = in_file(
-            with_hash(method(2, "A.fresh", "void fresh()"), "same"),
-            "src/b.rs",
-        );
-        let found = compare_symbols(&base, &[elsewhere]);
-        assert_eq!((found.removed.len(), found.added.len()), (1, 1));
-        let other_kind = with_hash(fact(3, SymbolKind::Function, "A.fresh", None), "same");
-        let found = compare_symbols(&base, &[other_kind]);
-        assert_eq!((found.removed.len(), found.added.len()), (1, 1));
-        assert_eq!(found.moved.len(), 0);
-    }
-
-    #[test]
-    fn an_ambiguous_rename_is_never_guessed() {
-        let base = vec![with_hash(method(1, "A.old", "void old()"), "same")];
-        let target = vec![
-            with_hash(method(2, "A.one", "void one()"), "same"),
-            with_hash(method(3, "A.two", "void two()"), "same"),
-        ];
-        let found = compare_symbols(&base, &target);
-        assert_eq!(found.moved.len(), 0);
-        assert_eq!((found.removed.len(), found.added.len()), (1, 2));
-        let base = vec![
-            with_hash(method(1, "A.a", "void a()"), "same"),
-            with_hash(method(2, "A.b", "void b()"), "same"),
-        ];
-        let target = vec![with_hash(method(3, "A.c", "void c()"), "same")];
-        let found = compare_symbols(&base, &target);
-        assert_eq!(found.moved.len(), 0);
-        assert_eq!((found.removed.len(), found.added.len()), (2, 1));
-    }
-
-    #[test]
-    fn a_symbol_without_a_hash_is_never_renamed() {
-        let mut old = method(1, "A.old", "void old()");
-        old.content_hash = None;
-        let mut fresh = method(2, "A.fresh", "void fresh()");
-        fresh.content_hash = None;
-        let found = compare_symbols(&[old], &[fresh]);
-        assert_eq!(found.moved.len(), 0);
-        assert_eq!((found.removed.len(), found.added.len()), (1, 1));
+        assert_eq!(subjects[0].cause, ImpactCause::Removed);
     }
 
     #[test]
@@ -238,7 +191,7 @@ mod tests {
     }
 
     #[test]
-    fn impact_subjects_are_removed_renamed_and_signature_or_visibility_changes() {
+    fn impact_subjects_are_removed_and_signature_or_visibility_changes() {
         let base = vec![
             method(1, "A.gone", "void gone()"),
             method(2, "A.sig", "int sig()"),

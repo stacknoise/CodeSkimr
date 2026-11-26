@@ -8,8 +8,8 @@ mod common;
 mod tests {
     use codeskimr_application::ports::{ComparisonSource, SnapshotStore, SymbolHash, UsageIndex};
     use codeskimr_domain::{
-        ContentHash, Direction, ScanMode, SnapshotId, SymbolId, SymbolKind, UsageQuery, Visibility,
-        compare_symbols,
+        ContentHash, Direction, ScanMode, SnapshotId, SymbolId, SymbolKind, SymbolOrigin,
+        UsageQuery, Visibility, compare_symbols,
     };
     use codeskimr_storage::ProjectDb;
 
@@ -32,7 +32,10 @@ mod tests {
         let mut run = symbol(23, 11, SymbolKind::Method, "App.A.Run", Some(22));
         run.signature = Some("int Run(int count, string name)".to_owned());
         run.visibility = Some(Visibility::Private);
+        let mut from_index = symbol(26, 11, SymbolKind::Method, "App.A.FromIndex", Some(22));
+        from_index.origin = SymbolOrigin::Index;
         scan.symbols = vec![
+            from_index,
             symbol(21, 11, SymbolKind::Namespace, "App", None),
             symbol(22, 11, SymbolKind::Class, "App.A", Some(21)),
             run,
@@ -82,7 +85,7 @@ mod tests {
                 (23, "App.A.Run", "src/a.cs"),
                 (24, "App.A.Gone", "src/a.cs")
             ],
-            "a namespace and a parameter take no part"
+            "a namespace, a parameter and a symbol of level 2 take no part"
         );
         assert_eq!(facts[1].visibility, Some(Visibility::Private));
         assert_eq!(
@@ -144,9 +147,9 @@ mod tests {
         let mut third = data(header(30, ScanMode::Incremental));
         third.files = vec![file(30, 13, "src/c.cs", "hc")];
         store.persist(third).unwrap();
-        assert!(store.comparison_facts(FIRST).unwrap().is_empty());
+        assert_eq!(store.comparison_facts(FIRST).unwrap().len(), 0);
         assert_eq!(store.snapshot_naming_rules(FIRST).unwrap(), None);
-        assert!(!store.comparison_facts(SECOND).unwrap().is_empty());
+        assert_ne!(store.comparison_facts(SECOND).unwrap().len(), 0);
     }
 
     #[test]

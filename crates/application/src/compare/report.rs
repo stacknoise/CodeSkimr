@@ -2,7 +2,7 @@
 //! line and the agent.
 
 use codeskimr_domain::{
-    AnnotationId, ImpactSubject, LayerName, Matched, Moved, ProjectId, QualifiedName, Reference,
+    AnnotationId, ImpactSubject, LayerName, Matched, ProjectId, QualifiedName, Reference,
     RelativePath, SnapshotId, SymbolFact, SymbolKind,
 };
 
@@ -124,8 +124,6 @@ pub struct LayerChanges {
 pub enum CriticalOutcome {
     /// It is gone.
     Removed,
-    /// It has another name now.
-    Renamed,
     /// It is in another file now.
     Moved,
     /// Its signature, visibility or content changed.
@@ -160,8 +158,8 @@ pub struct ScanComparison {
     pub removed: Listed<SymbolFact>,
     /// Symbols that changed in signature, visibility or content, cut likewise.
     pub changed: Listed<Matched>,
-    /// Symbols that moved to another file or were renamed, cut likewise.
-    pub moved: Listed<Moved>,
+    /// Symbols that have the same key in another file, cut likewise.
+    pub moved: Listed<Matched>,
     /// Critical symbols a change touches, all of them.
     pub critical: Vec<CriticalChange>,
     /// New layer violations and cycles.

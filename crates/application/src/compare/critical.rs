@@ -16,18 +16,14 @@ fn outcomes(comparison: &Comparison) -> HashMap<SymbolIdentity, CriticalOutcome>
         .changed
         .iter()
         .map(|matched| (matched.base.identity(), CriticalOutcome::Changed));
-    let moved = comparison.moved.iter().map(|moved| {
-        let outcome = if moved.renamed {
-            CriticalOutcome::Renamed
-        } else {
-            CriticalOutcome::Moved
-        };
-        (moved.matched.base.identity(), outcome)
-    });
+    let moved = comparison
+        .moved
+        .iter()
+        .map(|moved| (moved.base.identity(), CriticalOutcome::Moved));
     removed.chain(changed).chain(moved).collect()
 }
 
-/// The critical annotations whose symbol the comparison removed, renamed, moved or changed.
+/// The critical annotations whose symbol the comparison removed, moved or changed.
 pub(super) fn touched(critical: &[Annotation], comparison: &Comparison) -> Vec<CriticalChange> {
     let outcomes = outcomes(comparison);
     critical

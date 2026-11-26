@@ -47,8 +47,8 @@ pub use annotation::{
     AnnotationTarget, AnnotationText, AnnotationTitle, Assignee, Author, NewAnnotation, TaskStatus,
 };
 pub use compare::{
-    ChangeReason, Comparison, ImpactCause, ImpactSubject, Matched, Moved, SymbolFact,
-    SymbolIdentity, compare_symbols, compares_kind,
+    ChangeReason, Comparison, ImpactCause, ImpactSubject, Matched, SymbolFact, SymbolIdentity,
+    compare_symbols, compares_kind,
 };
 pub use coupling::{SymbolPair, coupling, coupling_with};
 pub use error::ModelError;
