@@ -1,5 +1,5 @@
 //! Finding the places where a name stands as text (adapter: `codeskimr_source`), for the
-//! rename preview (ADR 0104).
+//! rename preview (ADR 0110).
 
 use std::collections::HashSet;
 

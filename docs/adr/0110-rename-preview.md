@@ -1,4 +1,4 @@
-# 0104 – Rename preview: what a new name would hit, without changing anything
+# 0110 – Rename preview: what a new name would hit, without changing anything
 
 Status: accepted (the scope was decided by the product owner on 2026-11-23, "Umbenennungs-Vorschau (E4)" in version 1.2; the mock `erw-umbenennen` was approved on 2026-11-26). Built in two pull requests: the core with the tool and the command first, then the dialog of the explorer.
 

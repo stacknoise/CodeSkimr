@@ -1,4 +1,4 @@
-//! Finding the lines of a project folder that hold a name (`NameMentions`, ADR 0104).
+//! Finding the lines of a project folder that hold a name (`NameMentions`, ADR 0110).
 
 use std::collections::HashSet;
 use std::io::Read;

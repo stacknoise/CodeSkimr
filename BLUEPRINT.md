@@ -507,7 +507,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | `impact_of_change` | symbol | affected symbols, layers, public interfaces |
 | `get_context` | symbol, budget? | signature, doc, callers (verified first), dependencies, affected files and annotations in one answer, cut by the budget (ADR 0099) |
 | `find_unused` | kind?, language?, assessment?, include_tests? | symbols without a usage with assessment and reason, and those the exception list of the project takes out (ADR 0101) |
-| `preview_rename` | symbol, new_name, limit? | what a new name would hit, changing nothing: places (verified or not), name conflicts, text lines of strings, configuration and documentation (ADR 0104) |
+| `preview_rename` | symbol, new_name, limit? | what a new name would hit, changing nothing: places (verified or not), name conflicts, text lines of strings, configuration and documentation (ADR 0110) |
 | `get_dependencies` | symbol or namespace, direction | edges with counts and violations |
 | `find_similar_code` | code snippet or symbol | existing functions with similar structure ("does this already exist?") |
 | `find_constants` | query | existing constants, config keys and i18n keys |

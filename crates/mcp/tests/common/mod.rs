@@ -124,6 +124,9 @@ impl CodeIndex for FakeIndex {
                 hit(6, SymbolKind::Class, "App.Billing.Invoice"),
             ]);
         }
+        if query == "Quote" {
+            return Ok(vec![hit(7, SymbolKind::Class, "App.Domain.Quote")]);
+        }
         let all = vec![
             hit(1, SymbolKind::Class, "App.Order"),
             hit(2, SymbolKind::Method, "App.Order.Total"),
@@ -146,6 +149,12 @@ impl CodeIndex for FakeIndex {
             let mut other = detail();
             other.symbol = symbol_named(5, SymbolKind::Class, "App.Domain.Invoice");
             other.symbol.signature = Some("Invoice()".to_owned());
+            return Ok(Some(other));
+        }
+        if matches!(key, SymbolKey::Id(id) if id.get() == 7) {
+            let mut other = detail();
+            other.symbol = symbol_named(7, SymbolKind::Class, "App.Domain.Quote");
+            other.symbol.signature = Some("Quote(int count)".to_owned());
             return Ok(Some(other));
         }
         Ok(found.then(detail))

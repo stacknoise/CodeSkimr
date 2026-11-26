@@ -1,5 +1,5 @@
 //! The rename preview: what a new name for one symbol would hit, without changing anything
-//! (ADR 0104). The places that use the symbol come from the reverse index, the name conflicts
+//! (ADR 0110). The places that use the symbol come from the reverse index, the name conflicts
 //! from the symbols of the snapshot, and the places the index cannot see (strings, configuration,
 //! documentation) from a text search of the project folder. The tool `preview_rename`, the command
 //! `codeskimr preview-rename` and the dialog of the explorer all ask [`preview`], so they answer
@@ -206,9 +206,8 @@ pub struct RenameAsk<'a> {
     pub limit: usize,
 }
 
-/// The places that use one symbol (or a member of it that has its name) and its declarations.
-/// The places, and how many usages lay beyond the cap of the reverse-index read and are not
-/// among them.
+/// The places that use one symbol (or a member of it that has its name) and its declarations,
+/// and how many usages lay beyond the cap of the reverse-index read and are not among them.
 fn sites_of(
     ports: &RenamePorts<'_>,
     ask: &RenameAsk<'_>,

@@ -142,3 +142,12 @@ fn an_unknown_symbol_and_a_caller_without_read_are_refused() {
         .unwrap_err();
     assert_eq!(error.code(), ErrorCode::PermissionDenied);
 }
+
+#[test]
+fn a_symbol_with_another_signature_under_the_new_name_may_be_an_overload() {
+    let answer = tools().preview_rename(&owner(), &args("Quote")).unwrap();
+    let conflicts = answer["conflicts"].as_array().unwrap();
+    assert_eq!(conflicts.len(), 1, "{conflicts:?}");
+    assert_eq!(conflicts[0]["qualified_name"], "App.Domain.Quote");
+    assert_eq!(conflicts[0]["same_signature"], false);
+}
