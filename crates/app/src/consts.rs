@@ -583,6 +583,8 @@ pub mod scope_arg {
     pub const COUNT: &str = "count";
 }
 
+/// Largest project file that is read; a bigger one is refused.
+pub const PROJECT_FILE_MAX_BYTES: u64 = 1_048_576;
 /// File in the data folder that holds the settings the UI saved (ADR 0103).
 pub const UI_SETTINGS_FILE: &str = "ui-settings.json";
 /// Largest settings file that is read; anything bigger is ignored.

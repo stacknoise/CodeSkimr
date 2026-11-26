@@ -429,8 +429,25 @@ pub struct ContextQuery {
     pub target: QueryTarget,
 }
 
-/// What `codeskimr symbols`, `usages`, `impact` and `context` are asked to do. The limits and
-/// defaults are the configured ones of the MCP tools, so the answers are the same.
+/// Arguments of `codeskimr unused`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnusedQuery {
+    /// `all`, `types` or `functions`.
+    pub kind: Option<String>,
+    /// Only symbols of this language pack.
+    pub language: Option<String>,
+    /// `likely`, `public` or `approximate`.
+    pub assessment: Option<String>,
+    /// Test code counts.
+    pub include_tests: bool,
+    /// Number of symbols.
+    pub limit: Option<u32>,
+    /// Project and output.
+    pub target: QueryTarget,
+}
+
+/// What `codeskimr symbols`, `usages`, `impact`, `context` and `unused` are asked to do. The
+/// limits and defaults are the configured ones of the MCP tools, so the answers are the same.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum QueryAction {
     /// Searches symbols by name.
@@ -441,6 +458,8 @@ pub enum QueryAction {
     Impact(ImpactQuery),
     /// Gives signature, callers, dependencies, files and notes of a symbol.
     Context(ContextQuery),
+    /// Lists the symbols for which no usage was found, with the reason.
+    Unused(UnusedQuery),
 }
 
 impl QueryAction {
@@ -451,7 +470,8 @@ impl QueryAction {
             Self::Symbols(SymbolsQuery { target, .. })
             | Self::Usages(UsagesQuery { target, .. })
             | Self::Impact(ImpactQuery { target, .. })
-            | Self::Context(ContextQuery { target, .. }) => target,
+            | Self::Context(ContextQuery { target, .. })
+            | Self::Unused(UnusedQuery { target, .. }) => target,
         }
     }
 }
@@ -459,7 +479,7 @@ impl QueryAction {
 /// The command to run.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
-    /// `codeskimr symbols`, `usages`, `impact` or `context`.
+    /// `codeskimr symbols`, `usages`, `impact`, `context` or `unused`.
     Query(Box<QueryAction>),
     /// `codeskimr annotations`.
     Annotations(Box<AnnotationsAction>),

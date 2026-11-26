@@ -26,7 +26,7 @@ pub use args::{
     Clears, CodesArgs, ContextQuery, CredentialAction, DismissAlerts, ExportArgs, GlobalOptions,
     ImpactQuery, Invocation, Level2Action, ListAlerts, ListAnnotations, McpArgs, OpenArgs,
     PageArgs, Parsed, ProviderChoice, QueryAction, QueryTarget, ScanArgs, ScopeArgs, ServeArgs,
-    StartArgs, SymbolArg, SymbolsQuery, UpdateAnnotation, UsagesQuery,
+    StartArgs, SymbolArg, SymbolsQuery, UnusedQuery, UpdateAnnotation, UsagesQuery,
 };
 pub use check::{check_json, check_text};
 pub use codes::codes_text;
