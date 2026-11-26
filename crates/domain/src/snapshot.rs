@@ -1,7 +1,11 @@
 //! One scan state of a project.
 
 use crate::consts::{
-    ORIGIN_BROWSER, ORIGIN_MCP, ORIGIN_TERMINAL, ORIGIN_WATCH, SCAN_FULL, SCAN_INCREMENTAL,
+    DATE_SEPARATOR, DAYS_BEFORE_EPOCH, DAYS_OF_FIVE_MONTHS, DAYS_PER_CENTURY, DAYS_PER_ERA,
+    DAYS_PER_FOUR_YEARS, DAYS_PER_YEAR, FEBRUARY, JANUARY_FROM_MARCH, LAST_DAY_OF_ERA, MARCH,
+    MONTH_FACTOR, MONTH_OFFSET, MONTHS_FROM_MARCH, ORIGIN_BROWSER, ORIGIN_MCP, ORIGIN_TERMINAL,
+    ORIGIN_WATCH, PAD, PART_DIGITS, SCAN_FULL, SCAN_INCREMENTAL, SECONDS_PER_DAY, YEAR_DIGITS,
+    YEARS_PER_CENTURY, YEARS_PER_ERA, YEARS_PER_LEAP,
 };
 use crate::project::ProjectId;
 use crate::vocabulary::{id_type, labeled_enum, text_type};
@@ -18,29 +22,6 @@ text_type!(
 /// Seconds since the Unix epoch.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Timestamp(pub i64);
-
-const SECONDS_PER_DAY: i64 = 86_400;
-/// Days from 0000-03-01 to 1970-01-01, the start of the civil calendar of the algorithm below.
-const DAYS_BEFORE_EPOCH: i64 = 719_468;
-const DAYS_PER_ERA: i64 = 146_097;
-const YEARS_PER_ERA: i64 = 400;
-const DAYS_PER_YEAR: i64 = 365;
-const DAYS_PER_FOUR_YEARS: i64 = 1_460;
-const DAYS_PER_CENTURY: i64 = 36_524;
-const LAST_DAY_OF_ERA: i64 = 146_096;
-const YEARS_PER_LEAP: i64 = 4;
-const YEARS_PER_CENTURY: i64 = 100;
-const DAYS_OF_FIVE_MONTHS: i64 = 153;
-const MONTH_FACTOR: i64 = 5;
-const MONTH_OFFSET: i64 = 2;
-const MONTHS_FROM_MARCH: i64 = 10;
-const MARCH: i64 = 3;
-const JANUARY_FROM_MARCH: i64 = 9;
-const FEBRUARY: i64 = 2;
-const DATE_SEPARATOR: &str = "-";
-const PAD: &str = "0";
-const YEAR_DIGITS: usize = 4;
-const PART_DIGITS: usize = 2;
 
 /// `value` as text, filled with zeros in front up to `width` digits.
 fn padded(value: i64, width: usize) -> String {
