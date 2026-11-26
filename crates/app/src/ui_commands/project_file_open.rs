@@ -19,9 +19,7 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Permission, ProjectId, ProjectSource};
 use serde::{Deserialize, Serialize};
 
-use super::consts::{
-    EXECUTE_BITS, PROJECT_FILE_OPEN, PROJECT_FILE_OPEN_DESCRIPTION, PROJECT_FILE_OPEN_TITLE,
-};
+use super::consts::{PROJECT_FILE_OPEN, PROJECT_FILE_OPEN_DESCRIPTION, PROJECT_FILE_OPEN_TITLE};
 use super::explorer::ExplorerPorts;
 use crate::file_opener::FileOpener;
 
@@ -46,6 +44,8 @@ fn is_executable(meta: &fs::Metadata) -> bool {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
+
+        use super::consts::EXECUTE_BITS;
         meta.permissions().mode() & EXECUTE_BITS != 0
     }
     #[cfg(not(unix))]
@@ -83,8 +83,8 @@ fn file_of(source: &ProjectSource) -> Result<PathBuf, CodedError> {
 ///
 /// # Errors
 /// - `PRJ-101` for a Git project.
-/// - `CFG-102` if the file is a link, a folder, an executable file or cannot be looked at, `CFG-104` if a missing file
-///   cannot be created.
+/// - `CFG-102` if the file is a link, a folder, an executable file or cannot be looked at.
+/// - `CFG-104` if a missing file cannot be created.
 /// - `APP-605` if no person sits at this machine (nothing is created then) or the system starts
 ///   no program.
 pub(crate) fn open_project_file(

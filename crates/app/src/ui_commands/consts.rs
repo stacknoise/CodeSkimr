@@ -491,4 +491,5 @@ pub const RENAME_PREVIEW_DESCRIPTION: &str = i18n::COMMAND_RENAME_PREVIEW_DESCRI
 pub const RENAME_PREVIEW_LIMIT: usize = 500;
 
 /// The bits of a Unix file mode that make a file executable (owner, group, other).
+#[cfg(unix)]
 pub(super) const EXECUTE_BITS: u32 = 0o111;
