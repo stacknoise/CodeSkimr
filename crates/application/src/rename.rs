@@ -14,7 +14,7 @@ use codeskimr_domain::{
 use crate::consts::{
     RENAME_COMMENT_PREFIXES, RENAME_CONFIG_EXTENSIONS, RENAME_CONFLICT_SEARCH_LIMIT,
     RENAME_DOC_EXTENSIONS, RENAME_EXTENSION_SEPARATOR, RENAME_MAX_FILE_BYTES, RENAME_MAX_SITES,
-    RENAME_NAMEOF, RENAME_NO_EXTENSION, RENAME_QUOTE_PAIR, RENAME_QUOTES,
+    RENAME_NAMEOF, RENAME_NO_EXTENSION, RENAME_QUOTE_PAIR, RENAME_QUOTES, RENAME_UNDERSCORE,
 };
 use crate::error::CodedError;
 use crate::ports::{
@@ -29,8 +29,8 @@ pub fn is_valid_name(text: &str) -> bool {
     let mut letters = text.chars();
     letters
         .next()
-        .is_some_and(|first| first.is_alphabetic() || first == '_')
-        && letters.all(|letter| letter.is_alphanumeric() || letter == '_')
+        .is_some_and(|first| first.is_alphabetic() || first == RENAME_UNDERSCORE)
+        && letters.all(|letter| letter.is_alphanumeric() || letter == RENAME_UNDERSCORE)
 }
 
 /// The start of the first place in `text` where `word` stands as a whole word: the characters
@@ -50,7 +50,7 @@ pub fn find_word(text: &str, word: &str) -> Option<usize> {
 }
 
 fn is_word_char(letter: char) -> bool {
-    letter.is_alphanumeric() || letter == '_'
+    letter.is_alphanumeric() || letter == RENAME_UNDERSCORE
 }
 
 /// What a place of the rename is.

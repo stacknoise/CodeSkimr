@@ -215,3 +215,5 @@ pub const RENAME_QUOTE_PAIR: usize = 2;
 pub const RENAME_EXTENSION_SEPARATOR: char = '.';
 /// The extension of a file that has none.
 pub const RENAME_NO_EXTENSION: &str = "";
+/// The one character besides letters and digits that a name may hold.
+pub const RENAME_UNDERSCORE: char = '_';
