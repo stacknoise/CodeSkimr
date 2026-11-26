@@ -16,12 +16,21 @@ interface Held {
   stream: WebSocketRoute | null;
   ids: Map<string, number>;
   release: () => void;
-  /** Whether the next rescan is held back and the list calls the project running. */
+  /** Whether the next rescan is held back. */
   armed: boolean;
+  /** Whether the list calls the project running: from the moment the held rescan arrived, so
+   * that no read of the list before the click disables the button the test is about to press. */
+  running: boolean;
 }
 
 async function holdRescan(page: Page): Promise<Held> {
-  const held: Held = { stream: null, ids: new Map(), release: () => undefined, armed: false };
+  const held: Held = {
+    stream: null,
+    ids: new Map(),
+    release: () => undefined,
+    armed: false,
+    running: false,
+  };
   const gate = new Promise<void>((resolve) => (held.release = resolve));
   await page.routeWebSocket("**/api/v1/events", (socket) => {
     held.stream = socket;
@@ -31,10 +40,11 @@ async function holdRescan(page: Page): Promise<Held> {
     const response = await route.fetch();
     const rows = (await response.json()) as { id: number; name: string }[];
     rows.forEach((row) => held.ids.set(row.name, row.id));
-    await route.fulfill({ response, json: rows.map((row) => ({ ...row, running: held.armed })) });
+    await route.fulfill({ response, json: rows.map((row) => ({ ...row, running: held.running })) });
   });
   await page.route("**/api/v1/commands/projects.rescan", async (route) => {
     if (held.armed) {
+      held.running = true;
       await gate;
     }
     await route.continue();
@@ -64,6 +74,11 @@ for (const theme of THEMES) {
       await selectScannedProject(page, harness, name, SOURCE);
       held.armed = true;
       await showTab(page, "Scan");
+      // The scan that added the project has ended in the stream as well, so that its run is not
+      // the one on the screen when the new scan is started.
+      await expect(
+        page.getByRole("heading", { name: /^(Scan finished|No scan running)$/ }),
+      ).toBeVisible();
       await page.getByRole("button", { name: "Scan again" }).first().click();
       await expect(page.getByRole("tab", { name: "Scan" })).toHaveAttribute(
         "aria-selected",
