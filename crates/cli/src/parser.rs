@@ -33,6 +33,7 @@ use crate::consts::{
 use crate::credential;
 use crate::error::CliError;
 use crate::notes;
+use crate::query;
 
 /// Reads `arguments`, the first of which is the program name.
 ///
@@ -79,6 +80,7 @@ fn definition(messages: &Messages, language: &str) -> Result<Command, CliError> 
         .subcommand(consent::command(&say)?)
         .subcommand(notes::annotations_command(&say)?)
         .subcommand(notes::alerts_command(&say)?)
+        .subcommands(query::commands(&say)?)
         .subcommand(
             Command::new(COMMAND_MCP)
                 .about(say(CLI_CMD_MCP)?)
@@ -226,6 +228,9 @@ fn invocation(matches: &ArgMatches) -> Result<Invocation, CliError> {
             print_url: open.get_flag(ARG_PRINT_URL),
         }),
         Some((COMMAND_EXPORT, export)) => Action::Export(export_args(export)),
+        Some((name, matches)) if query::is_query(name) => {
+            Action::Query(Box::new(query::action(name, matches)))
+        }
         None => Action::Start(StartArgs {
             console: matches.get_flag(ARG_CONSOLE),
         }),

@@ -10,6 +10,7 @@ use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::{CodeIndex, IndexRunner, ProjectScanner};
 use codeskimr_cli::{GlobalOptions, McpArgs};
 use codeskimr_codes::ErrorCode;
+use codeskimr_domain::ProjectId;
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::{HttpService, McpServer, Ports, Tools, serve_stdio};
 use codeskimr_source::{FolderKeys, FolderText};
@@ -59,21 +60,35 @@ pub fn run(
         return Err(CodedError::new(ErrorCode::ProjectNotScanned));
     }
     let messages = Arc::new(Messages::load().map_err(CodedError::caused_by)?);
-    let runner = index_runner(locations);
-    let wiring = Wiring {
-        locations,
-        messages: Arc::clone(&messages),
-        runner,
-        running: RunningScans::default(),
-    };
-    let ports = build_ports(store, &config, wiring, (EventBus::new(), &os_secrets()))?;
-    let tools = Tools::new(ports, config.mcp, project.id);
+    let tools = project_tools(store, &config, (locations, &messages), project.id)?;
     let server = McpServer::new(tools, &messages, principal::remote_client())?;
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?
         .block_on(serve_stdio(server))
+}
+
+/// The MCP tools for one project over `store`, as `codeskimr mcp` serves them. The commands that
+/// ask what agents ask (`symbols`, `usages`, `impact`, `context`) use them too, so the answers
+/// are the same.
+///
+/// # Errors
+/// Any coded failure of loading the language packs or wiring the ports.
+pub(crate) fn project_tools(
+    store: Arc<SqliteStore>,
+    config: &Config,
+    (locations, messages): (&Locations, &Arc<Messages>),
+    project: ProjectId,
+) -> Result<Tools, CodedError> {
+    let wiring = Wiring {
+        locations,
+        messages: Arc::clone(messages),
+        runner: index_runner(locations),
+        running: RunningScans::default(),
+    };
+    let ports = build_ports(store, config, wiring, (EventBus::new(), &os_secrets()))?;
+    Ok(Tools::new(ports, config.mcp.clone(), project))
 }
 
 /// The MCP tools over streamable HTTP for the running app (blueprint 10.4): every registered

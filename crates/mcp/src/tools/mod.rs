@@ -5,6 +5,7 @@ mod alerts;
 mod annotations;
 mod architecture;
 mod constants;
+mod context;
 mod conventions;
 mod dependencies;
 mod project;
