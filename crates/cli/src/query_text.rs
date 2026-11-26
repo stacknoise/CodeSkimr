@@ -9,7 +9,8 @@ use codeskimr_codes::i18n::{
     CLI_CONTEXT_CALLERS, CLI_CONTEXT_DEPENDENCIES, CLI_CONTEXT_DEPENDENCY_LINE, CLI_CONTEXT_FILE,
     CLI_CONTEXT_FILES, CLI_CONTEXT_HEAD, CLI_CONTEXT_LAYER, CLI_CONTEXT_NOTE_LINE,
     CLI_CONTEXT_NOTES, CLI_CONTEXT_SIGNATURE, CLI_QUERY_CUT, CLI_QUERY_IMPACT_LINE, CLI_QUERY_NONE,
-    CLI_QUERY_PRELIMINARY, CLI_QUERY_STALE, CLI_QUERY_SYMBOL_LINE, CLI_QUERY_USAGE_LINE,
+    CLI_QUERY_PRELIMINARY, CLI_QUERY_STALE, CLI_QUERY_SYMBOL_LINE, CLI_QUERY_UNUSED_LEFT_OUT,
+    CLI_QUERY_UNUSED_LEFT_OUT_LINE, CLI_QUERY_UNUSED_LINE, CLI_QUERY_USAGE_LINE,
 };
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde_json::{Map, Value};
@@ -30,6 +31,8 @@ pub enum QueryKind {
     Impact,
     /// `context`.
     Context,
+    /// `unused`.
+    Unused,
 }
 
 /// The answer of a tool as the JSON of a command: the fields of the answer plus `schema` (the
@@ -192,6 +195,32 @@ fn note_line(speak: &Speaker<'_>, note: &Value) -> Result<String, I18nError> {
     )
 }
 
+fn unused_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
+    speak.say(
+        CLI_QUERY_UNUSED_LINE,
+        &[
+            (arg::KIND, text(field(found, key::KIND))),
+            (arg::NAME, text(field(found, key::QUALIFIED_NAME))),
+            (arg::PATH, text(field(found, key::PATH))),
+            (arg::ASSESSMENT, text(field(found, key::ASSESSMENT))),
+            (arg::REASON, text(field(found, key::REASON))),
+        ],
+    )
+}
+
+fn left_out_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
+    let reason = field(&child(found, key::RULE), key::REASON);
+    speak.say(
+        CLI_QUERY_UNUSED_LEFT_OUT_LINE,
+        &[
+            (arg::KIND, text(field(found, key::KIND))),
+            (arg::NAME, text(field(found, key::QUALIFIED_NAME))),
+            (arg::PATH, text(field(found, key::PATH))),
+            (arg::TEXT, text(reason)),
+        ],
+    )
+}
+
 type Line = fn(&Speaker<'_>, &Value) -> Result<String, I18nError>;
 
 /// A list of `context` with a heading that says how many of how many are shown; nothing if it
@@ -267,12 +296,35 @@ fn list_lines(
     listed.iter().map(|entry| line(speak, entry)).collect()
 }
 
+/// The symbols without a usage, then those the exception list takes out with their reason.
+fn unused_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<String>, I18nError> {
+    let mut lines = list_lines(speak, (answer, key::UNUSED), unused_line)?;
+    let left_out = entries(answer, key::LEFT_OUT);
+    if !left_out.is_empty() {
+        let numbers = [
+            (arg::SHOWN, FluentValue::from(left_out.len())),
+            (
+                arg::TOTAL,
+                child(&child(answer, key::COUNTS), key::LEFT_OUT)
+                    .as_u64()
+                    .map_or_else(|| FluentValue::from(left_out.len()), FluentValue::from),
+            ),
+        ];
+        lines.push(speak.say(CLI_QUERY_UNUSED_LEFT_OUT, &numbers)?);
+        for entry in left_out {
+            lines.push([LIST_INDENT, left_out_line(speak, entry)?.as_str()].concat());
+        }
+    }
+    Ok(lines)
+}
+
 fn body(speak: &Speaker<'_>, kind: QueryKind, answer: &Value) -> Result<Vec<String>, I18nError> {
     match kind {
         QueryKind::Symbols => list_lines(speak, (answer, key::HITS), symbol_line),
         QueryKind::Usages => list_lines(speak, (answer, key::USAGES), usage_line),
         QueryKind::Impact => list_lines(speak, (answer, key::SYMBOLS), impact_line),
         QueryKind::Context => context_lines(speak, answer),
+        QueryKind::Unused => unused_lines(speak, answer),
     }
 }
 

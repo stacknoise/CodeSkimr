@@ -1,11 +1,12 @@
-//! `codeskimr symbols`, `usages`, `impact` and `context` over a real, scanned project: the JSON a
+//! `codeskimr symbols`, `usages`, `impact`, `context` and `unused` over a real, scanned project: the JSON a
 //! script reads (`schema`, `stale`, the failure with its code) and the text a person reads.
 
 use std::fs;
 use std::path::PathBuf;
 
 use codeskimr_cli::{
-    ContextQuery, GlobalOptions, ImpactQuery, QueryAction, QueryTarget, SymbolsQuery, UsagesQuery,
+    ContextQuery, GlobalOptions, ImpactQuery, QueryAction, QueryTarget, SymbolsQuery, UnusedQuery,
+    UsagesQuery,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_i18n::Messages;
@@ -200,4 +201,34 @@ fn the_project_can_be_named_by_id_or_by_folder() {
         });
         assert_eq!(world.json(&action)["budget"], "short");
     }
+}
+
+fn unused(json: bool) -> QueryAction {
+    QueryAction::Unused(UnusedQuery {
+        kind: Some("functions".to_owned()),
+        language: None,
+        assessment: None,
+        include_tests: false,
+        limit: None,
+        target: target(json),
+    })
+}
+
+#[test]
+fn unused_lists_what_nobody_calls_with_the_reason_and_leaves_out_what_is_called() {
+    let world = World::new();
+    let answer = world.json(&unused(true));
+    assert_eq!(answer["schema"], 1);
+    let names: Vec<&str> = answer["unused"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| row["qualified_name"].as_str().unwrap())
+        .collect();
+    assert!(names.contains(&"Demo.Caller.Run"), "{names:?}");
+    assert!(!names.contains(&SYMBOL), "{names:?}");
+    assert!(answer["unused"][0]["reason"].is_string());
+    assert_eq!(answer["left_out"], serde_json::json!([]));
+    let text = world.run(&unused(false), "en").unwrap();
+    assert!(text.contains("Demo.Caller.Run"), "{text}");
 }

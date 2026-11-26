@@ -168,6 +168,25 @@ pub struct ConstantsArgs {
     pub limit: Option<u32>,
 }
 
+/// Arguments of `find_unused`.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[schemars(crate = "rmcp::schemars")]
+pub struct UnusedArgs {
+    /// `all` (the default), `types` or `functions`.
+    pub kind: Option<String>,
+    /// Id of a language pack, such as `csharp`: only symbols of this language.
+    pub language: Option<String>,
+    /// `likely`, `public` or `approximate`: only symbols with this assessment.
+    pub assessment: Option<String>,
+    /// Whether test code counts; `false` if left out.
+    pub include_tests: Option<bool>,
+    /// Id of the project; the project of this server if left out.
+    pub project: Option<u64>,
+    /// Number of results; the configured default if left out, never more than the configured maximum.
+    pub limit: Option<u32>,
+}
+
 /// Arguments of `check_conventions`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

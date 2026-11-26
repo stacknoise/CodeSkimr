@@ -22,6 +22,7 @@ use crate::locations::Locations;
 use crate::principal;
 use crate::running::{ExclusiveScans, RunningScans};
 use crate::source_arg::folder_spec;
+use crate::unused_symbols::JudgedUnused;
 use crate::wiring::{
     Analysis, Secrets, build_analysis, index_runner, open_store, os_secrets, scanner_over,
     tool_checker,
@@ -221,6 +222,7 @@ fn build_ports(
         key_sources: config.keys.clone(),
         annotations: store.clone(),
         reports: store.clone(),
+        unused: Arc::new(JudgedUnused::new(store.clone(), config)),
         index: store,
     })
 }
