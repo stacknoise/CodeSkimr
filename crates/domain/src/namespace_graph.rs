@@ -63,6 +63,15 @@ fn leading_segments(name: &str, depth: usize) -> &str {
 }
 
 impl NamespaceGraph {
+    /// The qualified name of the namespace at `at`; empty for a position outside the graph.
+    #[must_use]
+    pub fn name_at(&self, at: usize) -> String {
+        self.namespaces
+            .get(at)
+            .map(|node| node.name.to_string())
+            .unwrap_or_default()
+    }
+
     /// The graph with every namespace merged into its first `depth` segments (`App.Views.Board`
     /// and `App.Views.Menu` become `App.Views` at depth 2): the types add up, the references
     /// between namespaces that merge into one disappear and the others add up. A depth of zero

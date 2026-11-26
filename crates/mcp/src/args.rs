@@ -230,7 +230,7 @@ pub struct ConventionsArgs {
     pub limit: Option<u32>,
 }
 
-/// Arguments of `get_dependencies`. Exactly one of `symbol` and `layer` is given.
+/// Arguments of `get_dependencies`. Exactly one of `symbol`, `layer` and `level` is given.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 #[schemars(crate = "rmcp::schemars")]
@@ -243,13 +243,20 @@ pub struct DependenciesArgs {
     /// Name of a layer of the project, as `get_architecture` lists them: the dependencies between
     /// this layer and the others.
     pub layer: Option<String>,
+    /// `module` answers about the modules (namespaces) of the whole project: rings with the
+    /// dependencies that end them, references in and out, stability, dependencies against the
+    /// layering and modules that stand out. Then neither `symbol` nor `layer` is given.
+    pub level: Option<String>,
+    /// With `level` `module`: merge the namespaces into their first `depth` segments; all of
+    /// them if left out.
+    pub depth: Option<u32>,
     /// `outgoing` (what the target depends on, the default) or `incoming` (what depends on it).
     pub direction: Option<String>,
     /// Whether references from test code count; `false` if left out. Applies to `symbol` only.
     pub include_tests: Option<bool>,
     /// Id of the project; the project of this server if left out.
     pub project: Option<u64>,
-    /// Number of listed dependencies; the configured default if left out, never more than the configured maximum.
+    /// Number of listed dependencies (with `level` `module`: of listed modules); the configured default if left out, never more than the configured maximum.
     pub limit: Option<u32>,
 }
 

@@ -22,6 +22,8 @@ fn of_symbol(symbol: &str) -> DependenciesArgs {
     DependenciesArgs {
         symbol: Some(symbol.to_owned()),
         layer: None,
+        level: None,
+        depth: None,
         direction: None,
         include_tests: None,
         project: None,
@@ -282,4 +284,71 @@ fn rescan_keeps_the_code_of_a_failed_scan() {
         )
         .unwrap_err();
     assert_eq!(error.code(), ErrorCode::UnexpectedInternalError);
+}
+
+#[cfg(test)]
+fn of_modules() -> DependenciesArgs {
+    DependenciesArgs {
+        symbol: None,
+        level: Some("module".to_owned()),
+        ..of_symbol("")
+    }
+}
+
+#[test]
+fn the_module_level_answers_with_rings_coupling_and_the_layering() {
+    let mut args = of_modules();
+    args.limit = Some(3);
+    let answer = tools().get_dependencies(&owner(), &args).unwrap();
+    assert_eq!(answer["level"], "module");
+    assert_eq!(answer["snapshot"]["id"], 10);
+    assert_eq!(answer["total"], 3);
+    let modules = list(&answer, "modules");
+    assert_eq!(modules[0]["name"], "App.Domain");
+    assert_eq!(modules[0]["incoming"], 11);
+    assert_eq!(modules[0]["outgoing"], 2);
+    assert_eq!(modules[0]["in_cycle"], true);
+    assert_eq!(modules[0]["layer"], "Domain");
+    assert_eq!(answer["notice"], Value::Null);
+}
+
+#[test]
+fn the_module_level_names_the_rings_and_the_dependencies_against_the_layering() {
+    let mut args = of_modules();
+    args.limit = Some(3);
+    let answer = tools().get_dependencies(&owner(), &args).unwrap();
+    let cycles = list(&answer, "cycles");
+    assert_eq!(cycles.len(), 1);
+    assert_eq!(cycles[0]["modules"][0], "App.Domain");
+    assert_eq!(cycles[0]["resolution"][0]["from"], "App.Domain");
+    assert_eq!(cycles[0]["resolution"][0]["count"], 2);
+    let violations = list(&answer, "violations");
+    assert_eq!(violations.len(), 1);
+    assert_eq!(violations[0]["from_layer"], "Web");
+    assert_eq!(violations[0]["to_layer"], "Domain");
+}
+
+#[test]
+fn the_module_level_cuts_the_list_but_not_the_rings() {
+    let mut args = of_modules();
+    args.limit = Some(1);
+    let answer = tools().get_dependencies(&owner(), &args).unwrap();
+    assert_eq!(answer["total"], 3);
+    assert_eq!(list(&answer, "modules").len(), 1);
+    assert_eq!(list(&answer, "cycles").len(), 1);
+    assert_eq!(answer["notice"]["code"], "MCP-501");
+}
+
+#[test]
+fn the_module_level_takes_no_other_target() {
+    let mut other = of_modules();
+    other.layer = Some("Domain".to_owned());
+    let mut unknown = of_modules();
+    unknown.level = Some("package".to_owned());
+    let mut direction = of_modules();
+    direction.direction = Some("incoming".to_owned());
+    for args in [other, unknown, direction] {
+        let error = tools().get_dependencies(&owner(), &args).unwrap_err();
+        assert_eq!(error.code(), ErrorCode::ToolArgumentsInvalid);
+    }
 }

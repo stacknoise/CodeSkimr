@@ -311,7 +311,7 @@ fn layers_out(
 }
 
 pub(super) fn layer_index(layers: &[Layer], name: &str) -> Option<usize> {
-    layers.iter().position(|layer| layer.owns(name))
+    codeskimr_domain::layer_position(layers, name)
 }
 
 #[cfg(test)]

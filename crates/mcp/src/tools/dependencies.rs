@@ -216,6 +216,9 @@ impl Tools {
         args: &DependenciesArgs,
     ) -> Result<Value, McpError> {
         access::require(principal, READ_TOOL_PERMISSION)?;
+        if args.level.is_some() {
+            return self.module_answer(args);
+        }
         let subject = subject(args)?;
         let direction = parse_direction(args.direction.as_deref(), Direction::Outgoing)?;
         let scope = self.scope(args.project)?;

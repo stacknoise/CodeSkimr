@@ -81,11 +81,7 @@ fn side(graph: &NamespaceGraph, at: usize, users: bool) -> Vec<(usize, u32)> {
 }
 
 pub(super) fn name_of(graph: &NamespaceGraph, at: usize) -> String {
-    graph
-        .namespaces
-        .get(at)
-        .map(|node| node.name.to_string())
-        .unwrap_or_default()
+    graph.name_at(at)
 }
 
 /// The drawn namespaces (the middle first, then the users, then the used ones that are not users

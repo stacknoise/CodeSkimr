@@ -92,7 +92,11 @@ pub(crate) fn project_tools(
         limits: None,
     };
     let ports = build_ports(store, config, wiring, (EventBus::new(), &os_secrets()))?;
-    Ok(Tools::new(ports, config.mcp.clone(), project))
+    Ok(Tools::new(
+        ports,
+        (config.mcp.clone(), config.graph.risk_limits()),
+        project,
+    ))
 }
 
 /// The MCP tools over streamable HTTP for the running app (blueprint 10.4): every registered
@@ -177,7 +181,7 @@ fn http_service_over(
         limits,
     };
     let ports = build_ports(store, config, wiring, (events, secrets))?;
-    let tools = Tools::unscoped(ports, config.mcp.clone());
+    let tools = Tools::unscoped(ports, (config.mcp.clone(), config.graph.risk_limits()));
     let server = McpServer::new(tools, &messages, principal::remote_client())?;
     Ok(codeskimr_mcp::http_service(&server))
 }

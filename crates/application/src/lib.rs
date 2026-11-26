@@ -16,6 +16,7 @@ pub mod events;
 pub mod ids;
 pub mod level2;
 pub mod metrics;
+pub mod module_report;
 pub mod pipeline;
 pub mod ports;
 pub mod registry;

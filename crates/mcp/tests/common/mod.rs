@@ -25,15 +25,25 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
     Alert, Annotation, AnnotationId, BodyCounts, Confidence, ContentHash, Direction, FileId,
     Fingerprint, Fingerprints, FolderPath, LanguageId, Layer, LayerEdge, LayerName, Loc, Metric,
-    MetricKind, MetricValue, NamespaceGraph, Position, Principal, Project, ProjectId, ProjectName,
-    ProjectSource, QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanLevel,
-    ScanMode, ScanOrigin, SkipReason, Snapshot, SnapshotId, SnapshotStats, SourceFile, Span,
-    Symbol, SymbolBaseline, SymbolCounts, SymbolId, SymbolKind, SymbolName, Timestamp, ToolFinding,
-    ToolReport, ToolRole, ToolState, UsageQuery, Visibility,
+    MetricKind, MetricValue, NamespaceEdge, NamespaceGraph, NamespaceNode, Position, Principal,
+    Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference, ReferenceId,
+    ReferenceKind, RelativePath, RiskLimits, ScanLevel, ScanMode, ScanOrigin, SkipReason, Snapshot,
+    SnapshotId, SnapshotStats, SourceFile, Span, Symbol, SymbolBaseline, SymbolCounts, SymbolId,
+    SymbolKind, SymbolName, Timestamp, ToolFinding, ToolReport, ToolRole, ToolState, UsageQuery,
+    Visibility,
 };
 use codeskimr_domain::{Assessment, RankingQuery, UnusedReason};
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::{Ports, Tools};
+
+/// When a module stands out: from 5 places that use it, and a gap of 0.1 in stability.
+pub fn risks() -> RiskLimits {
+    RiskLimits {
+        min_incoming: 5,
+        instability_gap: 100,
+        max_risks: 5,
+    }
+}
 
 pub const PROJECT: ProjectId = ProjectId::new(1);
 pub const SNAPSHOT: SnapshotId = SnapshotId::new(10);
@@ -201,7 +211,15 @@ impl CodeIndex for FakeIndex {
     }
 
     fn namespace_graph(&self, _snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
-        Ok(NamespaceGraph::default())
+        let node = |name: &str| NamespaceNode {
+            name: QualifiedName::new(name).unwrap(),
+            types: 2,
+        };
+        let edge = |from, to, count| NamespaceEdge { from, to, count };
+        Ok(NamespaceGraph {
+            namespaces: vec![node("App.Domain"), node("App.Application"), node("App.Web")],
+            edges: vec![edge(0, 1, 2), edge(1, 0, 7), edge(2, 1, 3), edge(2, 0, 4)],
+        })
     }
 
     fn type_focus(
@@ -780,7 +798,7 @@ fn assemble_with(
             mentions: Arc::new(FakeMentions),
             text: Arc::new(FakeText),
         },
-        limits,
+        (limits, risks()),
         PROJECT,
     )
 }
@@ -1168,7 +1186,7 @@ pub fn tools_annotated(annotations: FakeAnnotations) -> Tools {
             mentions: Arc::new(FakeMentions),
             text: Arc::new(FakeText),
         },
-        limits(),
+        (limits(), risks()),
         PROJECT,
     )
 }
