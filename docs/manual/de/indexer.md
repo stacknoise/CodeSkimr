@@ -91,13 +91,13 @@ Ein großes TypeScript-Projekt braucht viel mehr Speicher als die anderen Indexe
 scip-typescript = 12288
 ```
 
-Bei Node.js (`scip-typescript`) bestimmt die Grenze auch den Heap des Prozesses. Ein Name, der nicht in der Liste steht, wird beim Lesen der Konfiguration abgelehnt, ein Tippfehler fällt also auf.
+Bei Node.js (`scip-typescript`) bestimmt die Grenze auch den Heap des Prozesses. Ein Name, der nicht in der Liste steht, wird beim Lesen der Konfiguration abgelehnt, ein Tippfehler fällt also auf. Die Grenze lässt sich auch in der App setzen: **Einstellungen → Analyse → Speicher je Indexer**. Ein dort gespeicherter Wert gilt ab dem nächsten Start des Programms, hat Vorrang vor der Benutzerkonfiguration und weicht einem `--set`-Flag; die Tabelle der wirksamen Einstellungen nennt ihn mit der Herkunft „In der App gespeichert“. Die Grenze darf 1.048.576 MB nicht überschreiten.
 
 Der Indexer bekommt eine geleerte Umgebung mit Positivliste (kein Token und kein Geheimnis von CodeSkimr erreicht ihn), läuft in einer eigenen Prozessgruppe, und seine Ausgabe wird geschwärzt, bevor sie protokolliert wird. **Das Netzwerk ist nicht gesperrt**, weil die Paketwiederherstellung es braucht; das ist das wichtigste Restrisiko und der Grund für die Bestätigung.
 
 ## Projekte mit mehreren Workspaces
 
-Manche Indexer brauchen eine Projektdatei in ihrem Arbeitsordner (`Cargo.toml` für rust-analyzer, eine Solution oder `.csproj` für scip-dotnet). Liegt eine im Projektordner oder darüber, läuft der Indexer einmal dort. Sonst sucht CodeSkimr die äußersten Ordner unterhalb des Projektordners, die eine solche Datei enthalten und Quelldateien dieser Sprache haben (ein Cargo-Workspace in `cli/`, eine Solution in einem Unterordner), und startet den Indexer in jedem einmal. Der Lauf meldet die Summe. Scheitert ein Workspace, zählen die anderen trotzdem; die Dateien des gescheiterten behalten Ebene 1 und erscheinen im Bericht als veraltet.
+Manche Indexer brauchen eine Projektdatei in ihrem Arbeitsordner (`Cargo.toml` für rust-analyzer, eine Solution oder `.csproj` für scip-dotnet). Liegt eine im Projektordner oder darüber, läuft der Indexer einmal dort. Sonst sucht CodeSkimr die äußersten Ordner unterhalb des Projektordners, die eine solche Datei enthalten und Quelldateien dieser Sprache haben (ein Cargo-Workspace in `cli/`, eine Solution in einem Unterordner), und startet den Indexer in jedem einmal. Der Lauf meldet die Summe. Scheitert ein Workspace, zählen die anderen trotzdem; die Dateien des gescheiterten behalten Ebene 1, und der Bericht nennt, wie viele Workspaces gescheitert sind.
 
 ## Nach einer Änderung
 

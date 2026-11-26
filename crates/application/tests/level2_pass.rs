@@ -530,6 +530,7 @@ mod cases {
                     mapped: 4,
                     dropped: 3,
                     outside_scan: 2,
+                    failed_workspaces: 0,
                 },
             }]
         );
@@ -632,11 +633,14 @@ mod cases {
             *fakes.importer.seen.lock().unwrap(),
             vec![vec!["cli/a.rs".to_owned()], vec!["ext/x/b.rs".to_owned()]]
         );
-        assert_eq!(counted(&result), Some((2, 0, 8, 6, 4)));
+        assert_eq!(counted(&result), Some((2, 0, 8, 6, 4, 0)));
     }
 
-    /// The numbers of the one checked language of a result: files, stale, mapped, dropped, outside.
-    fn counted(result: &Level2Result) -> Option<(u64, u64, u64, u64, u64)> {
+    /// Files, stale, mapped, dropped, outside the scan, failed workspaces.
+    type Counts = (u64, u64, u64, u64, u64, u64);
+
+    /// The numbers of the one checked language of a result.
+    fn counted(result: &Level2Result) -> Option<Counts> {
         match result.reports.as_slice() {
             [
                 LanguageReport {
@@ -647,10 +651,18 @@ mod cases {
                             mapped,
                             dropped,
                             outside_scan,
+                            failed_workspaces,
                         },
                     ..
                 },
-            ] => Some((*files, *stale, *mapped, *dropped, *outside_scan)),
+            ] => Some((
+                *files,
+                *stale,
+                *mapped,
+                *dropped,
+                *outside_scan,
+                *failed_workspaces,
+            )),
             _ => None,
         }
     }
@@ -668,7 +680,7 @@ mod cases {
         });
         assert_eq!(outcome.runs, 2);
         assert_eq!(outcome.imports, vec![vec!["cli/a.rs".to_owned()]]);
-        assert_eq!(counted(&outcome.result), Some((1, 1, 4, 3, 2)));
+        assert_eq!(counted(&outcome.result), Some((1, 0, 4, 3, 2, 1)));
     }
 
     #[test]
@@ -794,7 +806,7 @@ mod cases {
             ..Setup::default()
         });
         assert_eq!(outcome.imports, vec![vec!["a.cs".to_owned()]]);
-        assert_eq!(counted(&outcome.result), Some((1, 1, 4, 3, 2)));
+        assert_eq!(counted(&outcome.result), Some((1, 1, 4, 3, 2, 0)));
     }
 
     #[test]

@@ -296,6 +296,20 @@ pub const PREFERENCES_SET_TITLE: &str = i18n::COMMAND_PREFERENCES_SET_TITLE;
 pub const PREFERENCES_SET_DESCRIPTION: &str = i18n::COMMAND_PREFERENCES_SET_DESCRIPTION;
 /// File in the data folder that holds the preferences.
 pub const PREFERENCES_FILE: &str = "preferences.json";
+/// Id of the command that returns the settings the UI saved (ADR 0103).
+pub const UI_SETTINGS_GET: &str = "ui_settings.get";
+/// Title key of `ui_settings.get`.
+pub const UI_SETTINGS_GET_TITLE: &str = i18n::COMMAND_UI_SETTINGS_GET_TITLE;
+/// Description key of `ui_settings.get`.
+pub const UI_SETTINGS_GET_DESCRIPTION: &str = i18n::COMMAND_UI_SETTINGS_GET_DESCRIPTION;
+/// Id of the command that saves or forgets the memory limit of one indexer.
+pub const UI_SETTINGS_SET_INDEXER_MEMORY: &str = "ui_settings.set_indexer_memory";
+/// Title key of `ui_settings.set_indexer_memory`.
+pub const UI_SETTINGS_SET_INDEXER_MEMORY_TITLE: &str =
+    i18n::COMMAND_UI_SETTINGS_SET_INDEXER_MEMORY_TITLE;
+/// Description key of `ui_settings.set_indexer_memory`.
+pub const UI_SETTINGS_SET_INDEXER_MEMORY_DESCRIPTION: &str =
+    i18n::COMMAND_UI_SETTINGS_SET_INDEXER_MEMORY_DESCRIPTION;
 /// Ending of the file a content is written to before it replaces the real one.
 pub const TEMP_SUFFIX: &str = ".tmp";
 /// Longest name of a theme or a language that is stored.
@@ -396,6 +410,8 @@ pub const ORIGIN_DEFAULT: &str = "default";
 pub const ORIGIN_USER: &str = "user";
 /// Origin name of a value from the `.codeskimr.toml` of a project.
 pub const ORIGIN_PROJECT: &str = "project";
+/// Origin of a value the UI saved (ADR 0103).
+pub const ORIGIN_UI: &str = "ui";
 /// Origin name of a value from a command line flag (`--set`).
 pub const ORIGIN_CLI: &str = "cli";
 /// Joins key and value in the text of a command line override.

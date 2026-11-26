@@ -12,6 +12,7 @@ pub(super) struct Tally {
     mapped: u64,
     dropped: u64,
     outside_scan: u64,
+    failed_workspaces: u64,
     /// The snapshot after the last run that replaced references.
     fresh: Option<Snapshot>,
     /// Why the first workspace that did not run through gave up.
@@ -28,6 +29,7 @@ impl Tally {
             mapped,
             dropped,
             outside_scan,
+            ..
         } = outcome
         {
             self.files = self.files.saturating_add(*files);
@@ -39,12 +41,9 @@ impl Tally {
         }
     }
 
-    /// A workspace that did not run through; its `files` keep level 1 and count as outdated in
-    /// the report, because the report has no line of its own for them yet.
-    pub(super) fn failed(&mut self, reason: Skipped, files: usize) {
-        self.stale = self
-            .stale
-            .saturating_add(u64::try_from(files).unwrap_or(u64::MAX));
+    /// A workspace that did not run through; its files keep level 1 and the report counts it.
+    pub(super) fn failed(&mut self, reason: Skipped) {
+        self.failed_workspaces = self.failed_workspaces.saturating_add(1);
         self.first_failure.get_or_insert(reason);
     }
 
@@ -69,6 +68,7 @@ impl Tally {
             mapped: self.mapped,
             dropped: self.dropped,
             outside_scan: self.outside_scan,
+            failed_workspaces: self.failed_workspaces,
         };
         Ok((checked, fresh))
     }

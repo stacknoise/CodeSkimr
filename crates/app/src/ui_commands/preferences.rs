@@ -92,21 +92,30 @@ impl PreferencesFile {
     /// `APP-201` if the data folder cannot be written.
     pub fn write(&self, preferences: &Preferences) -> Result<(), CodedError> {
         let text = serde_json::to_string(preferences).map_err(|_| unavailable())?;
-        if let Some(parent) = self.path.parent() {
-            fs::create_dir_all(parent).map_err(|_| unavailable())?;
-        }
-        let temp = super::temp_file::beside(&self.path);
-        let written = create_private(&temp).and_then(|mut file| file.write_all(text.as_bytes()));
-        let moved = written.and_then(|()| fs::rename(&temp, &self.path));
-        if moved.is_err() {
-            let _ = fs::remove_file(&temp);
-        }
-        moved.map_err(|_| unavailable())
+        write_private(&self.path, &text)
     }
 }
 
+/// Writes `text` to `path` as the whole new content: to a new file beside it (see
+/// [`PreferencesFile::write`]), then renamed over it.
+///
+/// # Errors
+/// `APP-201` if the data folder cannot be written.
+pub(super) fn write_private(path: &Path, text: &str) -> Result<(), CodedError> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|_| unavailable())?;
+    }
+    let temp = super::temp_file::beside(path);
+    let written = create_private(&temp).and_then(|mut file| file.write_all(text.as_bytes()));
+    let moved = written.and_then(|()| fs::rename(&temp, path));
+    if moved.is_err() {
+        let _ = fs::remove_file(&temp);
+    }
+    moved.map_err(|_| unavailable())
+}
+
 /// Creates `path` for writing; an existing file or link of that name makes it fail.
-fn create_private(path: &Path) -> std::io::Result<fs::File> {
+pub(super) fn create_private(path: &Path) -> std::io::Result<fs::File> {
     let mut options = fs::OpenOptions::new();
     options.write(true).create_new(true);
     #[cfg(unix)]
