@@ -26,3 +26,7 @@ export const ARROW = "→";
 export const MARK = { kept: "✓", broken: "×" } as const;
 /** What follows the prefix of an inside: every name below it. */
 export const INTERNAL_SUFFIX = ".*";
+/** Joins the text of "more" and the button that shows everything. */
+export const MORE_JOIN = " · ";
+/** Ends the places of a violation that has more of them than the row names. */
+export const PLACES_MORE = ", …";

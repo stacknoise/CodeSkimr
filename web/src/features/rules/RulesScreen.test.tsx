@@ -75,7 +75,7 @@ describe("RulesScreen", () => {
     expect(screen.getByText("1 resolved")).toBeInTheDocument();
     expect(screen.getByText("Shop.Reports.Job1.Run")).toBeInTheDocument();
     expect(screen.queryByText("Shop.Reports.Job4.Run")).not.toBeInTheDocument();
-    expect(screen.getAllByText("Reports/Job1.cs:18, Reports/Job1.cs:31")).toHaveLength(1);
+    expect(screen.getAllByText("Reports/Job1.cs:18, Reports/Job1.cs:31, …")).toHaveLength(1);
     expect(screen.getByText("1 new")).toBeInTheDocument();
     expect(screen.getByText("3 old burdens")).toBeInTheDocument();
     expect(screen.getByText("Only through the public interface")).toBeInTheDocument();

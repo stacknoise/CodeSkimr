@@ -7,8 +7,10 @@ import {
   INTERNAL_SUFFIX,
   KIND,
   MARK,
+  MORE_JOIN,
   PLACE_SEPARATOR,
   PLACES_JOIN,
+  PLACES_MORE,
   VISIBLE_PLACES,
   VISIBLE_VIOLATIONS,
 } from "./consts";
@@ -22,7 +24,8 @@ function placeText(place: PlaceOut): string {
 
 /** The first places of a violation; the rest is counted in its own text. */
 function placesText(violation: ViolationOut): string {
-  return violation.places.slice(0, VISIBLE_PLACES).map(placeText).join(PLACES_JOIN);
+  const named = violation.places.slice(0, VISIBLE_PLACES).map(placeText).join(PLACES_JOIN);
+  return violation.places.length > VISIBLE_PLACES ? `${named}${PLACES_MORE}` : named;
 }
 
 /** One violation: who reaches whom, how often, where, and whether it is an old burden. */
@@ -106,7 +109,7 @@ function Violations(props: { rule: RuleOut }) {
         <button type="button" class={styles.more} onClick={() => setAll(!all())}>
           {all()
             ? t(I18N_KEYS.RULES_SHOW_LESS)
-            : `${t(I18N_KEYS.RULES_MORE, { count: hidden() })} · ${t(I18N_KEYS.RULES_SHOW_ALL)}`}
+            : `${t(I18N_KEYS.RULES_MORE, { count: hidden() })}${MORE_JOIN}${t(I18N_KEYS.RULES_SHOW_ALL)}`}
         </button>
       </Show>
     </>

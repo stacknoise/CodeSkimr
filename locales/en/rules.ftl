@@ -23,7 +23,6 @@ rules-forbid-spec = forbid = { "{" } from = "{ $from }", to = "{ $to }" { "}" }
 rules-public-api-title = Only through the public interface
 rules-public-api-spec = { $internal } only within { $module }
 rules-state-kept = kept
-rules-state-broken = violated
 rules-badge-new = { $count } new
 rules-badge-old = { $count ->
     [one] 1 old burden
