@@ -35,6 +35,8 @@ pub const TOOL_LIST_ANNOTATIONS: &str = "list_annotations";
 pub const TOOL_GET_ALERTS: &str = "get_alerts";
 /// Name of the tool that gives the context of a symbol in one answer.
 pub const TOOL_GET_CONTEXT: &str = "get_context";
+/// Name of the tool that lists the symbols without a usage.
+pub const TOOL_FIND_UNUSED: &str = "find_unused";
 /// Name of the tool that scans the project again.
 pub const TOOL_RESCAN: &str = "rescan";
 
@@ -82,6 +84,8 @@ pub const PARAM_TOTAL: &str = "total";
 pub const ARG_QUERY: &str = "query";
 /// Argument name reported when its value is invalid: the symbol kind.
 pub const ARG_KIND: &str = "kind";
+/// Name of the argument that cuts `find_unused` to one assessment.
+pub const ARG_ASSESSMENT: &str = "assessment";
 /// Argument name reported when its value is invalid: the symbol.
 pub const ARG_SYMBOL: &str = "symbol";
 /// Argument name reported when its value is invalid: the direction of a walk.

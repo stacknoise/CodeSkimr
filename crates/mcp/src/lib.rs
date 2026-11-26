@@ -16,7 +16,7 @@ mod tools;
 pub use args::{
     AlertsArgs, AnnotationsArgs, ArchitectureArgs, ConstantsArgs, ContextArgs, ConventionsArgs,
     DependenciesArgs, ImpactArgs, ProjectArgs, RescanArgs, SearchArgs, SimilarArgs, SymbolArgs,
-    UsagesArgs,
+    UnusedArgs, UsagesArgs,
 };
 pub use error::{CodeReport, McpError};
 pub use server::McpServer;

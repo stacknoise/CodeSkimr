@@ -55,7 +55,6 @@ mod temp_file;
 #[cfg(test)]
 pub(crate) mod tests;
 mod ui_settings;
-mod unused;
 mod usages;
 mod usages_code;
 
