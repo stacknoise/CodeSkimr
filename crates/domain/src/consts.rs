@@ -399,3 +399,5 @@ pub const ASSESSMENT_LIKELY: &str = "likely";
 pub const ASSESSMENT_PUBLIC: &str = "public";
 /// Label of `Assessment::Approximate`.
 pub const ASSESSMENT_APPROXIMATE: &str = "approximate";
+/// One whole in thousandths: the unit of the instability of a module (ADR 0108).
+pub const PERMILLE: u32 = 1000;
