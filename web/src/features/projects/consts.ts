@@ -16,6 +16,12 @@ export const COMMAND = {
 export const SCOPE_COMMAND = { get: "scope.get", set: "scope.set" } as const;
 /** Separates the parts of the path of a folder in the scope. */
 export const SCOPE_PATH_SEPARATOR = "/";
+/** Ids of the headings of the scope page, which name their sections. */
+export const SCOPE_HEADING_ID = { languages: "scope-languages", folders: "scope-folders" } as const;
+/** The custom property that carries the depth of a folder in the tree to the style sheet. */
+export const SCOPE_DEPTH_VAR = "--scope-depth";
+/** The name of the radio group of the hint in the window "New project". */
+export const OVERLAP_GROUP = "overlap";
 
 /** Ids of the folder dialog commands (crates/app/src/ui_commands/consts.rs). */
 export const FOLDER_DIALOG_COMMAND = {

@@ -2,7 +2,7 @@ import { createEffect, For, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
-import { PART_SEPARATOR } from "./consts";
+import { PART_SEPARATOR, SCOPE_DEPTH_VAR, SCOPE_HEADING_ID } from "./consts";
 import { failureText } from "./failure";
 import {
   baseName,
@@ -33,8 +33,8 @@ function Languages(props: {
   onChoice: (choice: ScopeChoice) => void;
 }) {
   return (
-    <section class={styles.section} aria-labelledby="scope-languages">
-      <h3 id="scope-languages" class={styles.heading}>
+    <section class={styles.section} aria-labelledby={SCOPE_HEADING_ID.languages}>
+      <h3 id={SCOPE_HEADING_ID.languages} class={styles.heading}>
         {t(I18N_KEYS.PROJECTS_SCOPE_LANGUAGES)}
       </h3>
       <ul class={styles.chips} aria-label={t(I18N_KEYS.PROJECTS_SCOPE_LANGUAGES_LABEL)}>
@@ -48,6 +48,9 @@ function Languages(props: {
                   onChange={() => props.onChoice(toggleLanguage(props.choice, entry.language))}
                 />
                 <span>{languageName(entry.language)}</span>
+                <Show when={props.choice.languages.includes(entry.language)}>
+                  <span class={styles.note}>{t(I18N_KEYS.PROJECTS_SCOPE_LANGUAGE_LEFT_OUT)}</span>
+                </Show>
                 <Show when={entry.files !== null}>
                   <span class={styles.count}>{entry.files}</span>
                 </Show>
@@ -78,10 +81,7 @@ function FolderRow(props: {
   const note = () => folderNote(props.choice, props.folder.path);
   return (
     <li class={cx(styles.folder, !covered() && styles.off)}>
-      <label
-        class={styles.folderLabel}
-        style={{ "padding-inline-start": `${depthOf(props.folder.path)}rem` }}
-      >
+      <label class={styles.folderLabel} style={{ [SCOPE_DEPTH_VAR]: depthOf(props.folder.path) }}>
         <input
           type="checkbox"
           checked={covered()}
@@ -160,8 +160,8 @@ function Folders(props: {
   onChoice: (choice: ScopeChoice) => void;
 }) {
   return (
-    <section class={styles.section} aria-labelledby="scope-folders">
-      <h3 id="scope-folders" class={styles.heading}>
+    <section class={styles.section} aria-labelledby={SCOPE_HEADING_ID.folders}>
+      <h3 id={SCOPE_HEADING_ID.folders} class={styles.heading}>
         {t(I18N_KEYS.PROJECTS_SCOPE_FOLDERS)}
       </h3>
       <RootRow {...props} />
@@ -204,6 +204,7 @@ function TakenOut(props: { result: Consequences }) {
       </For>
       <Show when={takesOut(props.result)}>
         <li>{t(I18N_KEYS.PROJECTS_SCOPE_CHANGE_NOTES)}</li>
+        <li>{t(I18N_KEYS.PROJECTS_SCOPE_CHANGE_LEVEL2)}</li>
       </Show>
     </>
   );

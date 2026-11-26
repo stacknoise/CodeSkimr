@@ -115,15 +115,32 @@ describe("the scope of a project", () => {
     expect(screen.getByRole("checkbox", { name: /vendor$/ })).not.toBeChecked();
   });
 
-  it("hints in the window New project that a folder lies in a project, and does not block", async () => {
-    serve({ "projects.list": () => answer([ROW]), "projects.add": () => answer({}) });
+  async function typeInside(): Promise<void> {
+    serve({
+      "projects.list": () => answer([ROW]),
+      "projects.add": () => answer({}),
+      "scope.get": () => answer(SCOPE),
+    });
     await refreshProjects();
     render(() => <ProjectsScreen />);
     fireEvent.click(await screen.findByRole("button", { name: "New" }));
     fireEvent.input(screen.getByLabelText(SOURCE_LABEL), { target: { value: "/work/shop/cli" } });
-    expect(await screen.findByText(/already in the project "shop"/)).toBeInTheDocument();
+    await screen.findByText(/already in the project "shop"/);
+  }
+
+  it("covers the folder in the project by default: nothing is added, the tab Scope opens", async () => {
+    await typeInside();
     expect(screen.getByRole("radio", { name: /Cover it in the project "shop"/ })).toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(await screen.findByRole("tab", { name: TAB_SCOPE, selected: true })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(calls("projects.add")).toHaveLength(0);
+  });
+
+  it("adds the folder as a project of its own when the user chooses so; no block", async () => {
+    await typeInside();
     fireEvent.click(screen.getByRole("radio", { name: /project of its own anyway/ }));
-    expect(screen.getByRole("button", { name: "Add and scan" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Add and scan" }));
+    await waitFor(() => expect(calls("projects.add")).toHaveLength(1));
   });
 });

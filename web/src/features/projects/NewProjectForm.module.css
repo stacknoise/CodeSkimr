@@ -252,3 +252,8 @@
     gap: var(--space-8);
     cursor: pointer;
 }
+
+.overlapNote {
+    padding-inline-start: var(--space-16);
+    font-size: 12px;
+}

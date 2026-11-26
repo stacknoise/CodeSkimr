@@ -71,6 +71,7 @@
 }
 
 .folderLabel {
+    padding-inline-start: calc(var(--scope-depth, 0) * 1rem);
     display: inline-flex;
     flex: 1;
     align-items: center;
