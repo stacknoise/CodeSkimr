@@ -33,6 +33,8 @@ pub const TOOL_GET_DEPENDENCIES: &str = "get_dependencies";
 pub const TOOL_LIST_ANNOTATIONS: &str = "list_annotations";
 /// Name of the tool that lists the alerts of critical symbols.
 pub const TOOL_GET_ALERTS: &str = "get_alerts";
+/// Name of the tool that gives the context of a symbol in one answer.
+pub const TOOL_GET_CONTEXT: &str = "get_context";
 /// Name of the tool that scans the project again.
 pub const TOOL_RESCAN: &str = "rescan";
 
@@ -88,6 +90,14 @@ pub const ARG_DIRECTION: &str = "direction";
 pub const ARG_STATUS: &str = "status";
 /// Argument name reported when its value is invalid: the state of an alert.
 pub const ARG_STATE: &str = "state";
+/// Argument name reported when its value is invalid: the budget of `get_context`.
+pub const ARG_BUDGET: &str = "budget";
+/// Value of `budget`: the least an agent needs, no documentation text.
+pub const BUDGET_SHORT: &str = "short";
+/// Value of `budget`: the default.
+pub const BUDGET_MEDIUM: &str = "medium";
+/// Value of `budget`: as much as the configuration allows.
+pub const BUDGET_LONG: &str = "long";
 /// Argument name reported when its value is invalid: the depth of a walk.
 pub const ARG_DEPTH: &str = "depth";
 

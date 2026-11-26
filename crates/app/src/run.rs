@@ -33,8 +33,8 @@ use crate::source_arg::SourceError;
 use crate::watch::{self, Report};
 use crate::wiring::os_secrets;
 use crate::{
-    annotations_cli, check, credential, export, level2_consent, level2_console, mcp, open, scan,
-    serve, start, tray, ui_commands,
+    annotations_cli, check, credential, export, level2_consent, level2_console, mcp, open,
+    query_cli, scan, serve, start, tray, ui_commands,
 };
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
@@ -177,6 +177,10 @@ fn run_invocation(
         Action::Alerts(action) => {
             let around = surroundings(invocation, &locations, (messages, language));
             print_text(annotations_cli::run_alerts(action, &around))
+        }
+        Action::Query(action) => {
+            let around = surroundings(invocation, &locations, (messages, language));
+            run_query(action, &around, &current_dir)
         }
         Action::Credential(action) => run_credential(action, messages, language),
         Action::Level2(action) => run_level2(action, invocation, &locations, messages, language),
@@ -452,6 +456,32 @@ fn surroundings<'a>(
         locations,
         messages,
         language,
+    }
+}
+
+/// `codeskimr symbols`, `usages`, `impact`, `context`: with `--json` a failure is JSON on standard
+/// output too, so a script reads one stream whatever happens.
+fn run_query(
+    action: &codeskimr_cli::QueryAction,
+    around: &annotations_cli::Surroundings<'_>,
+    current_dir: &Path,
+) -> Result<Outcome, Failure> {
+    match query_cli::run(action, around, current_dir) {
+        Ok(text) => {
+            write_out(&text);
+            Ok(Outcome::Done)
+        }
+        Err(failure) => {
+            let json = action.target().json;
+            if json {
+                write_out(&failure.json());
+            }
+            Err(Failure {
+                code: failure.code(),
+                detail: None,
+                shown: json,
+            })
+        }
     }
 }
 

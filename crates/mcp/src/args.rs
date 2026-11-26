@@ -63,6 +63,22 @@ pub struct SymbolArgs {
     pub project: Option<u64>,
 }
 
+/// Arguments of `get_context`.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[schemars(crate = "rmcp::schemars")]
+pub struct ContextArgs {
+    /// A symbol id (digits, as a string or a number) or a qualified name such as `Namespace.Type.member`.
+    #[serde(deserialize_with = "symbol_text")]
+    #[schemars(with = "SymbolRef")]
+    pub symbol: String,
+    /// How much room the answer may take: `short` (a few entries per list, no documentation),
+    /// `medium` (the default) or `long`. The number of entries per budget is configured.
+    pub budget: Option<String>,
+    /// Id of the project; the project of this server if left out.
+    pub project: Option<u64>,
+}
+
 /// Arguments of `get_architecture`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

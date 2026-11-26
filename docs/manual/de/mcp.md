@@ -40,6 +40,7 @@ Alle Werkzeuge lesen nur, außer `rescan` (und `get_project` führt die Werkzeug
 | `get_symbol` | Signatur, Dokumentation, Sichtbarkeit, Zeilen, Schicht, Metriken und Member eines Symbols lesen (ID oder qualifizierter Name) |
 | `find_usages` | wer das Symbol nutzt (`direction` `incoming`, Vorgabe) oder was es nutzt (`outgoing`); `depth`, `include_tests` |
 | `impact_of_change` | welche Symbole, Schichten und öffentlichen Schnittstellen eine Änderung erreichen kann |
+| `get_context` | alles zu einem Symbol in einem Aufruf: Signatur, Aufrufer, Abhängigkeiten, Dateien, die eine Änderung erreichen kann, und Anmerkungen; `budget` `short`, `medium` (Vorgabe) oder `long` sagt, wie viel |
 | `get_dependencies` | wovon ein Symbol, Namensraum oder eine Schicht abhängt und ob das die Schichtung verletzt |
 | `get_architecture` | die Schichten und die Abhängigkeiten zwischen ihnen |
 | `find_similar_code` | gibt es das schon? Ein `symbol` oder ein `snippet` mit seiner `language` angeben |
@@ -62,3 +63,7 @@ Gute Gewohnheiten für Agenten: `find_similar_code` und `find_constants` aufrufe
 ## Sicherheit
 
 Der Agent läuft als Sie, der lokale Eigentümer, und darf die Struktur des Projekts lesen. Quelltext zu lesen und einen Scan zu starten sind eigene Rechte, die die Werkzeuge prüfen. `check_conventions` wählt nur unter den Dateien der eigenen Liste des Projekts aus; ein Pfadargument wird nie geöffnet, `..` oder ein absoluter Pfad wählt also nichts aus.
+
+## Dieselben Antworten auf der Kommandozeile
+
+Skripte, CI und Agenten ohne MCP bekommen dieselben Antworten mit `codeskimr symbols <Suche>`, `codeskimr usages <Symbol>`, `codeskimr impact <Symbol>` und `codeskimr context <Symbol>`. Mit `--json` kommt JSON (die Version des Formats steht in `schema`, und `stale: true` heißt: Dateien haben sich seit dem Scan geändert); ohne gibt es Text. Das Projekt ist das des aktuellen Ordners, oder `--project <ID oder Ordner>`. Die Befehle lesen den letzten Scan; sie scannen nie von selbst. Siehe `docs/cli.md`.
