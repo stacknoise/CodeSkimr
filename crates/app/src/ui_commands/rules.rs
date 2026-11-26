@@ -153,7 +153,7 @@ fn shapes(rules: &Rules) -> Vec<Shape<'_>> {
         (
             PUBLIC_API,
             rule.module.as_str(),
-            "",
+            Default::default(),
             rule.internal.as_slice(),
             None,
         )
