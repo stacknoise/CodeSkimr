@@ -469,3 +469,21 @@ fn a_project_without_rules_says_so_and_does_not_fail() {
         answered.text
     );
 }
+
+#[test]
+fn a_broken_rule_or_held_state_fails_the_command_with_its_code() {
+    let world = World::new();
+    let rules_file = world.folder.join(".codeskimr.toml");
+    let held_file = world.folder.join(".codeskimr-baseline.toml");
+    fs::write(
+        &rules_file,
+        "[[rules.forbid]]\nfrom = \"Demo\"\nto = \"Demo.Target\"\n",
+    )
+    .unwrap();
+    let failure = world.run(&rules(true), "en").unwrap_err();
+    assert_eq!(failure.code(), ErrorCode::ConfigInvalidValue);
+    fs::write(&rules_file, FORBID).unwrap();
+    fs::write(&held_file, "[[entries\n").unwrap();
+    let failure = world.run(&rules(true), "en").unwrap_err();
+    assert!(failure.json().contains(failure.code().id()));
+}
