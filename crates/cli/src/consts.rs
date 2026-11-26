@@ -361,6 +361,22 @@ pub const NO_VERSION: &str = "?";
 /// Separates the codes in a list of codes.
 pub const CODE_LIST_SEPARATOR: &str = ", ";
 
+/// Sub-command that shows or changes what a project covers (ADR 0102).
+pub const COMMAND_SCOPE: &str = "scope";
+/// Argument id of the project of `scope`.
+pub const ARG_SCOPE_PROJECT: &str = "scope-project";
+/// Flag of `scope` that leaves a language out.
+pub const ARG_WITHOUT_LANGUAGE: &str = "without-language";
+/// Flag of `scope` that takes a language back in.
+pub const ARG_WITH_LANGUAGE: &str = "with-language";
+/// Flag of `scope` that leaves a folder out.
+pub const ARG_WITHOUT_FOLDER: &str = "without-folder";
+/// Flag of `scope` that takes a folder back in.
+pub const ARG_WITH_FOLDER: &str = "with-folder";
+/// Flag of `scope` that takes everything back in.
+pub const ARG_RESET: &str = "reset";
+/// Placeholder shown for a folder of `scope`.
+pub const VALUE_FOLDER: &str = "FOLDER";
 /// Sub-command that searches symbols by name.
 pub const COMMAND_SYMBOLS: &str = "symbols";
 /// Sub-command that lists the usages of a symbol.

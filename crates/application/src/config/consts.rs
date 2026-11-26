@@ -170,6 +170,12 @@ pub mod keys {
     pub const MAX_MEMORY_MB: &str = "scan.max_memory_mb";
     /// `scan.max_left_out_listed`
     pub const MAX_LEFT_OUT_LISTED: &str = "scan.max_left_out_listed";
+    /// `scan.max_scope_entries`
+    pub const MAX_SCOPE_ENTRIES: &str = "scan.max_scope_entries";
+    /// `scan.overview_depth`
+    pub const OVERVIEW_DEPTH: &str = "scan.overview_depth";
+    /// `scan.overview_max_folders`
+    pub const OVERVIEW_MAX_FOLDERS: &str = "scan.overview_max_folders";
     /// `level2.max_index_bytes`
     pub const LEVEL2_MAX_INDEX_BYTES: &str = "level2.max_index_bytes";
     /// `level2.timeout_seconds`

@@ -203,6 +203,14 @@ description = "The display name of a project is empty, has control or invisible 
 since = "1.0.0"
 
 [[codes]]
+id = "PRJ-103"
+name = "project_scope_invalid"
+severity = "error"
+retryable = false
+description = "The scope of a project names a folder that is not a folder inside the project (empty, absolute, with a drive, or leaving the project through ..), a language with an invalid name, or more entries than scan.max_scope_entries allows."
+since = "1.1.0"
+
+[[codes]]
 id = "PRJ-201"
 name = "project_not_found"
 severity = "error"

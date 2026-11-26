@@ -101,7 +101,11 @@ pub(crate) fn printable(text: &str) -> String {
         .collect()
 }
 
-fn say(around: &Surroundings<'_>, key: &str, args: &FluentArgs<'_>) -> Result<String, CodedError> {
+pub(crate) fn say(
+    around: &Surroundings<'_>,
+    key: &str,
+    args: &FluentArgs<'_>,
+) -> Result<String, CodedError> {
     around
         .messages
         .format(around.language, key, Some(args))

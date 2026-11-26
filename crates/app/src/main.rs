@@ -67,6 +67,7 @@ mod retention_tests;
 mod run;
 mod running;
 mod scan;
+mod scope_cli;
 #[cfg(test)]
 mod security_http_tests;
 #[cfg(test)]

@@ -15,6 +15,7 @@ error-CFG-104 = Die Datei `.codeskimr.toml` im Projektordner konnte nicht geschr
 error-CFG-105 = Stufe 2 ist in deiner Konfigurationsdatei nicht eingeschaltet. CodeSkimr ändert diesen Schalter nie selbst.
 error-PRJ-101 = Die Quelle ist weder ein vorhandener Ordner noch eine gültige Git-Adresse.
 error-PRJ-102 = Der Anzeigename ist leer, enthält Steuer- oder unsichtbare Zeichen oder ist zu lang.
+error-PRJ-103 = Der Umfang nennt einen Ordner, der nicht im Projekt liegt, eine Sprache mit ungültigem Namen oder mehr Einträge, als `scan.max_scope_entries` erlaubt.
 error-PRJ-201 = Das Projekt ist nicht registriert. Scanne den Ordner zuerst mit `codeskimr scan`.
 error-PRJ-301 = Ein Projekt mit derselben Quelle ist bereits angelegt.
 error-PRJ-302 = Für dieses Projekt läuft bereits ein Scan.

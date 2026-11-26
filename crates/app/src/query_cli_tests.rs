@@ -6,8 +6,8 @@ use std::fs;
 use std::path::PathBuf;
 
 use codeskimr_cli::{
-    ContextQuery, GlobalOptions, ImpactQuery, QueryAction, QueryTarget, SymbolsQuery, UnusedQuery,
-    UsagesQuery,
+    ContextQuery, GlobalOptions, ImpactQuery, QueryAction, QueryTarget, ScopeArgs, SymbolsQuery,
+    UnusedQuery, UsagesQuery,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_i18n::Messages;
@@ -170,6 +170,31 @@ fn a_file_that_went_away_or_came_new_makes_the_answer_stale_too() {
     assert_eq!(world.json(&context(true))["stale"], false);
     fs::remove_file(world.folder.join("Caller.cs")).unwrap();
     assert_eq!(world.json(&context(true))["stale"], true);
+}
+
+#[test]
+fn a_new_file_in_a_folder_the_scope_leaves_out_does_not_make_the_answer_stale() {
+    let world = World::new();
+    fs::create_dir_all(world.folder.join("legacy")).unwrap();
+    fs::write(
+        world.folder.join("legacy/Old.cs"),
+        TARGET.replace("Target", "Old"),
+    )
+    .unwrap();
+    assert_eq!(world.json(&context(true))["stale"], true);
+    let around = Surroundings {
+        global: &world.global,
+        locations: &world.data,
+        messages: &world.messages,
+        language: "en",
+    };
+    let args = ScopeArgs {
+        project: world.folder.to_string_lossy().into_owned(),
+        without_folders: vec!["legacy".to_owned()],
+        ..ScopeArgs::default()
+    };
+    crate::scope_cli::run_scope(&args, &around).unwrap();
+    assert_eq!(world.json(&context(true))["stale"], false);
 }
 
 #[test]

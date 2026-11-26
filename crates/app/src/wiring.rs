@@ -19,7 +19,8 @@ use codeskimr_application::pipeline::ReportStep;
 use codeskimr_application::pipeline::{Scanner, ScannerPorts};
 use codeskimr_application::ports::{AuthError, Credential, CredentialStore};
 use codeskimr_application::ports::{
-    FileAnalyzer, FileDiscovery, IndexRunner, IndexerSpec, SnippetFingerprinter, SourceProvider,
+    FileAnalyzer, FileDiscovery, FolderLister, IndexRunner, IndexerSpec, SnippetFingerprinter,
+    SourceProvider,
 };
 use codeskimr_application::resolve::ScopedResolver;
 use codeskimr_application::tools::{IndexerCheck, IndexerOverview, ToolCheckPorts, ToolChecker};
@@ -31,7 +32,7 @@ use codeskimr_scip::ScipImporter;
 use codeskimr_secrets::{KeystoreCredentials, OsKeystore};
 use codeskimr_source::{
     DiscoveryConfig, FolderText, GitCache, LanguageMap, ProjectRequirements, SourceFetcher,
-    WalkDiscovery,
+    WalkDiscovery, WalkLister,
 };
 use codeskimr_storage::SqliteStore;
 
@@ -240,20 +241,60 @@ pub struct Analysis {
     pub indexers: Vec<(LanguageId, IndexerSpec)>,
 }
 
-/// Builds the discovery and the analyzer from the installed language packs.
-///
-/// # Errors
-/// `PRS` failures if the language packs cannot be loaded.
-pub fn build_analysis(config: &Config, locations: &Locations) -> Result<Analysis, CodedError> {
-    let packs = LanguagePacks::load(&locations.languages_dir).map_err(CodedError::caused_by)?;
-    let languages: LanguageMap = packs
+/// The extensions of the installed language packs.
+fn language_map(packs: &LanguagePacks) -> LanguageMap {
+    packs
         .iter()
         .flat_map(|pack| {
             pack.extensions()
                 .iter()
                 .map(|extension| (extension.as_str(), pack.id().clone()))
         })
+        .collect()
+}
+
+/// What the scope page of a project needs besides the store: a listing of the folder and the
+/// names of the files that the indexers need.
+pub struct ScopeTools {
+    /// Lists the files of a folder with their languages.
+    pub lister: Arc<dyn FolderLister>,
+    /// The file names (or `*` patterns) that the indexers of all packs need in a folder.
+    pub project_files: Vec<String>,
+}
+
+/// Reads the language packs and builds what the scope page needs. It parses no source code.
+///
+/// # Errors
+/// `PRS` failures if the language packs cannot be loaded.
+pub fn scope_tools(config: &Config, locations: &Locations) -> Result<ScopeTools, CodedError> {
+    let packs = LanguagePacks::load(&locations.languages_dir).map_err(CodedError::caused_by)?;
+    let project_files = packs
+        .iter()
+        .filter_map(|summary| summary.indexer())
+        .flat_map(|spec| spec.project_files.iter().cloned())
         .collect();
+    let lister = WalkLister::new(discovery_config(config), language_map(&packs));
+    Ok(ScopeTools {
+        lister: Arc::new(lister),
+        project_files,
+    })
+}
+
+/// The settings of a walk through a project folder.
+fn discovery_config(config: &Config) -> DiscoveryConfig {
+    DiscoveryConfig {
+        excluded_folders: config.scan.excluded_folders.clone(),
+        max_total_bytes: u64::from(config.scan.max_source_mb).saturating_mul(BYTES_PER_MB),
+    }
+}
+
+/// Builds the discovery and the analyzer from the installed language packs.
+///
+/// # Errors
+/// `PRS` failures if the language packs cannot be loaded.
+pub fn build_analysis(config: &Config, locations: &Locations) -> Result<Analysis, CodedError> {
+    let packs = LanguagePacks::load(&locations.languages_dir).map_err(CodedError::caused_by)?;
+    let languages = language_map(&packs);
     let indexers = packs
         .iter()
         .filter_map(|summary| Some((summary.id().clone(), summary.indexer()?.clone())))
@@ -263,13 +304,7 @@ pub fn build_analysis(config: &Config, locations: &Locations) -> Result<Analysis
         .with_fingerprints(&config.similarity)
         .map_err(CodedError::caused_by)?
         .with_signature_limit(config.scan.max_signature_chars);
-    let discovery = WalkDiscovery::new(
-        DiscoveryConfig {
-            excluded_folders: config.scan.excluded_folders.clone(),
-            max_total_bytes: u64::from(config.scan.max_source_mb).saturating_mul(BYTES_PER_MB),
-        },
-        languages,
-    );
+    let discovery = WalkDiscovery::new(discovery_config(config), languages);
     let analyzer = Arc::new(analyzer);
     Ok(Analysis {
         discovery: Arc::new(discovery),
