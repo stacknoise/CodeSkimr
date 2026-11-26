@@ -69,7 +69,7 @@ describe("the memory limit per indexer", () => {
     });
     typeAndSave(field, "2048");
     expect(await screen.findByRole("status")).toHaveTextContent(
-      "Saved. It counts from the next start.",
+      "Saved. It counts from the next scan.",
     );
     expect(sentSets()).toEqual([{ indexer: "scip-java", megabytes: 2048 }]);
     expect(field).toHaveValue("2048");

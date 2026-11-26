@@ -94,8 +94,8 @@ cli-scan-level2-partial = Stufe 2: { $language } geprüft ({ $files } Dateien, {
 cli-scan-level2-skipped = Stufe 2: { $language } übersprungen ({ $reason })
 cli-scan-level2-failed-workspaces =
     Stufe 2: { $language } { $count ->
-        [one] 1 Workspace ist fehlgeschlagen und bleibt
-       *[other] { $count } Workspaces sind fehlgeschlagen und bleiben
+        [one] 1 Workspace ist nicht durchgelaufen und bleibt
+       *[other] { $count } Workspaces sind nicht durchgelaufen und bleiben
     } auf Stufe 1
 cli-scan-level2-outside-scan = Stufe 2: { $language } Verwendungen von Code in Ordnern, die der Scan überspringt, nicht gezählt: { $count }
 cli-level2-reason-not-permitted = dieser Aufrufer darf keine Indexer starten

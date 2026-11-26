@@ -13,7 +13,7 @@ use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ids::ProjectIds;
-use codeskimr_application::level2::Level2Pass;
+use codeskimr_application::level2::{Level2Pass, LimitSource};
 use codeskimr_application::metrics::StandardMetrics;
 use codeskimr_application::pipeline::ReportStep;
 use codeskimr_application::pipeline::{Scanner, ScannerPorts};
@@ -102,6 +102,7 @@ pub fn scanner_over(
     analysis: &Analysis,
     (store, config, locations): (&Arc<SqliteStore>, &Config, &Locations),
     (events, secrets): (EventBus, &Arc<Secrets>),
+    limits: Option<Arc<dyn LimitSource>>,
 ) -> Scanner {
     let discovery = Arc::clone(&analysis.discovery);
     let analyzer = Arc::clone(&analysis.analyzer);
@@ -117,6 +118,7 @@ pub fn scanner_over(
         ids: Arc::clone(&ids),
         max_file_bytes: u64::from(config.scan.max_source_mb).saturating_mul(BYTES_PER_MB),
         settings: config.level2.clone(),
+        limits,
         indexers,
         events: events.clone(),
     };

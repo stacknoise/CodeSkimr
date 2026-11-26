@@ -2122,6 +2122,7 @@ fn level2_scanner_on(
         .map_err(CodedError::caused_by)?])
         .map_err(CodedError::caused_by)?
         .level2,
+        limits: None,
         indexers: vec![(model(LanguageId::new("rust"))?, rust_indexer())],
         events: bus.clone(),
     };

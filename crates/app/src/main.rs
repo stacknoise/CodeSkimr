@@ -26,6 +26,7 @@ mod embedded_packs;
 mod embedded_ui;
 mod export;
 mod folder_dialog;
+mod fresh_limits;
 #[cfg(test)]
 mod incremental_tests;
 mod installation_token;

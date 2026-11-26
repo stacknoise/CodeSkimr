@@ -67,7 +67,7 @@ describe("the report of the last scan", () => {
   it("says at which stage the last scan ran and who started it, and what stage 2 did", async () => {
     const panel = await selected();
     expect(
-      within(panel).getByText("C# · 328 files · 3 outdated · 2 workspaces failed"),
+      within(panel).getByText("C# · 328 files · 3 outdated · 2 workspaces not run through"),
     ).toBeInTheDocument();
     expect(
       within(panel).getByText(/the indexer or a tool it needs is missing/),
@@ -101,7 +101,7 @@ describe("the report of the last scan", () => {
     setLanguage("de");
     const panel = await selected();
     expect(
-      within(panel).getByText("C# · 328 Dateien · 3 veraltet · 2 Workspaces fehlgeschlagen"),
+      within(panel).getByText("C# · 328 Dateien · 3 veraltet · 2 Workspaces nicht durchgelaufen"),
     ).toBeVisible();
     expect(within(panel).getByText(/der Indexer oder ein Werkzeug dazu fehlt/)).toBeVisible();
     expect(within(panel).getByText(/Werkzeug installieren oder aktualisieren/)).toBeVisible();

@@ -7,6 +7,7 @@ use codeskimr_application::config::Config;
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
+use codeskimr_application::level2::LimitSource;
 use codeskimr_application::ports::{CodeIndex, IndexRunner, ProjectScanner};
 use codeskimr_cli::{GlobalOptions, McpArgs};
 use codeskimr_codes::ErrorCode;
@@ -86,6 +87,7 @@ pub(crate) fn project_tools(
         messages: Arc::clone(messages),
         runner: index_runner(locations),
         running: RunningScans::default(),
+        limits: None,
     };
     let ports = build_ports(store, config, wiring, (EventBus::new(), &os_secrets()))?;
     Ok(Tools::new(ports, config.mcp.clone(), project))
@@ -124,9 +126,15 @@ pub fn http_service_sharing(
     config: &Config,
     locations: &Locations,
     (events, secrets): (EventBus, &Arc<Secrets>),
-    running: RunningScans,
+    (running, limits): (RunningScans, Arc<dyn LimitSource>),
 ) -> Result<HttpService, CodedError> {
-    http_service_over(store, config, locations, (events, secrets), (None, running))
+    http_service_over(
+        store,
+        config,
+        locations,
+        (events, secrets),
+        (None, running, Some(limits)),
+    )
 }
 
 /// Like [`http_service`], but the tools are started through `runner` instead of as real processes
@@ -139,10 +147,16 @@ pub fn http_service_probing(
     config: &Config,
     locations: &Locations,
     (events, secrets): (EventBus, &Arc<Secrets>),
-    run: (Option<Arc<dyn IndexRunner>>, RunningScans),
+    (runner, running): (Option<Arc<dyn IndexRunner>>, RunningScans),
 ) -> Result<HttpService, CodedError> {
     let store = crate::wiring::open_store(locations, config)?;
-    http_service_over(store, config, locations, (events, secrets), run)
+    http_service_over(
+        store,
+        config,
+        locations,
+        (events, secrets),
+        (runner, running, None),
+    )
 }
 
 fn http_service_over(
@@ -150,7 +164,7 @@ fn http_service_over(
     config: &Config,
     locations: &Locations,
     (events, secrets): (EventBus, &Arc<Secrets>),
-    (runner, running): (Option<Arc<dyn IndexRunner>>, RunningScans),
+    (runner, running, limits): RunParts,
 ) -> Result<HttpService, CodedError> {
     let messages = Arc::new(Messages::load().map_err(CodedError::caused_by)?);
     let wiring = Wiring {
@@ -158,6 +172,7 @@ fn http_service_over(
         messages: Arc::clone(&messages),
         runner: runner.unwrap_or_else(|| index_runner(locations)),
         running,
+        limits,
     };
     let ports = build_ports(store, config, wiring, (events, secrets))?;
     let tools = Tools::unscoped(ports, config.mcp.clone());
@@ -165,12 +180,21 @@ fn http_service_over(
     Ok(codeskimr_mcp::http_service(&server))
 }
 
+/// How the scans of the tools run: the runner of the indexers (`None`: real processes), the mark of
+/// the running scans and where the limits of an indexer come from.
+type RunParts = (
+    Option<Arc<dyn IndexRunner>>,
+    RunningScans,
+    Option<Arc<dyn LimitSource>>,
+);
+
 /// What the ports of the tools are built with besides the store and the configuration.
 struct Wiring<'a> {
     locations: &'a Locations,
     messages: Arc<Messages>,
     runner: Arc<dyn IndexRunner>,
     running: RunningScans,
+    limits: Option<Arc<dyn LimitSource>>,
 }
 
 /// The convention check over the files and language packs of `analysis`.
@@ -194,13 +218,19 @@ fn build_ports(
         messages,
         runner,
         running,
+        limits,
     }: Wiring<'_>,
     (events, secrets): (EventBus, &Arc<Secrets>),
 ) -> Result<Ports, CodedError> {
     let analysis = build_analysis(config, locations)?;
     let checker = convention_checker(&analysis, config);
     let scanner: Arc<dyn ProjectScanner> = Arc::new(ExclusiveScans::new(
-        scanner_over(&analysis, (&store, config, locations), (events, secrets)),
+        scanner_over(
+            &analysis,
+            (&store, config, locations),
+            (events, secrets),
+            limits,
+        ),
         running,
     ));
     let snippets = analysis.snippets;
