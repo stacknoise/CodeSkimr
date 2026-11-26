@@ -4,13 +4,18 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { currentPath } from "../../app/router";
 import { answer, serve, useServerSession } from "../../tests/commands";
 import { refreshStatus } from "../status/status";
+import { SETTINGS_TAB } from "./consts";
 import { SettingsScreen } from "./SettingsScreen";
+import { setEffectiveSearch } from "./effective";
+import { settingsTab, showSettingsTab } from "./tab";
 
 beforeEach(() => {
   localStorage.clear();
   vi.stubGlobal("matchMedia", () => ({ matches: false }));
   document.documentElement.setAttribute("data-theme", "petrol");
   setLanguage("en");
+  showSettingsTab(SETTINGS_TAB.appearance);
+  setEffectiveSearch("");
 });
 
 describe("SettingsScreen", () => {
@@ -50,8 +55,53 @@ describe("SettingsScreen", () => {
 
   it("leads to the layer editor", () => {
     render(() => <SettingsScreen />);
+    fireEvent.click(screen.getByRole("tab", { name: "Analysis" }));
     fireEvent.click(screen.getByRole("button", { name: "Edit layers" }));
     expect(currentPath()).toBe("/layers");
+  });
+});
+
+describe("the tabs of the settings screen", () => {
+  useServerSession();
+
+  it("shows five tabs and the appearance first", () => {
+    render(() => <SettingsScreen />);
+    const names = screen.getAllByRole("tab").map((tab) => tab.textContent);
+    expect(names).toEqual(["Appearance", "Analysis", "Access", "Effective settings", "Info"]);
+    expect(screen.getByRole("tab", { name: "Appearance" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByText("Theme")).toBeInTheDocument();
+    expect(screen.queryByText("Edit layers")).toBeNull();
+  });
+
+  it("moves along the tabs with the arrow keys", () => {
+    render(() => <SettingsScreen />);
+    fireEvent.keyDown(screen.getByRole("tablist"), { key: "ArrowRight" });
+    expect(settingsTab()).toBe(SETTINGS_TAB.analysis);
+    fireEvent.keyDown(screen.getByRole("tablist"), { key: "ArrowLeft" });
+    fireEvent.keyDown(screen.getByRole("tablist"), { key: "ArrowLeft" });
+    expect(settingsTab()).toBe(SETTINGS_TAB.info);
+  });
+
+  it("shows the effective settings when the search is used on another tab", () => {
+    serve({ "settings.effective": () => answer({ user_file: null, overrides: [], settings: [] }) });
+    render(() => <SettingsScreen />);
+    fireEvent.input(screen.getByLabelText("Search a setting …"), { target: { value: "port" } });
+    expect(settingsTab()).toBe(SETTINGS_TAB.effective);
+    expect(screen.getByRole("tab", { name: "Effective settings" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  it("keeps the configuration file and the error codes on the tab Info", async () => {
+    serve({ "settings.effective": () => answer({ user_file: null, overrides: [], settings: [] }) });
+    render(() => <SettingsScreen />);
+    fireEvent.click(screen.getByRole("tab", { name: "Info" }));
+    expect(screen.getByRole("button", { name: "Show error codes" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Configuration" })).toBeInTheDocument();
   });
 });
 

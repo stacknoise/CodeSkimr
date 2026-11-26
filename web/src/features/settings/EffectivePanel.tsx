@@ -8,13 +8,13 @@ import { Pill } from "../../shared/ui/Pill";
 import {
   EFFECTIVE_COLUMNS,
   EFFECTIVE_TABLE_KEY,
-  EFFECTIVE_SEARCH_ID,
   EFFECTIVE_ONLY_CHANGED_ID,
   ORIGIN,
   ORIGIN_TEXTS,
 } from "./consts";
 import {
   displayValue,
+  effectiveSearch,
   effectiveFailed,
   effectiveSettings,
   filterSettings,
@@ -126,24 +126,10 @@ function Table(props: { settings: EffectiveSetting[] }) {
   );
 }
 
-/** The search field and the switch to the values that differ from the default. */
-function Tools(props: {
-  search: string;
-  onSearch: (text: string) => void;
-  onlyChanged: boolean;
-  onOnlyChanged: (on: boolean) => void;
-}) {
+/** The switch to the values that differ from the default. */
+function Tools(props: { onlyChanged: boolean; onOnlyChanged: (on: boolean) => void }) {
   return (
     <div class={styles.tools}>
-      <input
-        id={EFFECTIVE_SEARCH_ID}
-        type="search"
-        class={styles.search}
-        placeholder={t(I18N_KEYS.SETTINGS_EFFECTIVE_SEARCH)}
-        aria-label={t(I18N_KEYS.SETTINGS_EFFECTIVE_SEARCH)}
-        value={props.search}
-        onInput={(event) => props.onSearch(event.currentTarget.value)}
-      />
       <label class={styles.check} for={EFFECTIVE_ONLY_CHANGED_ID}>
         <input
           id={EFFECTIVE_ONLY_CHANGED_ID}
@@ -159,18 +145,13 @@ function Tools(props: {
 
 /** The sources, the filter, the table and the count of what is shown. */
 function Overview(props: { info: EffectiveSettings }) {
-  const [search, setSearch] = createSignal("");
   const [onlyChanged, setOnlyChanged] = createSignal(false);
-  const shown = createMemo(() => filterSettings(props.info.settings, search(), onlyChanged()));
+  const shown = createMemo(() =>
+    filterSettings(props.info.settings, effectiveSearch(), onlyChanged()),
+  );
   return (
     <>
-      <Sources info={props.info} />
-      <Tools
-        search={search()}
-        onSearch={setSearch}
-        onlyChanged={onlyChanged()}
-        onOnlyChanged={setOnlyChanged}
-      />
+      <Tools onlyChanged={onlyChanged()} onOnlyChanged={setOnlyChanged} />
       <Show
         when={shown().length > 0}
         fallback={<p class={styles.muted}>{t(I18N_KEYS.SETTINGS_EFFECTIVE_EMPTY)}</p>}
@@ -190,8 +171,19 @@ function Overview(props: { info: EffectiveSettings }) {
   );
 }
 
+/** The configuration file that was read and the flags of the start (tab "Info"). */
+export function ConfigSourcesPanel() {
+  onMount(() => void loadEffectiveSettings());
+  return (
+    <section class={styles.panel} aria-label={t(I18N_KEYS.SETTINGS_SOURCES_TITLE)}>
+      <h2>{t(I18N_KEYS.SETTINGS_SOURCES_TITLE)}</h2>
+      <Show when={effectiveSettings()}>{(info) => <Sources info={info()} />}</Show>
+    </section>
+  );
+}
+
 /** The settings in effect: each value with the layer that set it (default, configuration file or
- * command line), with a search and a switch to the values that differ from the default. It only
+ * command line), narrowed by the search of the tab bar and by a switch to the values that differ from the default. It only
  * shows; a value is changed in the configuration file (mock "Wirksame Einstellungen"). */
 export function EffectivePanel() {
   onMount(() => void loadEffectiveSettings());

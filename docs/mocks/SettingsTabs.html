@@ -1,0 +1,132 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Einstellungen-Aufbau-Mocks</title><style>
+.hell{--bg:#F6F7F9;--surface:#FFFFFF;--line:#E3E6EB;--soft:#EEF0F3;--ink:#14171C;--ink2:#3A414C;--muted:#5B6370;--accent:#2457D6;--accentbg:#EAF0FD;--fg:#fff;--good:#15803D;--goodbg:#EAF7EF;--warn:#B45309;--warnbg:#FFF4E5;--bad:#B91C1C;--badbg:#FDF2F2;--c1:#2457D6;--c2:#7C3AED;--c3:#0F766E;--c4:#B45309;--c5:#BE185D}
+.petrol{--bg:#F4F6F8;--surface:#FFFFFF;--line:#DDE3EA;--soft:#E8EDF2;--ink:#1B2430;--ink2:#3A4656;--muted:#5D6B7C;--accent:#0C727B;--accentbg:#DFF1F2;--fg:#fff;--good:#1F7A45;--goodbg:#DDF3E5;--warn:#8A5A00;--warnbg:#FBECCB;--bad:#A82D2D;--badbg:#F9DCDC;--c1:#2457D6;--c2:#7C3AED;--c3:#0F766E;--c4:#B45309;--c5:#BE185D}
+.dunkel{--bg:#12171D;--surface:#1A212A;--line:#2C3643;--soft:#232C37;--ink:#E6EBF1;--ink2:#C5CED9;--muted:#97A4B4;--accent:#3BB6C1;--accentbg:#16363B;--fg:#06222A;--good:#5FD18B;--goodbg:#173826;--warn:#F0BD5A;--warnbg:#3A2D10;--bad:#FF8C8C;--badbg:#401B1B;--c1:#6E9BFF;--c2:#A78BFA;--c3:#2DD4BF;--c4:#F59E0B;--c5:#F472B6}
+*{box-sizing:border-box}html,body{margin:0}
+.board{width:1440px;height:900px;overflow:hidden;background:var(--bg);color:var(--ink);font:13px Inter,system-ui,sans-serif;display:flex;flex-direction:column}
+.mono{font-family:'JetBrains Mono','DejaVu Sans Mono',monospace;font-size:11.5px}
+.top{height:48px;flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.logo{width:24px;height:24px;border-radius:6px;background:var(--ink);color:var(--surface);display:grid;place-items:center;font-weight:700}
+.search{width:520px;border:1px solid var(--line);border-radius:8px;padding:6px 12px;color:var(--muted);background:var(--bg);margin-left:12px}
+.main{display:flex;flex:1;min-height:0}
+.rail{width:56px;flex:none;background:var(--surface);border-right:1px solid var(--line);padding:10px 8px;display:flex;flex-direction:column;gap:6px}
+.rail i{display:block;height:38px;border-radius:8px;background:var(--soft);opacity:.55}.rail i.on{background:var(--accentbg);opacity:1}
+.content{flex:1;min-width:0;padding:22px 28px;display:flex;flex-direction:column;gap:14px}
+.status{height:28px;flex:none;border-top:1px solid var(--line);background:var(--surface);display:flex;align-items:center;gap:18px;padding:0 16px;font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;color:var(--muted)}
+h1{margin:0;font:600 22px Inter,system-ui,sans-serif}h2{margin:0;font:600 15px Inter,system-ui,sans-serif}
+.head{display:flex;align-items:flex-end;gap:14px}.head .sub{color:var(--muted);padding-bottom:3px}.sp{flex:1}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.btn{font:13px Inter,system-ui,sans-serif;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:6px 12px;white-space:nowrap;display:inline-block}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--fg);font-weight:600}
+.btn.sm{font-size:12px;padding:4px 9px}
+.filter{border:1px solid var(--line);border-radius:6px;padding:6px 12px;color:var(--muted);background:var(--surface);width:220px}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;border-radius:9px;padding:2px 9px;white-space:nowrap}
+.good{background:var(--goodbg);color:var(--good)}.warn{background:var(--warnbg);color:var(--warn)}.bad{background:var(--badbg);color:var(--bad)}.n{background:var(--soft);color:var(--ink2)}.acc{background:var(--accentbg);color:var(--accent)}
+.muted{color:var(--muted)}.k{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.lb{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--soft);gap:1px}.lb i{display:block;height:100%}
+.leg{display:flex;gap:10px;flex-wrap:wrap;margin-top:5px;font-size:12px;color:var(--ink2)}.leg span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--c);margin-right:5px}
+.dots{color:var(--muted);font-weight:700;letter-spacing:1px;padding:0 6px}
+/* table (A) */
+table{width:100%;border-collapse:collapse}th{white-space:nowrap;text-align:left;font-size:12px;font-weight:600;color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--line)}
+td{padding:11px 14px;border-bottom:1px solid var(--soft);vertical-align:middle}tr:last-child td{border-bottom:0}
+tr.sel td{background:var(--accentbg)}tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.num{text-align:right;font-family:'JetBrains Mono','DejaVu Sans Mono',monospace;font-size:12px}
+.name{font-weight:600;font-size:13.5px}.path{color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:330px}
+/* detail */
+.detail{width:400px;flex:none;display:flex;flex-direction:column}
+.dsec{padding:14px 16px;border-top:1px solid var(--soft)}.dsec:first-child{border-top:0}
+.dsec p{margin:6px 0 0;color:var(--ink2);line-height:1.45}
+.row{display:flex;align-items:center;gap:8px}
+.note{border-radius:8px;padding:10px 12px;margin-top:8px;line-height:1.45}
+.sw{width:32px;height:18px;border-radius:9px;background:var(--accent);position:relative;flex:none}.sw::after{content:"";position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:7px;background:var(--surface)}
+.sw.off{background:var(--line)}.sw.off::after{right:auto;left:2px}
+.lang{display:flex;align-items:center;gap:8px;padding:5px 0}.lang b{width:86px;font-weight:600}.lang .sp{color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.tile{padding:12px 14px}.tile b{display:block;font:600 20px 'JetBrains Mono','DejaVu Sans Mono',monospace;margin-top:4px}
+/* list (B) */
+.plist{width:330px;flex:none;display:flex;flex-direction:column}
+.pi{padding:10px 14px;border-bottom:1px solid var(--soft);display:flex;gap:10px;align-items:center}.pi.sel{background:var(--accentbg);box-shadow:inset 3px 0 0 var(--accent)}
+.dot{width:9px;height:9px;border-radius:5px;flex:none;background:var(--muted)}.dot.good{background:var(--good)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}.dot.acc{background:var(--accent)}.dot.n{background:var(--line)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 12px}.tab{padding:10px 12px;border-bottom:2px solid transparent;color:var(--ink2)}.tab.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+/* cards (C) */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.pc{min-width:0;padding:14px 16px;display:flex;flex-direction:column;gap:10px}.pc.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.figs{display:flex;gap:18px;color:var(--muted);font-size:12px}.figs b{color:var(--ink);font-family:'JetBrains Mono','DejaVu Sans Mono',monospace;font-weight:600}
+
+.rail{align-items:center}.ri{width:40px;height:38px;border-radius:8px;display:grid;place-items:center;color:var(--ink2)}.ri.on{background:var(--accentbg);color:var(--accent)}
+.ri svg,.ic svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.pbar{height:6px;border-radius:3px;background:var(--soft);overflow:hidden}.pbar i{display:block;height:100%;background:var(--accent);border-radius:3px}.pbar.good i{background:var(--good)}
+.banner{padding:12px 16px;display:flex;align-items:center;gap:16px;border-color:var(--accent)}
+.stage{display:flex;align-items:center;gap:12px;padding:9px 16px;border-top:1px solid var(--soft)}.stage .nm{width:300px}.stage .nm small{display:block;color:var(--muted);font-size:12px;margin-top:1px}
+.ck{width:20px;height:20px;border-radius:10px;flex:none;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--goodbg);color:var(--good)}.ck.run{background:var(--accentbg);color:var(--accent)}.ck.wait{background:var(--soft);color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.pop{position:absolute;left:330px;bottom:36px;width:420px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.brow{display:flex;gap:10px;padding:8px 16px;border-top:1px solid var(--soft);align-items:center}.brow span:first-child{flex:1}
+.stl{color:var(--accent);text-decoration:underline}
+.board{position:relative}
+.mini{height:3px;border-radius:2px;background:var(--soft);margin-top:5px;overflow:hidden}.mini i{display:block;height:100%;background:var(--accent)}
+
+.settings-wrap{display:flex;gap:14px;flex:1;min-height:0}
+.nav{width:260px;flex:none;display:flex;flex-direction:column;padding:12px 0}
+.nav .filter{margin:0 12px 10px;width:auto}
+.ni{padding:10px 16px;display:flex;gap:10px;align-items:center;border-left:3px solid transparent}
+.ni.sel{background:var(--accentbg);border-color:var(--accent)}.ni.sel b{color:var(--accent)}
+.ni b{display:block;font-weight:600}.ni small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.ni .ic{color:var(--ink2);flex:none}.ni.sel .ic{color:var(--accent)}
+.page{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.sec{padding:16px 18px}.sec h2{margin-bottom:4px}.sec p.n2{margin:0 0 12px;color:var(--muted);line-height:1.45}
+.themes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.tc{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--surface)}.tc.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.tp{height:74px;border-radius:6px;border:1px solid var(--line);display:flex;overflow:hidden}.tp i{display:block}.tp .r{width:16%}.tp .m{flex:1;padding:8px;display:flex;flex-direction:column;gap:5px}.tp .m s{display:block;height:6px;border-radius:3px;text-decoration:none}
+.chk{display:flex;gap:8px;align-items:flex-start;margin-top:12px;color:var(--ink2)}
+.box{width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--fg);font-size:11px;display:grid;place-items:center;flex:none;margin-top:1px}
+.sel2{border:1px solid var(--line);border-radius:6px;padding:6px 10px;width:220px;display:flex;justify-content:space-between;background:var(--surface)}
+.acc-row{display:flex;align-items:center;gap:12px;padding:13px 18px;border-top:1px solid var(--soft)}.acc-row:first-child{border-top:0}
+.acc-row .sum{color:var(--muted);flex:1;text-align:right;font-size:12.5px}.chev{color:var(--muted);width:14px;text-align:center}
+.chips{display:flex;gap:8px;flex-wrap:wrap}.chip{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:4px 12px;color:var(--ink2);font-size:12.5px}.chip.on{background:var(--accentbg);color:var(--accent);border-color:var(--accent);font-weight:600}
+mark{background:var(--warnbg);color:var(--warn);border-radius:3px;padding:0 2px;font-weight:600}
+.gh{padding:8px 14px;background:var(--soft);font-size:12px;font-weight:600;color:var(--ink2);display:flex;gap:8px}
+.org{font-size:11.5px;border-radius:9px;padding:1px 8px;background:var(--soft);color:var(--ink2)}.org.cl{background:var(--accentbg);color:var(--accent);font-weight:600}
+.fact{display:grid;grid-template-columns:160px 1fr;gap:6px 14px}.fact dt{color:var(--muted)}.fact dd{margin:0}
+</style></head><body><div id="b" class="board"></div><script>const q=new URLSearchParams(location.search),v=q.get("v")||"a1",th=q.get("t")||"petrol";
+const I={folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',tree:'<path d="M6 4v16M6 8h6M6 14h9M6 20h5"/>',graph:'<circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M8 6h8M7 8l4 8M17 8l-4 8"/>',list:'<path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>',chart:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>',
+ pal:'<circle cx="12" cy="12" r="9"/><circle cx="8" cy="10" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16" cy="10" r="1"/>',lay:'<path d="M12 4 3 9l9 5 9-5zM3 14l9 5 9-5"/>',key:'<circle cx="8" cy="14" r="4"/><path d="M11 11l9-8M16 6l3 3"/>',sl:'<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',tool:'<path d="M14 6a4 4 0 0 0 5 5l-9 9a2 2 0 0 1-3-3z"/>'};
+const svg=k=>`<span class="ic"><svg viewBox="0 0 24 24">${I[k]}</svg></span>`;
+const rail=`<div class="rail">${["folder","tree","graph","list","chart","gear"].map(k=>`<span class="ri ${k=="gear"?"on":""}"><svg viewBox="0 0 24 24">${I[k]}</svg></span>`).join("")}</div>`;
+const H=(sub)=>`<div class="head"><h1>Einstellungen</h1><span class="sub">${sub||"CodeSkimr 1.0.0-rc.6"}</span><span class="sp"></span></div>`;
+const themeCard=(n,note,c,sel)=>`<div class="tc ${sel?"sel":""}"><div class="tp" style="background:${c[0]}"><i class="r" style="background:${c[1]}"></i><div class="m"><s style="background:${c[2]};width:60%"></s><s style="background:${c[3]};width:90%"></s><s style="background:${c[3]};width:75%"></s></div></div><div class="row" style="margin-top:8px"><b style="flex:1">${n}</b>${sel?'<span class="pill acc">Gewählt</span>':'<span class="btn sm">Wählen</span>'}</div><div class="muted" style="font-size:12px;margin-top:2px">${note}</div></div>`;
+const themes=`<div class="themes">${themeCard("Hell","Blauer Akzent",["#F6F7F9","#fff","#2457D6","#E3E6EB"])}${themeCard("Petrol","Standard, petrolfarbener Akzent",["#F4F6F8","#fff","#0C727B","#DDE3EA"],1)}${themeCard("Dunkel","Dunkler Grund, petrolfarbener Akzent",["#12171D","#1A212A","#3BB6C1","#2C3643"])}</div>
+<div class="chk"><span class="box">✓</span><span>Systemeinstellung folgen <span class="muted">(Petrol bei hellem, Dunkel bei dunklem Betriebssystem, bis du selbst ein Theme wählst)</span></span></div>`;
+const darstellung=(titles=true)=>`<div class="card sec"><h2>Theme</h2><p class="n2">Die Vorschau zeigt das Theme, bevor du es übernimmst.</p>${themes}</div>
+<div class="card sec"><h2>Sprache</h2><p class="n2">Theme und Sprache liegen auf dem Server und gelten in jedem Browser. Ein Team-Server speichert sie je Benutzer.</p><div class="sel2"><span>Deutsch</span><span class="muted">▾</span></div></div>`;
+const schichten=`<div class="card sec"><div class="row"><div style="flex:1"><h2>Schichten</h2><p class="n2" style="margin:2px 0 0">Lege fest, welche Namensräume zu welcher Schicht gehören. Explorer und Abhängigkeitskarte gruppieren danach.</p></div><span class="btn">Schichten bearbeiten</span></div></div>`;
+const T=[["Rust (rust-analyzer)","bereit","1.0.0","~/.cargo/bin/rust-analyzer","good"],["TypeScript (tsserver)","bereit","5.6.3","~/.npm/bin/tsc","good"],["Java (jdtls)","bereit","1.40","/usr/local/bin/jdtls","good"],["Python (pyright)","nicht gefunden","—","—","warn"],["C# (dotnet)","bereit","8.0.4","C:\\Program Files\\dotnet\\dotnet.exe","good"]];
+const werkzeuge=`<div class="card"><div class="dsec row" style="border:0"><div style="flex:1"><h2>Werkzeuge für genaue Prüfung (Stufe 2)</h2><div class="muted" style="margin-top:3px;line-height:1.4">Welche Werkzeuge CodeSkimr auf diesem Rechner findet. CodeSkimr installiert nichts selbst; fehlt etwas, steht der Befehl zum Kopieren dabei.</div></div><span class="btn">Erneut prüfen</span></div>
+<table><tr><th>Werkzeug</th><th>Zustand</th><th>Version</th><th>Pfad</th></tr>${T.map(r=>`<tr><td><b>${r[0]}</b></td><td><span class="pill ${r[4]}">${r[1]}</span></td><td class="num" style="text-align:left">${r[2]}</td><td class="mono muted">${r[3]}</td></tr>`).join("")}</table></div>`;
+const logins=`<div class="card sec"><div class="row"><div style="flex:1"><h2>Logins für private Git-Repositories</h2><p class="n2" style="margin:2px 0 0">Das Geheimnis liegt im Schlüsselbund dieses Rechners und wird nie wieder angezeigt. Projekte wählen einen Login über seinen Namen.</p></div><span class="btn pri">+ Login</span></div>
+<table style="margin-top:8px"><tr><th>Name</th><th>Art</th><th>Zuletzt genutzt</th><th></th></tr><tr><td><b>firmen-gitlab</b></td><td>Zugriffstoken</td><td class="muted">vor 2 Std.</td><td style="text-align:right"><span class="btn sm">Entfernen</span></td></tr><tr><td><b>github-privat</b></td><td>Gerätecode</td><td class="muted">gestern</td><td style="text-align:right"><span class="btn sm">Entfernen</span></td></tr></table></div>`;
+const editor=`<div class="card sec"><h2>Im Editor öffnen</h2><p class="n2">Der Link, den „Im Editor öffnen“ aufruft. Änderbar über die Einstellungen <span class="mono">editor.url_template</span> und <span class="mono">editor.allowed_schemes</span>.</p><dl class="fact" style="margin:0"><dt>Link</dt><dd class="mono">vscode://file/{path}:{line}</dd><dt>Erlaubte Schemata</dt><dd class="mono">vscode, idea, cursor</dd></dl></div>`;
+const codes=`<div class="card sec"><div class="row"><div style="flex:1"><h2>Fehlercodes</h2><p class="n2" style="margin:2px 0 0">Jeder Fehlercode mit Erklärung, so wie ihn <span class="mono">codeskimr codes</span> auflistet.</p></div><span class="btn">Fehlercodes anzeigen</span></div></div>`;
+const info=`<div class="card sec"><h2>Version</h2><dl class="fact" style="margin:6px 0 0"><dt>CodeSkimr</dt><dd class="mono">1.0.0-rc.6</dd><dt>Konfigurationsdatei</dt><dd class="mono">~/.config/codeskimr/config.toml <span class="pill good">gefunden</span></dd><dt>Start mit</dt><dd class="mono muted">keine --set-Angaben</dd></dl></div>`+codes;
+const E=[["scan.max_file_size_kb","1.024 KB","Standard"],["scan.max_files_per_project","200.000","Standard"],["scan.parse_timeout_s","30 s","config.toml"],["scan.level1_candidate_limit","100","Standard"],["level2.enabled","an","Standard"],["level2.tool_timeout_s","120 s","Kommandozeile"],["server.port","7421","Standard"],["ui.page_size","50","Standard"]];
+const G=(name,n,rows,hit)=>`<div class="gh"><span>${name}</span><span class="muted" style="font-weight:400">${n}</span></div><table>${rows.map(r=>`<tr><td class="mono" style="width:44%">${hit?r[0].replace(hit,'<mark>$&</mark>'):r[0]}</td><td class="mono" style="width:26%">${r[1]}</td><td><span class="org ${r[2]=="Standard"?"":"cl"}">${r[2]}</span></td></tr>`).join("")}</table>`;
+const wirksam=(hit)=>`<div class="card"><div class="dsec row" style="border:0;flex-wrap:wrap"><div style="flex:1;min-width:300px"><h2>Wirksame Einstellungen</h2><div class="muted" style="margin-top:3px;line-height:1.4">So gelten die Werte jetzt. Nur lesbar: Änderungen in der Konfigurationsdatei oder mit --set beim Start.</div></div><div class="filter" style="width:230px">${hit?'<span style="color:var(--ink)">'+hit+'</span>':"Einstellung suchen …"}</div><span class="row muted" style="gap:6px"><span class="sw off"></span>Nur Abweichungen</span></div>
+${hit?"":`<div class="dsec chips" style="border-top:1px solid var(--soft)">${[["Scan",14,1],["Stufe 2",6],["Server",3],["Oberfläche",4],["Editor",2],["Export",3],["Schichten",1],["Schwellen",8],["Budgets",7],["Regelprüfung",5],["Ähnlicher Code",4],["Konstanten",3],["MCP",5],["Schnappschüsse",2],["Beobachter",3],["Anmerkungen",4],["Abhängigkeitskarte",4]].map(c=>`<span class="chip ${c[2]?"on":""}">${c[0]} <span style="opacity:.7">${c[1]}</span></span>`).join("")}</div>`}
+${hit?G("Scan","3 Treffer",E.slice(0,0).concat([["scan.max_file_size_kb","1.024 KB","Standard"],["scan.max_files_per_project","200.000","Standard"],["scan.level1_candidate_limit","100","Standard"]]),"limit"):G("Scan","14 Einstellungen",E.slice(0,4))+G("Stufe 2","6 Einstellungen",E.slice(4,6))+G("Server","3 Einstellungen",E.slice(6,7))}</div>`;
+const NAV=[["pal","Darstellung","Theme und Sprache"],["lay","Analyse","Schichten, Werkzeuge für Stufe 2"],["key","Zugänge","Git-Logins, Editor-Link"],["sl","Wirksame Einstellungen","63 Werte, 2 weichen ab"],["info","Info","Version, Fehlercodes"]];
+const nav=sel=>`<div class="card nav"><div class="filter">Einstellungen durchsuchen …</div>${NAV.map((n,i)=>`<div class="ni ${i==sel?"sel":""}">${svg(n[0])}<div><b>${n[1]}</b><small>${n[2]}</small></div></div>`).join("")}</div>`;
+const tabs=sel=>`<div class="card"><div class="tabs" style="padding:0 12px">${NAV.map((n,i)=>`<span class="tab ${i==sel?"on":""}">${n[1]}</span>`).join("")}<span class="sp"></span><div class="filter" style="margin:6px 4px;width:200px">Suchen …</div></div></div>`;
+const A1=()=>H()+`<div class="settings-wrap">${nav(0)}<div class="page">${darstellung()}</div></div>`;
+const A2=()=>H()+`<div class="settings-wrap">${nav(3)}<div class="page">${wirksam()}</div></div>`;
+const B1=()=>H()+tabs(0)+`<div class="page" style="max-width:980px">${darstellung()}</div>`;
+const B2=()=>H()+tabs(1)+`<div class="page">${schichten}${werkzeuge}</div>`;
+const row=(ic,n,s,b,open)=>`<div class="acc-row">${svg(ic)}<b style="width:240px">${n}</b><span class="sum">${s}</span><span class="chev">${open?"▾":"▸"}</span></div>`;
+const C1=()=>H()+`<div class="row"><div class="filter" style="flex:1;max-width:520px;width:auto">Alle Einstellungen durchsuchen …</div><span class="chips">${["Darstellung","Analyse","Zugänge","Wirksame Einstellungen","Info"].map(x=>`<span class="chip">${x}</span>`).join("")}</span></div>
+<div class="page"><div class="card"><div class="acc-row" style="background:var(--accentbg)">${svg("pal")}<b style="width:240px">Darstellung</b><span class="sum">Petrol · Deutsch</span><span class="chev">▾</span></div><div style="padding:14px 18px 18px">${themes}<div class="row" style="margin-top:14px;gap:12px"><b>Sprache</b><div class="sel2"><span>Deutsch</span><span class="muted">▾</span></div></div></div>
+${row("lay","Schichten","3 Schichten","","")}${row("tool","Werkzeuge für genaue Prüfung (Stufe 2)","4 von 5 bereit · Python fehlt")}${row("key","Git-Logins","2 gespeichert")}${row("key","Im Editor öffnen","vscode://file/{path}:{line}")}${row("info","Fehlercodes","Liste öffnen")}${row("sl","Wirksame Einstellungen","63 Werte · 2 weichen vom Standard ab")}${row("info","Version","1.0.0-rc.6")}</div></div>`;
+const C2=()=>H()+`<div class="row"><div class="filter" style="flex:1;max-width:520px;width:auto;color:var(--ink)">limit</div><span class="muted">9 Treffer in 2 Abschnitten</span><span class="sp"></span><span class="btn sm">Suche löschen</span></div>
+<div class="page"><div class="card"><div class="acc-row" style="background:var(--accentbg)">${svg("sl")}<b style="width:240px">Wirksame Einstellungen</b><span class="sum">8 Treffer</span><span class="chev">▾</span></div>${G("Scan","3 Treffer",[["scan.max_file_size_kb","1.024 KB","Standard"],["scan.max_files_per_project","200.000","Standard"],["scan.level1_candidate_limit","100","Standard"]],"limit").replace("max_file_size_kb","max_file_size_kb")}${G("MCP","5 Treffer",[["mcp.result_limit","50","Standard"],["mcp.similar_limit","20","Standard"],["mcp.usages_limit","200","Standard"]],"limit")}</div>
+<div class="card"><div class="acc-row" style="background:var(--accentbg)">${svg("lay")}<b style="width:240px">Werkzeuge für genaue Prüfung</b><span class="sum">1 Treffer</span><span class="chev">▾</span></div><div style="padding:12px 18px;line-height:1.5">… CodeSkimr installiert nichts selbst; Pfad-Suche nur im PATH deines Benutzers. Zeit<mark>limit</mark> je Werkzeug: 120 s</div></div>
+<div class="card">${row("pal","Darstellung","kein Treffer")}${row("key","Git-Logins","kein Treffer")}</div></div>`;
+const V={a1:A1,a2:A2,b1:B1,b2:B2,c1:C1,c2:C2};
+const b=document.getElementById("b");b.classList.add(th);
+b.innerHTML=`<div class="top"><span class="logo">C</span><b style="font-size:14px">CodeSkimr</b><span class="search">Typ, Member oder Befehl …</span></div><div class="main">${rail}<div class="content">${V[v]()}</div></div><div class="status"><span style="color:var(--good)">● Verbunden</span><span>6 Projekte · 3.107 Typen</span><span>RAM 118 MB</span></div>`;
+</script></body></html>
