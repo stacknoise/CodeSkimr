@@ -149,7 +149,9 @@ impl ProcessIndexRunner {
         let index = output.index();
         if !finished.success {
             if ran_out_of_memory(spec, finished) {
-                return Err(IndexerError::MemoryLimit);
+                return Err(IndexerError::MemoryLimit {
+                    excerpt: self.excerpt(finished),
+                });
             }
             return Err(failed(
                 FailureReason::Exit(finished.code),
@@ -165,7 +167,9 @@ impl ProcessIndexRunner {
 
     fn log(spec: &IndexerSpec, error: &IndexerError) {
         let excerpt = match error {
-            IndexerError::Failed { excerpt, .. } => excerpt.as_str(),
+            IndexerError::Failed { excerpt, .. } | IndexerError::MemoryLimit { excerpt } => {
+                excerpt.as_str()
+            }
             _ => Default::default(),
         };
         // A cancel by the user or a missing tool is routine, not a warning.
@@ -199,7 +203,9 @@ fn failed(reason: FailureReason, excerpt: String) -> IndexerError {
 const fn stopped(stop: Stop) -> IndexerError {
     match stop {
         Stop::Timeout => IndexerError::Timeout,
-        Stop::Memory => IndexerError::MemoryLimit,
+        Stop::Memory => IndexerError::MemoryLimit {
+            excerpt: String::new(),
+        },
         Stop::Output => IndexerError::OutputTooLarge,
         Stop::Cancelled => IndexerError::Cancelled,
     }

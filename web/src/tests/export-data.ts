@@ -64,6 +64,7 @@ export const FOCUS_ANSWER = FOCUS;
 export const DATA = {
   format: 1,
   snapshot: 4,
+  scan_number: 2,
   project: {
     id: 9,
     name: "demo",

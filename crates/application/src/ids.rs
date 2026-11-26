@@ -24,6 +24,14 @@ pub const fn project_of_snapshot(id: SnapshotId) -> ProjectId {
     project_of_raw(id.get())
 }
 
+/// The number of the scan inside its project (1 for the first scan): the counter part of the
+/// snapshot id, without the project number. This is the number people see; the id itself is for
+/// routing only.
+#[must_use]
+pub const fn snapshot_number(id: SnapshotId) -> u64 {
+    id.get() - (project_of_snapshot(id).get() << COUNTER_BITS)
+}
+
 /// The project whose file holds the row with the raw id `id` of a snapshot, an annotation or an
 /// alert; their counters start above the project number.
 #[must_use]
@@ -183,6 +191,14 @@ mod tests {
         );
         assert_eq!(project_of_snapshot(SnapshotId::new(last)), project);
         assert!(last < (1 << 53));
+        assert_eq!(
+            snapshot_number(SnapshotId::new(first_snapshot_of(project))),
+            1
+        );
+        assert_eq!(
+            snapshot_number(SnapshotId::new(first_snapshot_of(project) + 4)),
+            5
+        );
         assert!(is_project_number(project));
         assert!(!is_project_number(ProjectId::new(MAX_PROJECT_NUMBER + 1)));
         assert!(!is_project_number(ProjectId::new(0)));
