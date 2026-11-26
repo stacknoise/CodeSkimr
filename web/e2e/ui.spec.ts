@@ -173,9 +173,11 @@ test.describe("themes and language", () => {
     const { copy } = keepLaunchFile(await harness.launchFile());
     await page.goto(`file://${copy}`);
     await page.getByRole("link", { name: "Settings" }).click();
+    await page.getByRole("tab", { name: "Access" }).click();
     await expect(
       page.getByRole("definition").filter({ hasText: "vscode://file/{path}:{line}" }),
     ).toBeVisible();
+    await page.getByRole("tab", { name: "Appearance" }).click();
     await page.getByRole("combobox").selectOption("de");
     await expect(page.getByRole("heading", { name: "Einstellungen", exact: true })).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("lang", "de");
