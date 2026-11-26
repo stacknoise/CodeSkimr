@@ -89,13 +89,13 @@ A large TypeScript project needs far more memory than the other indexers. So you
 scip-typescript = 12288
 ```
 
-For Node.js (`scip-typescript`) the limit also sets the heap of the process. A name that is not in the list is refused when the configuration is read, so a typo does not go unnoticed. You can also set the limit in the app: **Settings → Analysis → Memory per indexer**. A value saved there counts from the next start of the program, wins over the user configuration and loses against a `--set` flag; the table of effective settings names it with the origin "Saved in the app". The limit may not exceed 1,048,576 MB.
+For Node.js (`scip-typescript`) the limit also sets the heap of the process. A name that is not in the list is refused when the configuration is read, so a typo does not go unnoticed. You can also set the limit in the app: **Settings → Analysis → Memory per indexer**. A value saved there counts from the next scan (a scan that is running keeps its value), wins over the user configuration and loses against a `--set` flag; the table of effective settings names it with the origin "Saved in the app". The limit may not exceed 1,048,576 MB.
 
 The indexer gets a cleared environment with an allow list (no token or secret of CodeSkimr reaches it), runs in its own process group, and its output is redacted before it is logged. **The network is not blocked**, because restoring packages needs it; this is the main residual risk and the reason for the confirmation.
 
 ## Projects with several workspaces
 
-Some indexers need a project file in their working folder (`Cargo.toml` for rust-analyzer, a solution or `.csproj` for scip-dotnet). If the project folder or a folder above it holds one, the indexer runs once there. If not, CodeSkimr looks for the outermost folders below the project folder that hold one and have source files of that language (a Cargo workspace in `cli/`, a solution in a subfolder) and runs the indexer once in each. The run reports the sum. If one workspace fails, the others still count; the files of the failed one keep level 1, and the report says how many workspaces failed.
+Some indexers need a project file in their working folder (`Cargo.toml` for rust-analyzer, a solution or `.csproj` for scip-dotnet). If the project folder or a folder above it holds one, the indexer runs once there. If not, CodeSkimr looks for the outermost folders below the project folder that hold one and have source files of that language (a Cargo workspace in `cli/`, a solution in a subfolder) and runs the indexer once in each. The run reports the sum. If one workspace fails, the others still count; the files of the failed one keep level 1, and the report says how many workspaces did not run through. A workspace that a cancel interrupted, and those after it, count as well.
 
 ## After a change
 

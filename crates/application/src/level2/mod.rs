@@ -25,7 +25,7 @@ use crate::config::Level2;
 use crate::error::CodedError;
 pub use crate::ports::{ConsentGrant, ConsentRecord, ConsentStore, RunPermit};
 pub use disguise::{hides_text, is_disguised};
-pub use pass::Level2Pass;
+pub use pass::{Level2Pass, LimitSource};
 pub use renumber::renumbered;
 pub use report::{LanguageReport, Level2Outcome, Level2Result, Skipped};
 pub use window::{
