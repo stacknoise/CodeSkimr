@@ -41,6 +41,9 @@ mod projects_rename_tests;
 #[cfg(test)]
 mod projects_tests;
 mod rating;
+mod scope;
+#[cfg(test)]
+mod scope_tests;
 mod search;
 mod settings;
 #[cfg(test)]
@@ -115,6 +118,9 @@ use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
 use projects_pick::{FolderDialogInfo, PickFolder};
 use projects_remove::RemoveProject;
 use projects_rename::{RenameProject, SuggestName};
+pub(crate) use scope::{
+    GetInput as ScopeGetInput, ScopeAnswer, ScopeGet, ScopeSet, SetInput as ScopeSetInput,
+};
 use search::{SearchPorts, SearchQuery};
 use settings::EffectiveSettings;
 use source::ExplorerSource;
@@ -279,7 +285,7 @@ pub fn command_api_over(
         tiers: OnceLock::new(),
     });
     let mut registry = Registry::new();
-    register_projects(&mut registry, catalog, &context)?;
+    register_projects(&mut registry, catalog, (&context, config))?;
     add(&mut registry, CheckTools { tools })?;
     add(&mut registry, ListIndexers { indexers })?;
     register_credentials(&mut registry, catalog, &context)?;
@@ -426,6 +432,8 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<RemoveProject>()?;
     api.expose::<RenameProject>()?;
     api.expose::<SuggestName>()?;
+    api.expose::<ScopeGet>()?;
+    api.expose::<ScopeSet>()?;
     api.expose::<FolderDialogInfo>()?;
     api.expose::<PickFolder>()?;
     api.expose::<CheckTools>()?;
@@ -479,7 +487,7 @@ fn expose_annotations(api: &mut CommandApi) -> Result<(), CodedError> {
 fn register_projects(
     registry: &mut Registry,
     catalog: &Arc<SqliteStore>,
-    context: &Arc<Context>,
+    (context, config): (&Arc<Context>, &Config),
 ) -> Result<(), CodedError> {
     add(
         registry,
@@ -505,8 +513,32 @@ fn register_projects(
         },
     )?;
     add(registry, SuggestName)?;
+    register_scope(registry, catalog, (config, &context.locations))?;
     register_folder_dialog(registry)?;
     register_scans(registry, catalog, context)
+}
+
+/// The two commands of the scope of a project (ADR 0102).
+pub(crate) fn register_scope(
+    registry: &mut Registry,
+    catalog: &Arc<SqliteStore>,
+    (config, locations): (&Config, &Locations),
+) -> Result<(), CodedError> {
+    add(
+        registry,
+        ScopeGet {
+            store: catalog.clone(),
+            config: config.clone(),
+            locations: locations.clone(),
+        },
+    )?;
+    add(
+        registry,
+        ScopeSet {
+            store: catalog.clone(),
+            max_entries: config.scan.max_scope_entries,
+        },
+    )
 }
 
 // codeskimr: allow CHK-102 lists the commands of one area, one entry per command

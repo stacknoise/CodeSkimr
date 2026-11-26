@@ -155,18 +155,20 @@ fn context_args(query: &ContextQuery) -> ContextArgs {
 
 /// Whether files of the project changed since the newest scan: `None` if that cannot be told.
 /// Only a folder can be looked at; a Git source is a copy that only a scan updates. The files
-/// are hashed as a scan hashes them, but not parsed.
+/// are hashed as a scan hashes them, but not parsed, and only the files of the scope of the
+/// project count (ADR 0102).
 fn stale(session: &Session, around: &Surroundings<'_>) -> Option<bool> {
     let id = ProjectId::new(session.project);
     let ProjectSource::Folder(root) = session.store.project(id).ok()?.source else {
         return None;
     };
     let previous = session.store.latest_files(id).ok()?;
+    let scope = session.store.scope(id).ok()?;
     let discovery: Arc<dyn FileDiscovery> = build_analysis(&session.config, around.locations)
         .ok()?
         .discovery;
     let found = discovery
-        .discover(&root, &previous, &CancelToken::new())
+        .discover_scoped(&root, &previous, &scope, &CancelToken::new())
         .ok()?;
     Some(found.len() < previous.len() || found.iter().any(|file| file.changed))
 }

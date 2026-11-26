@@ -240,9 +240,10 @@ impl Stage for DiscoverStage {
             // files cannot be resolved again: a full scan writes them.
             run.mode = ScanMode::Full;
         }
-        let mut files = self
-            .discovery
-            .discover(&run.root, &state.files, ctx.cancel_token())?;
+        let scope = self.projects.scope(run.project.id)?;
+        let mut files =
+            self.discovery
+                .discover_scoped(&run.root, &state.files, &scope, ctx.cancel_token())?;
         run.paths_report = report_paths(run.mode, &files, &state.files, &run.paths);
         if run.mode == ScanMode::Incremental {
             limit_to_paths(&mut files, &state.files, &run.paths);

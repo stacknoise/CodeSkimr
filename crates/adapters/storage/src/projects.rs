@@ -9,7 +9,7 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
     BranchName, ContentHash, CredentialId, FileId, FolderPath, GitUrl, LanguageId, Layer,
     LayerName, Loc, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
-    RelativePath, SnapshotId, SourceFile, SymbolId, SymbolPair,
+    RelativePath, Scope, SnapshotId, SourceFile, SymbolId, SymbolPair,
 };
 use rusqlite::{Connection, OptionalExtension, Row, params};
 
@@ -483,6 +483,10 @@ impl ProjectRepository for ProjectDb {
     fn project(&self, id: ProjectId) -> Result<Project, CodedError> {
         self.read(|conn| load_project(conn, id))
             .map_err(CodedError::from)
+    }
+
+    fn scope(&self, id: ProjectId) -> Result<Scope, CodedError> {
+        self.stored_scope(id)
     }
 
     fn latest_files(&self, id: ProjectId) -> Result<Vec<SourceFile>, CodedError> {
