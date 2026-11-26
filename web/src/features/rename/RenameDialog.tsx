@@ -315,17 +315,17 @@ function Head() {
 
 /** The row under the head: the old name, the field for the new one and the button that checks. */
 function NameBar(props: {
-  old: string;
-  kind: string;
+  target: RenameTarget;
   name: string;
   onName: (name: string) => void;
   onRun: () => void;
   field: (element: HTMLInputElement) => void;
 }) {
+  const shown = () => renamePreview()?.symbol ?? props.target;
   return (
     <div class={styles.names}>
-      <KindBadge kind={props.kind} />
-      <code class={styles.old}>{props.old}</code>
+      <KindBadge kind={shown().kind} />
+      <code class={styles.old}>{shown().qualified_name}</code>
       <span aria-hidden="true">{ARROW}</span>
       <input
         ref={props.field}
@@ -369,7 +369,6 @@ export function RenameDialog(props: { target: RenameTarget }) {
     () => field,
   );
   const run = () => void checkRename(name().trim());
-  const shown = () => renamePreview()?.symbol ?? props.target;
   return (
     <Portal>
       <div class={styles.scrim} onClick={closeRename} />
@@ -382,8 +381,7 @@ export function RenameDialog(props: { target: RenameTarget }) {
       >
         <Head />
         <NameBar
-          old={shown().qualified_name}
-          kind={shown().kind}
+          target={props.target}
           name={name()}
           onName={setName}
           onRun={run}
