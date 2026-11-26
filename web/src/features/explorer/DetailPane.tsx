@@ -49,14 +49,20 @@ function Action(props: { label: string; hotkey: string; onClick: () => void; dis
 }
 
 /** The button "Check a rename…": it opens the dialog for the shown symbol and changes nothing. */
-function RenameAction(props: { symbol: number; name: string }) {
+function RenameAction(props: { symbol: number; name: string; qualified: string; kind: string }) {
   return (
     <button
       type="button"
       onClick={() => {
         const project = activeProject();
         if (project !== null) {
-          openRename({ project, symbol: props.symbol, name: props.name });
+          openRename({
+            project,
+            symbol: props.symbol,
+            name: props.name,
+            qualified_name: props.qualified,
+            kind: props.kind,
+          });
         }
       }}
     >
@@ -67,7 +73,7 @@ function RenameAction(props: { symbol: number; name: string }) {
 
 /** The four buttons of the header: usages, the layer on the dependency map, the editor, and the
  * check of a rename (which changes nothing). */
-function Actions(props: { symbol: number; name: string }) {
+function Actions(props: { symbol: number; name: string; qualified: string; kind: string }) {
   return (
     <div class={styles.actions}>
       <Action
@@ -96,7 +102,12 @@ function Actions(props: { symbol: number; name: string }) {
           }
         }}
       />
-      <RenameAction symbol={props.symbol} name={props.name} />
+      <RenameAction
+        symbol={props.symbol}
+        name={props.name}
+        qualified={props.qualified}
+        kind={props.kind}
+      />
     </div>
   );
 }
@@ -126,7 +137,12 @@ function Title(props: { info: SymbolInfo; member: MemberRow | null }) {
       <CounterChips counters={counters()} />
       <Pill tone={TONE.accent}>{kind()}</Pill>
       <Pill>{languageName(props.info.language)}</Pill>
-      <Actions symbol={shown().id} name={shown().name} />
+      <Actions
+        symbol={shown().id}
+        name={shown().name}
+        qualified={shown().qualified_name}
+        kind={shown().kind}
+      />
     </div>
   );
 }

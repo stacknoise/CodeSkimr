@@ -8,13 +8,16 @@ import { useLayer } from "../../shared/keys/layers";
 import { COPY, TONE } from "../../shared/ui/consts";
 import { createCopier } from "../../shared/ui/copier";
 import { useDialogFocus } from "../../shared/ui/dialogFocus";
+import { KindBadge } from "../explorer/KindBadge";
+import { CANCEL_KEY } from "../scan/consts";
 import { Pill, type PillTone } from "../../shared/ui/Pill";
 import {
   ARROW,
   BADGE,
-  RENAME_CANCEL_KEY,
   REQUEST_INVALID,
   RENAME_SHOWN_ROWS,
+  SIGNATURE_CLOSE,
+  SIGNATURE_OPEN,
   RENAME_SUBMIT_KEY,
   RENAME_TITLE_ID,
   TEXT_KIND,
@@ -90,6 +93,14 @@ function Summary(props: { preview: Preview }) {
   );
 }
 
+/** The symbol that has the new name, with its signature if the index knows one. */
+function conflictName(conflict: Conflict): string {
+  const name = conflict.symbol.qualified_name;
+  return conflict.signature === null
+    ? name
+    : `${name}${SIGNATURE_OPEN}${conflict.signature}${SIGNATURE_CLOSE}`;
+}
+
 /** The sentence about a symbol that already has the new name. */
 function ConflictNote(props: { conflict: Conflict }) {
   const key = () =>
@@ -99,7 +110,7 @@ function ConflictNote(props: { conflict: Conflict }) {
   return (
     <div class={styles.conflict} role="note">
       <strong>{t(I18N_KEYS.RENAME_CONFLICT_LABEL)}</strong>{" "}
-      {t(key(), { name: props.conflict.symbol.qualified_name })}
+      {t(key(), { name: conflictName(props.conflict) })}
     </div>
   );
 }
@@ -297,6 +308,7 @@ function Head() {
         {t(I18N_KEYS.RENAME_TITLE)}
       </h2>
       <span class={styles.subtitle}>{t(I18N_KEYS.RENAME_SUBTITLE)}</span>
+      <kbd class={styles.esc}>{t(I18N_KEYS.RENAME_ESC)}</kbd>
     </div>
   );
 }
@@ -304,6 +316,7 @@ function Head() {
 /** The row under the head: the old name, the field for the new one and the button that checks. */
 function NameBar(props: {
   old: string;
+  kind: string;
   name: string;
   onName: (name: string) => void;
   onRun: () => void;
@@ -311,6 +324,7 @@ function NameBar(props: {
 }) {
   return (
     <div class={styles.names}>
+      <KindBadge kind={props.kind} />
       <code class={styles.old}>{props.old}</code>
       <span aria-hidden="true">{ARROW}</span>
       <input
@@ -338,14 +352,15 @@ function NameBar(props: {
 
 /** The dialog "Check a rename" (mock of the extension E4, ADR 0110): the old name, a field for the
  * new one, and what the new name would hit. It changes nothing. Enter in the field runs the check,
- * Esc closes the dialog. */
+ * Esc closes the dialog. The symbol shown is the one the answer names, before the first
+ * check the one the explorer gave. */
 export function RenameDialog(props: { target: RenameTarget }) {
   let dialog: HTMLDivElement | undefined;
   let field: HTMLInputElement | undefined;
   const [name, setName] = createSignal("");
   useLayer(() => true);
   useKeydown((event) => {
-    if (event.key === RENAME_CANCEL_KEY) {
+    if (event.key === CANCEL_KEY) {
       closeRename();
     }
   });
@@ -354,6 +369,7 @@ export function RenameDialog(props: { target: RenameTarget }) {
     () => field,
   );
   const run = () => void checkRename(name().trim());
+  const shown = () => renamePreview()?.symbol ?? props.target;
   return (
     <Portal>
       <div class={styles.scrim} onClick={closeRename} />
@@ -366,7 +382,8 @@ export function RenameDialog(props: { target: RenameTarget }) {
       >
         <Head />
         <NameBar
-          old={props.target.name}
+          old={shown().qualified_name}
+          kind={shown().kind}
           name={name()}
           onName={setName}
           onRun={run}

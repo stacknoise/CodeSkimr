@@ -9,7 +9,11 @@ rename-checking = Prüfe …
 rename-hint = Neuen Namen eingeben und Enter drücken.
 rename-invalid-name = Das ist kein brauchbarer neuer Name. Erlaubt sind Buchstaben, Ziffern und Unterstriche, und er darf nicht der alte sein.
 rename-level2 = Stufe 2: Stellen vom Indexer geprüft
-rename-level1 = Stufe 1: { $unchecked } Stellen sind vorläufig
+rename-level1 =
+    { $unchecked ->
+        [one] Stufe 1: { $unchecked } Stelle ist vorläufig
+       *[other] Stufe 1: { $unchecked } Stellen sind vorläufig
+    }
 rename-tile-places = Stellen anzupassen
 rename-tile-sure = { $count } sicher
 rename-tile-files = Dateien
@@ -34,7 +38,11 @@ rename-sites = Code-Stellen · { $total }
 rename-texts = Text-Treffer, die CodeSkimr nicht zuordnen kann · { $total }
 rename-more = … { $count } weitere
 rename-not-searched = Der Projektordner wurde nicht nach Text durchsucht (Git-Quelle oder kein Recht, Quelltext zu lesen).
-rename-skipped = { $count } Dateien konnten nicht gelesen werden.
+rename-skipped =
+    { $count ->
+        [one] { $count } Datei konnte nicht gelesen werden.
+       *[other] { $count } Dateien konnten nicht gelesen werden.
+    }
 rename-site-sure = sicher
 rename-site-probable = wahrscheinlich
 rename-site-unchecked = vorläufig
@@ -52,3 +60,5 @@ rename-copied = Kopiert
 rename-copy-failed = Nicht kopiert
 rename-close = Schließen
 rename-failed = Die Prüfung hat nicht geklappt. Versuche es noch einmal.
+rename-esc = Esc
+rename-by-file = nach Datei

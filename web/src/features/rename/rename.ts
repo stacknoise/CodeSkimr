@@ -9,6 +9,8 @@ export interface RenameTarget {
   project: number;
   symbol: number;
   name: string;
+  qualified_name: string;
+  kind: string;
 }
 
 const [target, setTarget] = createSignal<RenameTarget | null>(null);

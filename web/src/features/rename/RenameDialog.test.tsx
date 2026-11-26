@@ -8,7 +8,13 @@ import { RenameDialog } from "./RenameDialog";
 useServerSession();
 afterEach(closeRename);
 
-const TARGET = { project: 1, symbol: 7, name: "PlaceOrder" };
+const TARGET = {
+  project: 1,
+  symbol: 7,
+  name: "PlaceOrder",
+  qualified_name: "Shop.Orders.PlaceOrder",
+  kind: "method",
+};
 
 function renderDialog() {
   openRename(TARGET);
@@ -36,7 +42,7 @@ describe("RenameDialog", () => {
     const body = JSON.parse(fetchMock.mock.calls[0]?.[1].body as string);
     expect(body).toEqual({ project: 1, symbol: 7, new_name: "SubmitOrder" });
     expect(screen.getByText("docs/api.md")).toBeTruthy();
-    expect(screen.getByText("Level 1: 1 places are preliminary")).toBeTruthy();
+    expect(screen.getByText("Level 1: 1 place is preliminary")).toBeTruthy();
     expect(screen.getByText(/CodeSkimr does not see callers outside this project/)).toBeTruthy();
     expect(screen.getByText(/does not say whether the code compiles/)).toBeTruthy();
   });

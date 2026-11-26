@@ -1056,6 +1056,8 @@ export const I18N_KEYS = {
   RENAME_COPY_FAILED: "rename-copy-failed",
   RENAME_CLOSE: "rename-close",
   RENAME_FAILED: "rename-failed",
+  RENAME_ESC: "rename-esc",
+  RENAME_BY_FILE: "rename-by-file",
   SCAN_TITLE: "scan-title",
   SCAN_STATE_RUNNING: "scan-state-running",
   SCAN_STATE_DONE: "scan-state-done",

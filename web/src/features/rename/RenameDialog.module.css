@@ -213,6 +213,21 @@
 .primary {
     border: 1px solid var(--accent);
     background: var(--accent);
-    color: var(--surface);
+    color: var(--accent-fg);
     font-weight: 600;
+}
+
+.esc {
+    margin-left: auto;
+    padding: 0 var(--space-4);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-badge);
+    background: var(--bg);
+    color: var(--muted);
+    font: 11px var(--font-mono);
+}
+
+.sorted {
+    float: right;
+    font-family: var(--font-sans);
 }

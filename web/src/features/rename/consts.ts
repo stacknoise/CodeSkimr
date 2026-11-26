@@ -6,8 +6,6 @@ export const RENAME_TITLE_ID = "rename-dialog-title";
 
 /** The key that runs the check from the field of the name. */
 export const RENAME_SUBMIT_KEY = "Enter";
-/** The key that closes the dialog. */
-export const RENAME_CANCEL_KEY = "Escape";
 
 /** Most rows of each list that the dialog shows; the counts above them stay whole. */
 export const RENAME_SHOWN_ROWS = 12;
@@ -49,3 +47,7 @@ export const BADGE = {
   probable: "probable",
   unchecked: "unchecked",
 } as const;
+
+/** What stands around the signature of a symbol next to its name. */
+export const SIGNATURE_OPEN = " (";
+export const SIGNATURE_CLOSE = ")";
