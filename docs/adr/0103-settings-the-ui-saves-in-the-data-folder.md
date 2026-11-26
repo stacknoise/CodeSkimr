@@ -31,4 +31,6 @@ Option 1.
 - The user file stays the owner's. Whoever edits it and also saves a value in the app sees the app value win; the effective settings show where each value comes from.
 - A settings file that is edited by hand and holds something the configuration would refuse does not stop the program; the offending entry is ignored.
 - A value saved while the program runs counts from the next start. A later change can make level 2 read the file for every run.
+- Whoever has the permission `manage` can change the memory limit of this computer. That is the same person who could edit the user file, so nothing is lifted. A team edition (ADR 0019) has to decide in its own ADR who may do it.
+- `ui_settings.set_indexer_memory` reads the file, changes one entry and writes it back without a lock. Two calls at the same moment can overwrite each other: the last writer wins. One user with one page makes this a rare case, so it is accepted.
 - The same file can hold more settings that the UI may change (ADR 0092), each added with its own check at the write and at the read.

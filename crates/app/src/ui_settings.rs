@@ -86,7 +86,7 @@ impl UiSettingsFile {
     /// The saved settings; none if there is no usable file.
     #[must_use]
     pub fn read(&self) -> UiSettings {
-        let usable = fs::metadata(&self.path)
+        let usable = fs::symlink_metadata(&self.path)
             .is_ok_and(|meta| meta.is_file() && meta.len() <= UI_SETTINGS_MAX_BYTES);
         usable
             .then(|| fs::read_to_string(&self.path).ok())
