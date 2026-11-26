@@ -68,6 +68,11 @@ function Levels(props: ToolbarProps) {
         onClick={() => props.onLevel(LEVEL.namespaces)}
       />
       <Choice
+        on={props.level === LEVEL.modules}
+        label={t(I18N_KEYS.GRAPH_MODE_MODULES)}
+        onClick={() => props.onLevel(LEVEL.modules)}
+      />
+      <Choice
         on={props.level === LEVEL.types}
         label={t(I18N_KEYS.GRAPH_MODE_TYPE_FOCUS)}
         disabled={!props.focusable}
@@ -121,7 +126,7 @@ export function Toolbar(props: ToolbarProps) {
   return (
     <div class={styles.bar}>
       <Levels {...props} />
-      <Show when={props.level === LEVEL.namespaces}>
+      <Show when={props.level === LEVEL.namespaces || props.level === LEVEL.modules}>
         <Depths {...props} />
       </Show>
       <Toggle checked={props.weak} label={t(I18N_KEYS.GRAPH_TOGGLE_WEAK)} onChange={props.onWeak} />
