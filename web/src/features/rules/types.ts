@@ -59,3 +59,9 @@ export interface HeldOut {
   held_on: string;
   entries: number;
 }
+
+/** The answer of `project_file.open`: the file that was opened and whether it was created. */
+export interface OpenedOut {
+  file: string;
+  created: boolean;
+}

@@ -5,6 +5,7 @@ error-APP-202 = The private file for starting the browser could not be created.
 error-APP-602 = The language packs built into the program could not be written to the data directory.
 error-APP-603 = The program could not start itself in the background or show its tray icon. Start it with --console.
 error-APP-604 = The console window for the confirmation could not be started. Copy the command shown and run it in a terminal.
+error-APP-605 = The project file could not be opened: the system did not start a program for it. Open the file .codeskimr.toml in the project folder by hand.
 error-APP-301 = Another CodeSkimr instance is using this workspace and connecting to it failed.
 error-APP-901 = An unexpected internal error occurred.
 error-APP-601 = The browser could not be started.

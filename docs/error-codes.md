@@ -18,6 +18,7 @@ Owner: `codeskimr`
 | APP-602 | `language_packs_unavailable` | error | yes | 0.1.0 | The language packs built into the program could not be written to the data directory. |
 | APP-603 | `tray_start_failed` | error | yes | 0.1.0 | The program could not start itself in the background or show its tray icon. |
 | APP-604 | `confirm_window_failed` | error | yes | 0.9.0 | The console window for the level 2 confirmation could not be started; the screen shows the command instead. |
+| APP-605 | `project_file_open_failed` | error | yes | 1.2.0 | The system did not start a program for the project file. |
 
 ## CFG – Configuration
 

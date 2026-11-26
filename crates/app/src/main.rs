@@ -25,6 +25,7 @@ mod e2e;
 mod embedded_packs;
 mod embedded_ui;
 mod export;
+mod file_opener;
 mod folder_dialog;
 mod fresh_limits;
 #[cfg(test)]

@@ -39,3 +39,5 @@ A violation is one ring, not one reference. It shows the way round the ring (`A 
 ## The layers
 
 If at least one layer of the project has a `may_use`, the layer rule (`CHK-103`, ADR 0054) is the first rule of the screen, the command and the tool, with the id `layers`. A violation is one referring symbol and one symbol of a layer it may not use, with every place, so it can be held like the others. `codeskimr check` and `check_conventions` keep reporting `CHK-103` for the files they look at.
+
+**Opening the project file.** The button "Open .codeskimr.toml" of the screen Rules opens the project file with the program that your system names for it (ADR 0111); a missing file is created empty first. It is for folder projects, needs the right to manage and starts a program on the machine of the one who clicks, so it exists on the local screen and is not a tool for agents. A link, a folder or an executable file in its place is refused with `CFG-102`, and on a machine without a local desktop session nothing is created (`APP-605`). The console has no counterpart: the file lies in the project folder, and the editor opens it.

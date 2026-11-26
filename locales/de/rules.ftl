@@ -45,6 +45,11 @@ rules-hold-done = { $count ->
    *[other] Stand festgehalten am { $date }: { $count } Verstöße gelten jetzt als Altlast. Die Datei .codeskimr-baseline.toml gehört ins Repository.
 }
 rules-hold-failed = Der Stand konnte nicht festgehalten werden.
+rules-open = .codeskimr.toml öffnen
+rules-open-hint = Öffnet die Projektdatei mit dem Programm, das Ihr System dafür vorsieht. Fehlt sie, wird sie leer angelegt.
+rules-open-git = Nur für Ordnerprojekte: Ein Git-Projekt hat keine Projektdatei.
+rules-open-created = Die Datei { $file } gab es noch nicht und wurde leer angelegt.
+rules-open-failed = Die Projektdatei konnte nicht geöffnet werden.
 rules-layers-title = Schichten
 rules-layers-allowed = { $layer } → { $uses }
 rules-layers-nothing = nichts
