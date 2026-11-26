@@ -48,6 +48,8 @@ pub struct Config {
     pub graph: Graph,
     /// The HTML export (ADR 0090).
     pub export: Export,
+    /// Limits of the comparison of two scans (ADR 0097).
+    pub compare: Compare,
     /// Limits of annotations and alerts (ADR 0068).
     pub annotations: Annotations,
     /// Where `find_constants` looks for configuration and translation keys.
@@ -451,6 +453,16 @@ pub struct Export {
     /// more per direction, so a larger project gives a file of hundreds of megabytes that no
     /// browser opens; the export is refused with `EXP-502` instead.
     pub max_references: u32,
+}
+
+/// The comparison of two scans and the change view (ADR 0097).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Compare {
+    /// Most symbols one list of a comparison holds; the answer says when it is cut.
+    pub max_symbols: u32,
+    /// Most usages listed per symbol whose usages a change can break.
+    pub max_usages: u32,
 }
 
 /// The picture of the dependency map (blueprint 15, screen 3), in layout units.

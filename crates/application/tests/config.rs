@@ -526,6 +526,29 @@ fn the_export_limit_must_be_positive() {
 }
 
 #[test]
+fn the_comparison_limits_must_be_positive() {
+    assert_rejected(&[
+        (
+            "[compare]\nmax_symbols = 0\n",
+            "compare.max_symbols",
+            Violation::MustBePositive,
+        ),
+        (
+            "[compare]\nmax_usages = 0\n",
+            "compare.max_usages",
+            Violation::MustBePositive,
+        ),
+    ]);
+}
+
+#[test]
+fn the_comparison_limits_have_defaults() {
+    let config = Config::resolve(&[]).expect("valid");
+    assert_eq!(config.compare.max_symbols, 200);
+    assert_eq!(config.compare.max_usages, 50);
+}
+
+#[test]
 fn every_error_maps_to_a_registered_code() {
     let error = Config::resolve(&[user("[watcher]\ndebounce_ms = 0\n")]).expect_err("range");
     assert_eq!(error.code().id(), "CFG-101");

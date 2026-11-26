@@ -6,6 +6,7 @@
 mod access;
 mod alert;
 mod annotation;
+mod compare;
 mod consts;
 mod coupling;
 mod error;
@@ -44,6 +45,10 @@ pub use alert::{
 pub use annotation::{
     Annotation, AnnotationContent, AnnotationId, AnnotationKind, AnnotationLimits,
     AnnotationTarget, AnnotationText, AnnotationTitle, Assignee, Author, NewAnnotation, TaskStatus,
+};
+pub use compare::{
+    ChangeReason, Comparison, ImpactCause, ImpactSubject, Matched, Moved, SymbolFact,
+    SymbolIdentity, compare_symbols, compares_kind,
 };
 pub use coupling::{SymbolPair, coupling, coupling_with};
 pub use error::ModelError;

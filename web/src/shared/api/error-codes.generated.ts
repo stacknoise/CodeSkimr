@@ -98,6 +98,9 @@ export type ErrorCode =
   | "ANN-201"
   | "ANN-202"
   | "ANN-301"
+  | "CMP-101"
+  | "CMP-201"
+  | "CMP-301"
   | "UI-201"
   | "UI-901"
   | "CHK-101"
@@ -220,6 +223,9 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "ANN-201": { id: "ANN-201", name: "annotation_not_found", group: "ANN", class: "not_found", severity: "error", retryable: false, description: "No annotation with this id exists.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-201" },
   "ANN-202": { id: "ANN-202", name: "alert_not_found", group: "ANN", class: "not_found", severity: "error", retryable: false, description: "No alert with this id exists.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-202" },
   "ANN-301": { id: "ANN-301", name: "critical_already_marked", group: "ANN", class: "conflict", severity: "error", retryable: false, description: "The symbol already has a critical mark; a symbol has at most one.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-301" },
+  "CMP-101": { id: "CMP-101", name: "comparison_order_invalid", group: "CMP", class: "invalid_input", severity: "error", retryable: false, description: "The base of a comparison is not an older snapshot than its target; the base is the older scan, the target the newer one (ADR 0097).", since: "1.1.0", deprecated: false, messageKey: "error-CMP-101" },
+  "CMP-201": { id: "CMP-201", name: "snapshot_not_found", group: "CMP", class: "not_found", severity: "error", retryable: false, description: "A snapshot of the comparison does not exist or retention has removed it; only the retained scans of the project can be compared, and a project with one scan has nothing to compare (ADR 0097).", since: "1.1.0", deprecated: false, messageKey: "error-CMP-201" },
+  "CMP-301": { id: "CMP-301", name: "naming_rules_differ", group: "CMP", class: "conflict", severity: "error", retryable: true, description: "The two snapshots were scanned with different naming rules, so their symbols cannot be matched by name; a full scan of the project writes a snapshot with the current rules and the comparison can be repeated (ADR 0097).", since: "1.1.0", deprecated: false, messageKey: "error-CMP-301" },
   "UI-201": { id: "UI-201", name: "api_unreachable", group: "UI", class: "not_found", severity: "error", retryable: false, description: "The UI cannot reach the local server.", since: "0.1.0", deprecated: false, messageKey: "error-UI-201" },
   "UI-901": { id: "UI-901", name: "unexpected_ui_error", group: "UI", class: "internal", severity: "error", retryable: false, description: "An uncaught exception was converted at a feature boundary (bug).", since: "0.1.0", deprecated: false, messageKey: "error-UI-901" },
   "CHK-101": { id: "CHK-101", name: "literal_found", group: "CHK", class: "invalid_input", severity: "error", retryable: false, description: "A literal outside the allowed exceptions was found.", since: "0.1.0", deprecated: false, messageKey: "error-CHK-101" },

@@ -62,6 +62,9 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | `RES-*` | Ebene 2 (Indexer): Werkzeug fehlt oder zu alt (`RES-201`), Index zu groß, Zeitlimit, Ausgabe- oder Speichergrenze (`RES-501` bis `RES-504`), Indexer fehlgeschlagen (`RES-601`), Index beschädigt (`RES-101`), zu wenige Vorkommen zuordenbar (`RES-302`); Ebene 1 bleibt in jedem Fall | siehe [Sprach-Indexer](indexer.md#fehler) |
 | `SEC-301`, `SEC-403` | Ebene 2 ist nicht eingeschaltet und bestätigt, oder der Aufrufer darf sie nicht bestätigen | einschalten und `codeskimr level2 confirm <Projekt>` in einem Terminal ausführen |
 | `PRJ-303` | kein Fehler: Sie haben den Scan abgebrochen | erneut starten |
+| `CMP-101` | die Basis eines Vergleichs ist kein älterer Scan als das Ziel | beide tauschen oder die Auswahl weglassen, dann wird der vorherige Scan mit dem neuesten verglichen |
+| `CMP-201` | ein Scan des Vergleichs gibt es nicht oder die Aufbewahrung hat ihn entfernt, oder das Projekt hat nur einen Scan | die Scans mit `codeskimr scans` auflisten und zwei wählen, die noch aufbewahrt sind |
+| `CMP-301` | die beiden Scans haben andere Namensregeln benutzt, ihre Symbole lassen sich nicht zuordnen | einen vollständigen Scan des Projekts ausführen und den Vergleich wiederholen |
 | `API-301` | der Port ist belegt | `--set server.port=…` |
 | `API-401` | das Installations-Token fehlt oder ist falsch | für den Browser `codeskimr open` nutzen |
 | `API-402` | `Host` oder `Origin` gehört nicht zu diesem Server | die Oberfläche unter `http://127.0.0.1:<Port>` oder `localhost` öffnen |

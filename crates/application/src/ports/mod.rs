@@ -9,6 +9,7 @@ mod analysis;
 mod annotations;
 mod catalog;
 mod clock;
+mod compare;
 mod confirmation;
 mod consent;
 mod credentials;
@@ -43,6 +44,7 @@ pub use annotations::{
 };
 pub use catalog::{DatabaseInfo, DatabaseState, LanguageShare, ProjectCatalog, ProjectOverview};
 pub use clock::Clock;
+pub use compare::ComparisonSource;
 pub use confirmation::{ConfirmationWindow, Level2Switch, WindowOutcome};
 pub use consent::{ConsentGrant, ConsentRecord, ConsentStore, RunPermit};
 pub use credentials::{AuthError, Credential, CredentialStore, FIELD_SEPARATOR, LockedSecret};
