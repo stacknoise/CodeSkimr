@@ -3,7 +3,7 @@ import { runCommand } from "../../shared/api/commands";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { createTableColumns } from "../../shared/table/columns";
-import { ColumnWidths, ResizableTh, RestHead } from "../../shared/table/ResizableHead";
+import { ColumnWidths, HeadRow } from "../../shared/table/ResizableHead";
 import { SCAN_MODE } from "../projects/consts";
 import { ago, count, seconds } from "../projects/format";
 import type { ProjectRow } from "../projects/types";
@@ -88,28 +88,6 @@ function Cards(props: { answer: ScanHistoryAnswer }) {
   );
 }
 
-function HistoryHead() {
-  return (
-    <thead>
-      <tr>
-        <For each={HISTORY_COLUMNS}>
-          {(column) => (
-            <ResizableTh
-              columns={columns}
-              id={column.id}
-              name={t(column.label)}
-              class={column.number ? styles.number : undefined}
-            >
-              {t(column.label)}
-            </ResizableTh>
-          )}
-        </For>
-        <RestHead columns={columns} />
-      </tr>
-    </thead>
-  );
-}
-
 /** One row of the table: the newest scan carries the mark "current". */
 function Row(props: { scan: ScanEntry; newest: boolean }) {
   const lang = () => currentLanguage();
@@ -140,7 +118,9 @@ function Table(props: { scans: readonly ScanEntry[] }) {
       <div class={styles.wrap}>
         <table class={styles.table} style={columns.style()}>
           <ColumnWidths columns={columns} />
-          <HistoryHead />
+          <thead>
+            <HeadRow columns={columns} heads={HISTORY_COLUMNS} numberClass={styles.number} />
+          </thead>
           <tbody>
             <For each={props.scans}>
               {(scan, index) => <Row scan={scan} newest={index() === 0} />}

@@ -74,26 +74,31 @@ pub(crate) fn set_totals(
     Ok(())
 }
 
+/// The id, commit, time, mode and the three totals of a snapshot row, as stored.
+type SnapshotColumns = (i64, Option<String>, i64, String, (i64, i64, i64));
+
+/// Reads the leading columns every snapshot query selects.
+fn snapshot_columns(cols: &Cols) -> rusqlite::Result<SnapshotColumns> {
+    Ok((
+        cols.take::<i64>()?,
+        cols.take::<Option<String>>()?,
+        cols.take::<i64>()?,
+        cols.take::<String>()?,
+        (
+            cols.take::<i64>()?,
+            cols.take::<i64>()?,
+            cols.take::<i64>()?,
+        ),
+    ))
+}
+
 /// The newest snapshot of a project, if it has one.
 pub fn latest_snapshot(conn: &Connection, project: ProjectId) -> StorageResult<Option<Snapshot>> {
     let row = conn
         .query_row(
             sql::LATEST_SNAPSHOT,
             params![column_int(project.get())?],
-            |row| {
-                let cols = Cols::new(row);
-                Ok((
-                    cols.take::<i64>()?,
-                    cols.take::<Option<String>>()?,
-                    cols.take::<i64>()?,
-                    cols.take::<String>()?,
-                    (
-                        cols.take::<i64>()?,
-                        cols.take::<i64>()?,
-                        cols.take::<i64>()?,
-                    ),
-                ))
-            },
+            |row| snapshot_columns(&Cols::new(row)),
         )
         .optional()?;
     row.map(
@@ -178,22 +183,15 @@ pub fn scan_history(conn: &Connection, project: ProjectId) -> StorageResult<Vec<
     let mut statement = conn.prepare_cached(sql::SCAN_HISTORY)?;
     let rows = statement.query_map(params![column_int(project.get())?], |row| {
         let cols = Cols::new(row);
+        let head = snapshot_columns(&cols)?;
         Ok((
-            cols.take::<i64>()?,
-            cols.take::<Option<String>>()?,
-            cols.take::<i64>()?,
-            cols.take::<String>()?,
-            (
-                cols.take::<i64>()?,
-                cols.take::<i64>()?,
-                cols.take::<i64>()?,
-            ),
+            head,
             (cols.take::<Option<i64>>()?, cols.take::<Option<i64>>()?),
         ))
     })?;
     let mut entries = Vec::new();
     for row in rows {
-        let (id, commit, created, mode, (files, symbols, _), (duration, changed)) = row?;
+        let ((id, commit, created, mode, (files, symbols, _)), (duration, changed)) = row?;
         entries.push(ScanEntry {
             snapshot: SnapshotId::new(id_from(id)?),
             created: Timestamp(created),

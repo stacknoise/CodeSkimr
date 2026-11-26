@@ -1,4 +1,4 @@
--- Schema version 23: how long a scan took and how many files it changed (ADR 0097, issues #711 and #725).
+-- Schema version 25 (after 0023 and 0024): how long a scan took and how many files it changed (ADR 0097, issues #711 and #725).
 --
 -- `duration_ms` is the wall time of the scan that wrote the snapshot, from the start of the discover
 -- stage to the commit of the snapshot. `files_changed` counts the files of that scan that were new,

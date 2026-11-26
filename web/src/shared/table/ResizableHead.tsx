@@ -60,13 +60,20 @@ export function RestHead(props: { columns: TableColumns }) {
  * cell that takes the rest of the width. */
 export function HeadRow(props: {
   columns: TableColumns;
-  heads: readonly { id: string; label: MessageKey }[];
+  heads: readonly { id: string; label: MessageKey; number?: boolean }[];
+  /** The class of a head cell whose column holds numbers. */
+  numberClass?: string | undefined;
 }) {
   return (
     <tr>
       <For each={props.heads}>
         {(column) => (
-          <ResizableTh columns={props.columns} id={column.id} name={t(column.label)}>
+          <ResizableTh
+            columns={props.columns}
+            id={column.id}
+            name={t(column.label)}
+            class={column.number ? props.numberClass : undefined}
+          >
             {t(column.label)}
           </ResizableTh>
         )}

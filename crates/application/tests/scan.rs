@@ -635,6 +635,28 @@ fn the_first_scan_of_a_project_is_timed_and_has_no_changed_files() -> Result<(),
 }
 
 #[test]
+fn a_full_scan_counts_against_the_previous_snapshot_too() -> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        found: Some(vec![("a.rs", false), ("b.rs", true)]),
+        ..World::default()
+    });
+    let (_, _) = run(&world, ScanMode::Full);
+    assert_eq!(world.last_persisted()?.files_changed, Some(2));
+    Ok(())
+}
+
+#[test]
+fn a_file_left_out_for_good_is_not_counted_as_changed_while_it_looks_the_same()
+-> Result<(), CodedError> {
+    let world = after_a_skipped_file("h", &["d.rs", "e.rs"])?;
+    let (_, _) = run(&world, ScanMode::Incremental);
+    // `e.rs` is new; `d.rs` is the file the earlier scan left out and it is as it was.
+    assert_eq!(world.last_persisted()?.files_changed, Some(1));
+    Ok(())
+}
+
+#[test]
 fn an_incremental_scan_counts_the_files_it_changed() -> Result<(), CodedError> {
     let world = Arc::new(World {
         previous: previous_snapshot()?,

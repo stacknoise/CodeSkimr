@@ -1,6 +1,6 @@
 import { For } from "solid-js";
 import { createTableColumns } from "../../shared/table/columns";
-import { ColumnWidths, ResizableTh, RestHead } from "../../shared/table/ResizableHead";
+import { ColumnWidths, HeadRow } from "../../shared/table/ResizableHead";
 import { LANGUAGE_COLUMNS, LANGUAGE_TABLE_KEY } from "./consts";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
@@ -18,29 +18,6 @@ const columns = createTableColumns(
   LANGUAGE_COLUMNS.map((column) => column.id),
 );
 
-/** The head of the language table. */
-function LanguageHead() {
-  return (
-    <thead>
-      <tr>
-        <For each={LANGUAGE_COLUMNS}>
-          {(column) => (
-            <ResizableTh
-              columns={columns}
-              id={column.id}
-              name={t(column.label)}
-              class={column.number ? styles.number : undefined}
-            >
-              {t(column.label)}
-            </ResizableTh>
-          )}
-        </For>
-        <RestHead columns={columns} />
-      </tr>
-    </thead>
-  );
-}
-
 /** The languages of the project with tier, files, lines, symbols and the parse time of the last full
  * scan (mock 5, language table). Every column can be widened and narrowed. */
 export function Languages(props: { languages: readonly LanguageInfo[] }) {
@@ -48,7 +25,9 @@ export function Languages(props: { languages: readonly LanguageInfo[] }) {
     <div class={styles.wrap}>
       <table class={styles.table} style={columns.style()}>
         <ColumnWidths columns={columns} />
-        <LanguageHead />
+        <thead>
+          <HeadRow columns={columns} heads={LANGUAGE_COLUMNS} numberClass={styles.number} />
+        </thead>
         <tbody>
           <For each={props.languages}>
             {(item) => (

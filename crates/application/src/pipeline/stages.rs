@@ -290,7 +290,8 @@ impl Stage for DiscoverStage {
 }
 
 /// How many files this scan changed against the newest snapshot: those that are new, whose content
-/// or language differs, and (in a scan of all paths) those that are gone. `None` if the project
+/// or language differs, and those that are gone. A file the previous scan left out for good counts
+/// as unchanged if it looks as it did then (issue #684). `None` if the project
 /// has no snapshot yet. A scan of some paths counts only the files those paths name (ADR 0097).
 fn changed_files(
     files: &[DiscoveredFile],
@@ -304,6 +305,12 @@ fn changed_files(
         .files
         .iter()
         .map(|file| (&file.path, (&file.content_hash, &file.language)))
+        .chain(
+            previous
+                .skipped
+                .iter()
+                .map(|file| (&file.path, (&file.content_hash, &file.language))),
+        )
         .collect();
     let named = |path: &RelativePath| !narrowed || paths.contains(path);
     let present: HashSet<&RelativePath> = files.iter().map(|file| &file.path).collect();
