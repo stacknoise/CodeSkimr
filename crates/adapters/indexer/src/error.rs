@@ -45,6 +45,8 @@ pub enum FailureReason {
     Exit(Option<i32>),
     /// The process ended well but wrote no index file.
     NoIndex,
+    /// The folder of the run is not a folder inside the project (ADR 0100).
+    Workspace,
 }
 
 impl Coded for IndexerError {

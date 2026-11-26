@@ -71,6 +71,7 @@ mod cases {
             library_root: "",
             max_created_symbols: 0,
             import_sites: &[],
+            workspace: None,
         });
         let found = outcome.ok();
         assert_eq!(found.map_or(0, |imported| imported.references.len()), 0);
