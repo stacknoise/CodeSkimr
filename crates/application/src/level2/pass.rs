@@ -24,10 +24,17 @@ use crate::error::CodedError;
 use crate::events::{Event, EventBus, Level2Progressed};
 use crate::ids::{IdSequence, ProjectIds, project_of_snapshot};
 use crate::ports::{
-    ConsentStore, FileDiscovery, ImportRequest, Imported, IndexJob, IndexRunner, IndexerSpec,
-    IndexerStatus, Level2Replacement, PreviousIndex, ProjectRepository, ReferenceImporter,
-    RunPermit, SnapshotStore, StoredNames,
+    ConsentStore, FileDiscovery, ImportRequest, Imported, IndexJob, IndexLimits, IndexRunner,
+    IndexerSpec, IndexerStatus, Level2Replacement, PreviousIndex, ProjectRepository,
+    ReferenceImporter, RunPermit, SnapshotStore, StoredNames,
 };
+
+/// Where a run takes the limits of an indexer from, when they may change while the program runs
+/// (ADR 0103).
+pub trait LimitSource: Send + Sync {
+    /// The limits of one run of the indexer called `indexer`, as they are now.
+    fn limits_of(&self, indexer: &str) -> IndexLimits;
+}
 
 /// The ports and settings of the second pass, wired by the composition root.
 pub struct Level2Pass {
@@ -49,6 +56,8 @@ pub struct Level2Pass {
     pub max_file_bytes: u64,
     /// The settings of the user (`level2.*`).
     pub settings: Level2,
+    /// Reads the limits of an indexer again for every run; `None` keeps those of `settings`.
+    pub limits: Option<Arc<dyn LimitSource>>,
     /// How to run the indexer of each language that has one. Languages that name the same
     /// indexer (TypeScript, JavaScript and TSX; Java and Kotlin) share one run.
     pub indexers: Vec<(LanguageId, IndexerSpec)>,
@@ -268,18 +277,26 @@ impl Level2Pass {
             return Err(Skipped::Unavailable(problems));
         }
         let mut tally = Tally::default();
-        for workspace in &workspaces {
+        for (position, workspace) in workspaces.iter().enumerate() {
             let mine = in_workspace(&files, workspace.as_ref());
             match self.run_workspace(scan, group, (&permit, workspace.as_ref()), &mine) {
                 Ok((outcome, fresh)) => tally.checked(&outcome, fresh),
                 Err(Skipped::Cancelled) => {
-                    tally.cancel();
+                    tally.cancel(workspaces.len() - position);
                     break;
                 }
                 Err(reason) => tally.failed(reason),
             }
         }
         tally.outcome()
+    }
+
+    /// The limits of one run of `indexer`: read again if a source says so, else those of the start.
+    fn limits_of(&self, indexer: &str) -> IndexLimits {
+        self.limits.as_ref().map_or_else(
+            || self.settings.limits_of(indexer),
+            |source| source.limits_of(indexer),
+        )
     }
 
     /// One run of the indexer in `workspace` (`None`: the project root) over the `files` below it,
@@ -298,7 +315,7 @@ impl Level2Pass {
         let job = IndexJob {
             language,
             spec: group.spec,
-            limits: self.settings.limits_of(&group.spec.name),
+            limits: self.limits_of(&group.spec.name),
             workspace,
             permit,
         };

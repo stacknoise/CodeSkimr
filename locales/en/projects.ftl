@@ -153,8 +153,8 @@ projects-report-counts = { $checked } checked, { $skipped } skipped, { $failed }
 projects-report-stale = { $count } files changed since
 projects-report-failed-workspaces =
     { $count ->
-        [one] 1 workspace failed and stays at level 1
-       *[other] { $count } workspaces failed and stay at level 1
+        [one] 1 workspace did not run through and stays at level 1
+       *[other] { $count } workspaces did not run through and stay at level 1
     }
 projects-report-failed-code = Stage 2 failed ({ $code })
 projects-report-title = Last stage 2 run: { $time } ({ $origin })
@@ -191,8 +191,8 @@ projects-report-switched-off = Stage 2 is off or not confirmed for this project.
 projects-report-chip = { $language } · { $files } files
 projects-report-chip-failed-workspaces =
     { $count ->
-        [one] 1 workspace failed
-       *[other] { $count } workspaces failed
+        [one] 1 workspace not run through
+       *[other] { $count } workspaces not run through
     }
 projects-report-chip-stale = { $language } · { $files } files · { $stale } outdated
 projects-report-todo = What to do: { $text }

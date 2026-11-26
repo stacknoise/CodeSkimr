@@ -62,8 +62,8 @@ pub struct IndexerMemory {
     pub megabytes: Option<u32>,
 }
 
-/// Saves or forgets the memory limit of one indexer. The new limit counts from the next start of
-/// the program, like every setting of the configuration.
+/// Saves or forgets the memory limit of one indexer. The new limit counts from the next scan of the
+/// running program (`crate::fresh_limits`).
 pub struct SetIndexerMemory {
     pub(super) file: UiSettingsFile,
 }
