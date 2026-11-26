@@ -141,7 +141,10 @@ mod cases {
             ..line("rust", 0, None)
         };
         let en = text("en", vec![failed.clone()]);
-        assert!(contains(&en, &["Level 2", "rust", "2 workspaces failed"]));
+        assert!(contains(
+            &en,
+            &["Level 2", "rust", "2 workspaces did not run through"]
+        ));
         let de = text("de", vec![failed.clone()]);
         assert!(contains(&de, &["Stufe 2", "rust", "2 Workspaces"]));
         assert_eq!(text("en", vec![line("rust", 0, None)]).len(), 1);
@@ -151,11 +154,11 @@ mod cases {
         };
         assert!(contains(
             &text("en", vec![one.clone()]),
-            &["1 workspace failed and stays"]
+            &["1 workspace did not run through and stays"]
         ));
         assert!(contains(
             &text("de", vec![one]),
-            &["1 Workspace ist fehlgeschlagen"]
+            &["1 Workspace ist nicht durchgelaufen"]
         ));
         let json = scan_json(&summary(vec![failed])).unwrap();
         assert!(json.contains("\"failed_workspaces\":2"), "{json}");

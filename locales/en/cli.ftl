@@ -94,8 +94,8 @@ cli-scan-level2-partial = Level 2: { $language } checked ({ $files } files, { $s
 cli-scan-level2-skipped = Level 2: { $language } skipped ({ $reason })
 cli-scan-level2-failed-workspaces =
     Level 2: { $language } { $count ->
-        [one] 1 workspace failed and stays
-       *[other] { $count } workspaces failed and stay
+        [one] 1 workspace did not run through and stays
+       *[other] { $count } workspaces did not run through and stay
     } at level 1
 cli-scan-level2-outside-scan = Level 2: { $language } uses of code in folders the scan skips, not counted: { $count }
 cli-level2-reason-not-permitted = this caller may not start indexers
