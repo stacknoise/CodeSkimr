@@ -12,7 +12,7 @@ use codeskimr_codes::i18n::{
 };
 use codeskimr_i18n::{FluentArgs, FluentValue};
 
-use crate::annotations_cli::{Surroundings, printable};
+use crate::annotations_cli::{Surroundings, say};
 use crate::consts::{
     CLI_LINE_BREAK, CLI_SCOPE_COVERED, CLI_SCOPE_LEFT_OUT, CLI_SCOPE_UNCOUNTED, scope_arg,
 };
@@ -34,14 +34,6 @@ fn changed(args: &ScopeArgs, now: &ScopeAnswer) -> (Vec<String>, Vec<String>) {
     languages.retain(|language| !args.with_languages.contains(language));
     folders.retain(|folder| !args.with_folders.contains(folder));
     (languages, folders)
-}
-
-fn say(around: &Surroundings<'_>, key: &str, args: &FluentArgs<'_>) -> Result<String, CodedError> {
-    around
-        .messages
-        .format(around.language, key, Some(args))
-        .map(|text| printable(&text))
-        .map_err(CodedError::caused_by)
 }
 
 fn state(covered: bool) -> &'static str {
