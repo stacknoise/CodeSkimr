@@ -1,0 +1,184 @@
+.sub {
+    margin: var(--space-4) 0 var(--space-16);
+    color: var(--muted);
+}
+
+.note {
+    margin: 0 0 var(--space-12);
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.alert {
+    margin: 0 0 var(--space-12);
+    padding: var(--space-8) var(--space-12);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-button);
+    background: var(--surface);
+}
+
+.summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    margin-bottom: var(--space-12);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+}
+
+.figure {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-12) var(--space-16);
+    border-right: 1px solid var(--line);
+}
+
+.figure:last-child {
+    border-right: 0;
+}
+
+.figureValue {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.figureLabel {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.card {
+    margin-bottom: var(--space-12);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+    overflow: hidden;
+}
+
+.head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-8) var(--space-12);
+    padding: var(--space-10) var(--space-16);
+}
+
+.title {
+    font-weight: 600;
+}
+
+.spec {
+    flex: 1;
+    min-width: 0;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.badges {
+    display: flex;
+    gap: var(--space-6);
+    margin-left: auto;
+}
+
+.markKept,
+.markBroken {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: var(--radius-badge);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.markKept {
+    color: var(--good);
+    background: var(--good-bg);
+}
+
+.markBroken {
+    color: var(--bad);
+    background: var(--bad-bg);
+}
+
+.kindBadge,
+.badgeKept,
+.badgeNew,
+.badgeOld {
+    padding: 1px var(--space-8);
+    border-radius: var(--radius-badge);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.kindBadge {
+    color: var(--accent);
+    background: var(--accent-bg);
+}
+
+.badgeKept {
+    color: var(--good);
+    background: var(--good-bg);
+}
+
+.badgeNew {
+    color: var(--bad);
+    background: var(--bad-bg);
+}
+
+.badgeOld {
+    color: var(--muted);
+    background: var(--line);
+}
+
+.violations {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--line);
+}
+
+.violation {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-4) var(--space-12);
+    padding: var(--space-8) var(--space-16);
+    border-bottom: 1px solid var(--line);
+}
+
+.violation:last-child {
+    border-bottom: 0;
+}
+
+.symbol,
+.places {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.arrow,
+.count,
+.places {
+    color: var(--muted);
+}
+
+.more {
+    display: block;
+    width: 100%;
+    padding: var(--space-8) var(--space-16);
+    border: 0;
+    border-top: 1px solid var(--line);
+    background: transparent;
+    color: var(--accent);
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+}

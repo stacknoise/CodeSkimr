@@ -56,6 +56,13 @@ export const STATS_ROUTE: Route = {
   icon: "stats",
   needsProject: true,
 };
+/** The architecture rules of the project and their violations (ADR 0104). */
+export const RULES_ROUTE: Route = {
+  path: "/rules",
+  label: I18N_KEYS.NAV_RULES,
+  icon: "rules",
+  needsProject: true,
+};
 export const SETTINGS_ROUTE: Route = {
   path: "/settings",
   label: I18N_KEYS.NAV_SETTINGS,
@@ -73,6 +80,7 @@ export const PROJECT_PATHS: readonly string[] = [
   GRAPH_ROUTE.path,
   ANNOTATIONS_ROUTE.path,
   STATS_ROUTE.path,
+  RULES_ROUTE.path,
   USAGES_ROUTE.path,
 ];
 
@@ -82,6 +90,7 @@ export const MAIN_ROUTES: Route[] = [
   EXPLORER_ROUTE,
   GRAPH_ROUTE,
   STATS_ROUTE,
+  RULES_ROUTE,
   ANNOTATIONS_ROUTE,
 ];
 /** Screens in the lower part of the rail. */

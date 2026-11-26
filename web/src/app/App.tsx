@@ -9,6 +9,7 @@ import { GraphScreen } from "../features/graph/GraphScreen";
 import { LayersScreen } from "../features/layers/LayersScreen";
 import { ExplorerScreen } from "../features/explorer/ExplorerScreen";
 import { listenToScans } from "../features/scan/events";
+import { RulesScreen } from "../features/rules/RulesScreen";
 import { StatsScreen } from "../features/stats/StatsScreen";
 import { showScan } from "../features/projects/page";
 import { ProjectsScreen } from "../features/projects/ProjectsScreen";
@@ -37,6 +38,7 @@ import {
   PROJECT_PATHS,
   PROJECTS_ROUTE,
   LEGACY_SCAN_PATH,
+  RULES_ROUTE,
   SETTINGS_ROUTE,
   STATS_ROUTE,
   USAGES_ROUTE,
@@ -54,6 +56,7 @@ const SCREENS: ScreenTable = [
   [CODES_ROUTE.path, CodesScreen],
   [GRAPH_ROUTE.path, GraphScreen],
   [STATS_ROUTE.path, StatsScreen],
+  [RULES_ROUTE.path, RulesScreen],
   [EXPLORER_ROUTE.path, ExplorerScreen],
   [ANNOTATIONS_ROUTE.path, BoardScreen],
   [USAGES_ROUTE.path, UsagesScreen],
