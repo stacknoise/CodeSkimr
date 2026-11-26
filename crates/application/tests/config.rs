@@ -768,6 +768,8 @@ fn an_architecture_rule_needs_valid_prefixes_that_make_sense() {
         "[[rules.public_api]]\nmodule = \"A\"\ninternal = []\n",
         "[[rules.public_api]]\nmodule = \"A\"\ninternal = [\"A\"]\n",
         "[[rules.public_api]]\nmodule = \"A\"\ninternal = [\"B.Inner\"]\n",
+        "[[rules.forbid]]\nfrom = \"A\"\nto = \"B\"\n\n[[rules.forbid]]\nfrom = \"A\"\nto = \"B\"\n",
+        "[[rules.public_api]]\nmodule = \"A\"\ninternal = [\"A.X\"]\n\n[[rules.public_api]]\nmodule = \"A\"\ninternal = [\"A.Y\"]\n",
     ];
     let cases: Vec<_> = bad
         .iter()

@@ -142,6 +142,9 @@ fn check_unused(config: &Config) -> Result<(), ConfigError> {
 
 fn check_rules(config: &Config) -> Result<(), ConfigError> {
     let rules = &config.rules;
+    if has_twin_rules(rules) {
+        return fail(keys::RULES, Violation::MustBeArchitectureRule);
+    }
     if rules.forbid.iter().all(super::model::ForbidRule::is_valid)
         && rules
             .public_api
@@ -152,6 +155,21 @@ fn check_rules(config: &Config) -> Result<(), ConfigError> {
     } else {
         fail(keys::RULES, Violation::MustBeArchitectureRule)
     }
+}
+
+/// Whether two entries would get the same id of a rule: their violations could not be told apart in
+/// the held state (ADR 0104, point 3).
+fn has_twin_rules(rules: &super::model::Rules) -> bool {
+    let mut forbid = HashSet::new();
+    let mut modules = HashSet::new();
+    rules
+        .forbid
+        .iter()
+        .any(|rule| !forbid.insert((rule.from.as_str(), rule.to.as_str())))
+        || rules
+            .public_api
+            .iter()
+            .any(|rule| !modules.insert(rule.module.as_str()))
 }
 
 fn fail(key: &'static str, violation: Violation) -> Result<(), ConfigError> {

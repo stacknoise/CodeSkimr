@@ -115,7 +115,10 @@ fn the_inside_of_a_module_is_closed_to_others_but_open_to_the_module_itself() {
 fn a_rule_without_violation_is_in_the_answer_with_an_empty_list() {
     let outcomes = evaluate(&rules(PROJECT), &Fake(Vec::new()), SNAPSHOT).unwrap();
     assert_eq!(outcomes.len(), 2);
-    assert_eq!(outcomes.iter().map(|o| o.violations.len()).sum::<usize>(), 0);
+    assert_eq!(
+        outcomes.iter().map(|o| o.violations.len()).sum::<usize>(),
+        0
+    );
 }
 
 #[test]
