@@ -47,6 +47,7 @@ import {
   statsTab,
   statsTests,
 } from "./stats";
+import { LeftOutList } from "./LeftOut";
 import type { RankingAnswer, RankingName, Row, Tab, UnusedCounts } from "./types";
 import { HatchPattern } from "./UsageBar";
 import styles from "./StatsScreen.module.css";
@@ -204,6 +205,12 @@ function RankingView(props: { ranking: RankingName; answer: RankingAnswer; proje
           onUsages={openRowUsages}
         />
       </div>
+      <Show when={props.ranking === TAB.unused && props.answer.left_out.length > 0}>
+        <LeftOutList
+          items={props.answer.left_out}
+          total={props.answer.unused?.left_out ?? props.answer.left_out.length}
+        />
+      </Show>
     </>
   );
 }

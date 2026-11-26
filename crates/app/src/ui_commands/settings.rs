@@ -10,8 +10,8 @@ use codeskimr_domain::Permission;
 use serde::Serialize;
 
 use super::consts::{
-    ORIGIN_CLI, ORIGIN_DEFAULT, ORIGIN_PROJECT, ORIGIN_USER, OVERRIDE_JOIN, SETTINGS_EFFECTIVE,
-    SETTINGS_EFFECTIVE_DESCRIPTION, SETTINGS_EFFECTIVE_TITLE,
+    ORIGIN_CLI, ORIGIN_DEFAULT, ORIGIN_PROJECT, ORIGIN_UI, ORIGIN_USER, OVERRIDE_JOIN,
+    SETTINGS_EFFECTIVE, SETTINGS_EFFECTIVE_DESCRIPTION, SETTINGS_EFFECTIVE_TITLE,
 };
 use crate::locations::Locations;
 
@@ -95,6 +95,7 @@ const fn origin_name(source: LayerSource) -> &'static str {
     match source {
         LayerSource::Default => ORIGIN_DEFAULT,
         LayerSource::User => ORIGIN_USER,
+        LayerSource::Ui => ORIGIN_UI,
         LayerSource::Project => ORIGIN_PROJECT,
         LayerSource::Cli => ORIGIN_CLI,
     }

@@ -152,7 +152,7 @@ impl Fixture {
 }
 
 /// Every command of the registry, in the order the API lists them.
-const COMMAND_IDS: [&str; 44] = [
+const COMMAND_IDS: [&str; 46] = [
     "alerts.dismiss",
     "alerts.dismiss_all",
     "alerts.list",
@@ -195,6 +195,8 @@ const COMMAND_IDS: [&str; 44] = [
     "stats.ranking",
     "status.info",
     "tools.indexers",
+    "ui_settings.get",
+    "ui_settings.set_indexer_memory",
     "usages.code",
     "usages.query",
 ];
@@ -1214,6 +1216,38 @@ fn the_preferences_are_kept_on_the_server_and_checked() {
     assert_eq!(
         fixture.call("preferences.get", json!(null)).unwrap(),
         cleared
+    );
+}
+
+#[test]
+fn the_memory_limit_of_an_indexer_is_saved_checked_and_forgotten() {
+    let fixture = Fixture::new();
+    let none = fixture.call("ui_settings.get", json!(null)).unwrap();
+    assert_eq!(none, json!({"indexer_memory_mb": {}}));
+    let set = |indexer: &str, megabytes: Value| {
+        fixture.call(
+            "ui_settings.set_indexer_memory",
+            json!({"indexer": indexer, "megabytes": megabytes}),
+        )
+    };
+    let saved = json!({"indexer_memory_mb": {"scip-typescript": 8192}});
+    assert_eq!(set("scip-typescript", json!(8192)).unwrap(), saved);
+    assert_eq!(fixture.call("ui_settings.get", json!(null)).unwrap(), saved);
+    assert_eq!(set("made-up", json!(1)), Err("API-101"));
+    assert_eq!(set("scip-java", json!(4_294_967_295_u32)), Err("API-101"));
+    assert_eq!(fixture.call("ui_settings.get", json!(null)).unwrap(), saved);
+    assert_eq!(set("scip-typescript", json!(null)).unwrap(), none);
+}
+
+#[test]
+fn only_a_manager_may_save_the_memory_limit_of_an_indexer() {
+    let fixture = Fixture::new();
+    let input = json!({"indexer": "scip-java", "megabytes": 2048});
+    let as_reader = |id: &str, input: Value| run_as(&fixture, principal::reader(), id, input);
+    assert!(as_reader("ui_settings.get", json!(null)).is_ok());
+    assert_eq!(
+        as_reader("ui_settings.set_indexer_memory", input).unwrap_err(),
+        "AUTH-401"
     );
 }
 

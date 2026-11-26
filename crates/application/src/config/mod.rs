@@ -1,8 +1,8 @@
 //! Typed, validated configuration with the override chain of blueprint section 14.
 //!
 //! `config/default.toml` is embedded in the binary and holds every tunable value.
-//! Overrides are applied in this order: user config file, project config
-//! (`.codeskimr.toml`), command line flags. Reading the files is the job of the caller
+//! Overrides are applied in this order: user config file, the settings the UI
+//! saved (ADR 0103), project config (`.codeskimr.toml`), command line flags. Reading the files is the job of the caller
 //! (composition root); this module only turns text into a validated [`Config`].
 
 mod consts;
@@ -13,14 +13,15 @@ mod layer_file;
 mod model;
 mod validate;
 
-pub use consts::PROJECT_CONFIG_FILE;
+pub use consts::{MAX_INDEXER_MEMORY_MB, PROJECT_CONFIG_FILE};
 pub use effective::EffectiveSetting;
 pub use error::{ConfigError, LayerSource, Violation};
 pub use layer::ConfigLayer;
 pub use layer_file::with_layers;
 pub use model::{
     Annotations, Budgets, Config, Conventions, Editor, Export, Graph, KeySources, LayerRule,
-    Level2, McpLimits, MetricThresholds, Scan, Similarity, SnapshotRetention, Ui, Watcher,
+    Level2, McpLimits, MetricThresholds, Scan, Similarity, SnapshotRetention, Ui, Unused,
+    UnusedIgnore, Watcher,
 };
 
 use consts::NO_PREFIX;

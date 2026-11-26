@@ -49,6 +49,7 @@ fn mixed() -> Vec<LanguageLine> {
             LanguageOutcome::Checked {
                 files: 328,
                 stale: 3,
+                failed_workspaces: 2,
             },
         ),
         line(
@@ -86,7 +87,8 @@ fn a_level_2_scan_is_stored_with_every_outcome_and_read_back_in_the_order_of_the
         lines[0].outcome,
         LanguageOutcome::Checked {
             files: 328,
-            stale: 3
+            stale: 3,
+            failed_workspaces: 2
         }
     );
     assert_eq!(

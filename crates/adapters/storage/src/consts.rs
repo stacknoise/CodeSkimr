@@ -24,6 +24,7 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0020_symbol_statistics.sql"),
     include_str!("../migrations/0021_snapshot_skipped_files.sql"),
     include_str!("../migrations/0022_project_removing.sql"),
+    include_str!("../migrations/0023_level2_failed_workspaces.sql"),
     include_str!("../migrations/0025_scan_history.sql"),
 ];
 

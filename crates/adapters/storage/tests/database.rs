@@ -43,7 +43,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 23));
+    assert_eq!((mode.as_str(), version), ("wal", 24));
 }
 
 #[test]
@@ -578,7 +578,7 @@ fn connections_opening_a_new_database_at_once_all_succeed() {
     }
 }
 
-/// Removes the columns of the scan history (schema version 23).
+/// Removes the columns of the scan history (schema version 25 once the migration 0024 is in).
 const SCAN_HISTORY_COLUMNS_DROPPED: &str = "ALTER TABLE snapshots DROP COLUMN duration_ms;
      ALTER TABLE snapshots DROP COLUMN files_changed;";
 

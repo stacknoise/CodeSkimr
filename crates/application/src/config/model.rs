@@ -2,7 +2,7 @@
 
 use codeskimr_domain::{
     AnnotationLimits, FingerprintParams, Layer, LayerName, LayoutParams, ModelError, NodeSize,
-    QualifiedName,
+    QualifiedName, glob_matches,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
@@ -18,6 +18,8 @@ use crate::ports::IndexLimits;
 pub struct Config {
     /// The architecture layers of the scanned project, in order (ADR 0031). Empty means none.
     pub layers: Vec<LayerRule>,
+    /// What the project says about symbols without a usage (ADR 0101).
+    pub unused: Unused,
     /// Thresholds that rate metric values as good, medium or poor.
     pub metrics: MetricThresholds,
     /// Performance budgets.
@@ -68,6 +70,51 @@ pub struct KeySources {
     pub max_file_kb: u32,
     /// Folder levels below a configured folder that are looked into.
     pub max_depth: u32,
+}
+
+/// The table `unused` of `.codeskimr.toml`: what the project says about symbols without a usage.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Unused {
+    /// The symbols that stay on purpose, as `[[unused.ignore]]` tables (ADR 0101).
+    pub ignore: Vec<UnusedIgnore>,
+}
+
+/// One entry of the exception list: the symbols that stay although nobody uses them.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct UnusedIgnore {
+    /// Globs on the relative path of the file that declares the symbol.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub paths: Vec<String>,
+    /// Globs on the qualified name of the symbol.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub symbols: Vec<String>,
+    /// Why the symbols stay; mandatory, so the team can read the reason in the repository.
+    pub reason: String,
+}
+
+impl UnusedIgnore {
+    /// Whether the entry is well formed: a reason, at least one list, no empty pattern.
+    #[must_use]
+    pub fn is_valid(&self) -> bool {
+        let lists = [&self.paths, &self.symbols];
+        !self.reason.trim().is_empty()
+            && lists.iter().any(|list| !list.is_empty())
+            && lists
+                .iter()
+                .all(|list| list.iter().all(|pattern| !pattern.trim().is_empty()))
+    }
+
+    /// Whether the entry covers a symbol in the file `path` with the qualified name
+    /// `qualified_name`: every list the entry has must hold a glob that matches.
+    #[must_use]
+    pub fn covers(&self, path: &str, qualified_name: &str) -> bool {
+        let hit = |globs: &[String], text: &str| {
+            globs.is_empty() || globs.iter().any(|glob| glob_matches(glob, text))
+        };
+        hit(&self.paths, path) && hit(&self.symbols, qualified_name)
+    }
 }
 
 /// One architecture layer as written in `.codeskimr.toml`.

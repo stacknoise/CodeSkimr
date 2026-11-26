@@ -804,11 +804,12 @@ pub const LEVEL2_REPORT_BY_PROJECT: &str =
     "SELECT run_at, origin FROM level2_reports WHERE project_id = ?1";
 /// Removes the language lines of a project: project id.
 pub const LEVEL2_LANGUAGES_DELETE: &str = "DELETE FROM level2_languages WHERE project_id = ?1";
-/// Adds one language line: project id, language, outcome, files, stale, reason, code.
+/// Adds one language line: project id, language, outcome, files, stale, reason, code, failed workspaces.
 pub const LEVEL2_LANGUAGE_INSERT: &str = "INSERT INTO level2_languages \
-    (project_id, language, outcome, files, stale, reason, code) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)";
+    (project_id, language, outcome, files, stale, reason, code, failed_workspaces) \
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)";
 /// The language lines of a project in the order of the language id: project id.
-pub const LEVEL2_LANGUAGES_BY_PROJECT: &str = "SELECT language, outcome, files, stale, reason, code \
+pub const LEVEL2_LANGUAGES_BY_PROJECT: &str = "SELECT language, outcome, files, stale, reason, code, failed_workspaces \
     FROM level2_languages WHERE project_id = ?1 ORDER BY language";
 
 /// Every symbol of a snapshot with its file, for the statistics: snapshot.

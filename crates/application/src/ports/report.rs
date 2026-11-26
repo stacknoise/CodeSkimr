@@ -17,6 +17,8 @@ pub enum LanguageOutcome {
         files: u64,
         /// Files that changed meanwhile and kept level 1.
         stale: u64,
+        /// Workspaces that failed while others of the indexer ran through (ADR 0100).
+        failed_workspaces: u64,
     },
     /// Level 2 did not check the language, for this reason.
     Skipped(SkipReason),

@@ -151,6 +151,11 @@ projects-report-origin-mcp = MCP
 projects-report-line = Stufe { $level } ({ $origin })
 projects-report-counts = { $checked } geprüft, { $skipped } übersprungen, { $failed } fehlgeschlagen
 projects-report-stale = { $count } Dateien seitdem geändert
+projects-report-failed-workspaces =
+    { $count ->
+        [one] 1 Workspace ist fehlgeschlagen und bleibt auf Stufe 1
+       *[other] { $count } Workspaces sind fehlgeschlagen und bleiben auf Stufe 1
+    }
 projects-report-failed-code = Stufe 2 fehlgeschlagen ({ $code })
 projects-report-title = Letzter Lauf von Stufe 2: { $time } ({ $origin })
 projects-report-none = Für dieses Projekt ist noch kein Lauf von Stufe 2 gespeichert.
@@ -184,6 +189,11 @@ projects-report-switched-off = Stufe 2 ist für dieses Projekt aus oder nicht be
    *[other] { $count } Sprachen
   } genau zu prüfen: { $languages }.
 projects-report-chip = { $language } · { $files } Dateien
+projects-report-chip-failed-workspaces =
+    { $count ->
+        [one] 1 Workspace fehlgeschlagen
+       *[other] { $count } Workspaces fehlgeschlagen
+    }
 projects-report-chip-stale = { $language } · { $files } Dateien · { $stale } veraltet
 projects-report-todo = Was tun: { $text }
 projects-report-action-rescan = Erneut prüfen

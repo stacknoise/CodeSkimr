@@ -54,8 +54,12 @@ stats-legend-probable = wahrscheinlich, nicht bestätigt
 stats-column-name = Name
 stats-column-file = Datei
 stats-column-usages = Verwendungen
-stats-column-visibility = Sichtbar
 stats-column-assessment = Einschätzung
+stats-column-reason = Begründung
+stats-reason-private = privat, keine Verwendung in der Klasse oder Datei
+stats-reason-internal = nicht öffentlich, keine Verwendung im Projekt
+stats-reason-public = öffentlich: Nutzer außerhalb des Projekts möglich
+stats-reason-approximate = Sprache nur als Näherung, eine Verwendung kann fehlen
 stats-column-complexity = Komplexität
 stats-column-lines = Zeilen
 stats-column-efferent = Abhängig von (Ce)
@@ -94,8 +98,16 @@ stats-open-explorer = Im Explorer öffnen
 stats-open-explorer-row = { $name } im Explorer öffnen
 stats-open-usages = Verwendungen ansehen
 stats-select-hint = Wähle eine Zeile, um die Details zu sehen.
-stats-visibility-public = öffentlich
-stats-visibility-protected = geschützt
-stats-visibility-internal = intern
-stats-visibility-private = privat
 stats-visibility-none = –
+stats-left-out-title = Ausgenommen
+stats-left-out-note = { $count ->
+    [one] 1 Symbol erscheint nicht in der Zahl oben: Die Projektdatei .codeskimr.toml nimmt es aus.
+   *[other] { $count } Symbole erscheinen nicht in der Zahl oben: Die Projektdatei .codeskimr.toml nimmt sie aus.
+}
+stats-left-out-pill = ausgenommen
+stats-left-out-rule = Regel: „{ $reason }“
+stats-left-out-show = Regel ansehen
+stats-left-out-hide = Regel verbergen
+stats-left-out-paths = Pfade
+stats-left-out-symbols = Symbole
+stats-left-out-reason = Grund
