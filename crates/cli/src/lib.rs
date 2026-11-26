@@ -5,6 +5,7 @@
 //! composition root (`codeskimr`) runs the request against the wired application.
 
 mod args;
+mod change_text;
 mod check;
 mod codes;
 mod consent;
@@ -23,12 +24,13 @@ mod warning;
 
 pub use args::{
     Action, AddAnnotation, AlertsAction, AnnotationFields, AnnotationsAction, ById, CheckArgs,
-    Clears, CodesArgs, ContextQuery, CredentialAction, DismissAlerts, ExportArgs, GlobalOptions,
-    ImpactQuery, Invocation, Level2Action, ListAlerts, ListAnnotations, McpArgs, OpenArgs,
-    PageArgs, Parsed, ProviderChoice, QueryAction, QueryTarget, RenameQuery, RulesQuery, ScanArgs,
-    ScopeArgs, ServeArgs, StartArgs, SymbolArg, SymbolsQuery, UnusedQuery, UpdateAnnotation,
-    UsagesQuery,
+    Clears, CodesArgs, CompareQuery, ContextQuery, CredentialAction, DismissAlerts, ExportArgs,
+    GlobalOptions, ImpactQuery, Invocation, Level2Action, ListAlerts, ListAnnotations, McpArgs,
+    OpenArgs, PageArgs, Parsed, ProviderChoice, QueryAction, QueryTarget, RenameQuery, RulesQuery,
+    ScanArgs, ScansQuery, ScopeArgs, ServeArgs, StartArgs, SymbolArg, SymbolsQuery, UnusedQuery,
+    UpdateAnnotation, UsagesQuery,
 };
+pub use change_text::change_markdown;
 pub use check::{check_json, check_text};
 pub use codes::codes_text;
 pub use consent::{

@@ -48,6 +48,8 @@ mod rules;
 mod rules_tests;
 mod scans;
 #[cfg(test)]
+mod scans_compare_tests;
+#[cfg(test)]
 mod scans_tests;
 mod scope;
 #[cfg(test)]
@@ -96,6 +98,7 @@ use crate::level2_runs::Level2Runs;
 use crate::locations::Locations;
 use crate::running::RunningScans;
 use crate::scan::BrowserRun;
+use crate::scan_compare;
 use crate::ui_settings::UiSettingsFile;
 use crate::wiring::{Secrets, index_runner, indexer_check, tool_checker};
 pub(crate) use alerts::{
@@ -129,7 +132,7 @@ use projects_remove::RemoveProject;
 use projects_rename::{RenameProject, SuggestName};
 use rename_preview::{RenamePreviewCommand, RenamePreviewPorts};
 use rules::RulesShow;
-use scans::{ScanListPorts, ScansList};
+use scans::{ComparePorts, ScanListPorts, ScansCompare, ScansImpact, ScansList};
 pub(crate) use scope::{
     GetInput as ScopeGetInput, ScopeAnswer, ScopeGet, ScopeSet, SetInput as ScopeSetInput,
 };
@@ -341,12 +344,32 @@ fn register_views(
             }),
         },
     )?;
+    register_compare(registry, catalog, config)?;
     add(registry, status_info(config))?;
     register_explorer(registry, catalog, config.metrics.clone(), locations)?;
     register_preferences(registry, locations)?;
     register_ui_settings(registry, locations)?;
     add(registry, effective_settings(locations, global)?)?;
     add(registry, export_command(catalog, config, locations))
+}
+
+/// Registers the commands that compare two scans: the plain comparison and the impact.
+fn register_compare(
+    registry: &mut Registry,
+    catalog: &Arc<SqliteStore>,
+    config: &Config,
+) -> Result<(), CodedError> {
+    let ports = Arc::new(ComparePorts {
+        projects: catalog.clone(),
+        comparer: Arc::new(scan_compare::comparer(catalog, config)),
+    });
+    add(
+        registry,
+        ScansCompare {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(registry, ScansImpact { ports })
 }
 
 /// Registers the two commands of the level 2 switch (ADR 0071). Neither is an MCP tool.
@@ -490,6 +513,8 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<StatsOverview>()?;
     api.expose::<StatsRanking>()?;
     api.expose::<ScansList>()?;
+    api.expose::<ScansCompare>()?;
+    api.expose::<ScansImpact>()?;
     api.expose::<GetPreferences>()?;
     api.expose::<SetPreferences>()?;
     api.expose::<GetUiSettings>()?;

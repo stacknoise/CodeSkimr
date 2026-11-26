@@ -19,6 +19,7 @@ use codeskimr_codes::i18n::{
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde_json::{Map, Value};
 
+use crate::change_text::{change_lines, compare_lines, scans_lines};
 use crate::consts::{
     CONTROL_REPLACEMENT, JSON_NULL_TEXT, KIND_DECLARATION, LINE_BREAK, LIST_INDENT,
     QUERY_SCHEMA_VERSION, TITLE_SEPARATOR, arg, key,
@@ -41,6 +42,12 @@ pub enum QueryKind {
     Rules,
     /// `preview-rename`.
     Rename,
+    /// `scans`.
+    Scans,
+    /// `compare`.
+    Compare,
+    /// `change`.
+    Change,
 }
 
 /// The answer of a tool as the JSON of a command: the fields of the answer plus `schema` (the
@@ -78,15 +85,15 @@ pub fn query_code_report(code: &str) -> Value {
 }
 
 /// The messages in one language.
-struct Speaker<'a> {
-    messages: &'a Messages,
-    language: &'a str,
+pub(crate) struct Speaker<'a> {
+    pub(crate) messages: &'a Messages,
+    pub(crate) language: &'a str,
 }
 
-type Args<'a> = [(&'a str, FluentValue<'static>)];
+pub(crate) type Args<'a> = [(&'a str, FluentValue<'static>)];
 
 impl Speaker<'_> {
-    fn say(&self, message: &str, args: &Args<'_>) -> Result<String, I18nError> {
+    pub(crate) fn say(&self, message: &str, args: &Args<'_>) -> Result<String, I18nError> {
         let mut named = FluentArgs::new();
         for (name, value) in args {
             named.set(*name, value.clone());
@@ -96,7 +103,7 @@ impl Speaker<'_> {
 }
 
 /// The text without control characters; a line break or tab becomes a space.
-fn plain(text: &str) -> String {
+pub(crate) fn plain(text: &str) -> String {
     text.chars()
         .map(|found| {
             if found.is_control() {
@@ -109,7 +116,7 @@ fn plain(text: &str) -> String {
 }
 
 /// A field of `value` as a plain text; empty if it is missing or `null`.
-fn field(value: &Value, name: &str) -> String {
+pub(crate) fn field(value: &Value, name: &str) -> String {
     match value.get(name) {
         Some(Value::String(text)) => plain(text),
         Some(Value::Null) | None => String::new(),
@@ -117,19 +124,30 @@ fn field(value: &Value, name: &str) -> String {
     }
 }
 
-fn text(value: String) -> FluentValue<'static> {
+/// The texts of the fields `pairs` name (argument name, field name) of `entry`, as arguments.
+pub(crate) fn texts<'a>(
+    entry: &Value,
+    pairs: &[(&'a str, &str)],
+) -> Vec<(&'a str, FluentValue<'static>)> {
+    pairs
+        .iter()
+        .map(|(argument, name)| (*argument, text(field(entry, name))))
+        .collect()
+}
+
+pub(crate) fn text(value: String) -> FluentValue<'static> {
     FluentValue::from(value)
 }
 
-fn count(value: &Value, name: &str) -> FluentValue<'static> {
+pub(crate) fn count(value: &Value, name: &str) -> FluentValue<'static> {
     FluentValue::from(value.get(name).and_then(Value::as_u64).unwrap_or_default())
 }
 
-fn child(value: &Value, name: &str) -> Value {
+pub(crate) fn child(value: &Value, name: &str) -> Value {
     value.get(name).cloned().unwrap_or_default()
 }
 
-fn entries<'a>(value: &'a Value, name: &str) -> &'a [Value] {
+pub(crate) fn entries<'a>(value: &'a Value, name: &str) -> &'a [Value] {
     value
         .get(name)
         .and_then(Value::as_array)
@@ -169,7 +187,7 @@ fn impact_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> 
     named_line(speak, CLI_QUERY_IMPACT_LINE, found)
 }
 
-fn usage_line(speak: &Speaker<'_>, usage: &Value) -> Result<String, I18nError> {
+pub(crate) fn usage_line(speak: &Speaker<'_>, usage: &Value) -> Result<String, I18nError> {
     let from = field(&child(usage, key::FROM), key::QUALIFIED_NAME);
     speak.say(
         CLI_QUERY_USAGE_LINE,
@@ -273,11 +291,11 @@ fn site_block(speak: &Speaker<'_>, found: &Value) -> Result<Vec<String>, I18nErr
     Ok(block)
 }
 
-type Line = fn(&Speaker<'_>, &Value) -> Result<String, I18nError>;
+pub(crate) type Line = fn(&Speaker<'_>, &Value) -> Result<String, I18nError>;
 
 /// A list of `context` with a heading that says how many of how many are shown; nothing if it
 /// is empty.
-fn section(
+pub(crate) fn section(
     speak: &Speaker<'_>,
     (heading, list): (&str, &Value),
     line: Line,
@@ -467,7 +485,7 @@ fn rename_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<String>, I18n
 }
 
 /// A list field of the answer as the `{ total, items }` form that [`section`] reads.
-fn json_list(answer: &Value, name: &str) -> Value {
+pub(crate) fn json_list(answer: &Value, name: &str) -> Value {
     let items = child(answer, name);
     let total = items.as_array().map_or(0, Vec::len);
     Value::Object(Map::from_iter([
@@ -485,6 +503,9 @@ fn body(speak: &Speaker<'_>, kind: QueryKind, answer: &Value) -> Result<Vec<Stri
         QueryKind::Unused => unused_lines(speak, answer),
         QueryKind::Rules => rules_lines(speak, answer),
         QueryKind::Rename => rename_lines(speak, answer),
+        QueryKind::Scans => scans_lines(speak, answer),
+        QueryKind::Compare => compare_lines(speak, answer),
+        QueryKind::Change => change_lines(speak, answer),
     }
 }
 

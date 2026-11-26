@@ -8,6 +8,7 @@ mod constants;
 mod context;
 mod conventions;
 mod dependencies;
+mod diff;
 mod project;
 mod rename;
 mod rescan;
@@ -21,6 +22,7 @@ mod usages;
 use std::sync::Arc;
 
 use codeskimr_application::annotations::PageRequest;
+use codeskimr_application::compare::ScanDiffs;
 use codeskimr_application::config::{KeySources, McpLimits};
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
@@ -109,6 +111,8 @@ pub struct Ports {
     pub unused: Arc<dyn UnusedSymbols>,
     /// The architecture rules of a project with their violations, for `check_rules`.
     pub rules: Arc<dyn RulesChecks>,
+    /// The comparison of two scans, for `impact_of_diff`.
+    pub compare: Arc<dyn ScanDiffs>,
     /// The lines of a project folder that hold a name, for `preview_rename`.
     pub mentions: Arc<dyn NameMentions>,
     /// The lines of code of the places of a rename, read from the project folder.
@@ -135,6 +139,7 @@ pub struct Tools {
     reports: Arc<dyn ScanReportStore>,
     unused: Arc<dyn UnusedSymbols>,
     rules: Arc<dyn RulesChecks>,
+    compare: Arc<dyn ScanDiffs>,
     mentions: Arc<dyn NameMentions>,
     text: Arc<dyn SourceText>,
     limits: McpLimits,
@@ -176,6 +181,7 @@ impl Tools {
             reports: ports.reports,
             unused: ports.unused,
             rules: ports.rules,
+            compare: ports.compare,
             mentions: ports.mentions,
             text: ports.text,
             limits,
@@ -316,6 +322,10 @@ impl Tools {
 
     pub(crate) fn rules_checks(&self) -> &dyn RulesChecks {
         self.rules.as_ref()
+    }
+
+    pub(crate) fn scan_diffs(&self) -> &dyn ScanDiffs {
+        self.compare.as_ref()
     }
 
     pub(crate) fn unused_symbols(&self) -> &dyn UnusedSymbols {

@@ -106,3 +106,7 @@ command-rename-preview-title = Umbenennen prüfen
 command-rename-preview-description = Zeigt, welche Stellen, Namenskonflikte und Text-Treffer ein neuer Name für ein Symbol träfe. Es wird nichts geändert.
 command-graph-modules-title = Module und Zyklen zeigen
 command-graph-modules-description = Zeigt die Module des letzten Scans mit Kopplung und Stabilität, die Zyklen zwischen ihnen mit Auflösungsvorschlag und auffällige Module.
+command-scans-compare-title = Zwei Scans vergleichen
+command-scans-compare-description = Vergleicht zwei aufbewahrte Scans eines Projekts (standardmäßig den neuesten und den davor) und listet die hinzugekommenen, entfernten, geänderten und verschobenen Symbole, die neuen Schichtverstöße und Zyklen sowie die kritischen Symbole, die der Unterschied berührt.
+command-scans-impact-title = Auswirkung einer Änderung zeigen
+command-scans-impact-description = Vergleicht zwei aufbewahrte Scans eines Projekts und listet zu jedem entfernten Symbol und jedem Symbol mit geänderter Signatur oder Sichtbarkeit seine direkten Verwendungen im älteren Scan, aufgeteilt in angepasst und nicht angefasst. Bekannt sind nur direkte Verwendungen.

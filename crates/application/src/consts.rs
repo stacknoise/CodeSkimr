@@ -241,3 +241,26 @@ pub const RENAME_CODE_MAX_SPAN: u32 = 5_000;
 pub const RENAME_LINE_OFFSET: u32 = 1;
 /// Offset between a zero-based column of the index and the one-based column people read.
 pub const RENAME_COLUMN_OFFSET: u32 = 1;
+
+/// Version of the JSON of a comparison, of the list of scans and of the impact (`"schema"`).
+pub const COMPARE_SCHEMA: u32 = 1;
+/// Reason of a change: the signature text differs.
+pub const REASON_SIGNATURE: &str = "signature";
+/// Reason of a change: the visibility differs.
+pub const REASON_VISIBILITY: &str = "visibility";
+/// Reason of a change: only the content hash differs.
+pub const REASON_CONTENT: &str = "content";
+/// Cause of an impact: the symbol is removed.
+pub const CAUSE_REMOVED: &str = "removed";
+/// Cause of an impact: the signature or the visibility changed.
+pub const CAUSE_CHANGED: &str = "changed";
+/// Status of a usage whose holder is changed, moved or removed too.
+pub const STATUS_ADAPTED: &str = "adapted";
+/// Status of a usage whose holder is untouched: it is on the checklist.
+pub const STATUS_NOT_TOUCHED: &str = "not_touched";
+/// Outcome for a critical symbol that is gone.
+pub const OUTCOME_REMOVED: &str = "removed";
+/// Outcome for a critical symbol that is in another file now.
+pub const OUTCOME_MOVED: &str = "moved";
+/// Outcome for a critical symbol that changed.
+pub const OUTCOME_CHANGED: &str = "changed";

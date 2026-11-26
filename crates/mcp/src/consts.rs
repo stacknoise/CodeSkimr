@@ -21,6 +21,8 @@ pub const TOOL_GET_ARCHITECTURE: &str = "get_architecture";
 pub const TOOL_FIND_USAGES: &str = "find_usages";
 /// Name of the tool that shows what a change of a symbol can reach.
 pub const TOOL_IMPACT_OF_CHANGE: &str = "impact_of_change";
+/// Name of the tool that shows what the difference between two scans hits.
+pub const TOOL_IMPACT_OF_DIFF: &str = "impact_of_diff";
 /// Name of the tool that looks for functions that resemble a piece of code.
 pub const TOOL_FIND_SIMILAR_CODE: &str = "find_similar_code";
 /// Name of the tool that looks for existing constants.

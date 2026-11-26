@@ -42,6 +42,18 @@ The checklist is exact to the symbol that holds the usage, not to the line: a us
 
 `compare.max_symbols` (default 200) cuts each list of symbols and the list of symbols whose usages are read; `compare.max_usages` (default 50) cuts the usages per symbol. Every list is a `Listed<T>` with its `total`, so `is_cut()` tells that entries were left out and by how much. `ScanComparison::is_cut` says it for the whole answer. The critical symbols and the layer changes are not cut.
 
+## The four ways in (work package 4)
+
+All four call `ScanComparer` and print the same answer (`codeskimr_application::compare::ComparisonAnswer`, `"schema": 1`); only the language of `note` differs.
+
+| Way in | Name | Impact |
+|---|---|---|
+| Registry command (REST, screen) | `scans.list`, `scans.compare`, `scans.impact` (`docs/server.md`) | `scans.compare` without, `scans.impact` with (a superset: it also holds the lists of `scans.compare`) |
+| Command line | `codeskimr scans`, `compare`, `change` (`docs/cli.md`) | `change` with; `change --markdown` for a comment on a pull request |
+| MCP | `impact_of_diff` (`docs/mcp.md`) | with |
+
+The answer says what it does not see (`direct_usages_only`, `note_key` and `note`: "Only direct usages are known; reflection, strings and other repositories are not seen by the comparison") and says when it was cut (`total` and `is_cut` per list, `is_cut` for the whole). `base` and `target` name both scans. The `change --markdown` text is made from the same answer as `--json`: first line `<!-- codeskimr-change -->`, the numbers, the checklist of the usages that were not touched, new layer violations and cycles, critical symbols, a line if cut, and the note.
+
 ## Reading and locks
 
 The use case reads the history, the naming rules and the facts of the two snapshots, the usages and the annotations. Every read is one short read transaction of its own; none is held while the next runs, so a running scan is never blocked. Snapshots are not changed once written (except by a level 2 import into the newest one), so the reads fit together; after the reads the use case asks the history once more and answers `CMP-201` if retention removed a scan in between.

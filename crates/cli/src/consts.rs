@@ -573,6 +573,24 @@ pub mod key {
     pub const TEXT: &str = "text";
 }
 
+/// The first line of `change --markdown`: a script that updates one comment on a pull request
+/// finds its own comment by it.
+pub const MARKDOWN_MARKER: &str = "<!-- codeskimr-change -->";
+/// Sub-command that lists the retained scans of a project.
+pub const COMMAND_SCANS: &str = "scans";
+/// Sub-command that compares two scans of a project.
+pub const COMMAND_COMPARE: &str = "compare";
+/// Sub-command that shows what the difference between two scans hits.
+pub const COMMAND_CHANGE: &str = "change";
+/// Option of `compare` and `change`: the older scan.
+pub const ARG_BASE: &str = "base";
+/// Option of `compare` and `change`: the newer scan.
+pub const ARG_SCAN_TARGET: &str = "target";
+/// Placeholder shown for the id of a scan.
+pub const VALUE_SNAPSHOT: &str = "SNAPSHOT";
+/// Flag of `change`: the answer as Markdown.
+pub const ARG_MARKDOWN: &str = "markdown";
+
 /// What a missing `layer` or `signature` is in the JSON.
 pub const JSON_NULL_TEXT: &str = "null";
 /// What a control character in a text of the project becomes.
