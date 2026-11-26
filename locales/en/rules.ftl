@@ -39,14 +39,10 @@ rules-show-all = Show all
 rules-show-less = Show fewer
 rules-cycles-title = No cycles between modules
 rules-cycles-spec = cycles = "deny"
-rules-ring-modules = { $count } modules
-rules-ring-advice = Weakest edge { $from } → { $to } with { $weakest ->
-    [one] 1 reference
-   *[other] { $weakest } references
-}. Resolvable over { $edges ->
+rules-ring-advice = Resolvable over { $edges ->
     [one] 1 edge
    *[other] { $edges } edges
 } with { $places ->
     [one] 1 place
    *[other] { $places } places
-}.
+}

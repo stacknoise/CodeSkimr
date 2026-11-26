@@ -39,14 +39,10 @@ rules-show-all = Alle zeigen
 rules-show-less = Weniger zeigen
 rules-cycles-title = Keine Zyklen zwischen Modulen
 rules-cycles-spec = cycles = "deny"
-rules-ring-modules = { $count } Module
-rules-ring-advice = Schwächste Kante { $from } → { $to } mit { $weakest ->
-    [one] 1 Verweis
-   *[other] { $weakest } Verweisen
-}. Auflösbar über { $edges ->
+rules-ring-advice = Auflösbar über { $edges ->
     [one] 1 Kante
    *[other] { $edges } Kanten
 } mit { $places ->
     [one] 1 Stelle
    *[other] { $places } Stellen
-}.
+}

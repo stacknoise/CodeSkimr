@@ -1102,7 +1102,6 @@ export const I18N_KEYS = {
   RULES_SHOW_LESS: "rules-show-less",
   RULES_CYCLES_TITLE: "rules-cycles-title",
   RULES_CYCLES_SPEC: "rules-cycles-spec",
-  RULES_RING_MODULES: "rules-ring-modules",
   RULES_RING_ADVICE: "rules-ring-advice",
   SCAN_TITLE: "scan-title",
   SCAN_STATE_RUNNING: "scan-state-running",

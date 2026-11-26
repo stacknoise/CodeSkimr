@@ -143,13 +143,7 @@ describe("RulesScreen", () => {
     render(() => <RulesScreen />);
     expect(await screen.findByText("No cycles between modules")).toBeInTheDocument();
     expect(screen.getByText("Shop.Data → Shop.Api → Shop.Data")).toBeInTheDocument();
-    expect(screen.getByText("2 modules")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Weakest edge Shop.Data → Shop.Api with 1 reference. Resolvable over 1 edge with 1 place.",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Data/R.cs:6")).toBeInTheDocument();
+    expect(screen.getByText("Resolvable over 1 edge with 1 place")).toBeInTheDocument();
   });
 
   it("reads in German too", async () => {

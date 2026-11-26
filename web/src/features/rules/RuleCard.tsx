@@ -42,19 +42,12 @@ function CycleRow(props: { violation: ViolationOut; ring: RingOut }) {
   return (
     <li class={styles.violation}>
       <span class={styles.symbol}>{props.ring.chain.join(` ${ARROW} `)}</span>
-      <span class={styles.count}>
-        {t(I18N_KEYS.RULES_RING_MODULES, { count: props.ring.modules.length })}
-      </span>
-      <span class={styles.places}>
+      <span class={styles.advice}>
         {t(I18N_KEYS.RULES_RING_ADVICE, {
-          from: props.violation.from,
-          to: props.violation.to,
-          weakest: props.ring.weakest_count,
           edges: props.ring.resolution_edges,
           places: props.violation.places.length,
         })}
       </span>
-      <span class={styles.places}>{placesText(props.violation)}</span>
       <Age old={props.violation.old} />
     </li>
   );
