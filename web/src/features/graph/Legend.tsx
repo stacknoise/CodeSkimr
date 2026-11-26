@@ -11,6 +11,8 @@ export function Legend(props: {
   layers: number;
   links: number;
   violations: number;
+  /** Whether the map is the level "Modules", where an edge in a cycle is red as well. */
+  cycles?: boolean;
   /** Whether critical boxes are marked, so that the mark is explained. */
   critical: boolean;
 }) {
@@ -26,6 +28,11 @@ export function Legend(props: {
         <i class={cx(styles.swatch, styles.violation)} />{" "}
         {t(I18N_KEYS.GRAPH_LEGEND_VIOLATION, { count: props.violations })}
       </span>
+      <Show when={props.cycles}>
+        <span>
+          <i class={cx(styles.swatch, styles.cycle)} /> {t(I18N_KEYS.GRAPH_MODULES_LEGEND_CYCLE)}
+        </span>
+      </Show>
       <Show when={props.critical}>
         <span class={styles.critical}>
           <Shield size={SHIELD.tree} /> {t(I18N_KEYS.GRAPH_LEGEND_CRITICAL)}

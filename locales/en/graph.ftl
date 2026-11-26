@@ -56,3 +56,30 @@ graph-toggle-critical = Highlight critical
 graph-toggle-critical-only = only critical and their neighbours
 graph-legend-critical = System critical
 graph-critical-none = No critical symbol on this map.
+graph-mode-modules = Modules
+graph-selected-module = Module
+graph-modules-more = { $count } more modules are not shown here; cycles and risks still count all modules.
+graph-modules-table-title = Modules
+graph-modules-col-module = Module
+graph-modules-col-in = in
+graph-modules-col-out = out
+graph-modules-col-stability = Stability
+graph-modules-col-types = Types
+graph-modules-badge-cycle = in a cycle
+graph-modules-badge-violations = { $count ->
+    [one] 1 violation
+   *[other] { $count } violations
+}
+graph-modules-explain = in: how many places in other modules use this one. out: how many places in it use other modules. Stability = out ÷ (in + out). 0 means many depend on it and it depends on little, so it changes better rarely; 1 means the opposite.
+graph-modules-cycles-title = Cycles
+graph-modules-cycles-none = No cycles between modules.
+graph-modules-cycle-edge = { $from } → { $to }: { $count } places
+graph-modules-cycle-resolve = Ending the cycle takes away the weakest edge: { $from } → { $to } ({ $count ->
+    [one] 1 place
+   *[other] { $count } places
+}).
+graph-modules-violations-title = Against the layering
+graph-modules-violation = { $from } ({ $fromLayer }) → { $to } ({ $toLayer }): { $count } places
+graph-modules-risks-title = Stands out
+graph-modules-risk = { $module } (stability { $stability }) is used in { $incoming } places and itself depends on { $other } (stability { $otherStability }), which changes more often.
+graph-modules-legend-cycle = in a cycle

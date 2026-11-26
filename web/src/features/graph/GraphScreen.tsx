@@ -13,13 +13,14 @@ import { currentType } from "../explorer/explorer";
 import { ORIENTATION, SIDE } from "../../shared/layout/consts";
 import { Splitter } from "../../shared/layout/Splitter";
 import { LEVEL } from "./consts";
-import { panelWidth } from "./layout";
+import { modulesPanelWidth, panelWidth } from "./layout";
 import {
   graphData,
   graphFailed,
   graphDepth,
   graphFocus,
   graphLevel,
+  modulesInfo,
   setGraphDepth,
   setGraphNamespace,
   setGraphLevel,
@@ -27,6 +28,7 @@ import {
 import { hasCriticalBox, isCriticalBox, narrowToCritical } from "./critical";
 import { GraphCanvas } from "./GraphCanvas";
 import { Legend } from "./Legend";
+import { ModulesPanel } from "./ModulesPanel";
 import { neighboursOf, violations } from "./neighbours";
 import { SidePanel } from "./SidePanel";
 import { Toolbar, type CriticalSwitches } from "./Toolbar";
@@ -62,6 +64,7 @@ const SELECTED_KIND = {
   layers: I18N_KEYS.GRAPH_SELECTED_KIND,
   namespaces: I18N_KEYS.GRAPH_SELECTED_NAMESPACE,
   types: I18N_KEYS.GRAPH_SELECTED_TYPE,
+  modules: I18N_KEYS.GRAPH_SELECTED_MODULE,
 } as const;
 
 /** Whether the map shows one layer only, which has nothing to depend on. */
@@ -100,10 +103,14 @@ function Notes(props: { current: GraphData }) {
   );
 }
 
-/** The switches of the critical symbols; the layer level has none, a layer is not annotated, and a
+/** The switches of the critical symbols; the layer and module levels have none, a layer is not annotated, and a
  * server without annotations has none either. */
 function criticalSwitches(): CriticalSwitches | null {
-  if (annotationsAvailable() === false || graphLevel() === LEVEL.layers) {
+  if (
+    annotationsAvailable() === false ||
+    graphLevel() === LEVEL.layers ||
+    graphLevel() === LEVEL.modules
+  ) {
     return null;
   }
   return {
@@ -192,6 +199,7 @@ function MapPane(props: { state: MapState; actions: Actions; current: GraphData 
       </Show>
       <Legend
         critical={view.marked()}
+        cycles={graphLevel() === LEVEL.modules}
         layers={props.current.boxes.length}
         links={props.current.links.length}
         violations={violations(props.current.links).length}
@@ -235,6 +243,48 @@ function PanelPane(props: {
   );
 }
 
+/** The panel beside the map: the table of the level "Modules", else the details of the selected
+ * box. */
+function Panels(props: { state: MapState; actions: Actions; current: GraphData }) {
+  const { state } = props;
+  const resizer = (pane = panelWidth) => (
+    <Splitter pane={pane} orientation={ORIENTATION.vertical} side={SIDE.after} />
+  );
+  return (
+    <Show
+      when={graphLevel() !== LEVEL.modules}
+      fallback={
+        <Show when={modulesInfo()}>
+          {(info) => (
+            <>
+              {resizer(modulesPanelWidth)}
+              <ModulesPanel
+                info={info()}
+                selected={state.selected()}
+                onSelect={state.setSelected}
+              />
+            </>
+          )}
+        </Show>
+      }
+    >
+      <Show when={state.selected()}>
+        {(layer) => (
+          <>
+            {resizer()}
+            <PanelPane
+              state={state}
+              actions={props.actions}
+              current={props.current}
+              layer={layer()}
+            />
+          </>
+        )}
+      </Show>
+    </Show>
+  );
+}
+
 /** What is drawn once a project is chosen and the graph did not fail. */
 function Loaded(props: { state: MapState; actions: Actions }) {
   const { state } = props;
@@ -252,19 +302,7 @@ function Loaded(props: { state: MapState; actions: Actions }) {
       {(current) => (
         <>
           <MapPane state={state} actions={props.actions} current={current()} />
-          <Show when={state.selected()}>
-            {(layer) => (
-              <>
-                <Splitter pane={panelWidth} orientation={ORIENTATION.vertical} side={SIDE.after} />
-                <PanelPane
-                  state={state}
-                  actions={props.actions}
-                  current={current()}
-                  layer={layer()}
-                />
-              </>
-            )}
-          </Show>
+          <Panels state={state} actions={props.actions} current={current()} />
         </>
       )}
     </Show>
