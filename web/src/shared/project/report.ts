@@ -24,6 +24,8 @@ export interface LanguageReport {
   files?: number | null;
   /** For `checked`: files that changed meanwhile and kept level 1. */
   stale?: number | null;
+  /** For `checked`: workspaces that failed while others of the indexer ran through. */
+  failed_workspaces?: number | null;
   /** For `skipped`: a reason key. */
   reason?: string | null;
   /** For `failed`: the registered error code. */
@@ -90,6 +92,11 @@ export function outcomeCounts(report: Level2Report): Record<keyof typeof OUTCOME
 /** Files of checked languages that changed since the run and keep level 1. */
 export function staleFiles(report: Level2Report): number {
   return report.languages.reduce((sum, line) => sum + (line.stale ?? 0), 0);
+}
+
+/** Workspaces of checked languages that failed; their files keep level 1. */
+export function failedWorkspaces(report: Level2Report): number {
+  return report.languages.reduce((sum, line) => sum + (line.failed_workspaces ?? 0), 0);
 }
 
 /** The texts of the missing project file, by language; the generic reason text stands for the rest. */

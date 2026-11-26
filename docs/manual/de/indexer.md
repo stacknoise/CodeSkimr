@@ -97,7 +97,7 @@ Der Indexer bekommt eine geleerte Umgebung mit Positivliste (kein Token und kein
 
 ## Projekte mit mehreren Workspaces
 
-Manche Indexer brauchen eine Projektdatei in ihrem Arbeitsordner (`Cargo.toml` für rust-analyzer, eine Solution oder `.csproj` für scip-dotnet). Liegt eine im Projektordner oder darüber, läuft der Indexer einmal dort. Sonst sucht CodeSkimr die äußersten Ordner unterhalb des Projektordners, die eine solche Datei enthalten und Quelldateien dieser Sprache haben (ein Cargo-Workspace in `cli/`, eine Solution in einem Unterordner), und startet den Indexer in jedem einmal. Der Lauf meldet die Summe. Scheitert ein Workspace, zählen die anderen trotzdem; die Dateien des gescheiterten behalten Ebene 1 und erscheinen im Bericht als veraltet.
+Manche Indexer brauchen eine Projektdatei in ihrem Arbeitsordner (`Cargo.toml` für rust-analyzer, eine Solution oder `.csproj` für scip-dotnet). Liegt eine im Projektordner oder darüber, läuft der Indexer einmal dort. Sonst sucht CodeSkimr die äußersten Ordner unterhalb des Projektordners, die eine solche Datei enthalten und Quelldateien dieser Sprache haben (ein Cargo-Workspace in `cli/`, eine Solution in einem Unterordner), und startet den Indexer in jedem einmal. Der Lauf meldet die Summe. Scheitert ein Workspace, zählen die anderen trotzdem; die Dateien des gescheiterten behalten Ebene 1, und der Bericht nennt, wie viele Workspaces gescheitert sind.
 
 ## Nach einer Änderung
 

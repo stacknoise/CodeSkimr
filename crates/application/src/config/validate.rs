@@ -44,6 +44,7 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     check_keys(&config.keys)?;
     check_annotations(&config.annotations)?;
     check_layers(config)?;
+    check_unused(config)?;
     check_scan(&config.scan)?;
     check_level2(&config.level2)?;
     check_editor(&config.editor)?;
@@ -122,6 +123,19 @@ fn check_layers(config: &Config) -> Result<(), ConfigError> {
         Ok(())
     } else {
         fail(keys::LAYERS, Violation::MustBeLayerRule)
+    }
+}
+
+fn check_unused(config: &Config) -> Result<(), ConfigError> {
+    if config
+        .unused
+        .ignore
+        .iter()
+        .all(super::model::UnusedIgnore::is_valid)
+    {
+        Ok(())
+    } else {
+        fail(keys::UNUSED_IGNORE, Violation::MustBeUnusedIgnore)
     }
 }
 

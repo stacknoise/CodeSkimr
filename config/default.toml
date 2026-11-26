@@ -7,6 +7,12 @@
 # .codeskimr.toml as `[[layers]]` tables with `name`, `namespaces` (qualified-name prefixes) and optionally `may_use` (the layers it may depend on).
 layers = []
 
+# What the project says about symbols without a usage (ADR 0101). `ignore` lists the symbols that stay
+# on purpose, as `[[unused.ignore]]` tables in the .codeskimr.toml of the project: `paths` and `symbols`
+# (globs on the file path and on the qualified name; at least one) and a mandatory `reason`.
+[unused]
+ignore = []
+
 # Metric thresholds (blueprint 14). "good" and "medium" bounds; everything beyond is "poor".
 [metrics]
 # Cyclomatic complexity: at most this value is good, at most the medium value is medium.

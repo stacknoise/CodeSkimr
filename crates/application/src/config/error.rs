@@ -50,6 +50,8 @@ pub enum Violation {
     MustContainPath,
     /// A layer needs a valid name that no other layer has, and at least one valid namespace.
     MustBeLayerRule,
+    /// An entry of the exception list needs a reason and at least one path or symbol pattern.
+    MustBeUnusedIgnore,
 }
 
 /// Errors that loading or validating the configuration can produce.

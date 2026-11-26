@@ -1,4 +1,4 @@
--- Schema version 24 (0023 belongs to #761): what a project leaves out of its scans (ADR 0102).
+-- Schema version 24: what a project leaves out of its scans (ADR 0102).
 --
 -- The scope lists what is left out, so a project without rows covers everything, which is what
 -- every project did before. A folder is relative to the project folder, written with `/`; it

@@ -57,6 +57,7 @@ mod symbol;
 mod temp_file;
 #[cfg(test)]
 pub(crate) mod tests;
+mod unused;
 mod usages;
 mod usages_code;
 

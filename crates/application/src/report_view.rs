@@ -30,6 +30,8 @@ pub struct LanguageView {
     pub files: Option<u64>,
     /// Files that changed meanwhile and kept level 1, for `checked`.
     pub stale: Option<u64>,
+    /// Workspaces that failed while others of the indexer ran through, for `checked`.
+    pub failed_workspaces: Option<u64>,
     /// Why the language was not checked, for `skipped`.
     pub reason: Option<&'static str>,
     /// The registered error code, for `failed`.
@@ -63,14 +65,20 @@ impl LanguageView {
             outcome: OutcomeKind::Skipped.label(),
             files: None,
             stale: None,
+            failed_workspaces: None,
             reason: None,
             code: None,
         };
         match line.outcome {
-            LanguageOutcome::Checked { files, stale } => Self {
+            LanguageOutcome::Checked {
+                files,
+                stale,
+                failed_workspaces,
+            } => Self {
                 outcome: OutcomeKind::Checked.label(),
                 files: Some(files),
                 stale: Some(stale),
+                failed_workspaces: Some(failed_workspaces),
                 ..none
             },
             LanguageOutcome::Skipped(reason) => Self {

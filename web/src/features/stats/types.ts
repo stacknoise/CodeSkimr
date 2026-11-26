@@ -30,7 +30,12 @@ export interface Row {
   efferent: number | null;
   afferent: number | null;
   assessment: Assessment | null;
+  /** Why the row is judged so, for a symbol without usages (ADR 0101). */
+  reason: Reason | null;
 }
+
+/** The reasons of a symbol without usages. */
+export type Reason = "private" | "internal" | "public" | "approximate";
 
 /** The symbols without usages per assessment. */
 export interface UnusedCounts {
@@ -38,6 +43,20 @@ export interface UnusedCounts {
   public: number;
   approximate: number;
   tests_hidden: number;
+  left_out: number;
+}
+
+/** An entry of the exception list in `.codeskimr.toml` (ADR 0101). */
+export interface IgnoreRule {
+  paths?: string[];
+  symbols?: string[];
+  reason: string;
+}
+
+/** A symbol without usages that an entry of the exception list covers. */
+export interface LeftOut {
+  row: Row;
+  rule: IgnoreRule;
 }
 
 /** The answer of `stats.ranking`. */
@@ -46,6 +65,7 @@ export interface RankingAnswer {
   rows: Row[];
   total: number;
   unused: UnusedCounts | null;
+  left_out: LeftOut[];
 }
 
 /** One bar of the complexity histogram. */

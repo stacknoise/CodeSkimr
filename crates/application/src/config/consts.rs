@@ -126,6 +126,8 @@ pub mod keys {
     pub const MIN_TOKENS: &str = "similarity.min_tokens";
     /// `layers`
     pub const LAYERS: &str = "layers";
+    /// `unused.ignore`
+    pub const UNUSED_IGNORE: &str = "unused.ignore";
     /// `conventions.max_function_lines`
     pub const MAX_FUNCTION_LINES: &str = "conventions.max_function_lines";
     /// `conventions.max_cognitive_complexity`
