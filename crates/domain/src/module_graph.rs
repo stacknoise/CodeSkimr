@@ -220,10 +220,10 @@ pub fn module_coupling(graph: &NamespaceGraph) -> Vec<ModuleCoupling> {
     let mut all = vec![ModuleCoupling::default(); graph.namespaces.len()];
     for edge in &graph.edges {
         if let Some(from) = all.get_mut(edge.from) {
-            from.outgoing += edge.count;
+            from.outgoing = from.outgoing.saturating_add(edge.count);
         }
         if let Some(to) = all.get_mut(edge.to) {
-            to.incoming += edge.count;
+            to.incoming = to.incoming.saturating_add(edge.count);
         }
     }
     all

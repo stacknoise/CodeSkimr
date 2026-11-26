@@ -1,8 +1,8 @@
 //! Cycles, coupling and risks between modules (ADR 0108).
 
 use codeskimr_domain::{
-    ModuleCoupling, NamespaceEdge, NamespaceGraph, NamespaceNode, ModelError, QualifiedName, RiskLimits,
-    find_cycles, find_risks, module_coupling,
+    ModelError, ModuleCoupling, NamespaceEdge, NamespaceGraph, NamespaceNode, QualifiedName,
+    RiskLimits, find_cycles, find_risks, module_coupling,
 };
 
 fn graph(count: usize, edges: &[(usize, usize, u32)]) -> Result<NamespaceGraph, ModelError> {
@@ -28,12 +28,16 @@ fn pairs(edges: &[NamespaceEdge]) -> Vec<(usize, usize)> {
 
 #[test]
 fn a_graph_without_a_ring_has_no_cycle() -> Result<(), ModelError> {
-    assert!(find_cycles(&graph(3, &[(0, 1, 4), (1, 2, 1), (0, 2, 9)])?).is_empty());
+    assert_eq!(
+        find_cycles(&graph(3, &[(0, 1, 4), (1, 2, 1), (0, 2, 9)])?),
+        Vec::new()
+    );
     Ok(())
 }
 
 #[test]
-fn two_modules_that_use_each_other_are_one_ring_and_the_weaker_edge_ends_it() -> Result<(), ModelError> {
+fn two_modules_that_use_each_other_are_one_ring_and_the_weaker_edge_ends_it()
+-> Result<(), ModelError> {
     let found = find_cycles(&graph(3, &[(0, 1, 11), (1, 0, 2), (1, 2, 5)])?);
     assert_eq!(found.len(), 1);
     assert_eq!(found[0].modules, [0, 1]);
@@ -77,7 +81,8 @@ fn a_long_chain_does_not_overflow_the_stack() -> Result<(), ModelError> {
 }
 
 #[test]
-fn coupling_adds_up_the_references_and_the_instability_is_outgoing_over_all() -> Result<(), ModelError> {
+fn coupling_adds_up_the_references_and_the_instability_is_outgoing_over_all()
+-> Result<(), ModelError> {
     let all = module_coupling(&graph(4, &[(0, 1, 3), (2, 1, 5), (1, 3, 8)])?);
     assert_eq!(
         all[1],
@@ -111,6 +116,6 @@ fn a_much_used_module_that_depends_on_a_less_stable_one_is_a_risk() -> Result<()
         min_incoming: 100,
         ..limits
     };
-    assert!(find_risks(&g, &coupling, &strict).is_empty());
+    assert_eq!(find_risks(&g, &coupling, &strict), Vec::new());
     Ok(())
 }
