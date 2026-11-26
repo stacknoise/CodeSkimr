@@ -310,7 +310,7 @@ codeskimr/
   - `layer_graph` – the dependency map
   - `type_summary` – the metric strip
 - **Statistics (ADR 0091):** `symbol_statistics` (one row per type and callable with usage counts, measured values, test flag and the place in the order of path and name), `statistics_facets` and `statistics_complexity` (counts per group) and `snapshot_statistics` (which test folders the rows were counted for). Unlike the read models above they are **not** written in the transaction of the snapshot but right after it, in a thread of their own, so that the scan keeps its budget; a snapshot without these rows is valid and gets them at the first question of the statistics screen. A level 2 import deletes the rows of the snapshots it changed.
-- **Retention:** keep the last N snapshots per project (configurable, default from `config/default.toml`).
+- **Retention:** keep the last N snapshots per project (configurable, default from `config/default.toml`). Each snapshot also stores how long its scan took and how many files it changed (`duration_ms`, `files_changed`, ADR 0097). Two retained snapshots can be compared (symbols added, removed, changed, moved) and the usages that a change hits are listed (ADR 0097).
 - **Annotations (ADR 0068):** the tables `annotation`, `annotation_baseline` and `alert` are not tied to a snapshot and are not touched by retention. A symbol is found again by kind, qualified name and parameter types. Dismissed alerts are kept for `annotations.dismissed_retention_days`.
 - Schema migrations are versioned SQL files in `crates/adapters/storage/migrations/` (one set for the catalog, one for the project files), applied when a file is opened.
 
@@ -472,6 +472,9 @@ codeskimr mcp                     MCP over stdio
 codeskimr export <project> --html <file>
 codeskimr check <path>            run the convention checks (for CI)
 codeskimr codes [<code>]          list error codes / explain one code
+codeskimr scans <project>         list the retained scans with duration (ADR 0097, from 1.1)
+codeskimr compare <project>       compare two scans: added, removed, changed, moved (ADR 0097, from 1.1)
+codeskimr impact <project>        usages that a change hits, with the ones not touched (ADR 0097, from 1.1)
 ```
 
 Everything the command line can do has a counterpart in the UI; the exceptions (the consent to level 2, the start options, `--json`) and the gaps still open are listed in ADR 0092.
@@ -508,6 +511,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | `rescan` | paths? | incremental update, returns the id of the newest snapshot (a new one if something changed, ADR 0093) |
 | `list_annotations` | symbol? or project, kind? | notes, tasks and critical marks with target and status (ADR 0068, read-only) |
 | `get_alerts` | project, state? | open alerts for critical symbols: kind, what changed, symbol (ADR 0068, read-only) |
+| `impact_of_diff` | project, base?, target? | symbols added, removed, changed and moved between two scans, per changed symbol the usages with "adapted" or "not touched" (ADR 0097, from 1.1, read-only) |
 
 **Resources:** `codeskimr://<project>/architecture`, `codeskimr://<project>/conventions`, `codeskimr://<project>/errors`.
 
@@ -1090,7 +1094,7 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 | **M5** | Languages | full tier: TypeScript/JavaScript, Python, Java, Kotlin, Rust; basic tier for all Tree-sitter grammars (including Go); level 2 from SCIP indexes (ADR 0033: importer, runner, consent, `level2` command) | corpus accuracy targets met per language; with level 2 confirmed, the accuracy of the languages that have an indexer is measured and shown separately |
 | **M6** | Sources + credentials + export | Git sources (clone, branch, update); credential handling per section 12 (keystore, Git helper, OAuth device flow); canary suite; HTML export | security suite green; private repository scanned without the secret ever appearing outside the loan scope |
 | **M7** | Release 1.0 | installers / single executables for Windows, Linux, macOS; user docs; error-code catalogue published | clean install on all three systems; all budgets green |
-| later | Team edition and depth | team server in stages T1 to T3 (personal access tokens, then users, login and roles, then PostgreSQL and the vault; ADR 0019), `SecretVault` adapter, Roslyn level 2 for C# (ADR 0033), top-league depth in every supported language, C# first (section 9.5, ADR 0034), WASM plugins, snapshot comparison, PR impact analysis | own ADRs and milestones |
+| later | Team edition and depth | team server in stages T1 to T3 (personal access tokens, then users, login and roles, then PostgreSQL and the vault; ADR 0019), `SecretVault` adapter, Roslyn level 2 for C# (ADR 0033), top-league depth in every supported language, C# first (section 9.5, ADR 0034), WASM plugins; snapshot comparison and the view "Change" (ADR 0097, version 1.1), PR impact analysis | own ADRs and milestones |
 
 ---
 
