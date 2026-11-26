@@ -84,3 +84,24 @@ scan-left-out-unnamed = { $count ->
    *[other] { $count } files were left out. Their names show after the next scan.
 }
 scan-files-unchanged = No file changed · { $checked } checked
+
+scan-history-keep = { $count ->
+    [one] { NUMBER($count) } is kept
+   *[other] { NUMBER($count) } are kept
+}
+scan-history-column-time = Time
+scan-history-column-mode = Kind
+scan-history-column-duration = Duration
+scan-history-column-files = Files
+scan-history-column-changed = Changed
+scan-history-current = current
+scan-history-empty = No scan yet.
+scan-history-note = The duration is stored per scan; a scan without changes writes no entry and leaves the time and the duration of the entry before as they are.
+scan-history-last = Last scan
+scan-history-files-changed = { $count ->
+    [one] { NUMBER($count) } file changed since the one before
+   *[other] { NUMBER($count) } files changed since the one before
+}
+scan-history-average = Average
+scan-history-average-hint = last { $count } scans
+scan-history-failed = The last scans could not be read.

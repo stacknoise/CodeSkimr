@@ -70,3 +70,28 @@ export type BudgetTargets = Record<
   | "incremental_rescan",
   number
 >;
+
+/** One scan of the list of the last scans (`scans.list`, ADR 0097). */
+export interface ScanEntry {
+  /** The snapshot the scan wrote. */
+  snapshot: number;
+  /** Seconds since the Unix epoch. */
+  created: number;
+  commit: string | null;
+  mode: "full" | "incremental";
+  files: number;
+  symbols: number;
+  /** Milliseconds; `null` for a scan stored before the duration was kept. */
+  duration_ms: number | null;
+  /** Files the scan changed against the one before; `null` for the first scan and for old ones. */
+  files_changed: number | null;
+}
+
+/** The output of `scans.list`. */
+export interface ScanHistoryAnswer {
+  scans: ScanEntry[];
+  /** How many scans the project keeps. */
+  keep: number;
+  /** Average duration in milliseconds of the scans that have one. */
+  average_ms: number | null;
+}

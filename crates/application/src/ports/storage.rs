@@ -1,5 +1,7 @@
 //! Persistence (adapter: `codeskimr_storage`).
 
+use std::time::Instant;
+
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
     CommitHash, FileId, LanguageId, Metric, Project, ProjectId, Reference, ReferenceId,
@@ -51,6 +53,12 @@ pub struct SnapshotData {
     /// Microseconds spent parsing the files of each language in a full scan; empty in an
     /// incremental scan, which keeps the figures of the previous snapshot.
     pub parse_micros: Vec<(LanguageId, u64)>,
+    /// When the scan began, `None` if the writer did not measure it. The store stores the time from
+    /// then to the end of its write as the duration of the scan (ADR 0097).
+    pub began: Option<Instant>,
+    /// How many files the scan changed against the previous snapshot (new, changed or gone), `None`
+    /// for the first scan of a project (ADR 0097).
+    pub files_changed: Option<u32>,
     /// The warnings of the scan, one per code, counted over the whole snapshot.
     pub warnings: Vec<ScanWarning>,
     /// How many places of the whole snapshot match several symbols, `None` if the writer did not

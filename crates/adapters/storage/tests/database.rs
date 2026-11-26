@@ -43,7 +43,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 22));
+    assert_eq!((mode.as_str(), version), ("wal", 23));
 }
 
 #[test]
@@ -593,6 +593,8 @@ fn a_version_eleven_database_keeps_its_layers_without_a_limit() {
          DROP TABLE statistics_complexity;
          DROP INDEX references_verified;
          ALTER TABLE snapshots DROP COLUMN ambiguous_places;
+         ALTER TABLE snapshots DROP COLUMN duration_ms;
+         ALTER TABLE snapshots DROP COLUMN files_changed;
                  DROP TABLE snapshot_left_out;
          DROP TABLE level2_languages;
          DROP TABLE level2_reports;

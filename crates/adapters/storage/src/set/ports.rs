@@ -12,10 +12,10 @@ use codeskimr_application::ports::{
     DependencyQuery, FileHit, ImpactPage, LanguageShare, Level2Replacement, MemberRow, OutlineNode,
     PendingReference, PreviousIndex, PreviousState, ProjectCatalog, ProjectOverview,
     ProjectRepository, RankedRows, RankingRequest, ReferenceSite, ReferenceSites, ReportWrite,
-    SameName, ScanReport, ScanReportStore, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex,
-    SnapshotData, SnapshotStore, StatisticsSetup, StatisticsSummary, StoredNames, StoredReferences,
-    SymbolDetail, SymbolKey, SymbolState, SymbolStates, ToolReportStore, TypeFocus, UnusedCounts,
-    UsageIndex, UsagePage,
+    SameName, ScanEntry, ScanReport, ScanReportStore, SearchHit, SimilarHit, SimilarQuery,
+    SimilarityIndex, SnapshotData, SnapshotStore, StatisticsSetup, StatisticsSummary, StoredNames,
+    StoredReferences, SymbolDetail, SymbolKey, SymbolState, SymbolStates, ToolReportStore,
+    TypeFocus, UnusedCounts, UsageIndex, UsagePage,
 };
 use codeskimr_domain::{
     Alert, AlertId, Annotation, AnnotationId, ContentHash, FileId, Fingerprints, LayerEdge,
@@ -110,6 +110,7 @@ impl SnapshotStore for SqliteStore {
 impl CodeIndex for SqliteStore {
     forward! { CodeIndex via of_project:
         fn latest_snapshot(&self, project: ProjectId) -> Result<Option<Snapshot>, CodedError>;
+        fn scan_history(&self, project: ProjectId) -> Result<Vec<ScanEntry>, CodedError>;
     }
 
     forward! { CodeIndex via of_snapshot:

@@ -52,6 +52,8 @@ fn scan() -> SnapshotData {
         skipped: Vec::new(),
         warnings: Vec::new(),
         parse_micros: Vec::new(),
+        began: None,
+        files_changed: None,
         dropped_references: Vec::new(),
         pending: Vec::new(),
         removed: Vec::new(),

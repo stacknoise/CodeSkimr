@@ -2,8 +2,9 @@
 //! (adapter: `codeskimr_storage`).
 
 use codeskimr_domain::{
-    LanguageId, LayerEdge, Metric, NamespaceGraph, ProjectId, QualifiedName, RelativePath,
-    Snapshot, SnapshotId, Span, Symbol, SymbolId, SymbolKind, SymbolName,
+    CommitHash, LanguageId, LayerEdge, Metric, NamespaceGraph, ProjectId, QualifiedName,
+    RelativePath, ScanMode, Snapshot, SnapshotId, Span, Symbol, SymbolId, SymbolKind, SymbolName,
+    Timestamp,
 };
 
 use crate::error::CodedError;
@@ -84,8 +85,40 @@ pub struct SymbolDetail {
     pub same_name: u32,
 }
 
+/// One retained scan of a project, as the list of the last scans shows it (ADR 0097).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ScanEntry {
+    /// The snapshot the scan wrote.
+    pub snapshot: SnapshotId,
+    /// When the last scan that wrote or confirmed the snapshot ran.
+    pub created: Timestamp,
+    /// Commit, if the source is a Git repository.
+    pub commit: Option<CommitHash>,
+    /// Full or incremental.
+    pub mode: ScanMode,
+    /// Number of files of the snapshot.
+    pub files: u32,
+    /// Number of symbols of the snapshot.
+    pub symbols: u32,
+    /// Wall time of the scan that wrote the snapshot in milliseconds; `None` for a snapshot
+    /// written before it was stored.
+    pub duration_ms: Option<u64>,
+    /// Files that scan changed against the previous snapshot; `None` for the first scan and for
+    /// a snapshot written before it was stored.
+    pub files_changed: Option<u32>,
+}
+
 /// Queries on the newest snapshots.
 pub trait CodeIndex: Send + Sync {
+    /// The retained snapshots of a project, newest first; empty before the first scan. The default
+    /// knows none.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn scan_history(&self, _project: ProjectId) -> Result<Vec<ScanEntry>, CodedError> {
+        Ok(Vec::new())
+    }
+
     /// The newest snapshot of a project, `None` before the first scan.
     ///
     /// # Errors

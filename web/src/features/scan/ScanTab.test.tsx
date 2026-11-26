@@ -78,6 +78,45 @@ class FakeSocket {
   }
 }
 
+/** The list of the last scans (ADR 0097): the newest took 2.4 s and changed 37 files, the oldest
+ * was stored before the duration was kept. */
+const HISTORY = {
+  keep: 5,
+  average_ms: 2100,
+  scans: [
+    {
+      snapshot: 5,
+      created: 1_800_000_000,
+      commit: null,
+      mode: "full",
+      files: 1842,
+      symbols: 9,
+      duration_ms: 2400,
+      files_changed: 37,
+    },
+    {
+      snapshot: 4,
+      created: 1_799_990_000,
+      commit: null,
+      mode: "incremental",
+      files: 1842,
+      symbols: 9,
+      duration_ms: 600,
+      files_changed: 4,
+    },
+    {
+      snapshot: 3,
+      created: 1_799_900_000,
+      commit: null,
+      mode: "full",
+      files: 1801,
+      symbols: 9,
+      duration_ms: null,
+      files_changed: null,
+    },
+  ],
+};
+
 useServerSession();
 
 beforeEach(() => {
@@ -87,6 +126,7 @@ beforeEach(() => {
   serve({
     "projects.list": () => answer([ROW]),
     "status.info": () => answer(STATUS),
+    "scans.list": () => answer(HISTORY),
   });
 });
 
@@ -134,6 +174,18 @@ async function shownWithCancel() {
 }
 
 describe("the tab Scan", () => {
+  it("lists the last scans with the duration of each and a dash where it was not stored", async () => {
+    const stop = await shown();
+    const history = within(await screen.findByRole("region", { name: "Recent scans" }));
+    expect(await history.findByText("5 are kept")).toBeInTheDocument();
+    expect(history.getAllByText("2.4 s").length).toBeGreaterThan(0);
+    expect(history.getByText("0.6 s")).toBeInTheDocument();
+    expect(history.getByText("current")).toBeInTheDocument();
+    expect(history.getAllByText("37").length).toBeGreaterThan(0);
+    expect(history.getAllByText("—").length).toBeGreaterThan(0);
+    stop();
+  });
+
   it("shows the budgets with the measured start time, the languages and recent scans when idle", async () => {
     setLanguage("en");
     const stop = await shown();

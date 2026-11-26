@@ -65,6 +65,12 @@ pub struct ScanRun {
     /// Time spent analysing (parse, symbols, metrics, fingerprints), summed over the files of each
     /// language in microseconds; set by the analyze stage, empty in an incremental scan.
     pub parse_micros: Vec<(LanguageId, u64)>,
+    /// When the discover stage began, set by it: the start of the time that is stored as the
+    /// duration of the scan (ADR 0097).
+    pub began: Option<Instant>,
+    /// How many files this scan changed against the newest snapshot (new, changed or gone), set by
+    /// the discover stage; `None` if the project had no snapshot (ADR 0097).
+    pub files_changed: Option<u32>,
     /// The newest snapshot, if an incremental scan found every file as that snapshot has it:
     /// nothing is analysed, resolved, measured or written, and the snapshot is confirmed as it is
     /// (ADR 0093). Set by the discover stage.
@@ -192,6 +198,8 @@ impl Stage for FetchStage {
             commit: fetched.commit,
             naming_rules: String::new(),
             parse_micros: Vec::new(),
+            began: None,
+            files_changed: None,
             confirms: None,
             skipped: Vec::new(),
         })
@@ -212,7 +220,10 @@ pub struct DiscoverStage {
 impl DiscoverStage {
     /// The run with the naming rules of the packs. An incremental scan after other rules, or after
     /// a snapshot without a record, is a full scan: the kept files would carry the old names.
+    ///
+    /// The run also notes when the discover stage began (ADR 0097).
     fn with_naming(&self, mut run: ScanRun) -> Result<ScanRun, CodedError> {
+        run.began = Some(Instant::now());
         run.naming_rules = self.analyzer.naming_rules();
         if run.mode == ScanMode::Incremental {
             let kept = self.projects.latest_naming_rules(run.project.id)?;
@@ -244,6 +255,7 @@ impl Stage for DiscoverStage {
             .discovery
             .discover(&run.root, &state.files, ctx.cancel_token())?;
         run.paths_report = report_paths(run.mode, &files, &state.files, &run.paths);
+        run.files_changed = changed_files(&files, &state, run.mode, &run.paths);
         if run.mode == ScanMode::Incremental {
             limit_to_paths(&mut files, &state.files, &run.paths);
             run.confirms = unchanged_snapshot(&files, &state, &run.paths);
@@ -275,6 +287,37 @@ impl Stage for DiscoverStage {
             carried,
         })
     }
+}
+
+/// How many files this scan changed against the newest snapshot: those that are new, whose content
+/// or language differs, and (in a scan of all paths) those that are gone. `None` if the project
+/// has no snapshot yet. A scan of some paths counts only the files those paths name (ADR 0097).
+fn changed_files(
+    files: &[DiscoveredFile],
+    previous: &PreviousState,
+    mode: ScanMode,
+    paths: &Selection,
+) -> Option<u32> {
+    previous.snapshot?;
+    let narrowed = mode == ScanMode::Incremental && !paths.is_empty();
+    let stored: HashMap<&RelativePath, (&ContentHash, &LanguageId)> = previous
+        .files
+        .iter()
+        .map(|file| (&file.path, (&file.content_hash, &file.language)))
+        .collect();
+    let named = |path: &RelativePath| !narrowed || paths.contains(path);
+    let present: HashSet<&RelativePath> = files.iter().map(|file| &file.path).collect();
+    let changed = files
+        .iter()
+        .filter(|file| named(&file.path))
+        .filter(|file| stored.get(&file.path) != Some(&(&file.content_hash, &file.language)))
+        .count();
+    let gone = previous
+        .files
+        .iter()
+        .filter(|file| named(&file.path) && !present.contains(&file.path))
+        .count();
+    Some(u32::try_from(changed + gone).unwrap_or(u32::MAX))
 }
 
 /// The newest snapshot, if every file of it is still there with the same content and language and
@@ -929,6 +972,15 @@ fn log_warnings(warnings: &[ScanWarning]) {
     }
 }
 
+/// The places that match several symbols and the warnings of a measured scan: those of its
+/// references and one per code of the files it left out.
+fn scan_warnings(input: &Measured) -> (u64, Vec<ScanWarning>) {
+    let ambiguous = input.carried.ambiguous_places(&input.references);
+    let mut warnings = warnings_of(ambiguous, input.given_up);
+    warnings.extend(left_out_warnings(&input.run.paths_report.left_out));
+    (ambiguous, warnings)
+}
+
 /// The warnings of a scan over all references of the snapshot, changed and kept ones.
 ///
 /// `given_up` counts only the places resolved in this scan: an incremental scan does not know how
@@ -987,9 +1039,7 @@ impl Stage for PersistStage {
         }
         let root = input.run.root.clone();
         let snapshot = snapshot_of(&input, self.clock.now());
-        let ambiguous = input.carried.ambiguous_places(&input.references);
-        let mut warnings = warnings_of(ambiguous, input.given_up);
-        warnings.extend(left_out_warnings(&input.run.paths_report.left_out));
+        let (ambiguous, warnings) = scan_warnings(&input);
         let paths = listed(input.run.paths_report, self.max_left_out_listed);
         let data = SnapshotData {
             snapshot,
@@ -1004,6 +1054,8 @@ impl Stage for PersistStage {
             dropped_references: input.carried.dropped,
             naming_rules: input.run.naming_rules,
             parse_micros: input.run.parse_micros,
+            began: input.run.began,
+            files_changed: input.run.files_changed,
             warnings: warnings.clone(),
             ambiguous_places: Some(ambiguous),
             left_out: paths.left_out.clone(),

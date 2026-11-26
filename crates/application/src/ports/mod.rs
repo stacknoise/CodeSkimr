@@ -56,8 +56,8 @@ pub use level2::{ImportRequest, Imported, ReferenceImporter};
 pub use memory::{MemoryGauge, MemoryLimit, MemoryWatch};
 pub use outline::{CodeOutline, MemberRow, OutlineNode};
 pub use query::{
-    CodeIndex, CodeSpan, FileHit, MemberRef, SearchHit, SymbolDetail, SymbolKey, TypeFocus,
-    TypeNeighbour,
+    CodeIndex, CodeSpan, FileHit, MemberRef, ScanEntry, SearchHit, SymbolDetail, SymbolKey,
+    TypeFocus, TypeNeighbour,
 };
 pub use references::{ReferenceSite, ReferenceSites};
 pub use report::{

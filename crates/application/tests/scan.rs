@@ -371,7 +371,7 @@ impl ProjectRepository for World {
         Ok(PreviousState {
             files: self.previous.files.clone(),
             symbols: self.previous.index.symbols.clone(),
-            snapshot: Some(SnapshotId::new(9)),
+            snapshot: (!self.previous.files.is_empty()).then(|| SnapshotId::new(9)),
             names_stored: self.previous.names_stored,
             ambiguous_places: self.previous.ambiguous,
             skipped: self.previous.skipped.clone(),
@@ -619,6 +619,32 @@ fn full_scan_runs_all_stages_and_persists_once() {
     assert_eq!(world.persisted_count(), 1);
     assert_eq!(stages_seen(&events), StageKind::ALL);
     assert!(matches!(events.last(), Some(Event::SnapshotCreated(_))));
+}
+
+#[test]
+fn the_first_scan_of_a_project_is_timed_and_has_no_changed_files() -> Result<(), CodedError> {
+    let world = Arc::new(World::default());
+    let (_, _) = run(&world, ScanMode::Full);
+    let stored = world.last_persisted()?;
+    assert!(
+        stored.began.is_some(),
+        "the store is told when the scan began"
+    );
+    assert_eq!(stored.files_changed, None);
+    Ok(())
+}
+
+#[test]
+fn an_incremental_scan_counts_the_files_it_changed() -> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        found: Some(vec![("a.rs", false), ("b.rs", true)]),
+        ..World::default()
+    });
+    let (_, _) = run(&world, ScanMode::Incremental);
+    // `b.rs` changed and `c.rs` is gone; `a.rs` is as it was.
+    assert_eq!(world.last_persisted()?.files_changed, Some(2));
+    Ok(())
 }
 
 /// The paths, codes and `kept` marks of the files a finished scan left out; none for a scan that

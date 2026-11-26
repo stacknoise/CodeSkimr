@@ -48,6 +48,31 @@ fn b_rewritten(name: &str, references: Vec<codeskimr_domain::Reference>) -> Snap
 }
 
 #[test]
+fn the_history_lists_the_retained_scans_newest_first_with_duration_and_changed_files() {
+    let store = registered_store();
+    let mut first = first_scan(10);
+    first.files_changed = None;
+    store.persist(first).unwrap();
+    let mut second = b_rewritten("App.B", Vec::new());
+    second.began = Some(std::time::Instant::now());
+    second.files_changed = Some(1);
+    store.persist(second).unwrap();
+    let history = store.scan_history(PROJECT).unwrap();
+    let ids: Vec<u64> = history.iter().map(|entry| entry.snapshot.get()).collect();
+    assert_eq!(ids, vec![40, 10], "newest first");
+    assert_eq!(history[0].files_changed, Some(1));
+    assert!(
+        history[0].duration_ms.is_some(),
+        "a scan that began is timed"
+    );
+    assert_eq!(history[1].files_changed, None, "the first scan has none");
+    assert_eq!(
+        history[1].duration_ms, None,
+        "an untimed scan shows no duration"
+    );
+}
+
+#[test]
 fn confirming_the_newest_snapshot_changes_its_time_commit_and_mode_and_nothing_else() {
     let store = registered_store();
     let written = store.persist(first_scan(10)).unwrap();

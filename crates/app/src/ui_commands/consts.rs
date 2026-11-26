@@ -363,6 +363,12 @@ pub const LEVEL2_NOT_STARTED: &str = "not_started";
 /// `Level2Answer::state` when the caller asked for level 1 only.
 pub const LEVEL2_NOT_REQUESTED: &str = "not_requested";
 
+/// Id of the command that lists the last scans of a project (ADR 0097).
+pub const SCANS_LIST: &str = "scans.list";
+/// Title key of `scans.list`.
+pub const SCANS_LIST_TITLE: &str = i18n::COMMAND_SCANS_LIST_TITLE;
+/// Description key of `scans.list`.
+pub const SCANS_LIST_DESCRIPTION: &str = i18n::COMMAND_SCANS_LIST_DESCRIPTION;
 /// Id of the command that summarises a project for the statistics screen (ADR 0081).
 pub const STATS_OVERVIEW: &str = "stats.overview";
 /// Title key of `stats.overview`.

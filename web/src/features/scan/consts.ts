@@ -146,3 +146,29 @@ export const LANGUAGE_COLUMNS = [
   { id: "symbols", label: I18N_KEYS.SCAN_COLUMN_SYMBOLS, number: true },
   { id: "parseTime", label: I18N_KEYS.SCAN_COLUMN_PARSE_TIME, number: true },
 ] as const;
+
+/** Id of the command that lists the last scans of a project (ADR 0097). */
+export const COMMAND_SCANS_LIST = "scans.list";
+
+/** The columns of the table of the last scans by id, with their head texts, and the key the widths
+ * are kept under. */
+export const HISTORY_TABLE_KEY = "scan-history";
+export const HISTORY_COLUMNS = [
+  { id: "time", label: I18N_KEYS.SCAN_HISTORY_COLUMN_TIME, number: false },
+  { id: "mode", label: I18N_KEYS.SCAN_HISTORY_COLUMN_MODE, number: false },
+  { id: "duration", label: I18N_KEYS.SCAN_HISTORY_COLUMN_DURATION, number: true },
+  { id: "files", label: I18N_KEYS.SCAN_HISTORY_COLUMN_FILES, number: true },
+  { id: "changed", label: I18N_KEYS.SCAN_HISTORY_COLUMN_CHANGED, number: true },
+] as const;
+
+/** How the day and the time of a scan are written in the list of the last scans. */
+export const HISTORY_MOMENT: Intl.DateTimeFormatOptions = {
+  dateStyle: "short",
+  timeStyle: "short",
+};
+
+/** The unit after a duration in seconds. */
+export const SECONDS_UNIT = " s";
+
+/** Between the parts of the note under a figure. */
+export const NOTE_SEPARATOR = " · ";
