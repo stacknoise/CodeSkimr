@@ -8,8 +8,8 @@ use codeskimr_application::config::{
     Config, ConfigLayer, LayerSource, PROJECT_CONFIG_FILE, UnusedIgnore,
 };
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::CodeStatistics;
-use codeskimr_application::unused::{Findings, UnusedSymbols, judge};
+use codeskimr_application::ports::{CodeStatistics, StatisticsSetup};
+use codeskimr_application::unused::{Findings, Judgement, UnusedSymbols, judge};
 use codeskimr_domain::{Project, ProjectSource, RankingQuery, SnapshotId};
 
 use crate::project_file::read_project_file;
@@ -61,8 +61,22 @@ impl UnusedSymbols for JudgedUnused {
         query: &RankingQuery,
     ) -> Result<Findings, CodedError> {
         let rules = rules_of(project)?;
-        let facts = self.statistics.symbol_facts(snapshot)?;
-        let judged = judge(facts, query, &rules, &self.approximate, &self.test_names);
-        Ok(Findings::of(&judged, &self.approximate))
+        let unused = self.statistics.unused_facts(
+            snapshot,
+            query,
+            StatisticsSetup {
+                test_names: &self.test_names,
+                approximate: &self.approximate,
+            },
+        )?;
+        let judged = judge(
+            unused,
+            &Judgement {
+                include_tests: query.include_tests,
+                rules: &rules,
+                approximate: &self.approximate,
+            },
+        );
+        Ok(Findings::of(&judged, &rules, &self.approximate))
     }
 }

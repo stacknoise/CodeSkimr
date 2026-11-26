@@ -269,6 +269,24 @@ impl CodeStatistics for ProjectDb {
         Ok(self.read(|conn| ranked(conn, request))?)
     }
 
+    fn unused_facts(
+        &self,
+        snapshot: SnapshotId,
+        query: &RankingQuery,
+        setup: StatisticsSetup<'_>,
+    ) -> Result<Vec<SymbolFacts>, CodedError> {
+        self.ensure_statistics(snapshot, setup.test_names)?;
+        let filter = filter_of(&RankingRequest {
+            snapshot,
+            query,
+            assessment: None,
+            limit: 0,
+            setup,
+        });
+        // The read takes long for a large project: it runs on a connection of its own.
+        Ok(self.read_apart(|conn| filter.unused_facts(conn))?)
+    }
+
     fn unused_counts(
         &self,
         snapshot: SnapshotId,

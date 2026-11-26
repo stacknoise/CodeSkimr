@@ -233,6 +233,20 @@ pub(crate) fn facts_of(
         .collect())
 }
 
+impl Filter {
+    /// The facts of the rows the statement `UNUSED_FACTS` returns, in its order.
+    pub(crate) fn unused_facts(&self, conn: &Connection) -> StorageResult<Vec<SymbolFacts>> {
+        let mut prepared = conn.prepare_cached(sql::UNUSED_FACTS)?;
+        self.bind(&mut prepared)?;
+        let mut rows = prepared.raw_query();
+        let mut facts = Vec::new();
+        while let Some(row) = rows.next()? {
+            facts.push(decode(read_counted(&Cols::new(row))?)?);
+        }
+        Ok(facts)
+    }
+}
+
 /// Binds the parameters of `statement` that it has; the others are left out.
 pub(crate) fn bind(
     statement: &mut Statement<'_>,
