@@ -19,91 +19,18 @@ use codeskimr_codes::i18n::{
 use codeskimr_i18n::{FluentValue, I18nError, Messages};
 use serde_json::Value;
 
+use crate::consts::change::{
+    APOSTROPHE, BACKTICK, CENTURY, CENTURY_DAYS, EPOCH_SHIFT, ERA_DAYS, FOUR_YEARS_DAYS,
+    LEAP_CYCLE, LIST_SECTIONS, MARCH, MARCH_BASED_NEW_YEAR, MONTH_CYCLE_DAYS, MONTH_CYCLE_MONTHS,
+    MONTH_OFFSET, MONTHS_SHIFT_BACK, NOT_TOUCHED_STATUS, REASON_SEPARATOR, REMOVED_CAUSE,
+    SECONDS_PER_DAY, SECONDS_PER_HOUR, SECONDS_PER_MINUTE, SUMMARY_ARGUMENTS, YEAR_DAYS,
+    YEARS_PER_ERA, field_name, name,
+};
 use crate::consts::{LINE_BREAK, LIST_INDENT, MARKDOWN_MARKER, key};
 use crate::speech::{
     Line, Speaker, child, count, entries, field, json_list, plain, section, text, texts,
     usage_line as query_usage_line,
 };
-
-/// The names of the arguments of the texts of this module.
-mod name {
-    pub const COUNT: &str = "count";
-    pub const KEEP: &str = "keep";
-    pub const AVERAGE: &str = "average";
-    pub const SNAPSHOT: &str = "snapshot";
-    pub const CREATED: &str = "created";
-    pub const MODE: &str = "mode";
-    pub const FILES: &str = "files";
-    pub const CHANGED: &str = "changed";
-    pub const DURATION: &str = "duration";
-    pub const COMMIT: &str = "commit";
-    pub const MS: &str = "ms";
-    pub const BASE: &str = "base";
-    pub const BASE_TIME: &str = "base_time";
-    pub const TARGET: &str = "target";
-    pub const TARGET_TIME: &str = "target_time";
-    pub const ADDED: &str = "added";
-    pub const REMOVED: &str = "removed";
-    pub const MOVED: &str = "moved";
-    pub const KIND: &str = "kind";
-    pub const NAME: &str = "name";
-    pub const PATH: &str = "path";
-    pub const REASONS: &str = "reasons";
-    pub const FROM: &str = "from";
-    pub const TO: &str = "to";
-    pub const OUTCOME: &str = "outcome";
-    pub const PUBLIC: &str = "public";
-    pub const CERTAIN: &str = "certain";
-    pub const PROBABLE: &str = "probable";
-    pub const OPEN: &str = "open";
-    pub const CAUSE: &str = "cause";
-    pub const LINE: &str = "line";
-    pub const STATUS: &str = "status";
-    pub const SYMBOL: &str = "symbol";
-    pub const HOLDER: &str = "holder";
-    pub const NOTE: &str = "note";
-}
-
-/// The fields of the answer that only this module reads.
-mod field_name {
-    pub const SCANS: &str = "scans";
-    pub const KEEP: &str = "keep";
-    pub const AVERAGE: &str = "average_ms";
-    pub const SNAPSHOT: &str = "snapshot";
-    pub const CREATED: &str = "created";
-    pub const MODE: &str = "mode";
-    pub const FILES: &str = "files";
-    pub const FILES_CHANGED: &str = "files_changed";
-    pub const DURATION: &str = "duration_ms";
-    pub const COMMIT: &str = "commit";
-    pub const BASE: &str = "base";
-    pub const TARGET: &str = "target";
-    pub const ADDED: &str = "added";
-    pub const REMOVED: &str = "removed";
-    pub const CHANGED: &str = "changed";
-    pub const MOVED: &str = "moved";
-    pub const REASONS: &str = "reasons";
-    pub const NARROWED: &str = "narrowed";
-    pub const CRITICAL: &str = "critical";
-    pub const OUTCOME: &str = "outcome";
-    pub const LAYERS: &str = "layers";
-    pub const NEW_VIOLATIONS: &str = "new_violations";
-    pub const NEW_CYCLES: &str = "new_cycles";
-    pub const TO: &str = "to";
-    pub const SUMMARY: &str = "summary";
-    pub const CHANGED_SYMBOLS: &str = "changed_symbols";
-    pub const PUBLIC_SYMBOLS: &str = "public_symbols";
-    pub const USAGES_CERTAIN: &str = "usages_certain";
-    pub const USAGES_PROBABLE: &str = "usages_probable";
-    pub const USAGES_NOT_TOUCHED: &str = "usages_not_touched";
-    pub const IMPACT: &str = "impact";
-    pub const CAUSE: &str = "cause";
-    pub const IS_CUT: &str = "is_cut";
-    pub const STATUS: &str = "status";
-    pub const SYMBOL: &str = "symbol";
-    pub const BASE_SYMBOL: &str = "base";
-    pub const TARGET_SYMBOL: &str = "target";
-}
 
 /// What a value of the answer is, as a number; the text for "not known" if it is `null`.
 fn number_or_unknown(speak: &Speaker<'_>, value: &Value, name: &str) -> Result<String, I18nError> {
@@ -133,26 +60,8 @@ fn time_text(seconds: i64) -> String {
     format!("{year:04}-{month:02}-{day:02} {hour:02}:{minute:02}")
 }
 
-const SECONDS_PER_DAY: i64 = 86_400;
-const SECONDS_PER_HOUR: i64 = 3_600;
-const SECONDS_PER_MINUTE: i64 = 60;
-
 /// The calendar date of a day counted from 1970-01-01 (the proleptic Gregorian calendar).
 fn civil_from_days(days: i64) -> (i64, i64, i64) {
-    const ERA_DAYS: i64 = 146_097;
-    const EPOCH_SHIFT: i64 = 719_468;
-    const YEAR_DAYS: i64 = 365;
-    const FOUR_YEARS_DAYS: i64 = 1_460;
-    const CENTURY_DAYS: i64 = 36_524;
-    const MONTH_CYCLE_MONTHS: i64 = 5;
-    const MONTH_CYCLE_DAYS: i64 = 153;
-    const MONTH_OFFSET: i64 = 2;
-    const MARCH_BASED_NEW_YEAR: i64 = 10;
-    const MARCH: i64 = 3;
-    const MONTHS_SHIFT_BACK: i64 = 9;
-    const YEARS_PER_ERA: i64 = 400;
-    const LEAP_CYCLE: i64 = 4;
-    const CENTURY: i64 = 100;
     let shifted = days + EPOCH_SHIFT;
     let era = shifted.div_euclid(ERA_DAYS);
     let day_of_era = shifted.rem_euclid(ERA_DAYS);
@@ -259,8 +168,6 @@ fn reasons_text(speak: &Speaker<'_>, entry: &Value) -> Result<String, I18nError>
     Ok(reasons.join(REASON_SEPARATOR))
 }
 
-const REASON_SEPARATOR: &str = ", ";
-
 /// The arguments that name the target side of a changed or moved symbol.
 fn matched_args(entry: &Value) -> Vec<(&'static str, FluentValue<'static>)> {
     let pairs = [
@@ -346,7 +253,7 @@ pub(crate) fn compare_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<S
         speak.say(COMPARE_HEAD, &head)?,
         speak.say(COMPARE_COUNTS, &counts)?,
     ];
-    let lists: [(&str, &str, Line); 4] = [
+    let lists: [(&str, &str, Line); LIST_SECTIONS] = [
         (COMPARE_ADDED, field_name::ADDED, symbol_line),
         (COMPARE_REMOVED, field_name::REMOVED, symbol_line),
         (COMPARE_CHANGED, field_name::CHANGED, changed_line),
@@ -374,11 +281,6 @@ fn cause_text(speak: &Speaker<'_>, entry: &Value) -> Result<String, I18nError> {
     let reasons = [(name::REASONS, text(reasons_text(speak, entry)?))];
     speak.say(CHANGE_CAUSE_CHANGED, &reasons)
 }
-
-/// The `cause` of a symbol that is gone, as the answer says it.
-const REMOVED_CAUSE: &str = "removed";
-/// The `status` of a usage whose holder is untouched, as the answer says it.
-const NOT_TOUCHED_STATUS: &str = "not_touched";
 
 fn status_text(speak: &Speaker<'_>, usage: &Value) -> Result<String, I18nError> {
     let message = if field(usage, field_name::STATUS) == NOT_TOUCHED_STATUS {
@@ -418,7 +320,7 @@ fn impact_block(speak: &Speaker<'_>, entry: &Value) -> Result<Vec<String>, I18nE
 }
 
 /// The numbers at the head of a change: the symbols and the usages.
-fn summary_args(answer: &Value) -> [(&'static str, FluentValue<'static>); 7] {
+fn summary_args(answer: &Value) -> [(&'static str, FluentValue<'static>); SUMMARY_ARGUMENTS] {
     let summary = child(answer, field_name::SUMMARY);
     let base = child(answer, field_name::BASE);
     let target = child(answer, field_name::TARGET);
@@ -461,9 +363,6 @@ pub(crate) fn change_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<St
 fn code(value: &str) -> String {
     plain(value).replace(BACKTICK, APOSTROPHE)
 }
-
-const BACKTICK: char = '`';
-const APOSTROPHE: &str = "'";
 
 fn markdown_checklist(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<String>, I18nError> {
     let impact = child(answer, field_name::IMPACT);
