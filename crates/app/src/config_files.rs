@@ -11,6 +11,7 @@ use codeskimr_cli::GlobalOptions;
 use codeskimr_codes::ErrorCode;
 
 use crate::locations::Locations;
+use crate::ui_settings::UiSettingsFile;
 
 /// Builds the configuration for a run.
 ///
@@ -27,7 +28,8 @@ pub fn load(
     Config::resolve(&layers(locations, global, project_dir)?).map_err(CodedError::caused_by)
 }
 
-/// The layers of the override chain in their order: user file, project file, command line.
+/// The layers of the override chain in their order: user file, the settings the UI saved, project
+/// file, command line.
 ///
 /// # Errors
 /// - `CFG-102` if a named configuration file is missing or unreadable, or a file is not valid TOML,
@@ -41,6 +43,7 @@ pub fn layers(
     if let Some(user) = &locations.user_config {
         layers.extend(read_layer(LayerSource::User, &user.path, user.required)?);
     }
+    layers.extend(UiSettingsFile::in_dir(&locations.data_dir).layer());
     if let Some(folder) = project_dir {
         let file = folder.join(PROJECT_CONFIG_FILE);
         layers.extend(read_layer(LayerSource::Project, &file, false)?);

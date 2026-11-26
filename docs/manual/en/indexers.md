@@ -89,7 +89,7 @@ A large TypeScript project needs far more memory than the other indexers. So you
 scip-typescript = 12288
 ```
 
-For Node.js (`scip-typescript`) the limit also sets the heap of the process. A name that is not in the list is refused when the configuration is read, so a typo does not go unnoticed.
+For Node.js (`scip-typescript`) the limit also sets the heap of the process. A name that is not in the list is refused when the configuration is read, so a typo does not go unnoticed. You can also set the limit in the app: **Settings → Analysis → Memory per indexer**. A value saved there counts from the next start of the program, wins over the user configuration and loses against a `--set` flag; the table of effective settings names it with the origin "Saved in the app". The limit may not exceed 1,048,576 MB.
 
 The indexer gets a cleared environment with an allow list (no token or secret of CodeSkimr reaches it), runs in its own process group, and its output is redacted before it is logged. **The network is not blocked**, because restoring packages needs it; this is the main residual risk and the reason for the confirmation.
 

@@ -55,12 +55,19 @@ export const INDEXER_COLUMNS = [
 export const EFFECTIVE_COMMAND = "settings.effective";
 
 /** Where a setting got its value; the names are those of the answer of `settings.effective`. */
-export const ORIGIN = { default: "default", user: "user", project: "project", cli: "cli" } as const;
+export const ORIGIN = {
+  default: "default",
+  user: "user",
+  ui: "ui",
+  project: "project",
+  cli: "cli",
+} as const;
 
 /** The pill of each origin: a value from a file or a flag stands out from a default. */
 export const ORIGIN_TEXTS = {
   default: I18N_KEYS.SETTINGS_EFFECTIVE_ORIGIN_DEFAULT,
   user: I18N_KEYS.SETTINGS_EFFECTIVE_ORIGIN_USER,
+  ui: I18N_KEYS.SETTINGS_EFFECTIVE_ORIGIN_UI,
   project: I18N_KEYS.SETTINGS_EFFECTIVE_ORIGIN_PROJECT,
   cli: I18N_KEYS.SETTINGS_EFFECTIVE_ORIGIN_CLI,
 } as const;
@@ -140,3 +147,15 @@ export const SETTINGS_PANEL_ID = "settings-panel";
 export const SETTINGS_SEARCH_ID = "settings-search";
 /** `tabindex` of the selected tab and of the others (the arrow keys reach them). */
 export const SETTINGS_TAB_STOP = { on: 0, off: -1 } as const;
+
+/** The commands of the saved settings (ADR 0103). */
+export const UI_SETTINGS_COMMAND = "ui_settings.get";
+export const SET_INDEXER_MEMORY_COMMAND = "ui_settings.set_indexer_memory";
+/** The key of the memory limit of one indexer in the effective settings, before its name. */
+export const INDEXER_MEMORY_PREFIX = "level2.indexer_memory_mb.";
+/** The general memory limit of an indexer in MB, which `0` follows. */
+export const GENERAL_MEMORY_KEY = "level2.max_memory_mb";
+/** The most MB the server accepts for one indexer (`MAX_INDEXER_MEMORY_MB`). */
+export const INDEXER_MEMORY_MAX = 1_048_576;
+/** Ids that tie the input of an indexer to its note. */
+export const INDEXER_MEMORY_ID_PREFIX = "indexer-memory-";
