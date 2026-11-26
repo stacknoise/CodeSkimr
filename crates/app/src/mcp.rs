@@ -21,6 +21,7 @@ use crate::clock::SystemClock;
 use crate::config_files;
 use crate::locations::Locations;
 use crate::principal;
+use crate::rules_check::StoredRules;
 use crate::running::{ExclusiveScans, RunningScans};
 use crate::source_arg::folder_spec;
 use crate::unused_symbols::JudgedUnused;
@@ -253,6 +254,7 @@ fn build_ports(
         annotations: store.clone(),
         reports: store.clone(),
         unused: Arc::new(JudgedUnused::new(store.clone(), config)),
+        rules: Arc::new(StoredRules::new(store.clone())),
         mentions: Arc::new(FolderMentions::new(config.scan.excluded_folders.clone())),
         text: Arc::new(FolderText),
         index: store,

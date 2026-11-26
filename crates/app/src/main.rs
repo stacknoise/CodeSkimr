@@ -64,6 +64,7 @@ mod refresh;
 mod retention;
 #[cfg(test)]
 mod retention_tests;
+mod rules_check;
 mod run;
 mod running;
 mod scan;

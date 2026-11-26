@@ -220,6 +220,17 @@ cli-cmd-usages = List where a symbol is used, or what it uses (the answer of fin
 cli-cmd-impact = List what a change of a symbol can reach (the answer of impact_of_change)
 cli-cmd-context = Give signature, callers, dependencies, affected files and notes of a symbol in one answer (the answer of get_context)
 cli-cmd-unused = List the symbols for which no usage was found, with the reason for each (the answer of find_unused)
+cli-cmd-rules = Judge the architecture rules of the project file against the newest scan; fails only for violations that the held state does not have (the answer of check_rules)
+cli-query-rules-head = Rules: { $new } new, { $held } held as old burdens, { $resolved } resolved.
+cli-query-rules-none = The project file declares no architecture rules.
+cli-query-rules-rule = { $rule }: { $new } new of { $total }
+cli-query-rules-line = { $from } -> { $to }  { $path }:{ $line }:{ $column }  ({ $held ->
+        [true] held
+       *[other] NEW
+    }, { $places ->
+        [one] 1 place
+       *[other] { $places } places
+    })
 cli-arg-query-text = Part of the symbol name; the characters must appear in this order
 cli-arg-query-symbol = Id or qualified name of the symbol
 cli-arg-query-project = Id of the project, or the folder or Git URL it was scanned from (default: the current folder)

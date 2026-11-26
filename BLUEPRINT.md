@@ -473,7 +473,7 @@ codeskimr mcp                     MCP over stdio
 codeskimr export <project> --html <file>
 codeskimr scope <project>         show or change the languages and folders a project leaves out (ADR 0102)
 codeskimr check <path>            run the convention checks (for CI)
-codeskimr symbols|usages|impact|context <query|symbol>, codeskimr unused, codeskimr preview-rename <symbol> <new-name>   the questions of the MCP tools `search_symbols`, `find_usages`, `impact_of_change`, `get_context`, `find_unused`, `preview_rename` for scripts and CI (`--json` with `schema` and `stale`, ADR 0099)
+codeskimr symbols|usages|impact|context <query|symbol>, codeskimr unused, codeskimr rules, codeskimr preview-rename <symbol> <new-name>   the questions of the MCP tools `search_symbols`, `find_usages`, `impact_of_change`, `get_context`, `find_unused`, `check_rules`, `preview_rename` for scripts and CI (`--json` with `schema` and `stale`, ADR 0099); `rules` exits with 1 only for new violations (ADR 0104)
 codeskimr codes [<code>]          list error codes / explain one code
 codeskimr scans <project>         list the retained scans with duration (ADR 0097, from 1.1)
 codeskimr compare <project>       compare two scans: added, removed, changed, moved (ADR 0097, from 1.1)
@@ -507,6 +507,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | `impact_of_change` | symbol | affected symbols, layers, public interfaces |
 | `get_context` | symbol, budget? | signature, doc, callers (verified first), dependencies, affected files and annotations in one answer, cut by the budget (ADR 0099) |
 | `find_unused` | kind?, language?, assessment?, include_tests? | symbols without a usage with assessment and reason, and those the exception list of the project takes out (ADR 0101) |
+| `check_rules` | project?, limit? | the architecture rules of the project file with their violations (code, places) and the held state; old burdens are marked, only new violations fail the CI (ADR 0104) |
 | `preview_rename` | symbol, new_name, limit? | what a new name would hit, changing nothing: places (verified or not), name conflicts, text lines of strings, configuration and documentation (ADR 0110) |
 | `get_dependencies` | symbol or namespace, direction | edges with counts and violations |
 | `find_similar_code` | code snippet or symbol | existing functions with similar structure ("does this already exist?") |

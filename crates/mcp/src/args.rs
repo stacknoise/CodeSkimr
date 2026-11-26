@@ -168,6 +168,18 @@ pub struct ConstantsArgs {
     pub limit: Option<u32>,
 }
 
+/// Arguments of `check_rules`.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[schemars(crate = "rmcp::schemars")]
+pub struct RulesArgs {
+    /// Id of the project; the project of this server if left out.
+    pub project: Option<u64>,
+    /// Number of violations listed per rule; the configured default if left out, never more than
+    /// the configured maximum.
+    pub limit: Option<u32>,
+}
+
 /// Arguments of `find_unused`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
