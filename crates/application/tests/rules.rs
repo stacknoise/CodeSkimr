@@ -341,6 +341,34 @@ fn a_ring_of_three_modules_has_a_chain_that_closes_after_every_module() {
     assert_eq!(chain, ["C", "A", "B", "C"]);
 }
 
+/// Counts how often the references are walked.
+struct Counting(Fake, std::sync::atomic::AtomicUsize);
+
+impl ReferencePlaces for Counting {
+    fn for_each_reference(
+        &self,
+        snapshot: SnapshotId,
+        visit: &mut dyn FnMut(ReferencePlace),
+    ) -> Result<(), CodedError> {
+        self.1.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.0.for_each_reference(snapshot, visit)
+    }
+
+    fn namespaces(&self, snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
+        self.0.namespaces(snapshot)
+    }
+}
+
+#[test]
+fn the_references_are_walked_once_for_the_cycle_rule_and_the_others_together() {
+    let both = format!("{CYCLES}{PROJECT}");
+    let store = Counting(ring_store(), std::sync::atomic::AtomicUsize::new(0));
+    let outcomes = evaluate(&rules(&both), &[], &store, SNAPSHOT).unwrap();
+    assert_eq!(store.1.load(std::sync::atomic::Ordering::Relaxed), 1);
+    assert_eq!(outcomes.len(), 3);
+    assert_eq!(outcomes[0].violations[0].places.len(), 1);
+}
+
 #[test]
 fn the_layers_come_before_the_cycles_and_the_rules_of_the_project_file() {
     let layers = [

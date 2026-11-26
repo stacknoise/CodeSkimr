@@ -2,14 +2,13 @@
 
 use std::collections::{BTreeMap, HashMap, VecDeque};
 
-use codeskimr_domain::SnapshotId;
-use codeskimr_domain::{ModuleCycle, NamespaceEdge, NamespaceGraph, QualifiedName, find_cycles};
+use codeskimr_domain::{
+    ModuleCycle, NamespaceEdge, NamespaceGraph, NamespaceOwners, QualifiedName, find_cycles,
+};
 
 use super::consts::ID_CYCLES;
 use super::model::{Outcome, Place, Ring, RuleKind, Violation};
-use crate::config::{CycleRule, Rules};
-use crate::error::CodedError;
-use crate::ports::{ReferencePlace, ReferencePlaces};
+use crate::ports::ReferencePlace;
 
 /// A ring and the edge that is cheapest to cut.
 struct Found<'a> {
@@ -71,87 +70,74 @@ fn ring_of(graph: &NamespaceGraph, found: &Found<'_>) -> Option<Ring> {
     })
 }
 
-/// The places of the weakest edge of every ring: the references that go from a symbol of the one
-/// module into the other.
-fn places_of(
-    graph: &NamespaceGraph,
-    found: &[Found<'_>],
-    references: &dyn ReferencePlaces,
-    snapshot: SnapshotId,
-) -> Result<Vec<Vec<Place>>, CodedError> {
-    let owners = graph.owners();
-    let wanted: HashMap<(usize, usize), usize> = found
-        .iter()
-        .enumerate()
-        .map(|(at, one)| ((one.weakest.from, one.weakest.to), at))
-        .collect();
-    let mut places: Vec<Vec<Place>> = found.iter().map(|_| Vec::new()).collect();
-    references.for_each_reference(snapshot, &mut |reference: ReferencePlace| {
+/// The rings of the module graph, found before the walk over the references, and the places of
+/// their weakest edges, collected during it, together with the other rules.
+pub(super) struct Rings<'g> {
+    owners: NamespaceOwners<'g>,
+    /// Weakest edge (positions of its two modules) to the position of its ring in `violations`.
+    wanted: HashMap<(usize, usize), usize>,
+    violations: Vec<Violation>,
+}
+
+impl<'g> Rings<'g> {
+    /// Finds the rings of `graph`: the modules are its nodes, not collapsed.
+    pub(super) fn new(graph: &'g NamespaceGraph) -> Self {
+        let cycles = find_cycles(graph);
+        let mut wanted = HashMap::new();
+        let mut violations = Vec::new();
+        for cycle in &cycles {
+            let Some(weakest) = cycle.resolution.first() else {
+                continue;
+            };
+            let found = Found { cycle, weakest };
+            if let (Some(from), Some(to), Some(ring)) = (
+                name_at(graph, weakest.from),
+                name_at(graph, weakest.to),
+                ring_of(graph, &found),
+            ) {
+                wanted.insert((weakest.from, weakest.to), violations.len());
+                violations.push(Violation {
+                    from,
+                    to,
+                    places: Vec::new(),
+                    old: false,
+                    ring: Some(ring),
+                });
+            }
+        }
+        Self {
+            owners: graph.owners(),
+            wanted,
+            violations,
+        }
+    }
+
+    /// Notes the reference if it goes along the weakest edge of a ring.
+    pub(super) fn visit(&mut self, reference: &ReferencePlace) {
+        if self.wanted.is_empty() {
+            return;
+        }
         let ends = (
-            owners.owner_of(reference.from.as_str()),
-            owners.owner_of(reference.to.as_str()),
+            self.owners.owner_of(reference.from.as_str()),
+            self.owners.owner_of(reference.to.as_str()),
         );
         if let (Some(from), Some(to)) = ends
-            && let Some(&at) = wanted.get(&(from, to))
-            && let Some(list) = places.get_mut(at)
+            && let Some(&at) = self.wanted.get(&(from, to))
+            && let Some(one) = self.violations.get_mut(at)
         {
-            list.push(Place {
-                path: reference.path,
+            one.places.push(Place {
+                path: reference.path.clone(),
                 span: reference.span,
             });
         }
-    })?;
-    Ok(places)
-}
-
-/// The rings of the graph with their weakest edge; a ring without an edge to cut cannot occur.
-fn found_in(cycles: &[ModuleCycle]) -> Vec<Found<'_>> {
-    cycles
-        .iter()
-        .filter_map(|cycle| {
-            let weakest = cycle.resolution.first()?;
-            Some(Found { cycle, weakest })
-        })
-        .collect()
-}
-
-/// The outcome of the rule `cycles`; `None` if the project did not switch it on. Modules are the
-/// nodes of the namespace graph as the store has it, not collapsed.
-///
-/// # Errors
-/// A coded failure of the `STO` group.
-pub(super) fn cycles_outcome(
-    rules: &Rules,
-    references: &dyn ReferencePlaces,
-    snapshot: SnapshotId,
-) -> Result<Option<Outcome>, CodedError> {
-    if rules.cycles != CycleRule::Deny {
-        return Ok(None);
     }
-    let graph = references.namespaces(snapshot)?;
-    let cycles = find_cycles(&graph);
-    let found = found_in(&cycles);
-    let places = if found.is_empty() {
-        Vec::new()
-    } else {
-        places_of(&graph, &found, references, snapshot)?
-    };
-    let violations = found
-        .iter()
-        .zip(places)
-        .filter_map(|(one, places)| {
-            Some(Violation {
-                from: name_at(&graph, one.weakest.from)?,
-                to: name_at(&graph, one.weakest.to)?,
-                places,
-                old: false,
-                ring: Some(ring_of(&graph, one)?),
-            })
-        })
-        .collect();
-    Ok(Some(Outcome {
-        id: ID_CYCLES.to_owned(),
-        kind: RuleKind::Cycles,
-        violations,
-    }))
+
+    /// The outcome of the rule `cycles`.
+    pub(super) fn into_outcome(self) -> Outcome {
+        Outcome {
+            id: ID_CYCLES.to_owned(),
+            kind: RuleKind::Cycles,
+            violations: self.violations,
+        }
+    }
 }
