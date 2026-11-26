@@ -18,7 +18,7 @@ For the base of a comparison: (a) only retained snapshots, (b) also a Git branch
 
 Options 2 and (a). Details:
 
-1. **History.** Two nullable columns on `snapshots` (migration 0023): `duration_ms` (wall time of the scan that wrote the snapshot, from the start of the discover stage to the commit) and `files_changed` (files of the scan that were new, changed or gone against the previous snapshot; none for the first scan). A snapshot written before the migration has neither; the screen shows a dash. A scan without changes (ADR 0093) writes no snapshot and leaves both values as they are, so the row shows the duration of the scan that wrote the snapshot next to the time of the last scan that confirmed it; the tab says so in its note. The list is the retained snapshots, newest first, with time, mode, duration, files and changed files, and no other limit than the retention (the tab says how many are kept). `ScanSummary` of the REST interface carries both fields.
+1. **History.** Two nullable columns on `snapshots` (migration 0024): `duration_ms` (wall time of the scan that wrote the snapshot, from the start of the discover stage to the commit) and `files_changed` (files of the scan that were new, changed or gone against the previous snapshot; none for the first scan). A snapshot written before the migration has neither; the screen shows a dash. A scan without changes (ADR 0093) writes no snapshot and leaves both values as they are, so the row shows the duration of the scan that wrote the snapshot next to the time of the last scan that confirmed it; the tab says so in its note. The list is the retained snapshots, newest first, with time, mode, duration, files and changed files, and no other limit than the retention (the tab says how many are kept). `ScanSummary` of the REST interface carries both fields.
 2. **Identity.** Two symbols are the same symbol when kind, qualified name and parameter types are equal (the key of ADR 0068). Only types, callables, properties, fields, constants, events and enum members take part; namespaces, modules and parameters do not.
 3. **Result of a comparison** (base = older, target = newer, both snapshots of one project):
    - *added*: key only in the target;
@@ -40,8 +40,8 @@ Options 2 and (a). Details:
 
 ## Consequences
 
-- One change of the schema (migration 0023) and one use case serve the screen, the CLI and the agent. Trends and the live view (later) can reuse the comparison.
+- One change of the schema (migration 0024) and one use case serve the screen, the CLI and the agent. Trends and the live view (later) can reuse the comparison.
 - "Changed" is exactly as good as the content hash: a change of a comment or of whitespace is none, a change of an unrelated line inside a method is one.
 - The checklist "not touched" is exact to the symbol that holds the usage, not to the line. A usage in a method that changed for another reason counts as adapted; the view shows the line either way.
 - Renames inside one file with a changed body, and renames together with a move, show as removed and added.
-- Work packages, in this order, each its own PR: (1) this ADR with the blueprint changes; (2) migration 0023, duration and changed files stored and shown in the tab "Scan" (#755, covers #711 and #725); (3) domain and application: comparison and impact, with storage reads (#756); (4) registry commands, REST, CLI and MCP (#757); (5) the screen "Change" with the mocks (#758); (6) documentation, manual and the acceptance on a real project (#759).
+- Work packages, in this order, each its own PR: (1) this ADR with the blueprint changes; (2) migration 0024, duration and changed files stored and shown in the tab "Scan" (#755, covers #711 and #725); (3) domain and application: comparison and impact, with storage reads (#756); (4) registry commands, REST, CLI and MCP (#757); (5) the screen "Change" with the mocks (#758); (6) documentation, manual and the acceptance on a real project (#759).
