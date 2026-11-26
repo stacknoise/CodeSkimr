@@ -27,3 +27,16 @@ fn a_question_mark_stands_for_one_character_and_the_rest_for_itself() {
     assert!(glob_matches("a*b*c", "aXXbYYc"));
     assert!(!glob_matches("a*b*c", "aXXbYY"));
 }
+
+#[test]
+fn backtracking_and_non_ascii_text_match_as_a_whole() {
+    assert!(glob_matches("*ab", "aab"));
+    assert!(glob_matches("a*a*a", "aaaa"));
+    assert!(!glob_matches("a*a*a", "aa"));
+    assert!(glob_matches("*b?d", "abcbxd"));
+    assert!(glob_matches("Gr?ße*", "Größe.Wert"));
+    assert!(!glob_matches("", "x"));
+    assert!(glob_matches("", ""));
+    assert!(glob_matches("a**", "a"));
+    assert!(!glob_matches("?*", ""));
+}

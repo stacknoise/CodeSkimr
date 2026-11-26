@@ -11,9 +11,7 @@ use codeskimr_application::config::{
     Config, ConfigLayer, LayerSource, PROJECT_CONFIG_FILE, UnusedIgnore,
 };
 use codeskimr_application::error::CodedError;
-use codeskimr_domain::{
-    Assessment, Project, ProjectSource, RankingQuery, SymbolFacts, mark_tests, rank,
-};
+use codeskimr_domain::{Assessment, Project, ProjectSource, SymbolFacts};
 
 use super::layers::read_project_file;
 
@@ -40,17 +38,17 @@ pub(super) fn rules_of(project: &Project) -> Result<Vec<UnusedIgnore>, CodedErro
 pub(super) struct Judged {
     /// The symbols that stay in the ranking, the very likely unused ones first, then by place.
     pub(super) kept: Vec<SymbolFacts>,
-    /// The symbols an entry covers, with the entry that does.
-    pub(super) left_out: Vec<(SymbolFacts, UnusedIgnore)>,
+    /// The symbols an entry covers, with the position of the entry that does.
+    pub(super) left_out: Vec<(SymbolFacts, usize)>,
     /// Test code without usages that the ranking leaves out; zero if test code counts.
     pub(super) tests_hidden: usize,
 }
 
-/// The first entry that covers the symbol.
-fn covering<'a>(rules: &'a [UnusedIgnore], fact: &SymbolFacts) -> Option<&'a UnusedIgnore> {
+/// The position of the first entry that covers the symbol.
+fn covering(rules: &[UnusedIgnore], fact: &SymbolFacts) -> Option<usize> {
     rules
         .iter()
-        .find(|rule| rule.covers(fact.path.as_str(), fact.qualified_name.as_str()))
+        .position(|rule| rule.covers(fact.path.as_str(), fact.qualified_name.as_str()))
 }
 
 /// How the ranking of unused symbols orders the assessments.
@@ -61,45 +59,45 @@ fn assessment_rank(assessment: Assessment) -> usize {
         .unwrap_or(Assessment::ALL.len())
 }
 
-/// Judges the facts of a snapshot: the ranking `query` (of unused symbols) split by `rules`.
-/// `approximate` names the languages whose usages are an approximation, `test_names` the folders
-/// and modules that hold test code.
-pub(super) fn judge(
-    mut facts: Vec<SymbolFacts>,
-    query: &RankingQuery,
-    rules: &[UnusedIgnore],
-    approximate: &[String],
-    test_names: &[String],
-) -> Judged {
-    mark_tests(&mut facts, test_names);
-    // One ranking with test code; the ranking without it is the same rows minus the test ones.
-    let all = RankingQuery {
-        include_tests: true,
-        ..query.clone()
-    };
-    let mut ranked: Vec<&SymbolFacts> = rank(&facts, &all, usize::MAX).rows;
-    let with_tests = ranked.len();
-    if !query.include_tests {
-        ranked.retain(|fact| !fact.test);
-    }
-    let tests_hidden = with_tests.saturating_sub(ranked.len());
-    let assess = |fact: &SymbolFacts| {
-        let language = approximate
-            .iter()
-            .any(|candidate| candidate == fact.language.as_str());
-        assessment_rank(Assessment::of(fact.visibility, language))
-    };
-    ranked.sort_by_key(|fact| assess(fact));
+/// What the judgement is asked: whether test code counts, the entries of the exception list and
+/// the languages whose usages are an approximation.
+pub(super) struct Judgement<'a> {
+    /// Whether test code stays in the ranking.
+    pub(super) include_tests: bool,
+    /// The exception list of the project.
+    pub(super) rules: &'a [UnusedIgnore],
+    /// The languages whose usages are an approximation.
+    pub(super) approximate: &'a [String],
+}
+
+/// The position of the assessment of a symbol in the order of the ranking.
+fn slot_of(fact: &SymbolFacts, approximate: &[String]) -> usize {
+    let language = approximate
+        .iter()
+        .any(|candidate| candidate == fact.language.as_str());
+    assessment_rank(Assessment::of(fact.visibility, language))
+}
+
+/// Judges the symbols without usages of a snapshot (`unused`, in the order of their place, test
+/// code marked by the store): splits them by the exception list and puts the very likely unused
+/// ones first. The symbols are moved, not copied.
+pub(super) fn judge(unused: Vec<SymbolFacts>, ask: &Judgement<'_>) -> Judged {
     let mut judged = Judged {
         kept: Vec::new(),
         left_out: Vec::new(),
-        tests_hidden,
+        tests_hidden: 0,
     };
-    for fact in ranked {
-        match covering(rules, fact) {
-            Some(rule) => judged.left_out.push((fact.clone(), rule.clone())),
-            None => judged.kept.push(fact.clone()),
+    // One bucket per assessment keeps the order of the places inside it and needs no sort.
+    let mut buckets: Vec<Vec<SymbolFacts>> = vec![Vec::new(); Assessment::ALL.len()];
+    for fact in unused {
+        if fact.test && !ask.include_tests {
+            judged.tests_hidden += 1;
+        } else if let Some(rule) = covering(ask.rules, &fact) {
+            judged.left_out.push((fact, rule));
+        } else if let Some(bucket) = buckets.get_mut(slot_of(&fact, ask.approximate)) {
+            bucket.push(fact);
         }
     }
+    judged.kept = buckets.into_iter().flatten().collect();
     judged
 }

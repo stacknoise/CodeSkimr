@@ -165,6 +165,7 @@ impl CodeStatistics for SqliteStore {
     forward! { CodeStatistics via of_snapshot:
         fn symbol_facts(&self, snapshot: SnapshotId) -> Result<Vec<SymbolFacts>, CodedError>;
         fn prepare(&self, snapshot: SnapshotId, setup: StatisticsSetup<'_>) -> Result<(), CodedError>;
+        fn unused_facts(&self, snapshot: SnapshotId, query: &RankingQuery, setup: StatisticsSetup<'_>) -> Result<Vec<SymbolFacts>, CodedError>;
         fn unused_counts(&self, snapshot: SnapshotId, query: &RankingQuery, setup: StatisticsSetup<'_>) -> Result<UnusedCounts, CodedError>;
         fn summary(&self, snapshot: SnapshotId, include_tests: bool, setup: StatisticsSetup<'_>) -> Result<StatisticsSummary, CodedError>;
     }

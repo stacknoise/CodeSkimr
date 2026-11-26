@@ -55,6 +55,8 @@ mod temp_file;
 #[cfg(test)]
 pub(crate) mod tests;
 mod unused;
+#[cfg(test)]
+mod unused_tests;
 mod usages;
 mod usages_code;
 

@@ -1,6 +1,6 @@
 # 0101 – Unused symbols come with a reason and an exception list
 
-Status: accepted (the scope was decided by the product owner on 2026-11-23, "ungenutzte Symbole mit Begründung (E3)" in version 1.1; the mock `erw-ungenutzt` was approved on 2026-11-26). The steps below are built one pull request each; this record is written with the first. Steps 1 and 2 are built; 3 and 4 follow.
+Status: accepted (the scope was decided by the product owner on 2026-11-23, "ungenutzte Symbole mit Begründung (E3)" in version 1.1; the mock `erw-ungenutzt` was approved on 2026-11-26). The steps below are built one pull request each; this record is written with the first. Steps 1 and 2 are built (and made fast for very large projects, #763); 3 and 4 follow.
 
 ## Context
 
@@ -18,5 +18,5 @@ The tab "No usage found" of the statistics screen (ADR 0081) lists the symbols n
 ## Consequences
 
 - The number in the tab and on the overview card counts without the left-out symbols once step 2 is in; until then it is unchanged.
-- With exception entries the answer is computed from the facts of the snapshot instead of the stored counts (ADR 0091); that is slower on a very large project. Measured on a release build with 5 entries on synthetic facts, the judging alone (without the read of the facts from the database) takes about 1.9 s and 370 MB at 500,000 symbols and about 8 to 9 s and 1.4 GB at 2,000,000 symbols per request. A project of 100,000 symbols needs about 0.4 s (scaled from these numbers). The overview judges once per request, not twice. The cost stays for projects that have entries; keeping the result per snapshot and rule set, or applying the entries in the SQL of ADR 0091, is a follow-up (#763) and is not done here.
+- With exception entries the answer is judged from the stored numbers of the symbols without usages only (`CodeStatistics::unused_facts`, read through the partial index `statistics_by_place`), not from the facts of every symbol (ADR 0091): the symbols with usages are never loaded, the test marks are those stored with the numbers, and the glob matcher allocates nothing. The first version loaded and judged every symbol and took about 8 to 9 s and 1.4 GB per request at 2,000,000 symbols, judging alone (#763). Measured on a release build with the synthetic graph of the statistics benchmark (`STATISTICS_BENCH_SCALE=100`, 2,000,000 symbols, 447,000 of them unused): reading the unused symbols takes about 1.5 s (reading every symbol took 15.7 s), judging 500,000 symbols against 5 entries takes about 0.17 s. The cost is linear in the number of unused symbols, so a project with fewer unused symbols is faster. The result is not kept per snapshot and rule set; that stays open if a real project needs it.
 - Texts of the reasons exist in German and English in `locales/`.

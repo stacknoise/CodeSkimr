@@ -107,15 +107,20 @@ fn query(ranking: Ranking, kinds: KindGroup) -> RankingQuery {
     }
 }
 
+/// The settings of the questions: no test folders and no approximate language.
+fn setup_of(names: &[String]) -> StatisticsSetup<'_> {
+    StatisticsSetup {
+        test_names: names,
+        approximate: names,
+    }
+}
+
 /// The reads of one `stats.overview` call, in the order of the command. A failed read ends the
 /// benchmark.
 fn overview_reads(store: &ProjectDb) -> Option<()> {
     let snapshot = SnapshotId::new(SNAPSHOT);
     let names: Vec<String> = Vec::new();
-    let setup = StatisticsSetup {
-        test_names: &names,
-        approximate: &names,
-    };
+    let setup = setup_of(&names);
     let all = query(Ranking::Unused, KindGroup::All);
     black_box(store.unused_counts(snapshot, &all, setup).ok()?);
     black_box(store.summary(snapshot, false, setup).ok()?);
@@ -141,6 +146,31 @@ fn overview_reads(store: &ProjectDb) -> Option<()> {
     Some(())
 }
 
+/// The read the exception list of the unused symbols judges from (ADR 0101), against the read of
+/// every symbol it replaced. Both are printed once.
+fn unused_facts_read(store: &ProjectDb) -> Option<()> {
+    let snapshot = SnapshotId::new(SNAPSHOT);
+    let names: Vec<String> = Vec::new();
+    let setup = setup_of(&names);
+    let started = Instant::now();
+    let unused = store
+        .unused_facts(snapshot, &query(Ranking::Unused, KindGroup::All), setup)
+        .ok()?;
+    eprintln!(
+        "unused facts: {} symbols in {:?}",
+        unused.len(),
+        started.elapsed()
+    );
+    let started = Instant::now();
+    let all = store.symbol_facts(snapshot).ok()?;
+    eprintln!(
+        "all facts: {} symbols in {:?}",
+        all.len(),
+        started.elapsed()
+    );
+    Some(())
+}
+
 fn queries(c: &mut Criterion) -> Option<()> {
     let store = store()?;
     let started = Instant::now();
@@ -149,6 +179,7 @@ fn queries(c: &mut Criterion) -> Option<()> {
         "first overview, with counting the numbers: {:?}",
         started.elapsed()
     );
+    unused_facts_read(&store)?;
     let mut group = c.benchmark_group("statistics");
     group.bench_function("overview", |b| b.iter(|| overview_reads(&store)));
     group.finish();

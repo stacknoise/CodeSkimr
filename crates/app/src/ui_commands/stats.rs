@@ -27,7 +27,7 @@ use super::consts::{
     STATS_RANKING, STATS_RANKING_DESCRIPTION, STATS_RANKING_TITLE, STATS_TOP,
 };
 use super::rating;
-use super::unused::{self, Judged};
+use super::unused::{self, Judged, Judgement};
 
 /// What a ranking sorts by, as the screen names it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -412,13 +412,16 @@ impl StatsPorts {
         query: &RankingQuery,
         rules: &[UnusedIgnore],
     ) -> Result<Judged, CodedError> {
-        let facts = self.statistics.symbol_facts(snapshot.id)?;
+        let unused = self
+            .statistics
+            .unused_facts(snapshot.id, query, self.setup())?;
         Ok(unused::judge(
-            facts,
-            query,
-            rules,
-            &self.approximate,
-            &self.test_names,
+            unused,
+            &Judgement {
+                include_tests: query.include_tests,
+                rules,
+                approximate: &self.approximate,
+            },
         ))
     }
 
@@ -445,6 +448,7 @@ impl StatsPorts {
     fn judged_ranking(
         &self,
         judged: &Judged,
+        rules: &[UnusedIgnore],
         assessment: Option<Assessment>,
         limit: usize,
     ) -> RankingOut {
@@ -458,9 +462,11 @@ impl StatsPorts {
             .left_out
             .iter()
             .take(limit)
-            .map(|(fact, rule)| LeftOutOut {
-                row: self.row(fact),
-                rule: rule.clone(),
+            .filter_map(|(fact, rule)| {
+                Some(LeftOutOut {
+                    row: self.row(fact),
+                    rule: rules.get(*rule)?.clone(),
+                })
             })
             .collect();
         RankingOut {
@@ -521,7 +527,7 @@ impl StatsRanking {
         if !rules.is_empty() {
             let judged = ports.judged(snapshot, query, &rules)?;
             let wanted = input.assessment.map(Assessment::from);
-            return Ok(ports.judged_ranking(&judged, wanted, limit_of(input)));
+            return Ok(ports.judged_ranking(&judged, &rules, wanted, limit_of(input)));
         }
         let counts = ports
             .statistics
