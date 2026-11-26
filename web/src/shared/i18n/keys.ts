@@ -498,6 +498,8 @@ export const I18N_KEYS = {
   COMMAND_SCOPE_SET_DESCRIPTION: "command-scope-set-description",
   COMMAND_RENAME_PREVIEW_TITLE: "command-rename-preview-title",
   COMMAND_RENAME_PREVIEW_DESCRIPTION: "command-rename-preview-description",
+  COMMAND_GRAPH_MODULES_TITLE: "command-graph-modules-title",
+  COMMAND_GRAPH_MODULES_DESCRIPTION: "command-graph-modules-description",
   EXPLORER_TITLE: "explorer-title",
   EXPLORER_FRESHNESS: "explorer-freshness",
   EXPLORER_FILTER_TREE: "explorer-filter-tree",

@@ -104,3 +104,5 @@ command-scope-set-title = Set scope of project
 command-scope-set-description = Stores the languages and folders that the scans of a project leave out. The change applies from the next scan; the code stays one project.
 command-rename-preview-title = Check a rename
 command-rename-preview-description = Shows the places, name conflicts and text hits that a new name for a symbol would hit. Nothing is changed.
+command-graph-modules-title = Show modules and cycles
+command-graph-modules-description = Shows the modules of the newest scan with coupling and stability, the cycles between them with a suggestion how to end them, and modules that stand out.

@@ -53,6 +53,8 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     positive(keys::GRAPH_NODE_WIDTH, config.graph.node_width)?;
     positive(keys::GRAPH_NODE_HEIGHT, config.graph.node_height)?;
     positive(keys::GRAPH_ROW_BOXES, config.graph.row_boxes)?;
+    positive(keys::GRAPH_RISK_MAX, config.graph.risk_max)?;
+    positive(keys::GRAPH_MAX_MODULES, config.graph.max_modules)?;
     positive(keys::EXPORT_MAX_REFERENCES, config.export.max_references)
 }
 

@@ -258,6 +258,12 @@ sweeps = 12
 placement_passes = 6
 # Most boxes in one line of a row. A longer row (many namespaces in one layer) wraps into several lines.
 row_boxes = 8
+# The tab "Modules" (ADR 0108): a module is a risk when at least this many places use it and it depends on a module that is this much less stable (in thousandths, 100 = 0.10). At most `risk_max` risks are listed, the most used first.
+risk_min_incoming = 10
+risk_instability_gap = 100
+risk_max = 5
+# Most modules the tab "Modules" draws and lists, the most referenced first; the rest is counted. Cycles and risks are always found among all modules.
+max_modules = 200
 
 # The HTML export of a project (blueprint 15, ADR 0090).
 [export]

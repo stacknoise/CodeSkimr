@@ -2,7 +2,7 @@
 
 use codeskimr_domain::{
     AnnotationLimits, FingerprintParams, Layer, LayerName, LayoutParams, ModelError, NodeSize,
-    QualifiedName, glob_matches, is_within,
+    QualifiedName, RiskLimits, glob_matches, is_within,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
@@ -548,6 +548,14 @@ pub struct Graph {
     /// Most boxes in one line of a row; a longer row wraps into several lines, so that a project
     /// with hundreds of namespaces stays readable.
     pub row_boxes: u32,
+    /// Fewest places that use a module for it to count as a risk (ADR 0108).
+    pub risk_min_incoming: u32,
+    /// How much less stable, in thousandths, the module a risky module depends on must be.
+    pub risk_instability_gap: u32,
+    /// Most risks the module map lists.
+    pub risk_max: u32,
+    /// Most modules the module map draws and lists.
+    pub max_modules: u32,
 }
 
 impl Graph {
@@ -557,6 +565,16 @@ impl Graph {
         NodeSize {
             width: self.node_width,
             height: self.node_height,
+        }
+    }
+
+    /// The limits of a risky module (ADR 0108).
+    #[must_use]
+    pub fn risk_limits(&self) -> RiskLimits {
+        RiskLimits {
+            min_incoming: self.risk_min_incoming,
+            instability_gap: self.risk_instability_gap,
+            max_risks: usize::try_from(self.risk_max).unwrap_or(usize::MAX),
         }
     }
 

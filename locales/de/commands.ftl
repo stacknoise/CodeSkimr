@@ -104,3 +104,5 @@ command-scope-set-title = Umfang eines Projekts festlegen
 command-scope-set-description = Speichert die Sprachen und Ordner, die die Scans eines Projekts auslassen. Die Änderung gilt ab dem nächsten Scan; der Code bleibt ein Projekt.
 command-rename-preview-title = Umbenennen prüfen
 command-rename-preview-description = Zeigt, welche Stellen, Namenskonflikte und Text-Treffer ein neuer Name für ein Symbol träfe. Es wird nichts geändert.
+command-graph-modules-title = Module und Zyklen zeigen
+command-graph-modules-description = Zeigt die Module des letzten Scans mit Kopplung und Stabilität, die Zyklen zwischen ihnen mit Auflösungsvorschlag und auffällige Module.

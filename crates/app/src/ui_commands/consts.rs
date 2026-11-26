@@ -79,6 +79,13 @@ pub const GRAPH_TITLE: &str = i18n::COMMAND_GRAPH_LAYERS_TITLE;
 /// Description key of `graph.layers`.
 pub const GRAPH_DESCRIPTION: &str = i18n::COMMAND_GRAPH_LAYERS_DESCRIPTION;
 
+/// Id of the command behind the tab "Modules" of the dependency map (ADR 0108).
+pub const GRAPH_MODULES: &str = "graph.modules";
+/// Title key of `graph.modules`.
+pub const GRAPH_MODULES_TITLE: &str = i18n::COMMAND_GRAPH_MODULES_TITLE;
+/// Description key of `graph.modules`.
+pub const GRAPH_MODULES_DESCRIPTION: &str = i18n::COMMAND_GRAPH_MODULES_DESCRIPTION;
+
 /// Id of the command of the quick search.
 pub const SEARCH_QUERY: &str = "search.query";
 /// Most hits the quick search returns.
