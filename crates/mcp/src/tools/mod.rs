@@ -26,7 +26,7 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     AnnotationStore, Clock, CodeIndex, NameMentions, ProjectCatalog, ProjectKeys,
     ProjectRepository, ProjectScanner, ProjectToolCheck, ReferenceSites, ScanReportStore,
-    SimilarityIndex, SnippetFingerprinter, SymbolDetail, SymbolKey, UsageIndex,
+    SimilarityIndex, SnippetFingerprinter, SourceText, SymbolDetail, SymbolKey, UsageIndex,
 };
 use codeskimr_application::unused::UnusedSymbols;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -107,6 +107,8 @@ pub struct Ports {
     pub unused: Arc<dyn UnusedSymbols>,
     /// The lines of a project folder that hold a name, for `preview_rename`.
     pub mentions: Arc<dyn NameMentions>,
+    /// The lines of code of the places of a rename, read from the project folder.
+    pub text: Arc<dyn SourceText>,
 }
 
 /// The tools of the server; all of them only read except `rescan`.
@@ -129,6 +131,7 @@ pub struct Tools {
     reports: Arc<dyn ScanReportStore>,
     unused: Arc<dyn UnusedSymbols>,
     mentions: Arc<dyn NameMentions>,
+    text: Arc<dyn SourceText>,
     limits: McpLimits,
     default_project: Option<ProjectId>,
 }
@@ -168,6 +171,7 @@ impl Tools {
             reports: ports.reports,
             unused: ports.unused,
             mentions: ports.mentions,
+            text: ports.text,
             limits,
             default_project,
         }
@@ -298,6 +302,10 @@ impl Tools {
 
     pub(crate) fn mentions(&self) -> &dyn NameMentions {
         self.mentions.as_ref()
+    }
+
+    pub(crate) fn source_text(&self) -> &dyn SourceText {
+        self.text.as_ref()
     }
 
     pub(crate) fn unused_symbols(&self) -> &dyn UnusedSymbols {

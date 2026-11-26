@@ -9,11 +9,12 @@ export const USAGE: Site = {
   verified: true,
   from: null,
   layer: null,
+  code: "await orders.PlaceOrder(cart);",
 };
 
 export const PREVIEW: Preview = {
   snapshot: 3,
-  symbol: { id: 7, qualified_name: "Shop.Orders.PlaceOrder", kind: "method", layer: null },
+  symbol: { id: 7, qualified_name: "Shop.Orders.PlaceOrder", kind: "method" },
   old_name: "PlaceOrder",
   new_name: "SubmitOrder",
   public_interface: true,

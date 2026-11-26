@@ -42,9 +42,27 @@ describe("RenameDialog", () => {
     const body = JSON.parse(fetchMock.mock.calls[0]?.[1].body as string);
     expect(body).toEqual({ project: 1, symbol: 7, new_name: "SubmitOrder" });
     expect(screen.getByText("docs/api.md")).toBeTruthy();
+    expect(screen.getAllByText("await orders.PlaceOrder(cart);").length).toBeGreaterThan(0);
     expect(screen.getByText("Level 1: 1 place is preliminary")).toBeTruthy();
     expect(screen.getByText(/CodeSkimr does not see callers outside this project/)).toBeTruthy();
     expect(screen.getByText(/does not say whether the code compiles/)).toBeTruthy();
+  });
+
+  it("names a conflicting symbol with its signature", async () => {
+    const conflict = {
+      id: 9,
+      qualified_name: "Shop.Orders.SubmitOrder",
+      kind: "method",
+      path: "Orders/IOrders.cs",
+      signature: "Task SubmitOrder(Order order)",
+      same_signature: true,
+    };
+    serve({ "rename.preview": () => answer({ ...PREVIEW, conflicts: [conflict] }) });
+    renderDialog();
+    await check("SubmitOrder");
+    expect(
+      await screen.findByText(/Shop.Orders.SubmitOrder \(Task SubmitOrder\(Order order\)\)/),
+    ).toBeTruthy();
   });
 
   it("says that a refused name is no usable name", async () => {

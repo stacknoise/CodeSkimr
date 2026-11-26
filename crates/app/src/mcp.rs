@@ -254,6 +254,7 @@ fn build_ports(
         reports: store.clone(),
         unused: Arc::new(JudgedUnused::new(store.clone(), config)),
         mentions: Arc::new(FolderMentions::new(config.scan.excluded_folders.clone())),
+        text: Arc::new(FolderText),
         index: store,
     })
 }

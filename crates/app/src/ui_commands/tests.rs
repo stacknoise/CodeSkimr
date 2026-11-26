@@ -1339,6 +1339,11 @@ fn a_rename_preview_lists_places_and_text_hits_and_changes_nothing() {
     assert_eq!(preview["sites_total"], 2);
     assert_eq!(preview["files"], 2);
     assert_eq!(preview["text_searched"], true);
+    assert_eq!(
+        preview["sites"][0]["code"],
+        "public int Add(int a, int b) { return a + b; }"
+    );
+    assert_eq!(preview["sites"][1]["code"], "return calculator.Add(1, 2);");
     assert_eq!(preview["text_hits"][0]["path"], "NOTES.md");
     assert_eq!(preview["text_hits"][0]["kind"], "documentation");
     assert_eq!(
@@ -1357,6 +1362,7 @@ fn a_rename_preview_without_the_right_to_read_source_does_not_search_the_folder(
     assert_eq!(preview["sites_total"], 2);
     assert_eq!(preview["text_searched"], false);
     assert_eq!(preview["text_total"], 0);
+    assert_eq!(preview["sites"][0]["code"], Value::Null);
 }
 
 #[test]

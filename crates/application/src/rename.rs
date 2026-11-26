@@ -5,24 +5,26 @@
 //! `codeskimr preview-rename` and the dialog of the explorer all ask [`preview`], so they answer
 //! the same.
 
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 
 use codeskimr_domain::{
-    Confidence, Direction, FolderPath, Permission, Principal, Project, ProjectSource, SnapshotId,
-    SymbolId, UsageQuery, Visibility,
+    Confidence, Direction, FolderPath, Permission, Principal, Project, ProjectSource, RelativePath,
+    SnapshotId, SymbolId, UsageQuery, Visibility,
 };
 
 use crate::access;
 use crate::consts::{
-    RENAME_COMMENT_PREFIXES, RENAME_CONFIG_EXTENSIONS, RENAME_CONFLICT_SEARCH_LIMIT,
-    RENAME_DOC_EXTENSIONS, RENAME_EXTENSION_SEPARATOR, RENAME_MAX_FILE_BYTES, RENAME_MAX_SITES,
-    RENAME_NAMEOF, RENAME_NO_EXTENSION, RENAME_QUOTE_PAIR, RENAME_QUOTES, RENAME_SITE_DECLARATION,
+    RENAME_CODE_CHARS, RENAME_CODE_MAX_SPAN, RENAME_COMMENT_PREFIXES, RENAME_CONFIG_EXTENSIONS,
+    RENAME_CONFLICT_SEARCH_LIMIT, RENAME_DOC_EXTENSIONS, RENAME_EXTENSION_SEPARATOR,
+    RENAME_LINE_OFFSET, RENAME_MAX_FILE_BYTES, RENAME_MAX_SITES, RENAME_NAMEOF,
+    RENAME_NO_EXTENSION, RENAME_QUOTE_PAIR, RENAME_QUOTES, RENAME_SITE_DECLARATION,
     RENAME_SITE_USAGE, RENAME_TEXT_CODE, RENAME_TEXT_COMMENT, RENAME_TEXT_CONFIGURATION,
     RENAME_TEXT_DOCUMENTATION, RENAME_TEXT_NAMEOF, RENAME_TEXT_STRING, RENAME_UNDERSCORE,
 };
 use crate::error::CodedError;
 use crate::ports::{
-    CodeIndex, MentionLimits, NameMentions, SearchHit, SymbolDetail, SymbolLabel, UsageIndex,
+    CodeIndex, MentionLimits, NameMentions, SearchHit, SourceText, SymbolDetail, SymbolLabel,
+    UsageIndex,
 };
 
 /// Whether `text` can be a new name: a letter or an underscore, then letters, digits and
@@ -97,6 +99,9 @@ pub struct Site {
     pub container: Option<SymbolLabel>,
     /// The layer that owns the container, if layers are defined.
     pub layer: Option<String>,
+    /// The line of code the place stands on, trimmed and cut; `None` if the folder was not read
+    /// (`text_root` is `None`) or the line could not be read.
+    pub code: Option<String>,
 }
 
 /// A symbol that already has the new name in the scope of the renamed one.
@@ -231,6 +236,8 @@ pub struct RenamePorts<'a> {
     pub usages: &'a dyn UsageIndex,
     /// The text search.
     pub mentions: &'a dyn NameMentions,
+    /// The lines of code of the places, read from the project folder.
+    pub source: &'a dyn SourceText,
 }
 
 /// What the preview is asked.
@@ -301,6 +308,7 @@ fn declaration(
         layer: ask
             .project
             .layer_name_of(found.symbol.qualified_name.as_str()),
+        code: None,
     }))
 }
 
@@ -335,6 +343,7 @@ fn usages(
                     .project
                     .layer_name_of(entry.from.qualified_name.as_str()),
                 container: Some(entry.from),
+                code: None,
             }
         })
         .collect();
@@ -474,6 +483,60 @@ fn count_layers(sites: &[Site]) -> Vec<LayerCount> {
     counts
 }
 
+/// The lines `first..=last` (counted from 1) of `path`, trimmed and cut; empty if the file cannot
+/// be read: a missing line is no reason to refuse the preview.
+fn read_run(
+    ports: &RenamePorts<'_>,
+    root: &FolderPath,
+    path: &str,
+    (first, last): (u32, u32),
+) -> Vec<String> {
+    let Ok(relative) = RelativePath::new(path) else {
+        return Vec::new();
+    };
+    let limits = (RENAME_CODE_MAX_SPAN, RENAME_MAX_FILE_BYTES);
+    ports
+        .source
+        .excerpt(root, &relative, (first, last), limits)
+        .map(|found| {
+            found
+                .lines
+                .iter()
+                .map(|line| line.trim().chars().take(RENAME_CODE_CHARS).collect())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Fills in the code line of every listed place, with one read per file from its first to its last
+/// listed line. Nothing is read if the folder may not be read.
+fn with_code(ports: &RenamePorts<'_>, ask: &RenameAsk<'_>, mut sites: Vec<Site>) -> Vec<Site> {
+    let Some(root) = ask.text_root else {
+        return sites;
+    };
+    let mut spans: BTreeMap<String, (u32, u32)> = BTreeMap::new();
+    for site in &sites {
+        let line = site.line + RENAME_LINE_OFFSET;
+        let span = spans.entry(site.path.clone()).or_insert((line, line));
+        *span = (span.0.min(line), span.1.max(line));
+    }
+    let runs: BTreeMap<String, (u32, Vec<String>)> = spans
+        .into_iter()
+        .map(|(path, span)| {
+            let run = read_run(ports, root, &path, span);
+            (path, (span.0, run))
+        })
+        .collect();
+    for site in &mut sites {
+        let line = site.line + RENAME_LINE_OFFSET;
+        site.code = runs.get(&site.path).and_then(|(first, run)| {
+            let index = usize::try_from(line - first).ok()?;
+            run.get(index).cloned()
+        });
+    }
+    sites
+}
+
 /// What renaming the symbol to the new name would hit. Nothing is changed and nothing is stored.
 /// Only direct usages count (the places that name the symbol), as everywhere in the product; the
 /// answer says what it cannot see through the text hits and the flag `public_interface`.
@@ -493,7 +556,7 @@ pub fn preview(ports: &RenamePorts<'_>, ask: &RenameAsk<'_>) -> Result<RenamePre
         layers: count_layers(&all),
         conflicts: conflicts_of(ports, ask)?,
         text,
-        sites: all.into_iter().take(ask.limit).collect(),
+        sites: with_code(ports, ask, all.into_iter().take(ask.limit).collect()),
         symbol: ask.symbol.clone(),
     })
 }

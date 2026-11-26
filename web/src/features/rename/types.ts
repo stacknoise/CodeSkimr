@@ -1,14 +1,13 @@
 import type { SITE_KIND, TEXT_KIND } from "./consts";
 
-/** A symbol in an answer (`Place` in crates/app/src/ui_commands/usages.rs). */
+/** A symbol in an answer (`PlaceRow` in crates/application/src/rename_rows.rs). */
 export interface Place {
   id: number;
   qualified_name: string;
   kind: string;
-  layer: string | null;
 }
 
-/** One place of the code that would change (`SiteOut` in crates/app/src/ui_commands/rename_preview.rs). */
+/** One place of the code that would change (`SiteRow` in crates/application/src/rename_rows.rs). */
 export interface Site {
   kind: (typeof SITE_KIND)[keyof typeof SITE_KIND];
   path: string;
@@ -18,11 +17,12 @@ export interface Site {
   verified: boolean;
   from: Place | null;
   layer: string | null;
+  /** The line of code the place stands on; `null` if the folder was not read. */
+  code: string | null;
 }
 
 /** A symbol that already has the new name. */
-export interface Conflict {
-  symbol: Place;
+export interface Conflict extends Place {
   path: string;
   signature: string | null;
   same_signature: boolean;

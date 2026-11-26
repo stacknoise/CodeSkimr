@@ -157,6 +157,12 @@ impl CodeIndex for FakeIndex {
             other.symbol.signature = Some("Quote(int count)".to_owned());
             return Ok(Some(other));
         }
+        if matches!(key, SymbolKey::Id(id) if id.get() == 8) {
+            return Ok(Some(wallet()));
+        }
+        if matches!(key, SymbolKey::Id(id) if id.get() == 9) {
+            return Ok(Some(wallet_constructor()));
+        }
         Ok(found.then(detail))
     }
 
@@ -225,6 +231,32 @@ fn detail() -> SymbolDetail {
             value: MetricValue::new(40.0).unwrap(),
         }],
     }
+}
+
+/// A type `Wallet` with a member of the same name: its constructor.
+fn wallet() -> SymbolDetail {
+    let mut found = detail();
+    found.symbol = symbol_named(8, SymbolKind::Class, "App.Domain.Wallet");
+    found.members = vec![MemberRef {
+        id: SymbolId::new(9),
+        name: SymbolName::new("Wallet").unwrap(),
+        kind: SymbolKind::Constructor,
+    }];
+    found
+}
+
+/// The constructor of `Wallet`, which stands on another line than the type.
+fn wallet_constructor() -> SymbolDetail {
+    let mut found = detail();
+    found.symbol = symbol_named(9, SymbolKind::Constructor, "App.Domain.Wallet.Wallet");
+    let start = Position { line: 6, column: 4 };
+    let end = Position {
+        line: 6,
+        column: 20,
+    };
+    found.symbol.span = Span::new(start, end).unwrap();
+    found.members = Vec::new();
+    found
 }
 
 pub struct FakeProjects;
@@ -743,6 +775,7 @@ fn assemble_with(
             reports: Arc::new(FakeReports),
             unused: Arc::new(FakeUnused),
             mentions: Arc::new(FakeMentions),
+            text: Arc::new(FakeText),
         },
         limits,
         PROJECT,
@@ -1088,10 +1121,31 @@ pub fn tools_annotated(annotations: FakeAnnotations) -> Tools {
             reports: Arc::new(FakeReports),
             unused: Arc::new(FakeUnused),
             mentions: Arc::new(FakeMentions),
+            text: Arc::new(FakeText),
         },
         limits(),
         PROJECT,
     )
+}
+
+/// Reads a made-up line for every line asked: `code at <path>:<line>`.
+pub struct FakeText;
+
+impl SourceText for FakeText {
+    fn excerpt(
+        &self,
+        _: &FolderPath,
+        path: &RelativePath,
+        (first, last): (u32, u32),
+        _: (u32, u64),
+    ) -> Result<Excerpt, CodedError> {
+        Ok(Excerpt {
+            lines: (first..=last)
+                .map(|line| format!("  code at {}:{line}  ", path.as_str()))
+                .collect(),
+            truncated: false,
+        })
+    }
 }
 
 /// Finds the old name in a configuration file and in a document, and in the line of the usage.

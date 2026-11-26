@@ -20,6 +20,7 @@ pub mod pipeline;
 pub mod ports;
 pub mod registry;
 pub mod rename;
+pub mod rename_rows;
 pub mod report_view;
 pub mod resolve;
 pub mod rules;

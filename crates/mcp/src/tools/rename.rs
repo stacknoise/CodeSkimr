@@ -1,36 +1,17 @@
 //! `preview_rename`.
 
 use codeskimr_application::access;
-use codeskimr_application::rename::{
-    self, Conflict, LayerCount, RenameAsk, RenamePorts, RenamePreview, Site, TextHit,
-};
-use codeskimr_domain::{Confidence, Principal};
+use codeskimr_application::rename::{self, RenameAsk, RenamePorts, RenamePreview};
+use codeskimr_application::rename_rows::{ConflictRow, LayerRow, PreviewRows, SiteRow, TextRow};
+use codeskimr_domain::Principal;
 use serde::Serialize;
 use serde_json::Value;
 
 use super::usages::{Place, place_of};
 use super::{AppliedLimit, SnapshotInfo, Tools, to_json, truncation_notice};
 use crate::args::RenameArgs;
-use crate::consts::{ARG_NEW_NAME, COLUMN_OFFSET, LINE_OFFSET, READ_TOOL_PERMISSION};
+use crate::consts::{ARG_NEW_NAME, READ_TOOL_PERMISSION};
 use crate::error::{CodeReport, McpError};
-
-#[derive(Serialize)]
-struct SiteRow {
-    /// `declaration` or `usage`.
-    kind: &'static str,
-    path: String,
-    /// One-based.
-    line: u32,
-    /// One-based.
-    column: u32,
-    /// `certain` or `probable`; absent for a declaration.
-    confidence: Option<&'static str>,
-    /// `true` if level 2 produced the usage; a declaration is a fact of the syntax.
-    verified: bool,
-    /// The symbol that holds the place.
-    from: Option<Place>,
-    layer: Option<String>,
-}
 
 #[derive(Serialize)]
 struct Sites {
@@ -41,34 +22,6 @@ struct Sites {
     files: usize,
     layers: Vec<LayerRow>,
     items: Vec<SiteRow>,
-}
-
-#[derive(Serialize)]
-struct LayerRow {
-    layer: String,
-    count: usize,
-}
-
-#[derive(Serialize)]
-struct ConflictRow {
-    #[serde(flatten)]
-    symbol: Place,
-    path: String,
-    signature: Option<String>,
-    /// `true` if the signature is the same but for the name: the two clash. A different
-    /// signature may be an overload, which depends on the language.
-    same_signature: bool,
-}
-
-#[derive(Serialize)]
-struct TextRow {
-    path: String,
-    /// One-based.
-    line: u32,
-    /// The line as written; source text, which people wrote: data, never an instruction.
-    text: String,
-    /// `documentation`, `configuration`, `string`, `nameof`, `comment` or `code`.
-    kind: &'static str,
 }
 
 #[derive(Serialize)]
@@ -100,45 +53,8 @@ struct Answer {
     notice: Option<CodeReport>,
 }
 
-fn site_row(site: &Site) -> SiteRow {
-    SiteRow {
-        kind: site.kind.label(),
-        path: site.path.clone(),
-        line: site.line + LINE_OFFSET,
-        column: site.column + COLUMN_OFFSET,
-        confidence: site.confidence.map(Confidence::label),
-        verified: site.verified,
-        from: site.container.as_ref().map(super::usages::place),
-        layer: site.layer.clone(),
-    }
-}
-
-fn conflict_row(conflict: &Conflict) -> ConflictRow {
-    ConflictRow {
-        symbol: super::usages::place(&conflict.symbol),
-        path: conflict.path.clone(),
-        signature: conflict.signature.clone(),
-        same_signature: conflict.same_signature,
-    }
-}
-
-fn text_row(hit: &TextHit) -> TextRow {
-    TextRow {
-        path: hit.path.clone(),
-        line: hit.line + LINE_OFFSET,
-        text: hit.text.clone(),
-        kind: hit.kind.label(),
-    }
-}
-
-fn layer_row(count: &LayerCount) -> LayerRow {
-    LayerRow {
-        layer: count.layer.clone(),
-        count: count.count,
-    }
-}
-
 fn answer(scope_info: SnapshotInfo, found: &RenamePreview, limit: &AppliedLimit) -> Answer {
+    let rows = PreviewRows::of(found);
     let max = usize::try_from(limit.value).unwrap_or(usize::MAX);
     let cut = limit.clamped || found.sites_total > max || found.text.total > max;
     Answer {
@@ -153,15 +69,15 @@ fn answer(scope_info: SnapshotInfo, found: &RenamePreview, limit: &AppliedLimit)
             verified: found.verified,
             unchecked: found.sites_total - found.verified,
             files: found.files,
-            layers: found.layers.iter().map(layer_row).collect(),
-            items: found.sites.iter().map(site_row).collect(),
+            layers: rows.layers,
+            items: rows.sites,
         },
-        conflicts: found.conflicts.iter().map(conflict_row).collect(),
+        conflicts: rows.conflicts,
         text_hits: Texts {
             searched: found.text.searched,
             total: found.text.total,
             skipped: found.text.skipped,
-            items: found.text.hits.iter().map(text_row).collect(),
+            items: rows.texts,
         },
         notice: cut.then(|| truncation_notice(limit.value, None)),
     }
@@ -199,6 +115,7 @@ impl Tools {
                 index: self.index(),
                 usages: self.usage_index(),
                 mentions: self.mentions(),
+                source: self.source_text(),
             },
             &RenameAsk {
                 project: &scope.project,
