@@ -9,6 +9,7 @@ import {
   reasonKey,
   SKIP_REASON,
   SKIP_TODO,
+  failedWorkspaces,
   staleFiles,
   type LanguageReport,
   type ScanReport,
@@ -35,6 +36,10 @@ export function level2Summary(report: ScanReport): string[] {
   const stale = staleFiles(second);
   if (stale > 0) {
     lines.push(t(I18N_KEYS.PROJECTS_REPORT_STALE, { count: stale }));
+  }
+  const failed = failedWorkspaces(second);
+  if (failed > 0) {
+    lines.push(t(I18N_KEYS.PROJECTS_REPORT_FAILED_WORKSPACES, { count: failed }));
   }
   for (const line of second.languages) {
     if (line.outcome === OUTCOME.failed && line.code) {
@@ -97,7 +102,12 @@ export function checkedChip(line: LanguageReport): string {
   const language = languageName(line.language);
   const files = line.files ?? 0;
   const stale = line.stale ?? 0;
-  return stale > 0
-    ? t(I18N_KEYS.PROJECTS_REPORT_CHIP_STALE, { language, files, stale })
-    : t(I18N_KEYS.PROJECTS_REPORT_CHIP, { language, files });
+  const chip =
+    stale > 0
+      ? t(I18N_KEYS.PROJECTS_REPORT_CHIP_STALE, { language, files, stale })
+      : t(I18N_KEYS.PROJECTS_REPORT_CHIP, { language, files });
+  const failed = line.failed_workspaces ?? 0;
+  return failed > 0
+    ? `${chip} · ${t(I18N_KEYS.PROJECTS_REPORT_CHIP_FAILED_WORKSPACES, { count: failed })}`
+    : chip;
 }

@@ -122,9 +122,15 @@ fn lines_of(reports: &[LanguageReport]) -> Vec<LanguageLine> {
 /// The stored form of an outcome: counts and keys only, no tool problem text.
 fn outcome_of(outcome: &Level2Outcome) -> LanguageOutcome {
     match outcome {
-        Level2Outcome::Checked { files, stale, .. } => LanguageOutcome::Checked {
+        Level2Outcome::Checked {
+            files,
+            stale,
+            failed_workspaces,
+            ..
+        } => LanguageOutcome::Checked {
             files: *files,
             stale: *stale,
+            failed_workspaces: *failed_workspaces,
         },
         Level2Outcome::Skipped(skipped) => skipped_outcome(skipped),
     }
@@ -226,6 +232,7 @@ mod tests {
             mapped: 40,
             dropped: 2,
             outside_scan: 0,
+            failed_workspaces: 0,
         };
         let write = stored(Some(&[
             report("csharp", checked),
@@ -237,7 +244,11 @@ mod tests {
         assert_eq!(level2.origin, ScanOrigin::Browser);
         assert_eq!(
             level2.languages[0].outcome,
-            LanguageOutcome::Checked { files: 5, stale: 1 }
+            LanguageOutcome::Checked {
+                files: 5,
+                stale: 1,
+                failed_workspaces: 0
+            }
         );
         assert_eq!(
             level2.languages[1].outcome,
@@ -298,6 +309,7 @@ mod tests {
                 mapped: 0,
                 dropped: 0,
                 outside_scan: 0,
+                failed_workspaces: 0,
             },
         );
         step.store(&snapshot(), ScanOrigin::Browser, Some(&[checked]), true)

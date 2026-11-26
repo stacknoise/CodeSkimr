@@ -774,7 +774,14 @@ impl ScanReportStore for FakeReports {
                 at: Timestamp(510),
                 origin: ScanOrigin::Browser,
                 languages: vec![
-                    line("csharp", LanguageOutcome::Checked { files: 7, stale: 2 }),
+                    line(
+                        "csharp",
+                        LanguageOutcome::Checked {
+                            files: 7,
+                            stale: 2,
+                            failed_workspaces: 1,
+                        },
+                    ),
                     line("go", LanguageOutcome::Skipped(SkipReason::ToolsUnavailable)),
                     line("rust", LanguageOutcome::Skipped(SkipReason::NotConfirmed)),
                 ],

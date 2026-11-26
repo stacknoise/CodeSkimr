@@ -95,7 +95,7 @@ The indexer gets a cleared environment with an allow list (no token or secret of
 
 ## Projects with several workspaces
 
-Some indexers need a project file in their working folder (`Cargo.toml` for rust-analyzer, a solution or `.csproj` for scip-dotnet). If the project folder or a folder above it holds one, the indexer runs once there. If not, CodeSkimr looks for the outermost folders below the project folder that hold one and have source files of that language (a Cargo workspace in `cli/`, a solution in a subfolder) and runs the indexer once in each. The run reports the sum. If one workspace fails, the others still count; the files of the failed one keep level 1 and are counted as outdated in the report.
+Some indexers need a project file in their working folder (`Cargo.toml` for rust-analyzer, a solution or `.csproj` for scip-dotnet). If the project folder or a folder above it holds one, the indexer runs once there. If not, CodeSkimr looks for the outermost folders below the project folder that hold one and have source files of that language (a Cargo workspace in `cli/`, a solution in a subfolder) and runs the indexer once in each. The run reports the sum. If one workspace fails, the others still count; the files of the failed one keep level 1, and the report says how many workspaces failed.
 
 ## After a change
 
