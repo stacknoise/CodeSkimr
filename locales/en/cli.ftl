@@ -92,7 +92,11 @@ cli-credential-unusable-hint = A credential only applies to a Git source, not to
 cli-scan-level2-checked = Level 2: { $language } checked ({ $files } files)
 cli-scan-level2-partial = Level 2: { $language } checked ({ $files } files, { $stale } changed since the scan and stay at level 1)
 cli-scan-level2-skipped = Level 2: { $language } skipped ({ $reason })
-cli-scan-level2-failed-workspaces = Level 2: { $language } { $count } workspaces failed and stay at level 1
+cli-scan-level2-failed-workspaces =
+    Level 2: { $language } { $count ->
+        [one] 1 workspace failed and stays
+       *[other] { $count } workspaces failed and stay
+    } at level 1
 cli-scan-level2-outside-scan = Level 2: { $language } uses of code in folders the scan skips, not counted: { $count }
 cli-level2-reason-not-permitted = this caller may not start indexers
 cli-level2-reason-not-confirmed = not enabled and confirmed for this project
