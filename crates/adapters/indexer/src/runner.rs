@@ -1,5 +1,6 @@
 //! The adapter behind the [`IndexRunner`] port.
 
+use std::collections::{BTreeSet, HashMap};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -11,6 +12,7 @@ use codeskimr_application::ports::{
     PLACEHOLDER_PROJECT, ToolProblem, ToolSeen,
 };
 use codeskimr_codes::Coded;
+use codeskimr_domain::RelativePath;
 use tempfile::TempDir;
 
 use crate::consts::{
@@ -254,8 +256,8 @@ fn program_of(job: &IndexJob<'_>, environment: &Environment) -> Result<PathBuf, 
 }
 
 /// The arguments of the indexer with the project folder and the index file filled in.
-fn args_of(job: &IndexJob<'_>, output: &OutputDir) -> Vec<OsString> {
-    let root = job.permit.project_root().to_string_lossy();
+fn args_of(workdir: &Path, output: &OutputDir, job: &IndexJob<'_>) -> Vec<OsString> {
+    let root = workdir.to_string_lossy();
     let index = output.index();
     let index_text = index.to_string_lossy();
     let replacements = [
@@ -274,11 +276,12 @@ fn launch_of(
     environment: &Environment,
     output: &OutputDir,
 ) -> Result<Launch, IndexerError> {
+    let workdir = workdir_of(job)?;
     Ok(Launch {
         program: program_of(job, environment)?,
-        args: args_of(job, output),
+        args: args_of(&workdir, output, job),
         env: with_memory_env(job, environment),
-        cwd: job.permit.project_root().to_path_buf(),
+        cwd: workdir,
         limits: Limits {
             timeout: job.limits.timeout,
             max_memory_bytes: job.limits.max_memory_bytes,
@@ -287,6 +290,27 @@ fn launch_of(
         watch_dir: Some(output.dir.path().to_path_buf()),
         note_dir: Some(output.dir.path().to_path_buf()),
     })
+}
+
+/// The folder the indexer runs in: the project root, or the workspace below it (ADR 0100). A
+/// workspace that is no folder inside the project (a link that leads out of it, or a folder that
+/// is gone) is refused, so the indexer never runs outside the project.
+fn workdir_of(job: &IndexJob<'_>) -> Result<PathBuf, IndexerError> {
+    let root = job.permit.project_root();
+    let Some(workspace) = job.workspace else {
+        return Ok(root.to_path_buf());
+    };
+    let outside = || failed(FailureReason::Workspace, String::new());
+    let wanted = root.join(workspace.as_str());
+    let folder = std::fs::canonicalize(&wanted).map_err(|_| outside())?;
+    let base = std::fs::canonicalize(root).map_err(|_| outside())?;
+    if folder.starts_with(&base) && folder.is_dir() {
+        // The resolved form is only for the check: on Windows it starts with `\\?\`, which the
+        // indexers do not all understand. The run gets the form of the project folder.
+        Ok(wanted)
+    } else {
+        Err(outside())
+    }
 }
 
 /// The heap share of a memory limit, in megabytes.
@@ -372,6 +396,21 @@ impl IndexRunner for ProcessIndexRunner {
         spec.project_files.is_empty() || project_file_near(&spec.project_files, root)
     }
 
+    fn workspaces(
+        &self,
+        spec: &IndexerSpec,
+        root: &Path,
+        files: &[&RelativePath],
+    ) -> Vec<Option<RelativePath>> {
+        if self.has_project_file(spec, root) {
+            return vec![None];
+        }
+        outermost_project_folders(&spec.project_files, root, files)
+            .into_iter()
+            .map(Some)
+            .collect()
+    }
+
     fn run(&self, job: &IndexJob<'_>, cancel: &CancelToken) -> Result<IndexArtifact, CodedError> {
         self.execute(job, cancel).map_err(|error| {
             Self::log(job.spec, &error);
@@ -380,17 +419,57 @@ impl IndexRunner for ProcessIndexRunner {
     }
 }
 
+/// The outermost folders below `root` that hold one of the `wanted` files and have a source file
+/// among `files` (ADR 0100). A folder inside such a folder is part of its workspace: the indexer
+/// finds the members from the outer manifest. Sorted, without duplicates.
+fn outermost_project_folders(
+    wanted: &[String],
+    root: &Path,
+    files: &[&RelativePath],
+) -> Vec<RelativePath> {
+    let mut checked: HashMap<String, bool> = HashMap::new();
+    let mut found: BTreeSet<RelativePath> = BTreeSet::new();
+    for file in files {
+        // The folders of the file from the outermost to the innermost.
+        let mut folders: Vec<&Path> = Path::new(file.as_str())
+            .ancestors()
+            .skip(1)
+            .filter(|folder| !folder.as_os_str().is_empty())
+            .collect();
+        folders.reverse();
+        for folder in folders {
+            let key = folder.to_string_lossy().into_owned();
+            let holds = *checked
+                .entry(key.clone())
+                .or_insert_with(|| folder_holds(wanted, &root.join(folder)));
+            if holds {
+                found.extend(RelativePath::new(key).ok());
+                break;
+            }
+        }
+    }
+    found.into_iter().collect()
+}
+
+/// Whether `folder` itself (not a folder above it) holds one of the `wanted` files.
+fn folder_holds(wanted: &[String], folder: &Path) -> bool {
+    std::fs::read_dir(folder).is_ok_and(|entries| lists_project_file(wanted, entries))
+}
+
+/// Whether one of the `entries` of a folder is a file that `wanted` names.
+fn lists_project_file(wanted: &[String], entries: std::fs::ReadDir) -> bool {
+    entries
+        .filter_map(Result::ok)
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .any(|name| wanted.iter().any(|want| matches_project_file(want, &name)))
+}
+
 /// Whether one of the `wanted` files lies in `root` or in a folder above it (the indexers look
 /// upwards, too). A folder that cannot be listed counts as a find: the run then reports what is
 /// wrong.
 fn project_file_near(wanted: &[String], root: &Path) -> bool {
     root.ancestors().any(|dir| {
-        std::fs::read_dir(dir).map_or(true, |entries| {
-            entries
-                .filter_map(Result::ok)
-                .map(|entry| entry.file_name().to_string_lossy().into_owned())
-                .any(|name| wanted.iter().any(|want| matches_project_file(want, &name)))
-        })
+        std::fs::read_dir(dir).map_or(true, |entries| lists_project_file(wanted, entries))
     })
 }
 
@@ -403,10 +482,51 @@ fn matches_project_file(wanted: &str, name: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{heap_mb, matches_project_file, project_file_near, substitute};
+    use super::{
+        heap_mb, matches_project_file, outermost_project_folders, project_file_near, substitute,
+    };
 
     fn wanted(names: &[&str]) -> Vec<String> {
         names.iter().map(|name| (*name).to_owned()).collect()
+    }
+
+    fn paths(names: &[&str]) -> Vec<codeskimr_domain::RelativePath> {
+        names
+            .iter()
+            .map(|name| codeskimr_domain::RelativePath::new(*name).expect("path"))
+            .collect()
+    }
+
+    #[test]
+    fn the_outermost_folder_with_a_project_file_is_the_workspace() {
+        let dir = tempfile::tempdir().expect("temporary folder");
+        let root = dir.path();
+        for folder in ["cli/crates/inner", "tools/gen", "plain"] {
+            std::fs::create_dir_all(root.join(folder)).expect("folders");
+        }
+        std::fs::write(root.join("cli").join("Cargo.toml"), "").expect("file");
+        std::fs::write(root.join("cli/crates/inner").join("Cargo.toml"), "").expect("file");
+        std::fs::write(root.join("tools/gen").join("Cargo.toml"), "").expect("file");
+        let files = paths(&[
+            "cli/crates/inner/src/lib.rs",
+            "cli/src/main.rs",
+            "tools/gen/main.rs",
+            "plain/loose.rs",
+            "top.rs",
+        ]);
+        let refs: Vec<&codeskimr_domain::RelativePath> = files.iter().collect();
+        let found = outermost_project_folders(&wanted(&["Cargo.toml"]), root, &refs);
+        assert_eq!(found, paths(&["cli", "tools/gen"]));
+    }
+
+    #[test]
+    fn no_project_file_below_the_root_gives_no_workspace() {
+        let dir = tempfile::tempdir().expect("temporary folder");
+        std::fs::create_dir_all(dir.path().join("src")).expect("folders");
+        let files = paths(&["src/a.rs"]);
+        let refs: Vec<&codeskimr_domain::RelativePath> = files.iter().collect();
+        let found = outermost_project_folders(&wanted(&["Cargo.toml"]), dir.path(), &refs);
+        assert_eq!(found, Vec::<codeskimr_domain::RelativePath>::new());
     }
 
     #[test]

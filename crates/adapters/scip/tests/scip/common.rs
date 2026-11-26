@@ -247,6 +247,7 @@ pub fn request<'a>(
         library_root: "",
         max_created_symbols: 0,
         import_sites: &[],
+        workspace: None,
     }
 }
 
