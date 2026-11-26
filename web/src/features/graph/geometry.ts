@@ -14,11 +14,14 @@ import type { LayerBox, LayerLink } from "./types";
 /** How an edge is drawn, from the selection and the switches of the toolbar. */
 export type EdgeKind = (typeof EDGE)[keyof typeof EDGE];
 
-/** The look of `link`: a break of the layering is always red; the edges of the selection are
+/** The look of `link`: a break of the layering or an edge in a cycle is always red; the edges of the selection are
  * coloured by direction; all others are weak. */
 export function edgeKind(link: LayerLink, selected: string | null): EdgeKind {
   if (link.violates_layering) {
     return EDGE.violation;
+  }
+  if (link.in_cycle) {
+    return EDGE.cycle;
   }
   if (link.from === selected) {
     return EDGE.out;

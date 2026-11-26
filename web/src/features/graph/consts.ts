@@ -2,9 +2,16 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 
 /** Id of the command that places the layers (crates/app/src/ui_commands/consts.rs). */
 export const GRAPH_COMMAND = "graph.layers";
+/** Id of the command behind the level "modules" (ADR 0108). */
+export const MODULES_COMMAND = "graph.modules";
 
 /** The levels of the map, as the command names them. */
-export const LEVEL = { layers: "layers", namespaces: "namespaces", types: "types" } as const;
+export const LEVEL = {
+  layers: "layers",
+  namespaces: "namespaces",
+  types: "types",
+  modules: "modules",
+} as const;
 
 /** The depths of the namespace level: how many segments of a name stay (0 keeps them all), with
  * the text of the button. */
@@ -21,7 +28,13 @@ export const DEPTH_ALL = 0;
 export const BOX_ID_SUFFIX = / #\d+$/;
 
 /** The look of an edge. */
-export const EDGE = { out: "out", in: "in", violation: "violation", weak: "weak" } as const;
+export const EDGE = {
+  out: "out",
+  in: "in",
+  violation: "violation",
+  cycle: "cycle",
+  weak: "weak",
+} as const;
 
 /** Colour variable, width, dash pattern and opacity of each kind of edge. */
 export const EDGE_STYLE = {
@@ -31,6 +44,13 @@ export const EDGE_STYLE = {
     color: "var(--bad)",
     width: 1.6,
     dash: "5 4",
+    opacity: 1,
+    marker: "graph-arrow-violation",
+  },
+  cycle: {
+    color: "var(--bad)",
+    width: 2.2,
+    dash: "",
     opacity: 1,
     marker: "graph-arrow-violation",
   },
@@ -111,6 +131,22 @@ export const HALF = 0.5;
 /** The padding applies on both sides. */
 export const PADDING_SIDES = 2;
 
+/** One whole of the stability, which the server gives in thousandths, and the digits it is shown with. */
+export const STABILITY_ONE = 1000;
+export const STABILITY_DIGITS = 2;
+/** The percent of a whole, for the bar of the stability. */
+export const PERCENT = 100;
+/** The sign between the modules of a cycle. */
+export const CYCLE_JOIN = " ⇄ ";
+
 /** The width of the side panel, and the key under which it is remembered. */
 export const PANEL_PANE_KEY = "graph.panel";
 export const PANEL_PANE_BOUNDS = { initial: 320, min: 240, max: 720 } as const;
+/** The wider panel of the level "Modules", which holds a table, and the key it is remembered under. */
+export const MODULES_PANE_KEY = "graph.modules-panel";
+export const MODULES_PANE_BOUNDS = { initial: 540, min: 360, max: 900 } as const;
+
+/** What the stability column shows for a module without any dependency. */
+export const NO_STABILITY = "–";
+/** The ARIA role of a hint in the panel of the modules. */
+export const NOTE_ROLE = "note";

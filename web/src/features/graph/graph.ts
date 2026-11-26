@@ -1,11 +1,12 @@
 import { createSignal } from "solid-js";
 import { ApiError } from "../../shared/api/client";
 import { runCommand } from "../../shared/api/commands";
-import { DEPTH_ALL, GRAPH_COMMAND, LEVEL } from "./consts";
-import type { GraphData, Level } from "./types";
+import { DEPTH_ALL, GRAPH_COMMAND, LEVEL, MODULES_COMMAND } from "./consts";
+import type { GraphData, Level, ModulesData, ModulesInfo } from "./types";
 
 const [data, setData] = createSignal<GraphData | null>(null);
 const [failed, setFailed] = createSignal(false);
+const [modules, setModules] = createSignal<ModulesInfo | null>(null);
 const [level, setLevel] = createSignal<Level>(LEVEL.layers);
 const [depth, setDepth] = createSignal(DEPTH_ALL);
 const [focus, setFocus] = createSignal<number | null>(null);
@@ -41,8 +42,28 @@ export const setGraphFocus = setFocus;
 export const graphNamespace = namespace;
 /** Chooses the namespace in the middle; the next load asks for it. */
 export const setGraphNamespace = setNamespace;
+/** The numbers of the level "modules"; `null` on the other levels. */
+export const modulesInfo = modules;
 /** Whether the last load failed. */
 export const graphFailed = failed;
+
+/** The map of one of the levels that `graph.layers` draws. */
+async function loadLevel(project: number) {
+  const map = await runCommand<GraphData>(GRAPH_COMMAND, {
+    project,
+    level: level(),
+    depth: depth(),
+    focus: focus(),
+    namespace: namespace(),
+  });
+  return { map, modules: null };
+}
+
+/** The map and the numbers of the level "modules". */
+async function loadModules(project: number) {
+  const answer = await runCommand<ModulesData>(MODULES_COMMAND, { project, depth: depth() });
+  return { map: { ...answer, focus: null }, modules: answer };
+}
 
 /** Loads the map of a project. A failure is kept for the screen; the old map stays. */
 export async function loadGraph(project: number): Promise<void> {
@@ -51,15 +72,11 @@ export async function loadGraph(project: number): Promise<void> {
   }
   const mine = ++latest;
   try {
-    const answer = await runCommand<GraphData>(GRAPH_COMMAND, {
-      project,
-      level: level(),
-      depth: depth(),
-      focus: focus(),
-      namespace: namespace(),
-    });
+    const picture =
+      level() === LEVEL.modules ? await loadModules(project) : await loadLevel(project);
     if (mine === latest) {
-      setData(answer);
+      setData(picture.map);
+      setModules(picture.modules);
       setFailed(false);
     }
   } catch (error) {
@@ -74,6 +91,7 @@ export async function loadGraph(project: number): Promise<void> {
 export function resetGraph(): void {
   latest += 1;
   setData(null);
+  setModules(null);
   setFocus(null);
   setNamespace(null);
   setLevel((chosen) => (chosen === LEVEL.types ? LEVEL.layers : chosen));
