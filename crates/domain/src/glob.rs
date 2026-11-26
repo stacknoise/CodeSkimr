@@ -2,6 +2,8 @@
 //! of characters, also none and also a path separator, `?` for exactly one character. Everything
 //! else matches itself.
 
+use std::str::Chars;
+
 use crate::consts::{GLOB_ANY, GLOB_ONE};
 
 /// Whether `text` holds a wildcard, so that as a pattern it would match more than itself.
@@ -10,35 +12,34 @@ pub fn has_wildcard(text: &str) -> bool {
     text.contains([GLOB_ANY, GLOB_ONE])
 }
 
-/// Whether `text` matches the glob `pattern` as a whole.
+/// Whether `text` matches the glob `pattern` as a whole. It allocates nothing: the exception list
+/// is asked once per symbol, which is millions of times for a large project.
 #[must_use]
 pub fn glob_matches(pattern: &str, text: &str) -> bool {
-    let pattern: Vec<char> = pattern.chars().collect();
-    let text: Vec<char> = text.chars().collect();
-    let (mut at_pattern, mut at_text) = (0, 0);
-    // Where the last `*` stood and how far the text was when it was met.
-    let mut resume: Option<(usize, usize)> = None;
-    while let Some(&current) = text.get(at_text) {
-        match pattern.get(at_pattern) {
-            Some(&GLOB_ANY) => {
-                resume = Some((at_pattern, at_text));
-                at_pattern += 1;
+    let (mut rest_pattern, mut rest_text) = (pattern.chars(), text.chars());
+    // Where the last `*` stood (the pattern after it) and the text it has swallowed so far.
+    let mut resume: Option<(Chars<'_>, Chars<'_>)> = None;
+    loop {
+        match (rest_pattern.clone().next(), rest_text.clone().next()) {
+            (Some(GLOB_ANY), _) => {
+                rest_pattern.next();
+                resume = Some((rest_pattern.clone(), rest_text.clone()));
             }
-            Some(&sign) if sign == GLOB_ONE || sign == current => {
-                at_pattern += 1;
-                at_text += 1;
+            (Some(sign), Some(current)) if sign == GLOB_ONE || sign == current => {
+                rest_pattern.next();
+                rest_text.next();
             }
+            (None, None) => return true,
             _ => {
-                let Some((star, from)) = resume else {
+                let Some((after_star, mut swallowed)) = resume.take() else {
                     return false;
                 };
-                at_pattern = star + 1;
-                at_text = from + 1;
-                resume = Some((star, from + 1));
+                if swallowed.next().is_none() {
+                    return false;
+                }
+                (rest_pattern, rest_text) = (after_star.clone(), swallowed.clone());
+                resume = Some((after_star, swallowed));
             }
         }
     }
-    pattern
-        .get(at_pattern..)
-        .is_some_and(|rest| rest.iter().all(|&sign| sign == GLOB_ANY))
 }

@@ -77,6 +77,21 @@ pub trait CodeStatistics: Send + Sync {
     /// A coded failure of the `STO` group.
     fn symbol_facts(&self, snapshot: SnapshotId) -> Result<Vec<SymbolFacts>, CodedError>;
 
+    /// The symbols of the snapshot without a usage that count as unused (no usage, not reached
+    /// indirectly) of the kinds and the language of `query`, test code included and marked, in the
+    /// order of path, qualified name and id. It reads only these symbols from the stored numbers,
+    /// so the judgement of an exception list (ADR 0101) does not load every symbol of a large
+    /// project. `query.ranking` and `query.include_tests` are ignored.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn unused_facts(
+        &self,
+        snapshot: SnapshotId,
+        query: &RankingQuery,
+        setup: StatisticsSetup<'_>,
+    ) -> Result<Vec<SymbolFacts>, CodedError>;
+
     /// Counts the numbers of the snapshot now if they are not counted yet (or were counted for
     /// other test folders), so that the first question finds them. A second caller that comes
     /// while they are counted waits for them.

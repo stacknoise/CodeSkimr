@@ -86,7 +86,7 @@ describe("the report of the last scan", () => {
   it("names the missing project file and what to do", async () => {
     const panel = await selected();
     expect(within(panel).getByText(/no Cargo.toml found in the project folder/)).toBeVisible();
-    expect(within(panel).getByText(/add that folder as a project of its own/)).toBeVisible();
+    expect(within(panel).getByText(/a project of its own is not needed/)).toBeVisible();
   });
 
   it("groups failed, skipped and checked languages in this order", async () => {

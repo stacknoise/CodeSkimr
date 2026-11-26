@@ -897,6 +897,17 @@ pub const RANKED_COUPLING: &str = "SELECT symbol_id FROM symbol_statistics INDEX
     snapshot_id = :snapshot AND (:is_type IS NULL OR is_type = :is_type) AND (:language IS \
     NULL OR language = :language) AND (:tests = 1 OR test = 0) AND efferent IS NOT NULL \
     ORDER BY efferent DESC, place LIMIT :limit";
+/// The facts of every symbol without usages that counts as unused (the columns of
+/// `STATISTICS_FACTS`), of the kinds and the language asked for, in the order of their place.
+pub const UNUSED_FACTS: &str = "SELECT st.symbol_id, s.name, s.qualified_name, st.kind, s.parent_id, \
+    st.visibility, s.file_id, f.path, st.language, st.test, st.overrides, st.certain, st.total, \
+    st.complexity, st.loc, st.maintainability, st.efferent, st.afferent \
+    FROM symbol_statistics st INDEXED BY statistics_by_place \
+    JOIN symbol_rows s ON s.id = st.symbol_id JOIN files f ON f.id = s.file_id \
+    AND f.snapshot_id = st.snapshot_id \
+    WHERE st.snapshot_id = :snapshot AND st.total = 0 AND st.indirect = 0 \
+    AND (:is_type IS NULL OR st.is_type = :is_type) \
+    AND (:language IS NULL OR st.language = :language) ORDER BY st.place";
 /// How many symbols the most used ranking holds.
 pub const COUNT_MOST_USED: &str = "SELECT COALESCE(SUM(n), 0) FROM statistics_facets WHERE snapshot_id = :snapshot AND \
     (:is_type IS NULL OR is_type = :is_type) AND (:language IS NULL OR language = :language) \

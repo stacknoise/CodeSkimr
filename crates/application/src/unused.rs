@@ -8,7 +8,6 @@
 
 use codeskimr_domain::{
     Assessment, Project, RankingQuery, SnapshotId, SymbolFacts, SymbolId, SymbolKind, UnusedReason,
-    mark_tests, rank,
 };
 
 use crate::config::UnusedIgnore;
@@ -18,17 +17,17 @@ use crate::error::CodedError;
 pub struct Judged {
     /// The symbols that stay in the ranking, the very likely unused ones first, then by place.
     pub kept: Vec<SymbolFacts>,
-    /// The symbols an entry covers, with the entry that does.
-    pub left_out: Vec<(SymbolFacts, UnusedIgnore)>,
+    /// The symbols an entry covers, with the position of the entry that does.
+    pub left_out: Vec<(SymbolFacts, usize)>,
     /// Test code without usages that the ranking leaves out; zero if test code counts.
     pub tests_hidden: usize,
 }
 
-/// The first entry that covers the symbol.
-fn covering<'a>(rules: &'a [UnusedIgnore], fact: &SymbolFacts) -> Option<&'a UnusedIgnore> {
+/// The position of the first entry that covers the symbol.
+fn covering(rules: &[UnusedIgnore], fact: &SymbolFacts) -> Option<usize> {
     rules
         .iter()
-        .find(|rule| rule.covers(fact.path.as_str(), fact.qualified_name.as_str()))
+        .position(|rule| rule.covers(fact.path.as_str(), fact.qualified_name.as_str()))
 }
 
 /// How the ranking of unused symbols orders the assessments.
@@ -39,47 +38,47 @@ fn assessment_rank(assessment: Assessment) -> usize {
         .unwrap_or(Assessment::ALL.len())
 }
 
-/// Judges the facts of a snapshot: the ranking `query` (of unused symbols) split by `rules`.
-/// `approximate` names the languages whose usages are an approximation, `test_names` the folders
-/// and modules that hold test code.
+/// What the judgement is asked: whether test code counts, the entries of the exception list and
+/// the languages whose usages are an approximation.
+pub struct Judgement<'a> {
+    /// Whether test code stays in the ranking.
+    pub include_tests: bool,
+    /// The exception list of the project.
+    pub rules: &'a [UnusedIgnore],
+    /// The languages whose usages are an approximation.
+    pub approximate: &'a [String],
+}
+
+/// The position of the assessment of a symbol in the order of the ranking.
+fn slot_of(fact: &SymbolFacts, approximate: &[String]) -> usize {
+    assessment_rank(Assessment::of(
+        fact.visibility,
+        is_approximate(fact, approximate),
+    ))
+}
+
+/// Judges the symbols without usages of a snapshot (`unused`, in the order of their place, test
+/// code marked by the store, see `CodeStatistics::unused_facts`): splits them by the exception
+/// list and puts the very likely unused ones first. The symbols are moved, not copied.
 #[must_use]
-pub fn judge(
-    mut facts: Vec<SymbolFacts>,
-    query: &RankingQuery,
-    rules: &[UnusedIgnore],
-    approximate: &[String],
-    test_names: &[String],
-) -> Judged {
-    mark_tests(&mut facts, test_names);
-    // One ranking with test code; the ranking without it is the same rows minus the test ones.
-    let all = RankingQuery {
-        include_tests: true,
-        ..query.clone()
-    };
-    let mut ranked: Vec<&SymbolFacts> = rank(&facts, &all, usize::MAX).rows;
-    let with_tests = ranked.len();
-    if !query.include_tests {
-        ranked.retain(|fact| !fact.test);
-    }
-    let tests_hidden = with_tests.saturating_sub(ranked.len());
-    let assess = |fact: &SymbolFacts| {
-        assessment_rank(Assessment::of(
-            fact.visibility,
-            is_approximate(fact, approximate),
-        ))
-    };
-    ranked.sort_by_key(|fact| assess(fact));
+pub fn judge(unused: Vec<SymbolFacts>, ask: &Judgement<'_>) -> Judged {
     let mut judged = Judged {
         kept: Vec::new(),
         left_out: Vec::new(),
-        tests_hidden,
+        tests_hidden: 0,
     };
-    for fact in ranked {
-        match covering(rules, fact) {
-            Some(rule) => judged.left_out.push((fact.clone(), rule.clone())),
-            None => judged.kept.push(fact.clone()),
+    // One bucket per assessment keeps the order of the places inside it and needs no sort.
+    let mut buckets: Vec<Vec<SymbolFacts>> = vec![Vec::new(); Assessment::ALL.len()];
+    for fact in unused {
+        if fact.test && !ask.include_tests {
+            judged.tests_hidden += 1;
+        } else if let Some(rule) = covering(ask.rules, &fact) {
+            judged.left_out.push((fact, rule));
+        } else if let Some(bucket) = buckets.get_mut(slot_of(&fact, ask.approximate)) {
+            bucket.push(fact);
         }
     }
+    judged.kept = buckets.into_iter().flatten().collect();
     judged
 }
 
@@ -147,7 +146,7 @@ pub struct Findings {
 impl Findings {
     /// The findings of a judged snapshot.
     #[must_use]
-    pub fn of(judged: &Judged, approximate: &[String]) -> Self {
+    pub fn of(judged: &Judged, rules: &[UnusedIgnore], approximate: &[String]) -> Self {
         Self {
             kept: judged
                 .kept
@@ -157,7 +156,9 @@ impl Findings {
             left_out: judged
                 .left_out
                 .iter()
-                .map(|(fact, rule)| (Finding::of(fact, approximate), rule.clone()))
+                .filter_map(|(fact, rule)| {
+                    Some((Finding::of(fact, approximate), rules.get(*rule)?.clone()))
+                })
                 .collect(),
             tests_hidden: judged.tests_hidden,
         }

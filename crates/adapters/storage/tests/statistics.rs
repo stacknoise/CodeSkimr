@@ -377,6 +377,28 @@ mod tests {
     }
 
     #[test]
+    fn the_unused_facts_are_the_unused_symbols_of_the_calculation_in_the_order_of_their_place() {
+        let store = varied();
+        let names = vec!["tests".to_owned()];
+        let facts = marked(&store, &names);
+        for query in queries()
+            .into_iter()
+            .filter(|query| query.ranking == Ranking::Unused && query.order == UsageOrder::Certain)
+        {
+            let read = store
+                .unused_facts(SNAPSHOT, &query, setup(&names, &[]))
+                .unwrap();
+            // Test code comes back too: the caller decides whether it counts.
+            let with_tests = RankingQuery {
+                include_tests: true,
+                ..query.clone()
+            };
+            let expected = rank(&facts, &with_tests, usize::MAX).rows;
+            assert_eq!(read, expected.into_iter().cloned().collect::<Vec<_>>());
+        }
+    }
+
+    #[test]
     fn other_test_folders_count_the_numbers_again() {
         let store = varied();
         let query = RankingQuery {
