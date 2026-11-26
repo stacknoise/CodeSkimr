@@ -190,6 +190,8 @@ mod cases {
     /// An indexer that writes nothing and counts its runs; `fails` is what `run` reports.
     struct Runner {
         runs: Mutex<u32>,
+        /// The memory limit of each run, in bytes.
+        memory: Mutex<Vec<u64>>,
         status: IndexerStatus,
         fails: Option<ErrorCode>,
         has_project_file: bool,
@@ -226,7 +228,11 @@ mod cases {
             }
         }
 
-        fn run(&self, _: &IndexJob<'_>, _: &CancelToken) -> Result<IndexArtifact, CodedError> {
+        fn run(&self, job: &IndexJob<'_>, _: &CancelToken) -> Result<IndexArtifact, CodedError> {
+            self.memory
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .push(job.limits.max_memory_bytes);
             *self.runs.lock().unwrap_or_else(PoisonError::into_inner) += 1;
             self.fails.map_or_else(
                 || Ok(IndexArtifact::new("index.scip".into(), Box::new(()))),
@@ -431,6 +437,7 @@ mod cases {
             }),
             runner: Arc::new(Runner {
                 runs: Mutex::default(),
+                memory: Mutex::default(),
                 status: setup.status.clone(),
                 fails: setup.run_fails,
                 has_project_file: setup.project_file == ProjectFile::Present,
@@ -703,6 +710,38 @@ mod cases {
         });
         assert_eq!(outcome.runs, 2);
         assert_eq!(counted(&outcome.result), Some((1, 0, 4, 3, 2, 2)));
+    }
+
+    /// A source whose limit changes between two runs, as a value saved in the app does.
+    struct Moving(Mutex<u64>);
+
+    impl codeskimr_application::level2::LimitSource for Moving {
+        fn limits_of(&self, _: &str) -> codeskimr_application::ports::IndexLimits {
+            let mut bytes = self.0.lock().unwrap();
+            *bytes += 1;
+            codeskimr_application::ports::IndexLimits {
+                timeout: std::time::Duration::from_secs(1),
+                max_memory_bytes: *bytes,
+                max_output_bytes: 1,
+            }
+        }
+    }
+
+    #[test]
+    fn a_limit_source_is_asked_for_every_run() {
+        let cancel = CancelToken::new();
+        let (mut pass, fakes) = pass_for(
+            Setup {
+                files: vec![file(1, "a/a.rs", "csharp"), file(2, "b/b.rs", "csharp")],
+                workspaces: vec!["a", "b"],
+                ..Setup::default()
+            },
+            &cancel,
+        );
+        pass.limits = Some(Arc::new(Moving(Mutex::new(100))));
+        let root = FolderPath::new("/work").unwrap();
+        pass.run(&Principal::local_owner(), &snapshot(), &root, &cancel);
+        assert_eq!(*fakes.runner.memory.lock().unwrap(), vec![101, 102]);
     }
 
     #[test]

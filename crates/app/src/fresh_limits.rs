@@ -75,6 +75,23 @@ mod tests {
     }
 
     #[test]
+    fn files_that_cannot_be_read_now_keep_the_limit_of_the_start() {
+        let folder = tempfile::tempdir().unwrap();
+        let limits = source(folder.path());
+        let before = limits.limits_of("scip-typescript");
+        std::fs::write(folder.path().join("broken.toml"), "= not toml").unwrap();
+        let broken = FreshLimits {
+            global: GlobalOptions {
+                config_file: Some(folder.path().join("broken.toml")),
+                ..GlobalOptions::default()
+            },
+            locations: locations(folder.path()),
+            started_with: limits.started_with.clone(),
+        };
+        assert_eq!(broken.limits_of("scip-typescript"), before);
+    }
+
+    #[test]
     fn a_flag_still_wins_over_the_saved_value() {
         let folder = tempfile::tempdir().unwrap();
         std::fs::write(
