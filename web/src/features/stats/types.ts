@@ -30,7 +30,12 @@ export interface Row {
   efferent: number | null;
   afferent: number | null;
   assessment: Assessment | null;
+  /** Why the row is judged so, for a symbol without usages (ADR 0101). */
+  reason: Reason | null;
 }
+
+/** The reasons of a symbol without usages. */
+export type Reason = "private" | "internal" | "public" | "approximate";
 
 /** The symbols without usages per assessment. */
 export interface UnusedCounts {

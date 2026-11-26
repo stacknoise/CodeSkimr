@@ -381,6 +381,14 @@ pub const GROUP_FUNCTIONS: &str = "functions";
 pub const ORDER_CERTAIN: &str = "certain";
 /// Label of `UsageOrder::All`.
 pub const ORDER_ALL: &str = "all";
+/// Label of `UnusedReason::Private`.
+pub const REASON_PRIVATE: &str = "private";
+/// Label of `UnusedReason::Internal`.
+pub const REASON_INTERNAL: &str = "internal";
+/// Label of `UnusedReason::Public`.
+pub const REASON_PUBLIC: &str = "public";
+/// Label of `UnusedReason::Approximate`.
+pub const REASON_APPROXIMATE: &str = "approximate";
 /// Label of `Assessment::Likely`.
 pub const ASSESSMENT_LIKELY: &str = "likely";
 /// Label of `Assessment::Public`.

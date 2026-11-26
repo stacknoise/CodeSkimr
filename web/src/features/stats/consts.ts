@@ -64,18 +64,12 @@ export const ASSESSMENTS = [
   },
 ] as const;
 
-/** Texts of the visibilities. */
-export const VISIBILITY_TEXT: Record<string, keyof typeof VISIBILITY_KEYS> = {
-  public: "public",
-  protected: "protected",
-  internal: "internal",
-  private: "private",
-};
-export const VISIBILITY_KEYS = {
-  public: I18N_KEYS.STATS_VISIBILITY_PUBLIC,
-  protected: I18N_KEYS.STATS_VISIBILITY_PROTECTED,
-  internal: I18N_KEYS.STATS_VISIBILITY_INTERNAL,
-  private: I18N_KEYS.STATS_VISIBILITY_PRIVATE,
+/** The text of each reason of a symbol without usages. */
+export const REASON_TEXT = {
+  private: I18N_KEYS.STATS_REASON_PRIVATE,
+  internal: I18N_KEYS.STATS_REASON_INTERNAL,
+  public: I18N_KEYS.STATS_REASON_PUBLIC,
+  approximate: I18N_KEYS.STATS_REASON_APPROXIMATE,
 } as const;
 
 /** Rows a ranking asks for. */

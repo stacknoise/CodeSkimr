@@ -28,6 +28,7 @@ function row(id: number, name: string, patch: Partial<Row> = {}): Row {
     efferent: 2,
     afferent: 1,
     assessment: null,
+    reason: null,
     ...patch,
   };
 }
@@ -50,7 +51,7 @@ const OVERVIEW: Overview = {
   },
   top: {
     most_used: [row(1, "Cart")],
-    unused: [row(2, "orphan", { certain: 0, total: 0, assessment: "likely" })],
+    unused: [row(2, "orphan", { certain: 0, total: 0, assessment: "likely", reason: "private" })],
     complexity: [row(3, "checkout", { complexity: 17, complexity_rating: "bad" })],
     coupling: [row(4, "wire", { efferent: 22 })],
   },
@@ -282,12 +283,20 @@ describe("StatsScreen: rankings", () => {
   });
 
   it("explains what no usage means and splits the rows by assessment", async () => {
-    const orphan = row(2, "orphan", { certain: 0, total: 0, assessment: "public" });
+    const orphan = row(2, "orphan", {
+      certain: 0,
+      total: 0,
+      assessment: "public",
+      reason: "public",
+    });
     served({ ...RANKING, rows: [orphan], total: 1, unused: UNUSED });
     const table = await showRanking("No usage found");
     expect(screen.getByText(/does not mean dead code/)).toBeInTheDocument();
     expect(screen.getByText("Tests hidden")).toBeInTheDocument();
     expect(within(table).getByTitle("public: may be used from outside")).toBeInTheDocument();
+    expect(
+      within(table).getByText("public: users outside the project are possible"),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "very likely unused" }));
     await waitFor(() =>
       expect(inputs("stats.ranking").at(-1)).toMatchObject({ assessment: "likely" }),

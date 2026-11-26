@@ -32,6 +32,7 @@ function row(patch: Partial<Row>): Row {
     efferent: null,
     afferent: null,
     assessment: null,
+    reason: null,
     ...patch,
   };
 }

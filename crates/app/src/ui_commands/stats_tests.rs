@@ -69,6 +69,7 @@ fn symbols_without_a_usage_carry_an_assessment_and_tests_are_left_out() {
     assert!(!found.contains(&"Runs"), "{found:?}");
     assert!(!found.contains(&"Add"), "{found:?}");
     assert_eq!(answer["rows"][0]["assessment"], "approximate");
+    assert_eq!(answer["rows"][0]["reason"], "approximate");
     assert_eq!(answer["unused"]["tests_hidden"], 1);
     let with_tests = ranking(
         &fixture,
@@ -90,6 +91,7 @@ fn the_assessment_follows_the_visibility_in_a_language_with_exact_usages() {
         &json!({ "ranking": "unused", "kinds": "functions", "assessment": "likely" }),
     );
     assert_eq!(names(&likely), ["Hidden"]);
+    assert_eq!(likely["rows"][0]["reason"], "private");
     assert_eq!(likely["total"], 1);
     assert!(likely["unused"]["public"].as_u64().unwrap() >= 1);
 }

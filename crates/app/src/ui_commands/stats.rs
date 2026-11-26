@@ -18,7 +18,7 @@ use codeskimr_application::ports::{
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_domain::{
     Assessment, KindGroup, LanguageId, Permission, ProjectId, Ranking, RankingQuery, Snapshot,
-    SymbolFacts, SymbolId, UsageOrder, Visibility,
+    SymbolFacts, SymbolId, UnusedReason, UsageOrder, Visibility,
 };
 use serde::{Deserialize, Serialize};
 
@@ -195,6 +195,9 @@ pub struct RowOut {
     pub afferent: Option<f64>,
     /// For a symbol without usages: `likely`, `public` or `approximate`; `None` otherwise.
     pub assessment: Option<&'static str>,
+    /// For a symbol without usages: why it is judged so, `private`, `internal`, `public` or
+    /// `approximate`; `None` otherwise (ADR 0101).
+    pub reason: Option<&'static str>,
 }
 
 /// How many symbols without usages there are per assessment.
@@ -337,12 +340,18 @@ impl StatsPorts {
         })
     }
 
-    fn assess(&self, fact: &SymbolFacts) -> Assessment {
-        let approximate = self
-            .approximate
+    fn is_approximate(&self, fact: &SymbolFacts) -> bool {
+        self.approximate
             .iter()
-            .any(|language| language == fact.language.as_str());
-        Assessment::of(fact.visibility, approximate)
+            .any(|language| language == fact.language.as_str())
+    }
+
+    fn assess(&self, fact: &SymbolFacts) -> Assessment {
+        Assessment::of(fact.visibility, self.is_approximate(fact))
+    }
+
+    fn reason(&self, fact: &SymbolFacts) -> &'static str {
+        UnusedReason::of(fact.visibility, self.is_approximate(fact)).label()
     }
 
     fn row(&self, fact: &SymbolFacts) -> RowOut {
@@ -365,6 +374,7 @@ impl StatsPorts {
             efferent: fact.measures.efferent,
             afferent: fact.measures.afferent,
             assessment: (fact.usage.total == 0).then(|| self.assess(fact).label()),
+            reason: (fact.usage.total == 0).then(|| self.reason(fact)),
         }
     }
 
