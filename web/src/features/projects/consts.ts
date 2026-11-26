@@ -12,6 +12,11 @@ export const COMMAND = {
   tools: "projects.tools",
 } as const;
 
+/** Ids of the commands of the scope of a project (crates/app/src/ui_commands/consts.rs). */
+export const SCOPE_COMMAND = { get: "scope.get", set: "scope.set" } as const;
+/** Separates the parts of the path of a folder in the scope. */
+export const SCOPE_PATH_SEPARATOR = "/";
+
 /** Ids of the folder dialog commands (crates/app/src/ui_commands/consts.rs). */
 export const FOLDER_DIALOG_COMMAND = {
   info: "projects.folder_dialog",
@@ -250,6 +255,7 @@ export const CLOCK_OPTIONS: Intl.DateTimeFormatOptions = { hour: "2-digit", minu
 export const PROJECT_TAB = {
   overview: "overview",
   scan: "scan",
+  scope: "scope",
   level2: "level2",
   tools: "tools",
 } as const;
@@ -259,6 +265,7 @@ export type ProjectTab = (typeof PROJECT_TAB)[keyof typeof PROJECT_TAB];
 export const PROJECT_TABS = [
   { id: PROJECT_TAB.overview, label: I18N_KEYS.PROJECTS_TAB_OVERVIEW },
   { id: PROJECT_TAB.scan, label: I18N_KEYS.PROJECTS_TAB_SCAN },
+  { id: PROJECT_TAB.scope, label: I18N_KEYS.PROJECTS_TAB_SCOPE },
   { id: PROJECT_TAB.level2, label: I18N_KEYS.PROJECTS_TAB_LEVEL2 },
   { id: PROJECT_TAB.tools, label: I18N_KEYS.PROJECTS_TAB_TOOLS },
 ] as const;

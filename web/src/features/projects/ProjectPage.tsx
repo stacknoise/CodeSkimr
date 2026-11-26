@@ -33,6 +33,7 @@ import { RemoveAction, removeQuestionOpen } from "./RemoveAction";
 import { interruptedNow, removingNow } from "./removing";
 import { RenameButton, RenameField } from "./RenameForm";
 import { ScanPanel } from "./ScanPanel";
+import { ScopePanel } from "./ScopePanel";
 import { stateOf } from "./state";
 import { ToolsPanel } from "./ToolsPanel";
 import type { ProjectRow } from "./types";
@@ -164,6 +165,9 @@ function Panel(props: { row: ProjectRow; tab: ProjectTab }) {
         </Match>
         <Match when={props.tab === PROJECT_TAB.scan}>
           <ScanTab row={props.row} />
+        </Match>
+        <Match when={props.tab === PROJECT_TAB.scope}>
+          <ScopePanel row={props.row} />
         </Match>
         <Match when={props.tab === PROJECT_TAB.level2}>
           <div class={styles.stack}>
