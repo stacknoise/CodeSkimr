@@ -10,8 +10,8 @@ use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{FileDiscovery, ProjectRepository};
 use codeskimr_cli::{
-    ContextQuery, ImpactQuery, QueryAction, QueryKind, SymbolsQuery, UsagesQuery, query_error_json,
-    query_json, query_text,
+    ContextQuery, ImpactQuery, QueryAction, QueryKind, SymbolsQuery, UsagesQuery,
+    query_code_report, query_error_json, query_json, query_text,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Principal, ProjectId, ProjectSource};
@@ -38,10 +38,9 @@ impl QueryFailure {
 
     /// The failure as the JSON of the commands (`schema` and `error`).
     pub fn json(&self) -> String {
-        serde_json::to_value(self.0.report())
-            .ok()
-            .and_then(|report| query_error_json(&report).ok())
-            .unwrap_or_default()
+        let report = serde_json::to_value(self.0.report())
+            .unwrap_or_else(|_| query_code_report(self.code().id()));
+        query_error_json(&report)
     }
 }
 

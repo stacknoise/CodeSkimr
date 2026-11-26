@@ -37,7 +37,7 @@ pub use error::CliError;
 pub use level2::{Level2Line, Level2Reason};
 pub use locale::language_from;
 pub use parser::parse;
-pub use query_text::{QueryKind, query_error_json, query_json, query_text};
+pub use query_text::{QueryKind, query_code_report, query_error_json, query_json, query_text};
 pub use render::{
     ScanSummary, StageLine, TrayLabels, credential_deleted, credential_stored, device_prompt,
     error_line, export_written, open_ready, open_url_warning, scan_finished, scan_json,

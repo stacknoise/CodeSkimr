@@ -15,7 +15,8 @@ use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde_json::{Map, Value};
 
 use crate::consts::{
-    JSON_NULL_TEXT, LINE_BREAK, LIST_INDENT, QUERY_SCHEMA_VERSION, TITLE_SEPARATOR, arg, key,
+    CONTROL_REPLACEMENT, JSON_NULL_TEXT, LINE_BREAK, LIST_INDENT, QUERY_SCHEMA_VERSION,
+    TITLE_SEPARATOR, arg, key,
 };
 
 /// Which query command an answer belongs to.
@@ -48,15 +49,21 @@ pub fn query_json(answer: Value, stale: Option<bool>) -> Result<String, serde_js
 }
 
 /// The JSON of a failure: `schema` and `error` with the registered code, its description and its
-/// parameters, as the MCP tools report them.
-///
-/// # Errors
-/// A JSON error if the text cannot be built, which does not happen for a `Value`.
-pub fn query_error_json(report: &Value) -> Result<String, serde_json::Error> {
+/// parameters, as the MCP tools report them. It cannot fail: should the pretty form not be
+/// built, the compact one of the same value is returned.
+#[must_use]
+pub fn query_error_json(report: &Value) -> String {
     let mut fields = Map::new();
     fields.insert(key::SCHEMA.to_owned(), Value::from(QUERY_SCHEMA_VERSION));
     fields.insert(key::ERROR.to_owned(), report.clone());
-    serde_json::to_string_pretty(&Value::Object(fields))
+    let value = Value::Object(fields);
+    serde_json::to_string_pretty(&value).unwrap_or_else(|_| value.to_string())
+}
+
+/// The report of a failure that only knows its code, for when the full one cannot be built.
+#[must_use]
+pub fn query_code_report(code: &str) -> Value {
+    Value::Object(Map::from_iter([(key::CODE.to_owned(), Value::from(code))]))
 }
 
 /// The messages in one language.
@@ -80,7 +87,13 @@ impl Speaker<'_> {
 /// The text without control characters; a line break or tab becomes a space.
 fn plain(text: &str) -> String {
     text.chars()
-        .map(|found| if found.is_control() { ' ' } else { found })
+        .map(|found| {
+            if found.is_control() {
+                CONTROL_REPLACEMENT
+            } else {
+                found
+            }
+        })
         .collect()
 }
 

@@ -5,20 +5,17 @@ use std::fs;
 use std::path::PathBuf;
 
 use codeskimr_cli::{
-    ContextQuery, GlobalOptions, ImpactQuery, QueryAction, QueryTarget, ScanArgs, SymbolsQuery,
-    UsagesQuery,
+    ContextQuery, GlobalOptions, ImpactQuery, QueryAction, QueryTarget, SymbolsQuery, UsagesQuery,
 };
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::ScanMode;
 use codeskimr_i18n::Messages;
 use serde_json::Value;
 
 use crate::annotations_cli::Surroundings;
+use crate::annotations_cli_tests::scanned;
 use crate::locations::Locations;
-use crate::mcp_http_tests::locations;
-use crate::memory_keystore::secrets;
 use crate::query_cli;
-use crate::scan::{self, Session};
+use crate::scan::Session;
 
 const TARGET: &str = "namespace Demo;\n\npublic class Target\n{\n    public static int Do(int x)\n    {\n        return x + 1;\n    }\n}\n";
 const CALLER: &str = "namespace Demo;\n\npublic class Caller\n{\n    public int Run()\n    {\n        return Target.Do(1);\n    }\n}\n";
@@ -35,31 +32,14 @@ struct World {
 
 impl World {
     fn new() -> Self {
-        let root = tempfile::tempdir().unwrap();
-        let folder = root.path().join("project");
-        fs::create_dir_all(&folder).unwrap();
-        fs::write(folder.join("Target.cs"), TARGET).unwrap();
-        fs::write(folder.join("Caller.cs"), CALLER).unwrap();
-        let data = locations(&root.path().join("data"));
-        let args = ScanArgs {
-            source: folder.to_string_lossy().into_owned(),
-            branch: None,
-            credential: None,
-            json: false,
-            watch: false,
-            name: None,
-        };
-        let global = GlobalOptions::default();
-        let session =
-            scan::open(scan::prepare(&args).unwrap(), &global, &data, &secrets()).unwrap();
-        session.scan_quick(ScanMode::Full).unwrap();
+        let done = scanned(&[("Target.cs", TARGET), ("Caller.cs", CALLER)]);
         Self {
-            _root: root,
-            folder,
-            data,
-            global,
+            _root: done.root,
+            folder: done.folder,
+            data: done.data,
+            global: done.global,
             messages: Messages::load().unwrap(),
-            _session: session,
+            _session: done.session,
         }
     }
 
@@ -172,6 +152,22 @@ fn a_file_changed_after_the_scan_makes_the_answer_stale_and_the_text_says_so() {
     let german = world.run(&context(false), "de").unwrap();
     assert!(german.contains("Aufrufer (1 von 1):"), "{german}");
     assert!(german.contains("veraltet"), "{german}");
+}
+
+#[test]
+fn a_file_that_went_away_or_came_new_makes_the_answer_stale_too() {
+    let world = World::new();
+    assert_eq!(world.json(&context(true))["stale"], false);
+    fs::write(
+        world.folder.join("Extra.cs"),
+        TARGET.replace("Target", "Extra"),
+    )
+    .unwrap();
+    assert_eq!(world.json(&context(true))["stale"], true);
+    fs::remove_file(world.folder.join("Extra.cs")).unwrap();
+    assert_eq!(world.json(&context(true))["stale"], false);
+    fs::remove_file(world.folder.join("Caller.cs")).unwrap();
+    assert_eq!(world.json(&context(true))["stale"], true);
 }
 
 #[test]

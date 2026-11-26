@@ -2,7 +2,7 @@
 
 use codeskimr_cli::{
     Action, ContextQuery, ImpactQuery, Parsed, QueryAction, QueryKind, QueryTarget, SymbolsQuery,
-    UsagesQuery, parse, query_error_json, query_json, query_text,
+    UsagesQuery, parse, query_code_report, query_error_json, query_json, query_text,
 };
 use codeskimr_i18n::Messages;
 use serde_json::{Value, json};
@@ -106,9 +106,10 @@ fn the_json_adds_the_schema_and_the_staleness_to_the_answer() {
     let unknown: Value = serde_json::from_str(&query_json(json!({}), None).unwrap()).unwrap();
     assert_eq!(unknown["stale"], Value::Null);
     let error: Value =
-        serde_json::from_str(&query_error_json(&json!({"code": "MCP-202"})).unwrap()).unwrap();
+        serde_json::from_str(&query_error_json(&json!({"code": "MCP-202"}))).unwrap();
     assert_eq!(error["schema"], 1);
     assert_eq!(error["error"]["code"], "MCP-202");
+    assert_eq!(query_code_report("MCP-202"), json!({"code": "MCP-202"}));
 }
 
 #[test]

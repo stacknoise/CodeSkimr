@@ -405,6 +405,8 @@ pub mod key {
     pub const SCHEMA: &str = "schema";
     /// Whether files changed since the scan; added to every answer.
     pub const STALE: &str = "stale";
+    /// The registered code of a failure.
+    pub const CODE: &str = "code";
     /// The failure of a command.
     pub const ERROR: &str = "error";
     /// An answer that is not an object, as a field.
@@ -469,6 +471,8 @@ pub mod key {
 
 /// What a missing `layer` or `signature` is in the JSON.
 pub const JSON_NULL_TEXT: &str = "null";
+/// What a control character in a text of the project becomes.
+pub const CONTROL_REPLACEMENT: char = ' ';
 /// Puts the entries of a list below its heading.
 pub const LIST_INDENT: &str = "  ";
 /// Separates the title of an annotation from its text.

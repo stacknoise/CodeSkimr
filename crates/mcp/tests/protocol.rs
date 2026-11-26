@@ -120,6 +120,11 @@ async fn lists_exactly_the_fourteen_tools_with_schemas_and_only_rescan_writes() 
     assert_eq!(tools[0]["inputSchema"]["required"][0], "query");
     let symbol = &tools[1]["inputSchema"]["properties"]["symbol"];
     assert_eq!(symbol["anyOf"].as_array().unwrap().len(), 2);
+    let context = tools.iter().find(|t| t["name"] == "get_context").unwrap();
+    assert_eq!(
+        context["inputSchema"]["properties"]["budget"]["enum"],
+        json!(["short", "medium", "long"])
+    );
 }
 
 #[tokio::test]

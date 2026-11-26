@@ -6,17 +6,16 @@ use std::collections::BTreeSet;
 use codeskimr_application::access;
 use codeskimr_application::annotations::{AnnotationQuery, annotations};
 use codeskimr_application::ports::{DependencyEdge, DependencyQuery, SymbolDetail, UsageEntry};
-use codeskimr_domain::{Direction, Principal, Project, UsageQuery, Visibility};
+use codeskimr_domain::{Direction, Principal, Project, UsageQuery};
 use serde::Serialize;
 use serde_json::Value;
 
 use super::annotations::{Item, item, target_of};
+use super::symbol::{Header, header};
 use super::usages::{Place, Site, place, site};
 use super::{Scope, SnapshotInfo, Tools, parse_key, to_json, truncation_notice};
 use crate::args::ContextArgs;
-use crate::consts::{
-    ARG_BUDGET, BUDGET_LONG, BUDGET_MEDIUM, BUDGET_SHORT, LINE_OFFSET, READ_TOOL_PERMISSION,
-};
+use crate::consts::{ARG_BUDGET, BUDGET_LONG, BUDGET_MEDIUM, BUDGET_SHORT, READ_TOOL_PERMISSION};
 use crate::error::{CodeReport, McpError};
 
 /// How much room the answer may take.
@@ -72,12 +71,8 @@ impl<T> Section<T> {
 #[derive(Serialize)]
 struct Subject {
     id: u64,
-    qualified_name: String,
-    kind: &'static str,
-    path: String,
-    first_line: u32,
-    last_line: u32,
-    visibility: Option<&'static str>,
+    #[serde(flatten)]
+    header: Header,
     origin: &'static str,
     signature: Option<String>,
     /// Left out for the budget `short`.
@@ -127,12 +122,7 @@ fn subject(project: &Project, detail: &SymbolDetail, budget: Budget) -> Subject 
     let symbol = &detail.symbol;
     Subject {
         id: symbol.id.get(),
-        qualified_name: symbol.qualified_name.as_str().to_owned(),
-        kind: symbol.kind.label(),
-        path: detail.path.as_str().to_owned(),
-        first_line: symbol.span.start().line + LINE_OFFSET,
-        last_line: symbol.span.end().line + LINE_OFFSET,
-        visibility: symbol.visibility.map(Visibility::label),
+        header: header(detail),
         origin: symbol.origin.label(),
         signature: symbol.signature.clone(),
         doc: (budget != Budget::Short)

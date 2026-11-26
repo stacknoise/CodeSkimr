@@ -66,4 +66,4 @@ The agent runs as you, the local owner, and may read the project's structure. Re
 
 ## The same answers on the command line
 
-Scripts, CI and agents without MCP get the same answers from `codeskimr symbols <query>`, `codeskimr usages <symbol>`, `codeskimr impact <symbol>` and `codeskimr context <symbol>`. Add `--json` for JSON (with the version of the format in `schema`, and `stale: true` if files changed since the scan); without it you get text. The project is the one of the current folder, or `--project <id or folder>`. The commands read the last scan; they never scan by themselves. See `docs/cli.md`.
+Scripts, CI and agents without MCP get the same answers from `codeskimr symbols <query>`, `codeskimr usages <symbol>`, `codeskimr impact <symbol>` and `codeskimr context <symbol>`. Add `--json` for JSON (with the version of the format in `schema`, and `stale: true` if files changed since the scan, `false` if not, `null` if that cannot be told; only `false` means current); without it you get text. The project is the one of the current folder, or `--project <id or folder>`. The commands read the last scan; they never scan by themselves. See `docs/cli.md`.
