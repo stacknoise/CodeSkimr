@@ -1,8 +1,8 @@
 import { createMemo, For, Show } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
+import { I18N_KEYS } from "../../shared/i18n/keys";
 import { createTableColumns } from "../../shared/table/columns";
 import { ColumnWidths } from "../../shared/table/ResizableHead";
-import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
 import { Pill } from "../../shared/ui/Pill";
 import { changePicked, changeReading, changeScans, loadChange, pickScans } from "./change";
