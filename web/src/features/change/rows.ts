@@ -10,6 +10,7 @@ import {
   STATUS,
   type PillSpec,
 } from "./consts";
+import type { RowFacts } from "./filter";
 import type {
   ChangeAnswer,
   ImpactRow,
@@ -95,6 +96,28 @@ export function impactRows(answer: ChangeAnswer): ImpactRow[] {
 /** How many usages of the row are not touched: the places that are still to check. */
 export function openCount(row: ImpactRow): number {
   return row.impact?.not_touched ?? 0;
+}
+
+/** What the filter looks at in a row of the impact. */
+export function factsOf(row: ImpactRow): RowFacts {
+  return {
+    cause: row.cause,
+    kind: row.symbol.kind,
+    name: row.symbol.qualified_name,
+    visibility: row.symbol.visibility,
+    open: openCount(row),
+  };
+}
+
+/** The row the selection falls on when nothing is selected or the selected one is gone: the first
+ * with places still open, otherwise the first. */
+export function firstToSelect(rows: readonly ImpactRow[]): ImpactRow | undefined {
+  return rows.find((row) => openCount(row) > 0) ?? rows[0];
+}
+
+/** How many symbols the difference holds in all lists together, listed or not. */
+export function answerTotal(answer: ChangeAnswer): number {
+  return answer.added.total + answer.changed.total + answer.removed.total + answer.moved.total;
 }
 
 /** The usages of all rows that the answer lists. */
@@ -193,6 +216,8 @@ export interface CompareRow {
   name: string;
   signature: string | null;
   where: string;
+  /** What the filter looks at. */
+  facts: RowFacts;
 }
 
 function reasonPills(reasons: readonly string[]): PillSpec[] {
@@ -215,6 +240,17 @@ export function pillsOf(row: ImpactRow): PillSpec[] {
 type PlainCause = typeof CAUSE.removed | typeof CAUSE.added;
 type MatchedCause = typeof CAUSE.changed | typeof CAUSE_MOVED;
 
+/** What the filter looks at in a row of the comparison; it has no checklist, so no open places. */
+function compareFacts(cause: string, symbol: SymbolOut): RowFacts {
+  return {
+    cause,
+    kind: symbol.kind,
+    name: symbol.qualified_name,
+    visibility: symbol.visibility,
+    open: 0,
+  };
+}
+
 function plainRow(cause: PlainCause, symbol: SymbolOut): CompareRow {
   return {
     key: `${cause}:${symbol.id}`,
@@ -222,6 +258,7 @@ function plainRow(cause: PlainCause, symbol: SymbolOut): CompareRow {
     name: symbol.qualified_name,
     signature: symbol.signature,
     where: symbol.path,
+    facts: compareFacts(cause, symbol),
   };
 }
 
@@ -233,6 +270,7 @@ function matchedRow(kind: MatchedCause, matched: MatchedOut): CompareRow {
     name: matched.target.qualified_name,
     signature: matched.target.signature,
     where: moved ? `${matched.base.path}${MOVE_ARROW}${matched.target.path}` : matched.target.path,
+    facts: compareFacts(kind, matched.target),
   };
 }
 

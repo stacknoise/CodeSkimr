@@ -16,6 +16,10 @@ Five figures: the changed symbols (new, changed, removed), how many of them are 
 
 A usage is "adapted" when the symbol that holds it is itself changed, moved or removed in the same difference, and "not touched" otherwise. **The usages that were not touched are the checklist**: places that use the changed symbol but were not changed. "Only open" shows just those; "All" shows every usage. A symbol whose content changed, and a new symbol, have no checklist, because their usages cannot break by this change.
 
+**Long lists.** The table and the panel at the right use the height down to the bottom of the window and each has a scrollbar of its own; the heading, the figures and the tabs stay in place. The head of the table stays at the top while the rows scroll.
+
+**Filter.** The row over the table narrows the list: a search in the qualified name (anywhere in the name, case does not matter), the kind of change (new, changed, removed, moved), the kind of symbol (the letter of the badge and the kind, such as `M · method`), "Only public" and "Only with open places" (symbols that have places not touched). "Reset filter" takes all choices back. The count says how many rows pass: "123 of 2,305". If the answer was cut to `compare.max_symbols`, the count says "123 of 780 listed (2,305 in all)": the filter works on the listed symbols only. If the selected symbol is filtered out, the selection moves to the first symbol that is left; if none is left, the list says so and the panel stays empty. The filter works with the keyboard: `Tab` reaches the fields and buttons, `Space` or `Enter` press a button, the arrow keys in the table select a row.
+
 Under the table the screen names new layer violations and new layer cycles (dependencies between layers that the target scan has and the base scan did not have) and the critical symbols the difference touches.
 
 The button "Copy as Markdown" at the top right copies the impact as text for a comment on a pull request: the numbers, the checklist of the places not touched, new layer violations and cycles. It is the text `codeskimr change --markdown` prints, in the language of the screen. The button says "Copied", or "Not copied" if the browser refuses the clipboard.
@@ -28,9 +32,11 @@ Only direct usages are known. Calls by reflection, in strings or from other repo
 
 The two selectors choose the scans; "Compare" reads the comparison again. The four figures count the new, changed, removed and moved symbols. The list shows each symbol with the reason (signature, visibility or content; a moved symbol shows its old and new file). A symbol is the same symbol when kind, qualified name and parameter types are equal; a renamed symbol therefore shows as removed and new.
 
+The list has the same filter row, without "Only with open places" (the comparison has no checklist), and the same scrollbar. A name or signature that is wider than the list is cut with an ellipsis; the tooltip shows the full text.
+
 ## On the command line
 
-The same answer is available as `codeskimr scans`, `codeskimr compare` and `codeskimr change` (with `--markdown` for a comment on a pull request; the screen has the button "Copy as Markdown" for the same text), and to agents as the MCP tool `impact_of_diff`. See the [command line](../../cli.md) and [comparison](../../compare.md) references.
+The same answer is available as `codeskimr scans`, `codeskimr compare` and `codeskimr change` (with `--markdown` for a comment on a pull request; the screen has the button "Copy as Markdown" for the same text), and to agents as the MCP tool `impact_of_diff`. The filter of the screen works on the answer the screen holds, so the console equivalent is `--json` and a filter on it, for example `codeskimr change --json | jq '.impact.items[] | select(.symbol.visibility == "public" and .not_touched > 0) | .symbol.qualified_name'` (see the [command line](../../cli.md)). See the [command line](../../cli.md) and [comparison](../../compare.md) references.
 
 ## Keys
 

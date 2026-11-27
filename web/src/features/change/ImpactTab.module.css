@@ -3,6 +3,9 @@
     align-items: stretch;
     gap: var(--space-12);
     min-width: 0;
+    /* The two columns fill the height that is left; below the minimum the main area scrolls. */
+    flex: 1;
+    min-height: 320px;
 }
 
 .columns > * {
@@ -17,11 +20,18 @@
     flex: none;
     width: 640px;
     max-width: 100%;
+    min-height: 0;
 }
 
 @media (max-width: 1000px) {
     .columns {
         flex-direction: column;
+        flex: none;
+        min-height: 0;
+    }
+
+    .list {
+        max-height: 70vh;
     }
 
     .list {

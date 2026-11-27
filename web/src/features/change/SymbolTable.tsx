@@ -109,7 +109,7 @@ function moveSelection(event: KeyboardEvent, rows: readonly ImpactRow[]): void {
  * still open. It is one grid: the arrow keys move the selection (blueprint 15.4). */
 export function SymbolTable(props: { rows: readonly ImpactRow[] }) {
   return (
-    <div class={parts.wrap}>
+    <div class={cx(parts.wrap, styles.scroll)}>
       <table
         class={cx(parts.table, styles.table)}
         style={columns.style()}

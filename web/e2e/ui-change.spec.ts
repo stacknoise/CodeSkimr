@@ -40,15 +40,20 @@ const AFTER = [
 ].join("\n");
 
 /** Adds a folder project with two scans: the first of BEFORE, the second of AFTER. */
-async function addTwiceScanned(page: Page, harness: Harness, name: string): Promise<void> {
+async function addTwiceScanned(
+  page: Page,
+  harness: Harness,
+  name: string,
+  sources: { before: string; after: string } = { before: BEFORE, after: AFTER },
+): Promise<void> {
   const folder = path.join(mkdtempSync(path.join(tmpdir(), "codeskimr-e2e-")), name);
   mkdirSync(folder);
-  writeFileSync(path.join(folder, `${name}.cs`), BEFORE);
+  writeFileSync(path.join(folder, `${name}.cs`), sources.before);
   const { copy } = keepLaunchFile(await harness.launchFile());
   await page.goto(`file://${copy}`);
   await submitFolder(page, folder);
   const row = await listedProject(page, name);
-  writeFileSync(path.join(folder, `${name}.cs`), AFTER);
+  writeFileSync(path.join(folder, `${name}.cs`), sources.after);
   await row.click({ position: { x: 4, y: 4 } });
   await showTab(page, "Scan");
   await page.getByRole("button", { name: "Scan again" }).click();
@@ -134,3 +139,118 @@ test("every scan is a row of the history, also a scan without changes, and Chang
     timeout: SCAN_MS,
   });
 });
+
+const MANY = 120;
+const LONG_PARAMETERS = Array.from({ length: 40 }, (_, index) => `decimal parameter${index}`).join(
+  ", ",
+);
+
+/** A file with MANY classes; the second state changes the signature of every method, and the
+ * method of the first class gets a signature that is far wider than the list. */
+function manyClasses(changed: boolean): string {
+  const lines = ["namespace Shop.Many;"];
+  for (let index = 0; index < MANY; index += 1) {
+    const parameters = changed && index === 0 ? LONG_PARAMETERS : "decimal value";
+    const result = changed ? "double" : "decimal";
+    const visibility = index % 2 === 0 ? "public" : "internal";
+    lines.push(
+      `${visibility} class Item${String(index).padStart(3, "0")} { public ${result} Run(${parameters}) { return 1; } }`,
+    );
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+/** The numbers of the count over the list: "12 of 120" (or "12 of 120 listed (130 in all)"). */
+async function counts(page: Page): Promise<{ shown: number; listed: number }> {
+  const text =
+    (await page
+      .getByRole("status")
+      .filter({ hasText: / of \d+/ })
+      .first()
+      .textContent()) ?? "";
+  const [shown, listed] = (text.match(/\d+/g) ?? []).map(Number);
+  return { shown: shown ?? 0, listed: listed ?? 0 };
+}
+
+/** The box with the scrollbar of a list: the parent of the table. */
+function scroller(page: Page, role: "grid" | "table", name: string) {
+  return page.getByRole(role, { name }).locator("xpath=..");
+}
+
+for (const theme of THEMES) {
+  test(`a long list scrolls in its own box, the page keeps its height, and the filter narrows it (${theme})`, async ({
+    page,
+    harness,
+  }, info) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.addInitScript((name) => localStorage.setItem("codeskimr.theme", name), theme);
+    await addTwiceScanned(page, harness, `changemany${theme}`, {
+      before: manyClasses(false),
+      after: manyClasses(true),
+    });
+    await page.getByRole("link", { name: "Change", exact: true }).click();
+    const grid = page.getByRole("grid", { name: "Symbols the change touches" });
+    await expect(grid).toBeVisible({ timeout: SCAN_MS });
+
+    // The page does not grow: the window holds, the list has its own scrollbar.
+    const heights = await page.evaluate(() => ({
+      page: document.documentElement.scrollHeight,
+      window: window.innerHeight,
+      main: document.querySelector("main")?.scrollHeight ?? 0,
+      mainBox: document.querySelector("main")?.clientHeight ?? 0,
+    }));
+    expect(heights.page).toBeLessThanOrEqual(heights.window);
+    expect(heights.main).toBeLessThanOrEqual(heights.mainBox);
+    const list = scroller(page, "grid", "Symbols the change touches");
+    const box = await list.evaluate((el) => ({ all: el.scrollHeight, shown: el.clientHeight }));
+    expect(box.all).toBeGreaterThan(box.shown);
+    const bottom = (await page.viewportSize())?.height ?? 0;
+    expect((await list.boundingBox())?.y ?? bottom).toBeLessThan(bottom);
+    expect(
+      ((await list.boundingBox())?.y ?? 0) + ((await list.boundingBox())?.height ?? 0),
+    ).toBeLessThanOrEqual(bottom);
+    await list.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+    await expect(grid.locator("tbody tr").last()).toBeInViewport();
+    await shot(page, SHOTS, `impact-many-${theme}`, info);
+
+    // The filter row narrows the list; the keyboard reaches it and the count says how many pass.
+    const search = page.getByRole("searchbox", { name: "Search by qualified name" });
+    await search.focus();
+    await page.keyboard.type("Item00");
+    const all = (await counts(page)).listed;
+    expect(all).toBeGreaterThanOrEqual(MANY);
+    await expect.poll(async () => (await counts(page)).shown).toBeLessThan(all);
+    const named = (await counts(page)).shown;
+    expect(named).toBeGreaterThan(0);
+    await page.getByRole("button", { name: "Only public" }).focus();
+    await page.keyboard.press("Enter");
+    await expect.poll(async () => (await counts(page)).shown).toBeLessThan(named);
+    await search.fill("no such symbol");
+    await expect(page.getByText("No symbol matches the filter.")).toBeVisible();
+    await page.getByRole("button", { name: "Reset filter" }).click();
+    await expect.poll(async () => (await counts(page)).shown).toBe(all);
+
+    // The view Comparison: the same filter row, its list scrolls too, and no cell reaches over the
+    // edge of the box, not even the very long signature.
+    await page.getByRole("tab", { name: "Comparison" }).click();
+    const compare = scroller(page, "table", "The symbols of the difference");
+    await expect(compare).toBeVisible();
+    const sizes = await compare.evaluate((el) => ({
+      all: el.scrollHeight,
+      shown: el.clientHeight,
+    }));
+    expect(sizes.all).toBeGreaterThan(sizes.shown);
+    const edge = (await compare.boundingBox())?.x ?? 0;
+    const right = edge + ((await compare.boundingBox())?.width ?? 0);
+    const cells = page.getByRole("table", { name: "The symbols of the difference" }).locator("td");
+    for (const cell of await cells.all()) {
+      const rect = await cell.boundingBox();
+      expect((rect?.x ?? 0) + (rect?.width ?? 0)).toBeLessThanOrEqual(right + 1);
+    }
+    expect(await compare.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+    await expect(page.getByRole("button", { name: "Only with open places" })).toHaveCount(0);
+    await search.fill("Item00");
+    await expect.poll(async () => (await counts(page)).shown).toBe(named);
+    await shot(page, SHOTS, `compare-many-${theme}`, info);
+  });
+}

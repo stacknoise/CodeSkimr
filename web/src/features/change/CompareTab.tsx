@@ -1,12 +1,22 @@
-import { For, Show } from "solid-js";
+import { createMemo, For, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { cx } from "../../shared/ui/cx";
 import { Pill } from "../../shared/ui/Pill";
 import { changePicked, changeReading, changeScans, loadChange, pickScans } from "./change";
-import { NOT_FOUND, BASE_FIELD_ID, REASON, SCAN_ARROW, TARGET_FIELD_ID } from "./consts";
+import {
+  NOT_FOUND,
+  BASE_FIELD_ID,
+  REASON,
+  SCAN_ARROW,
+  TARGET_FIELD_ID,
+  TITLE_JOIN,
+} from "./consts";
+import { ChangeFilterBar, FilterEmpty } from "./ChangeFilter";
+import { changeFilter, kindsOf, passes } from "./filter";
 import { Figure } from "./Figure";
 import { Notes } from "./Notes";
-import { compareRows, reasonCount, type CompareRow } from "./rows";
+import { answerTotal, compareRows, reasonCount, type CompareRow } from "./rows";
 import { optionText } from "./scans";
 import type { ChangeAnswer } from "./types";
 import parts from "./Parts.module.css";
@@ -139,6 +149,11 @@ function Figures(props: { answer: ChangeAnswer }) {
   );
 }
 
+/** The full text of a row, for the tooltip of a cell that was cut: the name and its signature. */
+function titleOf(row: CompareRow): string {
+  return [row.name, row.signature].filter((part) => part !== null).join(TITLE_JOIN);
+}
+
 /** One row of the list: the pills, the symbol with its signature, and the file. */
 function Row(props: { row: CompareRow }) {
   return (
@@ -146,18 +161,52 @@ function Row(props: { row: CompareRow }) {
       <td class={styles.pills}>
         <For each={props.row.pills}>{(pill) => <Pill tone={pill.tone}>{t(pill.label)}</Pill>}</For>
       </td>
-      <td>
+      <td class={styles.symbol} title={titleOf(props.row)}>
         <span class={parts.name}>{props.row.name}</span>
         <Show when={props.row.signature}>
           {(signature) => <span class={parts.sig}> {signature()}</span>}
         </Show>
       </td>
-      <td class={styles.where}>{props.row.where}</td>
+      <td class={styles.where} title={props.row.where}>
+        {props.row.where}
+      </td>
     </tr>
   );
 }
 
-/** The view "Comparison" (mock 29): the two scans, the figures and the list of the symbols. */
+/** The filter row and the rows that pass it, in a box that scrolls on its own. */
+function SymbolList(props: { answer: ChangeAnswer }) {
+  const rows = createMemo(() => compareRows(props.answer));
+  const visible = createMemo(() =>
+    rows().filter((row) => passes(row.facts, changeFilter(), false)),
+  );
+  return (
+    <div class={cx(parts.card, styles.list)}>
+      <ChangeFilterBar
+        kinds={kindsOf(rows().map((row) => row.facts))}
+        withOpen={false}
+        count={{
+          shown: visible().length,
+          listed: rows().length,
+          total: answerTotal(props.answer),
+        }}
+      />
+      <Show when={visible().length > 0} fallback={<FilterEmpty />}>
+        <div class={styles.scroll}>
+          <table class={parts.table} aria-label={t(I18N_KEYS.CHANGE_VIEW_LIST_LABEL)}>
+            <tbody>
+              <For each={visible()}>{(row) => <Row row={row} />}</For>
+            </tbody>
+          </table>
+        </div>
+      </Show>
+      <Notes answer={props.answer} />
+    </div>
+  );
+}
+
+/** The view "Comparison" (mock 29): the two scans, the figures and the list of the symbols. The
+ * list scrolls in its own box, so the page keeps its height. */
 export function CompareTab(props: { project: number; answer: ChangeAnswer | null }) {
   return (
     <>
@@ -169,24 +218,20 @@ export function CompareTab(props: { project: number; answer: ChangeAnswer | null
             <Show
               when={compareRows(answer()).length > 0}
               fallback={
-                <p class={parts.plain}>
-                  {t(
-                    answer().base.snapshot === answer().target.snapshot
-                      ? I18N_KEYS.CHANGE_VIEW_SAME
-                      : I18N_KEYS.CHANGE_VIEW_NONE,
-                  )}
-                </p>
+                <>
+                  <p class={parts.plain}>
+                    {t(
+                      answer().base.snapshot === answer().target.snapshot
+                        ? I18N_KEYS.CHANGE_VIEW_SAME
+                        : I18N_KEYS.CHANGE_VIEW_NONE,
+                    )}
+                  </p>
+                  <Notes answer={answer()} />
+                </>
               }
             >
-              <div class={parts.card}>
-                <table class={parts.table} aria-label={t(I18N_KEYS.CHANGE_VIEW_LIST_LABEL)}>
-                  <tbody>
-                    <For each={compareRows(answer())}>{(row) => <Row row={row} />}</For>
-                  </tbody>
-                </table>
-              </div>
+              <SymbolList answer={answer()} />
             </Show>
-            <Notes answer={answer()} />
             <p class={parts.plain}>{t(I18N_KEYS.CHANGE_VIEW_COMPARE_NOTE)}</p>
           </>
         )}

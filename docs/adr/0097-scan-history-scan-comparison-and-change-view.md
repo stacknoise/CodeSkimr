@@ -70,6 +70,11 @@ Decisions made while building work package 3 (#756); they correct decisions 3, 4
 - **Registry command `scans.impact_markdown`** (permission `read`) belongs to decision 6. It builds the answer like `scans.impact` and renders it with the same function as `codeskimr change --markdown`; its answer is `{ "markdown" }`. It is the counterpart of `--markdown` in the UI (ADR 0092), so `--markdown` is no longer an exception there.
 
 
+## Addendum 2026-11-27 (long lists and filter in the view "Change")
+
+- **The two lists scroll on their own.** In both tabs the list of the symbols and (tab "Impact") the panel of the usages use the height down to the window bottom with a scrollbar each; the page keeps its size, the head of the table stays at the top. Long names and signatures in the tab "Comparison" are cut with an ellipsis and have the full text as tooltip.
+- **One filter row for both tabs** (search in the qualified name, kind of change, kind of symbol, only public; "only with open places" only in "Impact"). It works on the client on the listed symbols; the count says "N of M", and "N of M listed (T in all)" if `compare.max_symbols` cut a list. If the selected row is filtered out, the first row that is left is selected. Console counterpart: `--json` with `jq` (`docs/cli.md`); filters on the server before the cut are a follow-up, not part of this decision. Mocks `ChangeImpact.html` and `ChangeCompare.html` show the row and the scroll boxes.
+
 ## Addendum 2026-11-27 (time per step of saving)
 
 - **The scan keeps how long each step of writing the snapshot took.** On a large project one step of the write takes minutes (vscode-main: dropping old snapshots, building the reference indexes), and until now only the log (`persist_step`) said which. The new table `scan_steps` (schema version 27, `docs/storage.md`) holds one row per step of `PersistStep` for the scan that wrote the snapshot; a scan without a change has none. `scans.list` and `codeskimr scans --json` carry them as `steps` (`step`, `duration_ms`); `codeskimr scans` prints one line per scan; the UI folds a list under the stage "Save" of the Pipeline card and under the list of the last scans (decision 6: what the console shows, the UI shows).

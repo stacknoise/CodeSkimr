@@ -131,6 +131,9 @@
 }
 
 .notes {
+    flex: none;
+    max-height: 40%;
+    overflow: auto;
     display: flex;
     flex-direction: column;
     gap: var(--space-8);
