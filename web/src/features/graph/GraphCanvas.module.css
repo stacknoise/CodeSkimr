@@ -61,6 +61,16 @@
     outline-offset: 2px;
 }
 
+/* A box without a link to the selected one stays readable but steps back. */
+.dimmed {
+    opacity: 0.55;
+}
+
+.dimmed:hover,
+.dimmed:focus-visible {
+    opacity: 1;
+}
+
 .selected {
     border-color: var(--ink);
     box-shadow: 0 0 0 4px var(--mark);

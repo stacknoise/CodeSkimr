@@ -29,6 +29,30 @@ export function edgeKind(link: LayerLink, selected: string | null): EdgeKind {
   return link.to === selected ? EDGE.in : EDGE.weak;
 }
 
+/** The selected box and every box joined to it by an edge; `null` while nothing is selected. The
+ * other boxes are drawn faint. Only edges that are drawn count. */
+export function relatedTo(
+  selected: string | null,
+  links: readonly LayerLink[],
+  violationsOnly: boolean,
+): Set<string> | null {
+  if (selected === null) {
+    return null;
+  }
+  const names = new Set([selected]);
+  for (const link of links) {
+    if (shown(link, violationsOnly) && (link.from === selected || link.to === selected)) {
+      names.add(link.from).add(link.to);
+    }
+  }
+  return names;
+}
+
+/** Whether a box is drawn faint: something is selected and the box is not among its relatives. */
+export function isDimmed(related: Set<string> | null, name: string): boolean {
+  return related !== null && !related.has(name);
+}
+
 /** Whether an edge is drawn: with "violations only" every other edge is hidden. */
 export function shown(link: LayerLink, violationsOnly: boolean): boolean {
   return link.from !== link.to && (!violationsOnly || link.violates_layering);
