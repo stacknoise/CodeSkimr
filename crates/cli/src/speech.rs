@@ -104,6 +104,15 @@ pub(crate) fn section(
     (heading, list): (&str, &Value),
     line: Line,
 ) -> Result<Vec<String>, I18nError> {
+    section_with(speak, (heading, list), (line, LIST_INDENT))
+}
+
+/// `section` with the indent of its lines chosen.
+pub(crate) fn section_with(
+    speak: &Speaker<'_>,
+    (heading, list): (&str, &Value),
+    (line, indent): (Line, &str),
+) -> Result<Vec<String>, I18nError> {
     let listed = entries(list, key::ITEMS);
     if listed.is_empty() {
         return Ok(Vec::new());
@@ -114,7 +123,7 @@ pub(crate) fn section(
     ];
     let mut lines = vec![speak.say(heading, &numbers)?];
     for entry in listed {
-        lines.push([LIST_INDENT, line(speak, entry)?.as_str()].concat());
+        lines.push([indent, line(speak, entry)?.as_str()].concat());
     }
     Ok(lines)
 }

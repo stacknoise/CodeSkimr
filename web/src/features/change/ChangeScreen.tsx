@@ -9,6 +9,9 @@ import { cx } from "../../shared/ui/cx";
 import {
   changeAnswer,
   changeFailure,
+  changeMetrics,
+  changeMetricsFailure,
+  changeMetricsMetric,
   changeReading,
   changeScans,
   changeTab,
@@ -20,6 +23,8 @@ import {
 import { CompareTab } from "./CompareTab";
 import { CopyMarkdown } from "./CopyMarkdown";
 import {
+  COMMAND,
+  METRIC_ALL,
   MIN_SCANS,
   PANEL_ID,
   ROLE,
@@ -151,6 +156,60 @@ function Content(props: { project: number }) {
   );
 }
 
+/** The button of the view "Metrics": always there, greyed out with the reason while there is no
+ * answer. It copies the level and the metric that are chosen, so that the text is what the lists
+ * show. */
+function MetricsCopy(props: { project: number }) {
+  const unavailable = () =>
+    changeMetrics() !== null
+      ? undefined
+      : t(
+          changeMetricsFailure() === null
+            ? I18N_KEYS.CHANGE_METRICS_COPY_WAITING
+            : I18N_KEYS.CHANGE_METRICS_COPY_FAILED,
+        );
+  return (
+    <CopyMarkdown
+      command={COMMAND.metricsMarkdown}
+      unavailable={unavailable()}
+      input={() => ({
+        project: props.project,
+        base: changeMetrics()?.base.snapshot,
+        target: changeMetrics()?.target.snapshot,
+        level: changeMetrics()?.level,
+        ...(changeMetricsMetric() === METRIC_ALL ? {} : { metrics: [changeMetricsMetric()] }),
+      })}
+    />
+  );
+}
+
+/** The button "Copy as Markdown" of the view that is shown: the impact or the metrics. */
+function CopyButtons() {
+  return (
+    <>
+      <Show when={changeTab() === TAB.impact ? changeAnswer() : null}>
+        {(answer) => (
+          <Show when={activeProject()}>
+            {(project) => (
+              <CopyMarkdown
+                command={COMMAND.markdown}
+                input={() => ({
+                  project: project(),
+                  base: answer().base.snapshot,
+                  target: answer().target.snapshot,
+                })}
+              />
+            )}
+          </Show>
+        )}
+      </Show>
+      <Show when={changeTab() === TAB.metrics}>
+        <Show when={activeProject()}>{(project) => <MetricsCopy project={project()} />}</Show>
+      </Show>
+    </>
+  );
+}
+
 /** The screen "Change": what the difference between two scans of the project hits (ADR 0097,
  * mocks 29 and erw-auswirkung). One call, `scans.impact`, serves both views. */
 export function ChangeScreen() {
@@ -172,13 +231,7 @@ export function ChangeScreen() {
         <Show when={changeTab() === TAB.impact ? changeAnswer() : null}>
           {(answer) => <Compared answer={answer()} />}
         </Show>
-        <Show when={changeTab() === TAB.impact ? changeAnswer() : null}>
-          {(answer) => (
-            <Show when={activeProject()}>
-              {(project) => <CopyMarkdown project={project()} answer={answer()} />}
-            </Show>
-          )}
-        </Show>
+        <CopyButtons />
       </header>
       <Show
         when={activeProject()}

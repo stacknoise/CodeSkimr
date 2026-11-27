@@ -304,7 +304,8 @@ fn metrics_options(command: Command, say: Say<'_>) -> Result<Command, CliError> 
         .arg(needs_metrics(flag(
             ARG_INCLUDE_TESTS,
             &say(CLI_ARG_INCLUDE_TESTS)?,
-        ))))
+        )))
+        .arg(needs_metrics(flag(ARG_MARKDOWN, &say(CLI_ARG_MARKDOWN)?)).conflicts_with(ARG_JSON)))
 }
 
 fn compare_command(say: Say<'_>) -> Result<Command, CliError> {

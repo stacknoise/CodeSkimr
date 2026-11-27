@@ -16,17 +16,18 @@ use codeskimr_application::compare::{
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{CodeIndex, ProjectRepository};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
-use codeskimr_cli::change_markdown;
+use codeskimr_cli::{MetricsSide, change_markdown, metrics_markdown};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Permission, ProjectId, SnapshotId};
-use codeskimr_i18n::{DEFAULT_LANGUAGE, Messages};
+use codeskimr_i18n::{DEFAULT_LANGUAGE, I18nError, Messages};
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
     SCANS_COMPARE, SCANS_COMPARE_DESCRIPTION, SCANS_COMPARE_TITLE, SCANS_IMPACT,
     SCANS_IMPACT_DESCRIPTION, SCANS_IMPACT_MARKDOWN, SCANS_IMPACT_MARKDOWN_DESCRIPTION,
     SCANS_IMPACT_MARKDOWN_TITLE, SCANS_IMPACT_TITLE, SCANS_LIST, SCANS_LIST_DESCRIPTION,
-    SCANS_LIST_TITLE, SCANS_METRICS, SCANS_METRICS_DESCRIPTION, SCANS_METRICS_TITLE,
+    SCANS_LIST_TITLE, SCANS_METRICS, SCANS_METRICS_DESCRIPTION, SCANS_METRICS_MARKDOWN,
+    SCANS_METRICS_MARKDOWN_DESCRIPTION, SCANS_METRICS_MARKDOWN_TITLE, SCANS_METRICS_TITLE,
 };
 use super::preferences::PreferencesFile;
 
@@ -267,12 +268,64 @@ impl Command for ScansImpactMarkdown {
         let answer = answer(&self.ports.compare, &input.compare, true)?;
         let value = serde_json::to_value(&answer)
             .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?;
-        let language = input
-            .language
-            .or_else(|| self.ports.preferences.read().language)
+        self.ports.markdown(input.language, |messages, language| {
+            change_markdown(messages, language, &value)
+        })
+    }
+}
+
+impl MarkdownPorts {
+    /// The text `make` builds, in the language asked for, the saved one or English.
+    fn markdown(
+        &self,
+        language: Option<String>,
+        make: impl FnOnce(&Messages, &str) -> Result<String, I18nError>,
+    ) -> Result<MarkdownAnswer, CodedError> {
+        let language = language
+            .or_else(|| self.preferences.read().language)
             .unwrap_or_else(|| DEFAULT_LANGUAGE.to_owned());
-        let markdown = change_markdown(&self.ports.messages, &language, &value)
-            .map_err(CodedError::caused_by)?;
+        let markdown = make(&self.messages, &language).map_err(CodedError::caused_by)?;
         Ok(MarkdownAnswer { markdown })
+    }
+}
+
+/// The input of `scans.metrics_markdown`: that of `scans.metrics` and the language of the text.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct MetricsMarkdownInput {
+    /// The scans and what to look at, as for `scans.metrics`.
+    #[serde(flatten)]
+    pub metrics: MetricsInput,
+    /// Language of the text; the one of the stored preferences, or English, if left out.
+    #[serde(default)]
+    pub language: Option<String>,
+}
+
+/// `scans.metrics_markdown`: the answer of `scans.metrics` as the Markdown of
+/// `compare --metrics --markdown`.
+pub struct ScansMetricsMarkdown {
+    pub(super) ports: Arc<MarkdownPorts>,
+}
+
+impl Command for ScansMetricsMarkdown {
+    type Input = MetricsMarkdownInput;
+    type Output = MarkdownAnswer;
+
+    const DESCRIPTOR: CommandDescriptor = diff_descriptor(
+        SCANS_METRICS_MARKDOWN,
+        SCANS_METRICS_MARKDOWN_TITLE,
+        SCANS_METRICS_MARKDOWN_DESCRIPTION,
+    );
+
+    fn execute(&self, request: Request<'_, Self>) -> Result<MarkdownAnswer, CodedError> {
+        access::require(request.principal, Permission::Read)?;
+        let input = request.input;
+        let wanted = input.metrics.request()?;
+        self.ports.compare.projects.project(wanted.project)?;
+        let found = self.ports.compare.comparer.compare_metrics(&wanted)?;
+        let value = serde_json::to_value(MetricsAnswer::new(&found))
+            .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?;
+        self.ports.markdown(input.language, |messages, language| {
+            metrics_markdown(messages, language, &value, MetricsSide::Both.lists())
+        })
     }
 }

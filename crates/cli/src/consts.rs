@@ -664,6 +664,8 @@ pub mod key {
 /// The first line of `change --markdown`: a script that updates one comment on a pull request
 /// finds its own comment by it.
 pub const MARKDOWN_MARKER: &str = "<!-- codeskimr-change -->";
+/// The first line of `compare --metrics --markdown`, so that a bot can find its own comment.
+pub const METRICS_MARKDOWN_MARKER: &str = "<!-- codeskimr-metrics -->";
 /// Sub-command that lists the retained scans of a project.
 pub const COMMAND_SCANS: &str = "scans";
 /// Sub-command that compares two scans of a project.
@@ -749,6 +751,8 @@ pub const JSON_NULL_TEXT: &str = "null";
 pub const CONTROL_REPLACEMENT: char = ' ';
 /// Puts the entries of a list below its heading.
 pub const LIST_INDENT: &str = "  ";
+/// The indent of a list whose lines start at the left edge, as in Markdown.
+pub const NO_INDENT: &str = "";
 /// Between the flags of one module in the text of `modules`.
 pub const FLAG_JOIN: &str = ", ";
 /// Before the flags of a module in the text of `modules`.

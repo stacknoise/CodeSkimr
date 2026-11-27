@@ -466,6 +466,13 @@ pub const SCANS_METRICS: &str = "scans.metrics";
 pub const SCANS_METRICS_TITLE: &str = i18n::COMMAND_SCANS_METRICS_TITLE;
 /// Description key of `scans.metrics`.
 pub const SCANS_METRICS_DESCRIPTION: &str = i18n::COMMAND_SCANS_METRICS_DESCRIPTION;
+/// Id of the command that returns the metric changes as the Markdown of `compare --metrics --markdown`.
+pub const SCANS_METRICS_MARKDOWN: &str = "scans.metrics_markdown";
+/// Title key of `scans.metrics_markdown`.
+pub const SCANS_METRICS_MARKDOWN_TITLE: &str = i18n::COMMAND_SCANS_METRICS_MARKDOWN_TITLE;
+/// Description key of `scans.metrics_markdown`.
+pub const SCANS_METRICS_MARKDOWN_DESCRIPTION: &str =
+    i18n::COMMAND_SCANS_METRICS_MARKDOWN_DESCRIPTION;
 /// Id of the command that returns the impact as the Markdown of `change --markdown`.
 pub const SCANS_IMPACT_MARKDOWN: &str = "scans.impact_markdown";
 /// Title key of `scans.impact_markdown`.

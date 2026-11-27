@@ -136,3 +136,5 @@ command-log-open-folder-title = Open the log folder
 command-log-open-folder-description = Opens the folder of the log files with the program that the operating system names for it on the machine of the app.
 command-conventions-check-title = Check the conventions
 command-conventions-check-description = Checks the files of a project folder against the code rules (length, complexity, parameters, literals, duplicates) as the code is now, without a scan, and stores nothing. The same check as `codeskimr check`.
+command-scans-metrics-markdown-title = Show the metric changes as Markdown
+command-scans-metrics-markdown-description = Makes the metric changes between two kept scans (the same answer as the one of showing which objects got worse or better) as the Markdown text that `codeskimr compare --metrics --markdown` prints: the counts and the two lists with the moves of every object. The text is in the language given, or in the saved language of the user.

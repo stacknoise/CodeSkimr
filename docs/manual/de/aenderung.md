@@ -36,9 +36,23 @@ Die beiden Auswahlfelder wählen die Scans; „Vergleichen“ liest den Vergleic
 
 Die Liste hat dieselbe Filterzeile, mit ausgegrautem „Nur mit offenen Stellen“, das ein Tooltip erklärt (der Vergleich hat keine Prüfliste), und dieselbe Bildlaufleiste. Ein Name oder eine Signatur, die breiter ist als die Liste, wird mit Auslassungspunkten gekürzt; der Tooltip zeigt den ganzen Text.
 
+## Kennzahlen
+
+![Was sich verschlechtert und was sich verbessert hat](../../screenshots/change/metrics-petrol.png)
+
+Der Reiter „Kennzahlen“ beantwortet mit denselben zwei Scans eine zweite Frage: Welche Objekte sind bei ihren Kennzahlen schlechter geworden und welche besser? Verglichen werden Objekte, die in beiden Scans vorkommen (derselbe Schlüssel wie im Vergleich); neue und entfernte Objekte bleiben im Reiter „Vergleich“. Die vier Zahlen zählen die verschlechterten, die verbesserten, die unveränderten und die nicht vergleichbaren (neu und entfernt) Objekte.
+
+Eine Kennzahl zählt erst ab einem Schwellwert als bewegt, damit die Änderung einer Zeile keine Verschlechterung ist: Komplexität ab 2, Wartbarkeitsindex ab 5 Punkten, ausgehende Kopplung ab 2, Stabilität ab 100 Promille und Zeilen nur, wenn das Objekt um 20 oder mehr gewachsen ist (Einstellungen `compare.metric_*`). Eine Bewegung über die Grenze der Bewertung (etwa Komplexität von „ok“ auf „schlecht“) ist mit „Grenze überschritten“ oder „wieder unter der Grenze“ markiert und steht vorn. Ein Objekt kann auf beiden Seiten stehen, wenn sich eine Kennzahl verschlechtert und eine andere verbessert hat.
+
+Die Chips grenzen beide Listen auf eine Kennzahl ein. Die Ebene bestimmt, was verglichen wird: Member (Zeilen, Komplexität, Wartbarkeit), Typen (dazu ausgehende Kopplung und Stabilität) oder Module (Kopplung und Stabilität). Kopplung und Stabilität gibt es für Member nicht; ihre Chips sind ausgegraut und ein Tooltip sagt warum, und eine gewählte Kennzahl springt beim Ebenenwechsel auf „Alle“ zurück.
+
+Jede Liste ist eine Tabelle mit den Spalten Objekt, Datei, Kennzahl, Von → nach und Änderung, eine Zeile je bewegter Kennzahl. Sie folgt der Reihenfolge der Antwort (die stärkste Bewegung zuerst), bis ein Spaltenkopf gedrückt wird; Sortierung und Griffe für die Breiten funktionieren wie im Reiter „Auswirkung“. Die Kopfzeile einer Liste sagt, wie viele der Objekte aufgelistet sind („12 von 12“ oder „30 von 30 aufgelisteten (212 insgesamt)“, wenn die Antwort gekürzt wurde).
+
+Der Knopf „Als Markdown kopieren“ kopiert die Listen als Text für einen Kommentar zu einem Pull Request, für die gewählte Ebene und Kennzahl. Ohne Antwort ist er ausgegraut und sagt warum. Es ist der Text, den `codeskimr compare --metrics --markdown` ausgibt.
+
 ## Auf der Kommandozeile
 
-Dieselbe Antwort gibt es als `codeskimr scans`, `codeskimr compare` und `codeskimr change` (mit `--markdown` für einen Kommentar zu einem Pull Request; dafür hat die Ansicht den Knopf „Als Markdown kopieren“) und für Agenten als MCP-Werkzeug `impact_of_diff`. Der Filter der Ansicht wirkt auf die Antwort, die die Ansicht hält; das Gegenstück auf der Konsole ist `--json` mit einem Filter darauf, etwa `codeskimr change --json | jq '.impact.items[] | select(.symbol.visibility == "public" and .not_touched > 0) | .symbol.qualified_name'` (siehe [Kommandozeile](../../cli.md)). Siehe die Referenzen zur [Kommandozeile](../../cli.md) und zum [Vergleich](../../compare.md).
+Dieselbe Antwort gibt es als `codeskimr scans`, `codeskimr compare` (mit `--metrics` für den Reiter „Kennzahlen“), `codeskimr compare --metrics --markdown` und `codeskimr change` (mit `--markdown` für einen Kommentar zu einem Pull Request; dafür hat die Ansicht den Knopf „Als Markdown kopieren“) und für Agenten als MCP-Werkzeug `impact_of_diff`. Der Filter der Ansicht wirkt auf die Antwort, die die Ansicht hält; das Gegenstück auf der Konsole ist `--json` mit einem Filter darauf, etwa `codeskimr change --json | jq '.impact.items[] | select(.symbol.visibility == "public" and .not_touched > 0) | .symbol.qualified_name'` (siehe [Kommandozeile](../../cli.md)). Siehe die Referenzen zur [Kommandozeile](../../cli.md) und zum [Vergleich](../../compare.md).
 
 ## Tasten
 

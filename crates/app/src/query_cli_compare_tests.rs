@@ -177,3 +177,15 @@ fn compare_metrics_answers_in_json_and_text_and_refuses_an_unknown_level() {
     let failure = world.run(&metrics(true, "galaxy"), "en").unwrap_err();
     assert_eq!(failure.code(), ErrorCode::RequestInvalid);
 }
+
+#[test]
+fn compare_metrics_prints_the_markdown_for_a_comment() {
+    let world = two_scans();
+    let QueryAction::Compare(mut found) = metrics(false, "member") else {
+        panic!("not a compare");
+    };
+    found.markdown = true;
+    let text = world.text(&QueryAction::Compare(found));
+    assert!(text.starts_with("<!-- codeskimr-metrics -->"), "{text}");
+    assert!(text.contains("metric changes from scan"), "{text}");
+}

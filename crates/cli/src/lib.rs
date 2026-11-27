@@ -43,6 +43,7 @@ pub use consent::{
 pub use error::CliError;
 pub use level2::{Level2Line, Level2Reason};
 pub use locale::language_from;
+pub use metrics_text::metrics_markdown;
 pub use parser::parse;
 pub use query_text::{QueryKind, query_code_report, query_error_json, query_json, query_text};
 pub use render::{

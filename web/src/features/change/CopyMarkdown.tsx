@@ -4,23 +4,27 @@ import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { COPY } from "../../shared/ui/consts";
 import { createCopier } from "../../shared/ui/copier";
-import { COMMAND } from "./consts";
-import type { ChangeAnswer, MarkdownAnswer } from "./types";
+import type { MarkdownAnswer } from "./types";
 import styles from "./ChangeScreen.module.css";
 
 /** The button "Copy as Markdown" (mock erw-auswirkung): it asks `scans.impact_markdown`, the
  * counterpart of `codeskimr change --markdown`, for the text of the two scans that are shown and
  * puts it on the clipboard. The button says "Copied" or "Not copied" for a moment; the text is made
- * by the server, so the screen and the command line give the same. */
-export function CopyMarkdown(props: { project: number; answer: ChangeAnswer }) {
+ * by the server, so the screen and the command line give the same. In the view "Metrics" the same
+ * button asks `scans.metrics_markdown` (`compare --metrics --markdown`). */
+export function CopyMarkdown(props: {
+  command: string;
+  /** What the command is asked: the project, the two scans and, for the metrics, the level. */
+  input: () => Record<string, unknown>;
+  /** Why there is nothing to copy yet; set means the button is greyed out and says why. */
+  unavailable?: string | undefined;
+}) {
   const [refused, setRefused] = createSignal(false);
   const { state, copy } = createCopier();
   const ask = async () => {
     try {
-      const text = await runCommand<MarkdownAnswer>(COMMAND.markdown, {
-        project: props.project,
-        base: props.answer.base.snapshot,
-        target: props.answer.target.snapshot,
+      const text = await runCommand<MarkdownAnswer>(props.command, {
+        ...props.input(),
         language: currentLanguage(),
       });
       setRefused(false);
@@ -38,7 +42,13 @@ export function CopyMarkdown(props: { project: number; answer: ChangeAnswer }) {
         : t(I18N_KEYS.CHANGE_VIEW_COPY);
   return (
     <span role="status">
-      <button type="button" class={styles.copy} onClick={() => void ask()}>
+      <button
+        type="button"
+        class={styles.copy}
+        disabled={props.unavailable !== undefined}
+        title={props.unavailable}
+        onClick={() => void ask()}
+      >
         {label()}
       </button>
     </span>
