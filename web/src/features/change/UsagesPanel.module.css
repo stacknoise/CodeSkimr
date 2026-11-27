@@ -43,9 +43,10 @@
     tab-size: 4;
 }
 
+/* The tint is 6 %: the syntax colours keep 4.5:1 on it in all three themes (blueprint 15.3). */
 .before {
     border-left-color: var(--bad);
-    background: color-mix(in srgb, var(--bad) 12%, transparent);
+    background: color-mix(in srgb, var(--bad) 6%, transparent);
 }
 
 .before .sign {
@@ -54,7 +55,7 @@
 
 .after {
     border-left-color: var(--good);
-    background: color-mix(in srgb, var(--good) 12%, transparent);
+    background: color-mix(in srgb, var(--good) 6%, transparent);
 }
 
 .after .sign {

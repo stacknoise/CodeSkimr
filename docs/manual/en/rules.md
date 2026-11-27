@@ -24,3 +24,11 @@ You do not have to write the file by hand (ADR 0112). **Add rule** opens a menu:
 Every rule card has a pen (change) and a bin (delete; a dialog asks first). Only the `rules` tables (and the `may_use` of the layers) are rewritten; everything else in the file stays, and so do comments outside the rules tables. An invalid rule (a module inside the other, the same pair twice, an unknown layer) is refused with `CFG-101` and the file stays as it was.
 
 A Git project has no project folder, so **Add rule**, the pen and the bin are off there; add the rules to the file in the repository.
+
+## Checking the code rules on the screen "Conventions"
+
+The screen "Conventions" (its own item in the left bar, next to "Rules") checks the code of the project folder against the code rules, as the console command `codeskimr check` does (ADR 0116): a function that is too long, too complex or has too many parameters, literals in the code, and two functions that are copies of each other (`docs/conventions.md`). It reads the files as they are now, so it also sees edits that no scan has seen. Nothing is stored.
+
+**Check now** starts it for the whole folder of the project. A large project takes about as long as the analysis of a scan. The strip shows how many files were checked, how many findings there are and how many files could not be analysed. The findings are in a table that you can sort by every column and whose columns you can widen; **Open** opens the file at the line in the editor of the settings; **Explorer** shows the function in the explorer as the last scan has it (off, with a hint, for a function that scan does not know, such as one in a file written after it). **Copy as Markdown** puts the result into the clipboard, for an issue or a comment. Below the table the tab names the rules this check does not cover (a clean result says nothing about them) and the files it could not read.
+
+A project from a Git address has no folder on this machine, so the button is off there.

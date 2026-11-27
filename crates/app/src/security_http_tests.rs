@@ -178,11 +178,18 @@ fn credentials_need_the_token(url: &str, token: &str) -> Vec<String> {
     vec![bad, set, gone]
 }
 
-/// The log holds paths and names, so reading it needs the token like reading source text (ADR 0115).
+/// The log holds paths and names and the convention check reads the code of a project, so both
+/// need the token like reading source text (ADR 0115, ADR 0116).
 fn the_log_needs_the_token(url: &str, token: &str) {
     for wrong in [None, Some("csk_wrong"), Some("")] {
         let headers: Vec<String> = wrong.map(bearer).into_iter().collect();
-        for id in ["log.status", "log.tail", "log.set_level", "log.clear"] {
+        for id in [
+            "log.status",
+            "log.tail",
+            "log.set_level",
+            "log.clear",
+            "conventions.check",
+        ] {
             let answer = command_request(url, id, &headers, &json!({ "lines": 1 }));
             assert_eq!(status(&answer), 401, "{id}, token {wrong:?}");
             assert!(answer.contains("API-401"), "{id}");

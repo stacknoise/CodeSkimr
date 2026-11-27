@@ -89,6 +89,13 @@ inEachTheme(
       timeout: SCAN_MS,
     });
     await expect(table.getByText("Shop.Pricing.Discount.Apply")).toBeVisible();
+    // The signature has the syntax colours of its language (code.highlight): a keyword is a span.
+    await expect(
+      page
+        .getByRole("region", { name: "Usages of the selected symbol" })
+        .locator("code span")
+        .first(),
+    ).toBeVisible();
     await shot(page, SHOTS, `impact-${theme}`, info);
 
     // The button puts the text of `codeskimr change --markdown` on the clipboard.
@@ -111,6 +118,7 @@ inEachTheme(
     await page.keyboard.press("ArrowRight");
     await expect(page.getByRole("tab", { name: "Comparison", selected: true })).toBeVisible();
     await expect(page.getByLabel("Base (before)")).toBeVisible();
+    await expect(page.locator("td code span").first()).toBeVisible();
     await shot(page, SHOTS, `compare-${theme}`, info);
   },
 );

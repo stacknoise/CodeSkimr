@@ -1,0 +1,132 @@
+//! The screen "Conventions" through the path the server takes (ADR 0116).
+
+use std::fmt::Write as _;
+use std::fs;
+
+use serde_json::{Value, json};
+
+use super::tests::{Fixture, run_as};
+use codeskimr_codes::{Coded, ErrorCode};
+
+use crate::principal;
+
+/// A C# class whose method has `lines` statements, so that it is over the limit of 40 lines.
+fn long_method(lines: u32) -> String {
+    let mut body = String::new();
+    for number in 0..lines {
+        writeln!(body, "        total += values[{number}];").unwrap();
+    }
+    format!(
+        "namespace Demo;\n\npublic class Long\n{{\n    public int Sum(int[] values)\n    {{\n        var total = 0;\n{body}        return total;\n    }}\n}}\n"
+    )
+}
+
+/// The finding of the method that is over the limit of lines.
+fn long_finding(answer: &Value) -> &Value {
+    answer["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|finding| finding["code"] == "CHK-104")
+        .unwrap_or_else(|| panic!("a finding for the long method: {answer}"))
+}
+
+fn check(fixture: &Fixture, project: u64) -> Value {
+    fixture
+        .call("conventions.check", json!({ "project": project }))
+        .unwrap()
+}
+
+#[test]
+fn a_function_over_the_limit_is_found_in_a_file_no_scan_has_seen() {
+    let fixture = Fixture::new();
+    let project = fixture.scanned();
+    let app = fixture.root.path().join("app");
+    fs::write(app.join("Long.cs"), long_method(60)).unwrap();
+    let answer = check(&fixture, project);
+    let found = long_finding(&answer);
+    assert!(
+        found["symbol_ref"].is_null(),
+        "a file no scan has seen: {found}"
+    );
+    assert_eq!(found["path"], "Long.cs");
+    assert_eq!(found["symbol"], "Demo.Long.Sum");
+    assert!(found["lines"].as_u64().unwrap() > found["max_lines"].as_u64().unwrap());
+    assert!(answer["files_checked"].as_u64().unwrap() >= 1);
+    assert_eq!(
+        answer["total"],
+        answer["findings"].as_array().unwrap().len()
+    );
+}
+
+#[test]
+fn a_clean_folder_has_no_finding_and_still_lists_what_was_not_checked() {
+    let fixture = Fixture::new();
+    let project = fixture.scanned();
+    let answer = check(&fixture, project);
+    assert_eq!(answer["total"], 0, "{answer}");
+    assert!(answer["not_checked"].is_array());
+}
+
+#[test]
+fn reading_the_code_needs_the_right_to_read_source() {
+    let fixture = Fixture::new();
+    let project = fixture.scanned();
+    let input = json!({ "project": project });
+    for who in [principal::reader(), principal::nobody()] {
+        assert_eq!(
+            run_as(&fixture, who, "conventions.check", input.clone()),
+            Err("AUTH-401")
+        );
+    }
+}
+
+#[test]
+fn an_unknown_project_is_refused_with_its_code() {
+    let fixture = Fixture::new();
+    assert_eq!(
+        fixture.call("conventions.check", json!({ "project": 999 })),
+        Err("PRJ-201")
+    );
+}
+
+#[test]
+fn a_project_is_checked_by_one_run_at_a_time() {
+    let runs = super::conventions::Runs::default();
+    let first = runs.begin(7).unwrap();
+    assert_eq!(
+        runs.begin(7).unwrap_err().code(),
+        ErrorCode::CheckInProgress
+    );
+    assert!(runs.begin(8).is_ok(), "another project is not held up");
+    drop(first);
+    assert!(runs.begin(7).is_ok(), "the project is free again");
+}
+
+#[test]
+fn a_finding_in_a_scanned_file_names_its_symbol() {
+    let fixture = Fixture::new();
+    fs::write(
+        fixture.root.path().join("app").join("Long.cs"),
+        long_method(60),
+    )
+    .unwrap();
+    let project = fixture.scanned();
+    let answer = check(&fixture, project);
+    let found = long_finding(&answer);
+    assert!(found["symbol_ref"]["id"].is_u64(), "{found}");
+    assert_eq!(found["symbol_ref"]["kind"], "method", "{found}");
+}
+
+#[test]
+fn without_a_scan_every_finding_has_no_symbol_but_the_check_still_runs() {
+    let fixture = Fixture::new();
+    fs::write(
+        fixture.root.path().join("app").join("Long.cs"),
+        long_method(60),
+    )
+    .unwrap();
+    fixture.registered(9);
+    let answer = check(&fixture, 9);
+    assert!(long_finding(&answer)["symbol_ref"].is_null(), "{answer}");
+}

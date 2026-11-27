@@ -588,3 +588,19 @@ pub const HIGHLIGHT_DESCRIPTION: &str = i18n::COMMAND_CODE_HIGHLIGHT_DESCRIPTION
 pub const HIGHLIGHT_MAX_PIECES: usize = 200;
 /// Most characters of one piece that `code.highlight` colours; a longer piece comes back plain.
 pub const HIGHLIGHT_MAX_CHARS: usize = 600;
+
+/// Id of the command that checks the code of a folder project against the code rules.
+pub const CONVENTIONS_CHECK: &str = "conventions.check";
+/// Title key of `conventions.check`.
+pub const CONVENTIONS_CHECK_TITLE: &str = i18n::COMMAND_CONVENTIONS_CHECK_TITLE;
+/// Description key of `conventions.check`.
+pub const CONVENTIONS_CHECK_DESCRIPTION: &str = i18n::COMMAND_CONVENTIONS_CHECK_DESCRIPTION;
+/// Member of the answer of `conventions.check` that holds the findings.
+pub const CONVENTIONS_FINDINGS: &str = "findings";
+/// Member of a finding that holds the qualified name of its function.
+pub const CONVENTIONS_SYMBOL: &str = "symbol";
+/// Member that `conventions.check` adds to a finding: the symbol of the newest scan, or `null`.
+pub const CONVENTIONS_SYMBOL_REF: &str = "symbol_ref";
+/// The most bytes one character takes in UTF-8; a text longer than the limit in characters times this
+/// is refused before its characters are counted.
+pub const UTF8_MAX_BYTES: usize = 4;

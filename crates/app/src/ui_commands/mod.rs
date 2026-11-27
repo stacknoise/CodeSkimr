@@ -8,6 +8,9 @@ mod annotations;
 #[cfg(test)]
 mod annotations_tests;
 mod consts;
+mod conventions;
+#[cfg(test)]
+mod conventions_tests;
 mod credentials;
 #[cfg(test)]
 mod credentials_tests;
@@ -127,6 +130,7 @@ use codeskimr_storage::SqliteStore;
 use consts::LOCAL_AUTHOR;
 #[cfg(test)]
 pub(crate) use consts::PREFERENCES_FILE;
+use conventions::{ConventionsCheck, ConventionsPorts, Runs};
 use credentials::{DeleteCredential, ListCredentials, SetCredential};
 use explorer::{ExplorerOutline, ExplorerPorts};
 pub(crate) use export::{ExportInput, HtmlExport};
@@ -371,6 +375,18 @@ fn register_views(
     register_preferences(registry, locations)?;
     register_ui_settings(registry, locations)?;
     register_log(registry, locations)?;
+    add(
+        registry,
+        ConventionsCheck {
+            ports: Arc::new(ConventionsPorts {
+                projects: catalog.clone(),
+                index: catalog.clone(),
+                global: global.clone(),
+                locations: locations.clone(),
+                running: Runs::default(),
+            }),
+        },
+    )?;
     add(registry, effective_settings(locations, global)?)?;
     add(registry, export_command(catalog, config, locations))
 }
@@ -556,6 +572,7 @@ fn expose_project_file(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<RulesShow>()?;
     api.expose::<RulesHold>()?;
     api.expose::<RulesSet>()?;
+    api.expose::<ConventionsCheck>()?;
     api.expose::<RulesPreview>()?;
     api.expose::<ProjectFileOpen>()?;
     api.expose::<UnusedKeep>()?;

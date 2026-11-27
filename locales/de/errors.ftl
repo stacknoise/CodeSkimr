@@ -24,6 +24,7 @@ error-PRJ-201 = Das Projekt ist nicht registriert. Scanne den Ordner zuerst mit 
 error-PRJ-301 = Ein Projekt mit derselben Quelle ist bereits angelegt.
 error-PRJ-302 = Für dieses Projekt läuft bereits ein Scan.
 error-PRJ-303 = Der Scan wurde abgebrochen. Es wurde kein Snapshot geschrieben.
+error-PRJ-304 = Für dieses Projekt läuft bereits eine Konventionsprüfung.
 error-EXP-501 = Für dieses Projekt läuft schon ein Export. Warten Sie, bis er beendet ist, und versuchen Sie es dann erneut.
 error-EXP-502 = Das Projekt hat mehr Verweisungen, als `export.max_references` für den HTML-Export erlaubt. Die Seite würde so groß, dass kein Browser sie sinnvoll öffnet. Erhöhen Sie `export.max_references` in Ihrer Konfigurationsdatei auf eigene Verantwortung (etwa 250 Byte je Verweisung) oder exportieren Sie ein kleineres Projekt.
 error-PRJ-501 = Es laufen gerade zu viele Scans. Versuche es erneut, wenn einer beendet ist.

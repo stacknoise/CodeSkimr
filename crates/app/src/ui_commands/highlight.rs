@@ -12,13 +12,14 @@ use std::sync::Arc;
 
 use super::consts::{
     CODE_HIGHLIGHT, HIGHLIGHT_DESCRIPTION, HIGHLIGHT_MAX_CHARS, HIGHLIGHT_MAX_PIECES,
-    HIGHLIGHT_TITLE,
+    HIGHLIGHT_TITLE, UTF8_MAX_BYTES,
 };
 use super::explorer::ExplorerPorts;
 use super::source::{TokenOut, token_outs};
 
 /// One piece of code to colour: a file name that tells the language, and the text.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Piece {
     /// Path of the file the code belongs to; only its extension counts.
     pub path: String,
@@ -28,6 +29,7 @@ pub struct Piece {
 
 /// The input of `code.highlight`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct HighlightInput {
     /// The pieces to colour.
     pub pieces: Vec<Piece>,
@@ -52,20 +54,20 @@ pub struct CodeHighlight {
     pub(super) ports: Arc<ExplorerPorts>,
 }
 
-impl ExplorerPorts {
-    /// The runs of one piece; a piece that is too long, has no valid path or no colours is plain.
-    fn colour_piece(&self, piece: &Piece) -> PieceOut {
-        let plain = PieceOut { tokens: Vec::new() };
-        if piece.text.chars().count() > HIGHLIGHT_MAX_CHARS {
-            return plain;
-        }
-        let Ok(path) = RelativePath::new(piece.path.as_str()) else {
-            return plain;
-        };
-        let lines: Vec<String> = piece.text.lines().map(str::to_owned).collect();
-        PieceOut {
-            tokens: token_outs(&self.highlighter.highlight(&path, &lines), &lines),
-        }
+/// The runs of one piece; a piece that is too long, has no valid path or no colours is plain.
+fn colour_piece(ports: &ExplorerPorts, piece: &Piece) -> PieceOut {
+    let plain = PieceOut { tokens: Vec::new() };
+    if piece.text.len() > HIGHLIGHT_MAX_CHARS * UTF8_MAX_BYTES
+        || piece.text.chars().count() > HIGHLIGHT_MAX_CHARS
+    {
+        return plain;
+    }
+    let Ok(path) = RelativePath::new(piece.path.as_str()) else {
+        return plain;
+    };
+    let lines: Vec<String> = piece.text.lines().map(str::to_owned).collect();
+    PieceOut {
+        tokens: token_outs(&ports.highlighter.highlight(&path, &lines), &lines),
     }
 }
 
@@ -91,7 +93,7 @@ impl Command for CodeHighlight {
             .enumerate()
             .map(|(index, piece)| {
                 if index < HIGHLIGHT_MAX_PIECES {
-                    self.ports.colour_piece(piece)
+                    colour_piece(&self.ports, piece)
                 } else {
                     PieceOut { tokens: Vec::new() }
                 }

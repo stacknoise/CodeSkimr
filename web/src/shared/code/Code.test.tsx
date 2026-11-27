@@ -1,7 +1,9 @@
 import { render, screen, waitFor } from "@solidjs/testing-library";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { For } from "solid-js";
 import { Code } from "./Code";
-import { resetHighlightCache } from "./highlight";
+import { CACHE_LIMIT } from "./consts";
+import { cacheSize, resetHighlightCache } from "./highlight";
 import { linesOf } from "./parts";
 
 const run = vi.fn();
@@ -59,5 +61,28 @@ describe("Code", () => {
     ));
     await waitFor(() => expect(run).toHaveBeenCalledTimes(1));
     expect(screen.getAllByText("fn run()")).toHaveLength(2);
+  });
+
+  it("does not remember a failed call", async () => {
+    run.mockRejectedValueOnce(new Error("no server"));
+    const first = render(() => <Code path="a.rs" text="fn run()" />);
+    await waitFor(() => expect(run).toHaveBeenCalledTimes(1));
+    expect(cacheSize()).toBe(0);
+    first.unmount();
+    run.mockResolvedValue({
+      pieces: [{ tokens: [{ line: 0, start: 0, end: 2, class: "keyword" }] }],
+    });
+    render(() => <Code path="a.rs" text="fn run()" />);
+    await waitFor(() => expect(screen.getByText("fn").tagName).toBe("SPAN"));
+    expect(run).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps at most CACHE_LIMIT answers", async () => {
+    run.mockImplementation((_id: string, input: { pieces: unknown[] }) =>
+      Promise.resolve({ pieces: input.pieces.map(() => ({ tokens: [] })) }),
+    );
+    const texts = Array.from({ length: CACHE_LIMIT + 10 }, (_, index) => `fn f${index}()`);
+    render(() => <For each={texts}>{(text) => <Code path="a.rs" text={text} />}</For>);
+    await waitFor(() => expect(cacheSize()).toBe(CACHE_LIMIT));
   });
 });

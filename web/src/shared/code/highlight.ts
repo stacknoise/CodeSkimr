@@ -1,11 +1,30 @@
 import { type Accessor, createEffect, createSignal } from "solid-js";
 import { runCommand } from "../api/commands";
-import { EXTENSION_SEPARATOR, HIGHLIGHT_BATCH, HIGHLIGHT_COMMAND, KEY_SEPARATOR } from "./consts";
+import {
+  CACHE_LIMIT,
+  EXTENSION_SEPARATOR,
+  HIGHLIGHT_BATCH,
+  HIGHLIGHT_COMMAND,
+  KEY_SEPARATOR,
+} from "./consts";
 import type { CodeToken, HighlightAnswer } from "./types";
 
 /** The runs of every piece that was coloured before; a piece that could not be coloured is in it
  * with no runs, so it is not asked for again. */
 const cache = new Map<string, CodeToken[]>();
+
+/** Keeps an answer; the oldest ones go when the cache is full. A failed call is never kept, so the
+ * next time the piece is shown it is asked for again. */
+function remember(key: string, tokens: CodeToken[]): void {
+  cache.delete(key);
+  cache.set(key, tokens);
+  if (cache.size > CACHE_LIMIT) {
+    const oldest = cache.keys().next();
+    if (oldest.done !== true) {
+      cache.delete(oldest.value);
+    }
+  }
+}
 
 interface Waiting {
   path: string;
@@ -43,7 +62,9 @@ async function flush(): Promise<void> {
     }
     chunk.forEach(([key, piece], index) => {
       const tokens = answer?.pieces[index]?.tokens ?? [];
-      cache.set(key, tokens);
+      if (answer !== null) {
+        remember(key, tokens);
+      }
       piece.listeners.forEach((listener) => listener(tokens));
     });
   }
@@ -83,6 +104,9 @@ export function createHighlight(
   });
   return tokens;
 }
+
+/** How many pieces the cache holds. */
+export const cacheSize = (): number => cache.size;
 
 /** Forgets what was coloured (for tests). */
 export function resetHighlightCache(): void {

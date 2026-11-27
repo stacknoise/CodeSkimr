@@ -12,7 +12,7 @@ The tab "Scan" of the project page lists the kept scans. The button "Compare wit
 
 ## Impact
 
-Five figures: the changed symbols (new, changed, removed), how many of them are public, the usages they hit, the places not adapted and the files that hold them. The table lists every removed, changed or new symbol with the kind of change, its visibility and the state of its usages: "n open" or "adapted". Select a row, with the mouse or with the arrow keys, and the panel at the right shows what changed (the old and the new signature) and the direct usages of the symbol, grouped by file, with how sure the index is ("sure" or "probable").
+Five figures: the changed symbols (new, changed, removed), how many of them are public, the usages they hit, the places not adapted and the files that hold them. The table lists every removed, changed or new symbol with the kind of change, its visibility and the state of its usages: "n open" or "adapted". Select a row, with the mouse or with the arrow keys, and the panel at the right shows what changed (the old and the new signature, with the syntax colours of the language as in the explorer, a sign in front, tinted red or green) and the direct usages of the symbol, grouped by file, with how sure the index is ("sure" or "probable").
 
 A usage is "adapted" when the symbol that holds it is itself changed, moved or removed in the same difference, and "not touched" otherwise. **The usages that were not touched are the checklist**: places that use the changed symbol but were not changed. "Only open" shows just those; "All" shows every usage. A symbol whose content changed, and a new symbol, have no checklist, because their usages cannot break by this change.
 

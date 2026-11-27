@@ -18,3 +18,6 @@ export const NO_TEXT = "";
 
 /** The place of the first line and of the start of a line. */
 export const FIRST = 0;
+
+/** How many answers the cache keeps; the oldest go first. */
+export const CACHE_LIMIT = 5000;
