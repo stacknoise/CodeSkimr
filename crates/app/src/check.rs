@@ -8,7 +8,7 @@ use codeskimr_application::conventions::{CheckReport, CheckRequest, ConventionCh
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{CheckArgs, GlobalOptions};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::FolderPath;
+use codeskimr_domain::{FolderPath, Principal};
 use codeskimr_source::FolderText;
 
 use crate::config_files;
@@ -39,7 +39,18 @@ pub fn run(
         .iter()
         .map(|path| below_root(path, &root))
         .collect();
-    check_folder(&root, &paths, (global, locations))
+    check_folder(&root, &paths, principal::resolve(), (global, locations))
+        .map(|checked| checked.report)
+}
+
+/// The result of `check_folder`, with the largest number of results the configuration lets an
+/// answer list (`mcp.max_limit`).
+#[derive(Debug)]
+pub struct FolderCheck {
+    /// What the check found.
+    pub report: CheckReport,
+    /// How many findings an answer lists at most.
+    pub max_limit: u32,
 }
 
 /// Checks the files of the folder `root` named in `paths` (everything if none), the way the
@@ -51,8 +62,9 @@ pub fn run(
 pub fn check_folder(
     root: &FolderPath,
     paths: &[String],
+    principal: Principal,
     (global, locations): (&GlobalOptions, &Locations),
-) -> Result<CheckReport, CodedError> {
+) -> Result<FolderCheck, CodedError> {
     let config = config_files::load(locations, global, Some(Path::new(root.as_str())))?;
     let Analysis {
         discovery,
@@ -65,11 +77,15 @@ pub fn check_folder(
         Arc::new(FolderText),
         config.conventions,
     );
-    checker.check(&CheckRequest {
-        principal: &principal::resolve(),
+    let report = checker.check(&CheckRequest {
+        principal: &principal,
         root,
         paths,
         stored: None,
+    })?;
+    Ok(FolderCheck {
+        report,
+        max_limit: config.mcp.max_limit,
     })
 }
 

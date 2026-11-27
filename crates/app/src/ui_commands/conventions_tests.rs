@@ -6,6 +6,8 @@ use std::fs;
 use serde_json::{Value, json};
 
 use super::tests::{Fixture, run_as};
+use codeskimr_codes::{Coded, ErrorCode};
+
 use crate::principal;
 
 /// A C# class whose method has `lines` statements, so that it is over the limit of 40 lines.
@@ -77,4 +79,17 @@ fn an_unknown_project_is_refused_with_its_code() {
         fixture.call("conventions.check", json!({ "project": 999 })),
         Err("PRJ-201")
     );
+}
+
+#[test]
+fn a_project_is_checked_by_one_run_at_a_time() {
+    let runs = super::conventions::Runs::default();
+    let first = runs.begin(7).unwrap();
+    assert_eq!(
+        runs.begin(7).unwrap_err().code(),
+        ErrorCode::SnapshotInProgress
+    );
+    assert!(runs.begin(8).is_ok(), "another project is not held up");
+    drop(first);
+    assert!(runs.begin(7).is_ok(), "the project is free again");
 }

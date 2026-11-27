@@ -761,6 +761,8 @@ export const I18N_KEYS = {
   CONVENTIONS_UNCHECKED_TITLE: "conventions-unchecked-title",
   CONVENTIONS_MARKDOWN_HEAD: "conventions-markdown-head",
   CONVENTIONS_MARKDOWN_NONE: "conventions-markdown-none",
+  CONVENTIONS_TABLE_LABEL: "conventions-table-label",
+  CONVENTIONS_MORE: "conventions-more",
   EXPLORER_TITLE: "explorer-title",
   EXPLORER_FRESHNESS: "explorer-freshness",
   EXPLORER_FILTER_TREE: "explorer-filter-tree",

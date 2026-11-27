@@ -32,7 +32,9 @@ import {
   resetConventions,
   runConventionsCheck,
 } from "./conventions";
-import { copyNote } from "./copy";
+import { markdownOf } from "./copy";
+import { createCopier } from "../../shared/ui/copier";
+import { COPY } from "../../shared/ui/consts";
 import { measureText, placeText } from "./measure";
 import { sortFindings } from "./order";
 import type { ConventionsOut, Finding } from "./types";
@@ -122,7 +124,11 @@ function Row(props: { project: number; finding: Finding }) {
 /** The findings, as a table that can be sorted and whose columns can be widened. */
 function Findings(props: { project: number; answer: ConventionsOut }) {
   return (
-    <table class={styles.table} style={columns.style()}>
+    <table
+      class={styles.table}
+      style={columns.style()}
+      aria-label={t(I18N_KEYS.CONVENTIONS_TABLE_LABEL)}
+    >
       <ColumnWidths columns={columns} />
       <Heads />
       <tbody>
@@ -153,8 +159,7 @@ function Gaps(props: { answer: ConventionsOut }) {
     <>
       <Show when={props.answer.not_checked.length > 0}>
         <p class={styles.note}>
-          {t(I18N_KEYS.CONVENTIONS_NOT_CHECKED_TITLE)}{" "}
-          {props.answer.not_checked.map((code) => `${code}`).join(", ")}
+          {t(I18N_KEYS.CONVENTIONS_NOT_CHECKED_TITLE)} {props.answer.not_checked.join(", ")}
         </p>
       </Show>
       <Show when={props.answer.unchecked.length > 0}>
@@ -194,6 +199,14 @@ function Result(props: { project: number; answer: ConventionsOut }) {
         }
       >
         <Findings project={props.project} answer={props.answer} />
+        <Show when={props.answer.total > props.answer.findings.length}>
+          <p class={styles.note} role="status">
+            {t(I18N_KEYS.CONVENTIONS_MORE, {
+              hidden: props.answer.total - props.answer.findings.length,
+              shown: props.answer.findings.length,
+            })}
+          </p>
+        </Show>
       </Show>
       <Gaps answer={props.answer} />
     </>
@@ -235,16 +248,26 @@ function CheckedAt() {
 
 /** The button that copies the result as Markdown; it is off before the first result. */
 function CopyButton() {
-  const note = copyNote();
+  const { state, copy } = createCopier();
+  const label = (): MessageKey =>
+    state() === COPY.copied
+      ? I18N_KEYS.CONVENTIONS_COPIED
+      : state() === COPY.failed
+        ? I18N_KEYS.CONVENTIONS_COPY_FAILED
+        : I18N_KEYS.CONVENTIONS_COPY;
+  const copyResult = () => {
+    const answer = conventionsAnswer();
+    if (answer !== null) copy(markdownOf(answer, shownProject()?.name ?? ""));
+  };
   return (
     <button
       type="button"
       class={styles.secondary}
       disabled={conventionsAnswer() === null}
       title={conventionsAnswer() === null ? t(I18N_KEYS.CONVENTIONS_COPY_NONE) : undefined}
-      onClick={() => void note.copy(shownProject()?.name ?? "")}
+      onClick={copyResult}
     >
-      {t(note.label())}
+      {t(label())}
     </button>
   );
 }

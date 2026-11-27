@@ -143,13 +143,14 @@ fn answer(report: CheckReport, limit: u32, clamped: bool) -> Answer {
     }
 }
 
-/// The answer of `check_conventions` for a finished check, without a limit: every finding is
-/// listed. The command of the UI that runs the same check shows its answer in this form.
+/// The answer of `check_conventions` for a finished check, holding the list to `limit` findings
+/// (`total` and the notice say when more were found). The command of the UI that runs the same
+/// check shows its answer in this form.
 ///
 /// # Errors
 /// The internal error code if the answer cannot be written as JSON.
-pub fn conventions_answer(report: CheckReport) -> Result<Value, McpError> {
-    to_json(&answer(report, u32::MAX, false))
+pub fn conventions_answer(report: CheckReport, limit: u32) -> Result<Value, McpError> {
+    to_json(&answer(report, limit, false))
 }
 
 impl Tools {

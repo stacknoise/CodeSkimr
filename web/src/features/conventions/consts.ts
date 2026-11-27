@@ -37,9 +37,5 @@ export const CODE = {
 
 /** Separates the file from the line in a place. */
 export const PLACE_SEPARATOR = ":";
-/** How long the word on the copy button stays, in milliseconds. */
-export const COPY_NOTE_MS = 2000;
-/** The words the copy button can show instead of its label. */
-export const COPY_NOTE = { done: "done", failed: "failed" } as const;
 /** The text of the copy: its line break, the bullet of a finding and what joins its parts. */
 export const MARKDOWN = { lineBreak: "\n", bullet: "- ", join: " · ", code: "`" } as const;

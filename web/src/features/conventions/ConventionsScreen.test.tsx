@@ -161,6 +161,13 @@ describe("the tab Conventions", () => {
     expect(button.getAttribute("title")).toMatch(/Git address/);
   });
 
+  it("says how many findings the list does not hold", async () => {
+    serveCheck({ ...ANSWER, total: ANSWER.findings.length + 3 });
+    render(() => <ConventionsScreen />);
+    await check();
+    expect(screen.getByText(/^3 more findings are not listed/)).toBeInTheDocument();
+  });
+
   it("shows the failure of the check with its code", async () => {
     serveCheck({ code: "PRJ-101" }, 400);
     render(() => <ConventionsScreen />);

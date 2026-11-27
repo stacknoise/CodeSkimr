@@ -12,6 +12,8 @@ export function SortHead(props: {
   label: string;
   sort: SortState | null;
   numeric: boolean;
+  /** The class of the cell of a number column, where it is not the usual one. */
+  numberClass?: string | undefined;
   onSort: (next: SortState | null) => void;
   title?: string | undefined;
 }) {
@@ -21,7 +23,7 @@ export function SortHead(props: {
       columns={props.columns}
       id={props.id}
       label={props.label}
-      class={props.numeric ? styles.num : undefined}
+      class={props.numeric ? (props.numberClass ?? styles.num) : undefined}
       title={props.title}
       direction={own() ? props.sort?.direction : undefined}
       onPress={() => props.onSort(pressSort(props.sort, props.id, props.numeric))}

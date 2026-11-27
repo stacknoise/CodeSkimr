@@ -1,5 +1,4 @@
 import { compareValues, type SortState } from "../../shared/table/sort";
-import { SORT_DIRECTION } from "../../shared/table/consts";
 import { COLUMN } from "./consts";
 import type { Finding } from "./types";
 
@@ -34,11 +33,6 @@ export function sortFindings(
     return [...findings];
   }
   return [...findings].sort((a, b) =>
-    compareValues(
-      valueOf(a, sort.column),
-      valueOf(b, sort.column),
-      sort.direction ?? SORT_DIRECTION.ascending,
-      language,
-    ),
+    compareValues(valueOf(a, sort.column), valueOf(b, sort.column), sort.direction, language),
   );
 }

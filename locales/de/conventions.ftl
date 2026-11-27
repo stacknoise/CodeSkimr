@@ -39,3 +39,5 @@ conventions-not-checked-title = Von dieser Prüfung nicht geprüft, ein sauberes
 conventions-unchecked-title = Dateien, die nicht analysiert werden konnten:
 conventions-markdown-head = Konventionsprüfung von { $project }: { $findings } Funde in { $files } Dateien
 conventions-markdown-none = Keine Funde.
+conventions-table-label = Funde der Prüfung
+conventions-more = { $hidden } weitere Funde sind nicht aufgelistet: die Liste hält höchstens { $shown } (mcp.max_limit).

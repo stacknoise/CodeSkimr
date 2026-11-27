@@ -39,3 +39,5 @@ conventions-not-checked-title = Not checked by this check, so a clean result say
 conventions-unchecked-title = Files that could not be analysed:
 conventions-markdown-head = Convention check of { $project }: { $findings } findings in { $files } files
 conventions-markdown-none = No findings.
+conventions-table-label = Findings of the check
+conventions-more = { $hidden } more findings are not listed: the list holds { $shown } at most (mcp.max_limit).

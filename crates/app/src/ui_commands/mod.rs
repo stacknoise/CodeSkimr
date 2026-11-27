@@ -128,7 +128,7 @@ use codeskimr_storage::SqliteStore;
 use consts::LOCAL_AUTHOR;
 #[cfg(test)]
 pub(crate) use consts::PREFERENCES_FILE;
-use conventions::{ConventionsCheck, ConventionsPorts};
+use conventions::{ConventionsCheck, ConventionsPorts, Runs};
 use credentials::{DeleteCredential, ListCredentials, SetCredential};
 use explorer::{ExplorerOutline, ExplorerPorts};
 pub(crate) use export::{ExportInput, HtmlExport};
@@ -379,6 +379,7 @@ fn register_views(
                 projects: catalog.clone(),
                 global: global.clone(),
                 locations: locations.clone(),
+                running: Runs::default(),
             }),
         },
     )?;
