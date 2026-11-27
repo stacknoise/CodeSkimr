@@ -37,4 +37,29 @@ rules-places = { $count ->
 rules-more = … { $count } more
 rules-show-all = Show all
 rules-show-less = Show fewer
-rules-cycles-pending = Cycles between modules are switched on in the project file. The check follows in a later version.
+rules-hold = Hold state
+rules-hold-hint = "Hold state": existing violations count as old burdens. The CI fails only for new ones.
+rules-hold-git = Folder projects only: a Git project has no project file to put the file next to.
+rules-hold-done = { $count ->
+    [one] State held on { $date }: 1 violation now counts as an old burden. Commit the file .codeskimr-baseline.toml.
+   *[other] State held on { $date }: { $count } violations now count as old burdens. Commit the file .codeskimr-baseline.toml.
+}
+rules-hold-failed = The state could not be held.
+rules-open = Open .codeskimr.toml
+rules-open-hint = Opens the project file with the program your system names for it. If it is missing, it is created empty.
+rules-open-git = Folder projects only: a Git project has no project file.
+rules-open-created = The file { $file } did not exist and was created empty.
+rules-open-failed = The project file could not be opened.
+rules-layers-title = Layers
+rules-layers-allowed = { $layer } → { $uses }
+rules-layers-nothing = nothing
+rules-cycles-title = No cycles between modules
+rules-cycles-spec = cycles = "deny"
+rules-ring-advice = Resolvable over { $edges ->
+    [one] 1 edge
+   *[other] { $edges } edges
+} with { $places ->
+    [one] 1 place
+   *[other] { $places } places
+}
+rules-ring-show = Show in the graph

@@ -1,7 +1,7 @@
 //! `check_rules`.
 
 use codeskimr_application::access;
-use codeskimr_application::rules::{Outcome, Place, RuleKind, Violation};
+use codeskimr_application::rules::{Outcome, Place, Ring, RuleKind, Violation};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Principal;
 use serde::Serialize;
@@ -9,7 +9,9 @@ use serde_json::Value;
 
 use super::{SnapshotInfo, Tools, to_json, truncation_notice};
 use crate::args::RulesArgs;
-use crate::consts::{LINE_OFFSET, READ_TOOL_PERMISSION, RULE_FORBID, RULE_PUBLIC_API};
+use crate::consts::{
+    LINE_OFFSET, READ_TOOL_PERMISSION, RULE_CYCLES, RULE_FORBID, RULE_LAYERS, RULE_PUBLIC_API,
+};
 use crate::error::{CodeReport, McpError};
 
 #[derive(Serialize)]
@@ -29,12 +31,28 @@ struct ViolationRow {
     /// Whether the held state has it already: an old burden.
     old: bool,
     places: Vec<PlaceRow>,
+    /// For a cycle: the ring. `from` and `to` are then the ends of its weakest edge, and the
+    /// places are the references of that edge.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ring: Option<RingRow>,
+}
+
+#[derive(Serialize)]
+struct RingRow {
+    /// Every module of the ring, sorted.
+    modules: Vec<String>,
+    /// A way round the ring, starting with the weakest edge and ending where it starts.
+    chain: Vec<String>,
+    /// How many references the weakest edge has.
+    weakest_count: u32,
+    /// Over how many edges the ring is resolved.
+    resolution_edges: usize,
 }
 
 #[derive(Serialize)]
 struct RuleRow {
     id: String,
-    /// `forbid` or `public_api`.
+    /// `cycles`, `forbid` or `public_api`.
     kind: &'static str,
     /// How many violations the rule has, old ones included.
     total: usize,
@@ -66,6 +84,17 @@ fn place(place: &Place) -> PlaceRow {
     }
 }
 
+fn ring(ring: &Ring) -> RingRow {
+    let names =
+        |list: &[codeskimr_domain::QualifiedName]| list.iter().map(ToString::to_string).collect();
+    RingRow {
+        modules: names(&ring.modules),
+        chain: names(&ring.chain),
+        weakest_count: ring.weakest_count,
+        resolution_edges: ring.resolution_edges,
+    }
+}
+
 fn violation(violation: &Violation) -> ViolationRow {
     ViolationRow {
         code: ErrorCode::RuleViolation.id(),
@@ -73,11 +102,14 @@ fn violation(violation: &Violation) -> ViolationRow {
         to: violation.to.to_string(),
         old: violation.old,
         places: violation.places.iter().map(place).collect(),
+        ring: violation.ring.as_ref().map(ring),
     }
 }
 
 const fn kind_label(kind: RuleKind) -> &'static str {
     match kind {
+        RuleKind::Layers => RULE_LAYERS,
+        RuleKind::Cycles => RULE_CYCLES,
         RuleKind::Forbid => RULE_FORBID,
         RuleKind::PublicApi => RULE_PUBLIC_API,
     }

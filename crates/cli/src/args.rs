@@ -451,6 +451,8 @@ pub struct UnusedQuery {
 pub struct RulesQuery {
     /// Number of violations listed per rule.
     pub limit: Option<u32>,
+    /// Holds the state instead of judging: every violation of now becomes an old burden.
+    pub hold: bool,
     /// Project and output.
     pub target: QueryTarget,
 }
@@ -464,6 +466,26 @@ pub struct RenameQuery {
     pub new_name: String,
     /// Number of places and text lines listed.
     pub limit: Option<u32>,
+    /// Project and output.
+    pub target: QueryTarget,
+}
+
+/// Arguments of `codeskimr scans`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ScansQuery {
+    /// Project and output.
+    pub target: QueryTarget,
+}
+
+/// Arguments of `codeskimr compare` and `codeskimr change`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompareQuery {
+    /// Snapshot id of the older scan; the scan before the newer one if left out.
+    pub base: Option<u64>,
+    /// Snapshot id of the newer scan; the newest scan if left out.
+    pub newer: Option<u64>,
+    /// Print Markdown for a comment on a pull request (`change` only); never with `--json`.
+    pub markdown: bool,
     /// Project and output.
     pub target: QueryTarget,
 }
@@ -487,6 +509,12 @@ pub enum QueryAction {
     Rules(RulesQuery),
     /// Shows what a new name for a symbol would hit; changes nothing.
     Rename(RenameQuery),
+    /// Lists the retained scans of the project.
+    Scans(ScansQuery),
+    /// Compares two retained scans.
+    Compare(CompareQuery),
+    /// Shows what the difference between two retained scans hits.
+    Change(CompareQuery),
 }
 
 impl QueryAction {
@@ -500,7 +528,10 @@ impl QueryAction {
             | Self::Context(ContextQuery { target, .. })
             | Self::Unused(UnusedQuery { target, .. })
             | Self::Rules(RulesQuery { target, .. })
-            | Self::Rename(RenameQuery { target, .. }) => target,
+            | Self::Rename(RenameQuery { target, .. })
+            | Self::Scans(ScansQuery { target })
+            | Self::Compare(CompareQuery { target, .. })
+            | Self::Change(CompareQuery { target, .. }) => target,
         }
     }
 }

@@ -271,3 +271,11 @@ max_modules = 200
 # about 250 bytes per reference, so 600000 give a file of about 150 MB, which a browser still opens.
 # Raise it on your own responsibility.
 max_references = 600000
+
+# The comparison of two scans and the change view (ADR 0097). The answers say when they are cut.
+[compare]
+# Most symbols one list of a comparison (added, removed, changed, moved) and the list of the symbols whose usages are
+# looked at hold; the totals are still counted.
+max_symbols = 200
+# Most usages listed per symbol whose usages a change can break; the total of its usages is still counted.
+max_usages = 50

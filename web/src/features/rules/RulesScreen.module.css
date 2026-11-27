@@ -169,6 +169,23 @@
     color: var(--muted);
 }
 
+.advice {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.show {
+    padding: var(--space-4) var(--space-12);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-button);
+    background: var(--surface);
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
 .more {
     display: block;
     width: 100%;
@@ -181,4 +198,22 @@
     font-size: 12px;
     text-align: left;
     cursor: pointer;
+}
+
+.header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-8) var(--space-16);
+}
+
+.hold {
+    margin-top: var(--space-4);
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8);
 }

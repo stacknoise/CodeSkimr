@@ -8,8 +8,15 @@ vi.mock("../../app/router", () => ({ navigate: go }));
 
 import { GRAPH_ROUTE } from "../../app/consts";
 import { LEVEL } from "./consts";
-import { graphLevel, setGraphLevel, wantedLayer, wantLayer } from "./graph";
-import { showInGraph } from "./show";
+import {
+  graphDepth,
+  graphLevel,
+  setGraphDepth,
+  setGraphLevel,
+  wantedLayer,
+  wantLayer,
+} from "./graph";
+import { showInGraph, showModuleInGraph } from "./show";
 
 describe("showInGraph", () => {
   beforeEach(() => {
@@ -33,5 +40,14 @@ describe("showInGraph", () => {
     await showInGraph(7, 3);
     expect(go).not.toHaveBeenCalled();
     expect(wantedLayer()).toBeNull();
+  });
+
+  it("opens the tab Modules with every module and the given one selected", () => {
+    setGraphDepth(2);
+    showModuleInGraph("Shop.Orders");
+    expect(graphLevel()).toBe(LEVEL.modules);
+    expect(graphDepth()).toBe(0);
+    expect(wantedLayer()).toBe("Shop.Orders");
+    expect(go).toHaveBeenCalledWith(GRAPH_ROUTE.path);
   });
 });

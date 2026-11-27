@@ -25,6 +25,7 @@ mod e2e;
 mod embedded_packs;
 mod embedded_ui;
 mod export;
+mod file_opener;
 mod folder_dialog;
 mod fresh_limits;
 #[cfg(test)]
@@ -58,6 +59,8 @@ mod private_acl;
 mod project_file;
 mod query_cli;
 #[cfg(test)]
+mod query_cli_compare_tests;
+#[cfg(test)]
 mod query_cli_tests;
 mod redact;
 mod refresh;
@@ -68,6 +71,7 @@ mod rules_check;
 mod run;
 mod running;
 mod scan;
+mod scan_compare;
 mod scope_cli;
 #[cfg(test)]
 mod security_http_tests;

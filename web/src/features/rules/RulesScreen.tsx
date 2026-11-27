@@ -1,10 +1,21 @@
-import { createEffect, For, on, onCleanup, Show } from "solid-js";
+import { createEffect, createSignal, For, on, onCleanup, Show } from "solid-js";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
 import { ErrorDetails } from "../../shared/ui/ErrorDetails";
-import { loadRules, resetRules, rulesData, rulesFailure } from "./rules";
+import {
+  heldNow,
+  holdFailed,
+  holdState,
+  loadRules,
+  openedNow,
+  openFailed,
+  openProjectFile,
+  resetRules,
+  rulesData,
+  rulesFailure,
+} from "./rules";
 import { RuleCard } from "./RuleCard";
 import type { RulesOut } from "./types";
 import styles from "./RulesScreen.module.css";
@@ -70,9 +81,6 @@ function Answer(props: { data: RulesOut }) {
         <Summary data={props.data} />
         <For each={props.data.rules}>{(rule) => <RuleCard rule={rule} />}</For>
       </Show>
-      <Show when={props.data.cycles}>
-        <p class={styles.note}>{t(I18N_KEYS.RULES_CYCLES_PENDING)}</p>
-      </Show>
     </Show>
   );
 }
@@ -95,6 +103,101 @@ function Failure() {
   );
 }
 
+/** The button that holds the state, with what it did. A Git project has no project file to put
+ * the file next to, so the button is off there. */
+function HoldButton(props: { project: number; answer: RulesOut | null }) {
+  const [busy, setBusy] = createSignal(false);
+  const hold = async () => {
+    setBusy(true);
+    await holdState(props.project);
+    setBusy(false);
+  };
+  return (
+    <button
+      type="button"
+      class={styles.hold}
+      disabled={busy() || props.answer?.holdable !== true || props.answer.scanned !== true}
+      title={
+        props.answer?.holdable === false
+          ? t(I18N_KEYS.RULES_HOLD_GIT)
+          : t(I18N_KEYS.RULES_HOLD_HINT)
+      }
+      onClick={hold}
+    >
+      {t(I18N_KEYS.RULES_HOLD)}
+    </button>
+  );
+}
+
+/** The button that opens the project file with the program of the system. Like holding the state
+ * it needs a folder project. */
+function OpenButton(props: { project: number; answer: RulesOut | null }) {
+  const [busy, setBusy] = createSignal(false);
+  const open = async () => {
+    setBusy(true);
+    await openProjectFile(props.project);
+    setBusy(false);
+  };
+  return (
+    <button
+      type="button"
+      class={styles.hold}
+      disabled={busy() || props.answer?.holdable !== true}
+      title={
+        props.answer?.holdable === false
+          ? t(I18N_KEYS.RULES_OPEN_GIT)
+          : t(I18N_KEYS.RULES_OPEN_HINT)
+      }
+      onClick={open}
+    >
+      {t(I18N_KEYS.RULES_OPEN)}
+    </button>
+  );
+}
+
+/** What opening the project file did: that it was created, or why it failed. */
+function OpenResult() {
+  return (
+    <>
+      <Show when={openedNow()?.created}>
+        <p class={styles.note} role="status">
+          {t(I18N_KEYS.RULES_OPEN_CREATED, { file: openedNow()?.file ?? "" })}
+        </p>
+      </Show>
+      <Show when={openFailed() !== undefined}>
+        <div class={styles.alert} role="alert">
+          {openFailed() === null
+            ? t(I18N_KEYS.RULES_OPEN_FAILED)
+            : errorText(openFailed() as ErrorCode)}
+        </div>
+      </Show>
+    </>
+  );
+}
+
+/** What holding the state did: the day and how many old burdens the file has now, or why it
+ * failed. */
+function HoldResult() {
+  return (
+    <>
+      <Show when={heldNow()}>
+        {(done) => (
+          <p class={styles.note} role="status">
+            {t(I18N_KEYS.RULES_HOLD_DONE, { date: done().held_on, count: done().entries })}
+          </p>
+        )}
+      </Show>
+      <Show when={holdFailed() !== undefined}>
+        <div class={styles.alert} role="alert">
+          {holdFailed() === null
+            ? t(I18N_KEYS.RULES_HOLD_FAILED)
+            : errorText(holdFailed() as ErrorCode)}
+        </div>
+      </Show>
+    </>
+  );
+}
+
 /** The screen "Rules": every architecture rule of the project with its violations (ADR 0104). */
 export function RulesScreen() {
   createEffect(
@@ -108,15 +211,27 @@ export function RulesScreen() {
   onCleanup(resetRules);
   return (
     <>
-      <header>
-        <h1>{t(I18N_KEYS.RULES_TITLE)}</h1>
-        <p class={styles.sub}>{t(I18N_KEYS.RULES_SUBTITLE)}</p>
+      <header class={styles.header}>
+        <div>
+          <h1>{t(I18N_KEYS.RULES_TITLE)}</h1>
+          <p class={styles.sub}>{t(I18N_KEYS.RULES_SUBTITLE)}</p>
+        </div>
+        <Show when={activeProject()}>
+          {(project) => (
+            <div class={styles.actions}>
+              <OpenButton project={project()} answer={rulesData()} />
+              <HoldButton project={project()} answer={rulesData()} />
+            </div>
+          )}
+        </Show>
       </header>
       <Show
         when={activeProject()}
         fallback={<p class={styles.note}>{t(I18N_KEYS.RULES_NO_PROJECT)}</p>}
       >
         <Failure />
+        <HoldResult />
+        <OpenResult />
         <Show when={rulesData()}>{(data) => <Answer data={data()} />}</Show>
       </Show>
     </>

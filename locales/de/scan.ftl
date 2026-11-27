@@ -104,4 +104,6 @@ scan-history-files-changed = { $count ->
 }
 scan-history-average = Durchschnitt
 scan-history-average-hint = letzte { $count } Scans
+scan-history-compare = Mit aktuellem vergleichen
+scan-history-compare-title = Diesen Scan mit dem aktuellen in der Ansicht Änderung vergleichen
 scan-history-failed = Die letzten Scans konnten nicht gelesen werden.

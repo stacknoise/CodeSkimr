@@ -1,21 +1,26 @@
 //! `codeskimr symbols`, `usages`, `impact`, `context`, `unused` and `preview-rename`: the
 //! questions of the MCP tools
-//! of the same names, asked from the command line. The tools answer; this module adds what a
+//! of the same names, asked from the command line; and `scans`, `compare` and `change`, which ask
+//! the history and the comparison of scans (ADR 0097). The tools answer; this module adds what a
 //! script needs around the answer: the version of the format, whether the scan is out of date,
 //! and a failure as JSON with its registered code.
 
 use std::path::Path;
 use std::sync::Arc;
 
+use codeskimr_application::access;
 use codeskimr_application::cancel::CancelToken;
+use codeskimr_application::compare::{ComparisonAnswer, ComparisonRequest, ScanListAnswer};
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{FileDiscovery, ProjectRepository};
+use codeskimr_application::ports::{Clock, CodeIndex, FileDiscovery, ProjectRepository};
 use codeskimr_cli::{
-    ContextQuery, ImpactQuery, QueryAction, QueryKind, RenameQuery, RulesQuery, SymbolsQuery,
-    UnusedQuery, UsagesQuery, query_code_report, query_error_json, query_json, query_text,
+    CompareQuery, ContextQuery, ImpactQuery, QueryAction, QueryKind, RenameQuery, RulesQuery,
+    SymbolsQuery, UnusedQuery, UsagesQuery, change_markdown, query_code_report, query_error_json,
+    query_json, query_text,
 };
+use codeskimr_codes::i18n::COMPARE_DIRECT_ONLY_NOTE;
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::{Principal, ProjectId, ProjectSource};
+use codeskimr_domain::{Permission, Principal, ProjectId, ProjectSource, SnapshotId};
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::{
     ContextArgs, ImpactArgs, McpError, RenameArgs, RulesArgs, SearchArgs, Tools, UnusedArgs,
@@ -25,10 +30,12 @@ use codeskimr_storage::SqliteStore;
 use serde_json::Value;
 
 use crate::annotations_cli::Surroundings;
+use crate::clock::SystemClock;
 use crate::consts::NEW_VIOLATIONS;
 use crate::mcp::project_tools;
+use crate::ui_commands::hold;
 use crate::wiring::{build_analysis, open_store};
-use crate::{config_files, export, principal};
+use crate::{config_files, export, principal, scan_compare};
 
 /// Why a query did not give an answer: the error as the MCP tools report it, which has the
 /// registered code and the parameters that explain it.
@@ -100,9 +107,58 @@ fn open(
     })
 }
 
+/// The answer of `scans`, `compare` and `change`, in the shape of `scans.list`, `scans.compare` and
+/// `scans.impact`; the note about what the comparison does not see is in the language of the user.
+fn ask_scans(
+    session: &Session,
+    around: &Surroundings<'_>,
+    action: &QueryAction,
+) -> Result<Value, QueryFailure> {
+    let project = ProjectId::new(session.project);
+    match action {
+        QueryAction::Scans(_) => {
+            let history = session.store.scan_history(project)?;
+            let keep = session.config.snapshots.retention_count;
+            as_json(&ScanListAnswer::new(&history, keep))
+        }
+        QueryAction::Compare(query) => compare_answer(session, around, (project, query), false),
+        QueryAction::Change(query) => compare_answer(session, around, (project, query), true),
+        _ => Err(CodedError::new(ErrorCode::UnexpectedInternalError).into()),
+    }
+}
+
+fn compare_answer(
+    session: &Session,
+    around: &Surroundings<'_>,
+    (project, query): (ProjectId, &CompareQuery),
+    with_impact: bool,
+) -> Result<Value, QueryFailure> {
+    let comparison =
+        scan_compare::comparer(&session.store, &session.config).compare(&ComparisonRequest {
+            project,
+            base: query.base.map(SnapshotId::new),
+            target: query.newer.map(SnapshotId::new),
+            with_impact,
+        })?;
+    let note = around
+        .messages
+        .format(around.language, COMPARE_DIRECT_ONLY_NOTE, None)
+        .map_err(|error| QueryFailure::from(CodedError::caused_by(error)))?;
+    as_json(&ComparisonAnswer::new(&comparison, Some(note)))
+}
+
+/// An answer as JSON; serialising these plain types does not fail.
+fn as_json<T: serde::Serialize>(answer: &T) -> Result<Value, QueryFailure> {
+    serde_json::to_value(answer)
+        .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError).into())
+}
+
 /// Asks the tool of the command.
 fn ask(tools: &Tools, principal: Principal, action: &QueryAction) -> Result<Value, McpError> {
     match action {
+        QueryAction::Scans(_) | QueryAction::Compare(_) | QueryAction::Change(_) => Err(
+            McpError::from(CodedError::new(ErrorCode::UnexpectedInternalError)),
+        ),
         QueryAction::Symbols(query) => tools.search_symbols(&principal, &search_args(query)),
         QueryAction::Usages(query) => tools.find_usages(&principal, &usages_args(query)),
         QueryAction::Impact(query) => tools.impact_of_change(&principal, &impact_args(query)),
@@ -205,6 +261,9 @@ const fn kind_of(action: &QueryAction) -> QueryKind {
         QueryAction::Unused(_) => QueryKind::Unused,
         QueryAction::Rules(_) => QueryKind::Rules,
         QueryAction::Rename(_) => QueryKind::Rename,
+        QueryAction::Scans(_) => QueryKind::Scans,
+        QueryAction::Compare(_) => QueryKind::Compare,
+        QueryAction::Change(_) => QueryKind::Change,
     }
 }
 
@@ -226,6 +285,54 @@ fn failing(action: &QueryAction, answer: &Value) -> bool {
             > 0
 }
 
+/// Whether the command asks the history of scans, not the tools.
+const fn is_history(action: &QueryAction) -> bool {
+    matches!(
+        action,
+        QueryAction::Scans(_) | QueryAction::Compare(_) | QueryAction::Change(_)
+    )
+}
+
+/// Holds the state of the rules instead of judging them (`codeskimr rules --hold`): the answer
+/// is the day and the number of violations the file now has.
+fn held(session: &Session, principal: Principal) -> Result<Value, QueryFailure> {
+    access::require(&principal, Permission::Manage)?;
+    let id = ProjectId::new(session.project);
+    let project = session.store.project(id)?;
+    let snapshot = session
+        .store
+        .latest_snapshot(id)?
+        .ok_or_else(|| CodedError::new(ErrorCode::ProjectNotScanned))?;
+    let written = hold(
+        session.store.as_ref(),
+        &project,
+        snapshot.id,
+        SystemClock.now(),
+    )?;
+    serde_json::to_value(written)
+        .map_err(|_| QueryFailure::from(CodedError::new(ErrorCode::UnexpectedInternalError)))
+}
+
+/// Whether the command holds the state of the rules instead of asking a tool.
+const fn holds(action: &QueryAction) -> bool {
+    matches!(action, QueryAction::Rules(RulesQuery { hold: true, .. }))
+}
+
+/// Asks the tool, the history of scans or the state of the rules, whatever the command is.
+fn answer_of(
+    session: &Session,
+    around: &Surroundings<'_>,
+    action: &QueryAction,
+) -> Result<Value, QueryFailure> {
+    if is_history(action) {
+        ask_scans(session, around, action)
+    } else if holds(action) {
+        held(session, principal::resolve())
+    } else {
+        Ok(ask(&session.tools, principal::resolve(), action)?)
+    }
+}
+
 /// Runs the query command and returns what to print: JSON with `--json`, text otherwise.
 ///
 /// # Errors
@@ -238,20 +345,27 @@ pub fn run(
     current_dir: &Path,
 ) -> Result<Answered, QueryFailure> {
     let session = open(action, around, current_dir)?;
-    let answer = ask(&session.tools, principal::resolve(), action)?;
-    let stale = stale(&session, around);
+    let answer = answer_of(&session, around, action)?;
+    let stale = if is_history(action) || holds(action) {
+        None
+    } else {
+        stale(&session, around)
+    };
     let failing = failing(action, &answer);
-    let text = if action.target().json {
+    let kind = if holds(action) {
+        QueryKind::RulesHeld
+    } else {
+        kind_of(action)
+    };
+    let text = if let QueryAction::Change(CompareQuery { markdown: true, .. }) = action {
+        change_markdown(around.messages, around.language, &answer)
+            .map_err(|error| QueryFailure::from(CodedError::caused_by(error)))?
+    } else if action.target().json {
         query_json(answer, stale)
             .map_err(|_| QueryFailure::from(CodedError::new(ErrorCode::UnexpectedInternalError)))?
     } else {
-        query_text(
-            around.messages,
-            around.language,
-            kind_of(action),
-            (&answer, stale),
-        )
-        .map_err(|error| QueryFailure::from(CodedError::caused_by(error)))?
+        query_text(around.messages, around.language, kind, (&answer, stale))
+            .map_err(|error| QueryFailure::from(CodedError::caused_by(error)))?
     };
     Ok(Answered { text, failing })
 }

@@ -168,6 +168,19 @@ pub struct ConstantsArgs {
     pub limit: Option<u32>,
 }
 
+/// Arguments of `impact_of_diff`.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[schemars(crate = "rmcp::schemars")]
+pub struct DiffArgs {
+    /// Id of the project; the project of this server if left out.
+    pub project: Option<u64>,
+    /// Snapshot id of the older scan; the scan before the target if left out.
+    pub base: Option<u64>,
+    /// Snapshot id of the newer scan; the newest scan if left out.
+    pub target: Option<u64>,
+}
+
 /// Arguments of `check_rules`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

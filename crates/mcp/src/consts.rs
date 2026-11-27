@@ -21,6 +21,8 @@ pub const TOOL_GET_ARCHITECTURE: &str = "get_architecture";
 pub const TOOL_FIND_USAGES: &str = "find_usages";
 /// Name of the tool that shows what a change of a symbol can reach.
 pub const TOOL_IMPACT_OF_CHANGE: &str = "impact_of_change";
+/// Name of the tool that shows what the difference between two scans hits.
+pub const TOOL_IMPACT_OF_DIFF: &str = "impact_of_diff";
 /// Name of the tool that looks for functions that resemble a piece of code.
 pub const TOOL_FIND_SIMILAR_CODE: &str = "find_similar_code";
 /// Name of the tool that looks for existing constants.
@@ -144,6 +146,10 @@ pub const KIND_CONFIG: &str = "config";
 /// `kind` of the id of a translation message in the answer of `find_constants`.
 pub const KIND_I18N: &str = "i18n";
 
+/// Value of `kind` of the layer rule.
+pub const RULE_LAYERS: &str = "layers";
+/// Value of `kind` of the rule that forbids cycles between modules.
+pub const RULE_CYCLES: &str = "cycles";
 /// Value of `kind` of a rule that forbids one module to use another.
 pub const RULE_FORBID: &str = "forbid";
 /// Value of `kind` of a rule that closes the inside of a module.

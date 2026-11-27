@@ -29,6 +29,9 @@ mod layers_tests;
 mod level2;
 mod level2_revoke;
 mod preferences;
+mod project_file_open;
+#[cfg(test)]
+mod project_file_open_tests;
 mod projects;
 mod projects_pick;
 #[cfg(test)]
@@ -47,6 +50,8 @@ mod rules;
 #[cfg(test)]
 mod rules_tests;
 mod scans;
+#[cfg(test)]
+mod scans_compare_tests;
 #[cfg(test)]
 mod scans_tests;
 mod scope;
@@ -91,11 +96,13 @@ use codeskimr_source::{FolderMentions, FolderText};
 pub(crate) use status::{mark_ready, mark_started};
 
 use crate::clock::SystemClock;
+use crate::file_opener::SystemOpener;
 use crate::folder_dialog::{FolderPicker, SystemPicker};
 use crate::level2_runs::Level2Runs;
 use crate::locations::Locations;
 use crate::running::RunningScans;
 use crate::scan::BrowserRun;
+use crate::scan_compare;
 use crate::ui_settings::UiSettingsFile;
 use crate::wiring::{Secrets, index_runner, indexer_check, tool_checker};
 pub(crate) use alerts::{
@@ -123,13 +130,15 @@ use level2::Level2StatusCommand;
 pub(crate) use level2::{Window, confirmation_desk};
 use level2_revoke::Level2Revoke;
 use preferences::{GetPreferences, PreferencesFile, SetPreferences};
+use project_file_open::ProjectFileOpen;
 use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
 use projects_pick::{FolderDialogInfo, PickFolder};
 use projects_remove::RemoveProject;
 use projects_rename::{RenameProject, SuggestName};
 use rename_preview::{RenamePreviewCommand, RenamePreviewPorts};
-use rules::RulesShow;
-use scans::{ScanListPorts, ScansList};
+pub(crate) use rules::hold;
+use rules::{RulesHold, RulesShow};
+use scans::{ComparePorts, ScanListPorts, ScansCompare, ScansImpact, ScansList};
 pub(crate) use scope::{
     GetInput as ScopeGetInput, ScopeAnswer, ScopeGet, ScopeSet, SetInput as ScopeSetInput,
 };
@@ -341,12 +350,32 @@ fn register_views(
             }),
         },
     )?;
+    register_compare(registry, catalog, config)?;
     add(registry, status_info(config))?;
     register_explorer(registry, catalog, config.metrics.clone(), locations)?;
     register_preferences(registry, locations)?;
     register_ui_settings(registry, locations)?;
     add(registry, effective_settings(locations, global)?)?;
     add(registry, export_command(catalog, config, locations))
+}
+
+/// Registers the commands that compare two scans: the plain comparison and the impact.
+fn register_compare(
+    registry: &mut Registry,
+    catalog: &Arc<SqliteStore>,
+    config: &Config,
+) -> Result<(), CodedError> {
+    let ports = Arc::new(ComparePorts {
+        projects: catalog.clone(),
+        comparer: Arc::new(scan_compare::comparer(catalog, config)),
+    });
+    add(
+        registry,
+        ScansCompare {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(registry, ScansImpact { ports })
 }
 
 /// Registers the two commands of the level 2 switch (ADR 0071). Neither is an MCP tool.
@@ -457,6 +486,8 @@ fn expose_project_file(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<LayersGet>()?;
     api.expose::<LayersSet>()?;
     api.expose::<RulesShow>()?;
+    api.expose::<RulesHold>()?;
+    api.expose::<ProjectFileOpen>()?;
     api.expose::<UnusedKeep>()?;
     api.expose::<UnusedLift>()?;
     Ok(())
@@ -490,6 +521,8 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<StatsOverview>()?;
     api.expose::<StatsRanking>()?;
     api.expose::<ScansList>()?;
+    api.expose::<ScansCompare>()?;
+    api.expose::<ScansImpact>()?;
     api.expose::<GetPreferences>()?;
     api.expose::<SetPreferences>()?;
     api.expose::<GetUiSettings>()?;
@@ -670,6 +703,20 @@ fn register_usages(
     add(registry, UsagesCode { ports })
 }
 
+/// The command that opens the project file with the program of the system (ADR 0111).
+fn register_project_file_open(
+    registry: &mut Registry,
+    ports: &Arc<ExplorerPorts>,
+) -> Result<(), CodedError> {
+    add(
+        registry,
+        ProjectFileOpen {
+            ports: Arc::clone(ports),
+            opener: Arc::new(SystemOpener),
+        },
+    )
+}
+
 /// The commands of the project file, see [`expose_project_file`].
 fn register_project_file(
     registry: &mut Registry,
@@ -693,6 +740,13 @@ fn register_project_file(
             ports: Arc::clone(ports),
         },
     )?;
+    add(
+        registry,
+        RulesHold {
+            ports: Arc::clone(ports),
+        },
+    )?;
+    register_project_file_open(registry, ports)?;
     add(
         registry,
         UnusedKeep {

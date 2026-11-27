@@ -13,9 +13,11 @@ Everything runs on your machine. The server only listens on `127.0.0.1`; your co
 | Dependency map | see the layers of your program and which one uses which | [Dependency map](dependency-map.md) |
 | Usages | who uses this member, and what breaks if you change it | [Usages](usages.md) |
 | Statistics | rankings: the most used symbols, the ones nobody uses, the most complex | [Statistics](statistics.md) |
+| Change | compare two scans and see which usages a difference hits, with a checklist of the places not touched | [Change](change.md) |
 | Notes, tasks, critical marks | mark symbols as critical, write notes, track tasks, get alerts when a critical symbol changes | [Notes, tasks and critical marks](annotations.md) |
 | Language indexers (level 2) | make usages exact by letting the language's own tool check them; off by default | [Language indexers](indexers.md) |
 | MCP server | give code agents the same knowledge | [MCP setup](mcp.md) |
+| Pull request comment | the impact of a change in every pull request | [PR comment](pr-comment.md) |
 | Sources and credentials | scan private Git repositories without putting secrets anywhere | [Sources and credentials](sources-and-credentials.md) |
 | HTML export | one self-contained file of a project for people without CodeSkimr | [HTML export](export.md) |
 | Error codes | what a code such as `SRC-401` means and what to do | [Error codes](errors.md) |

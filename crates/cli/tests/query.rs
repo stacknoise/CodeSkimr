@@ -1,9 +1,9 @@
 //! The query commands: their arguments, and the JSON and text they print.
 
 use codeskimr_cli::{
-    Action, ContextQuery, ImpactQuery, Parsed, QueryAction, QueryKind, QueryTarget, RenameQuery,
-    SymbolsQuery, UnusedQuery, UsagesQuery, parse, query_code_report, query_error_json, query_json,
-    query_text,
+    Action, CompareQuery, ContextQuery, ImpactQuery, Parsed, QueryAction, QueryKind, QueryTarget,
+    RenameQuery, ScansQuery, SymbolsQuery, UnusedQuery, UsagesQuery, change_markdown, parse,
+    query_code_report, query_error_json, query_json, query_text,
 };
 use codeskimr_i18n::Messages;
 use serde_json::{Value, json};
@@ -262,4 +262,122 @@ fn the_text_of_a_rename_preview_says_what_it_cannot_see() {
     let unsearched = json!({"sites": {}, "text_hits": {"searched": false}});
     let text = query_text(&messages, "de", QueryKind::Rename, (&unsearched, None)).unwrap();
     assert!(text.contains("nicht nach Text durchsucht"), "{text}");
+}
+
+fn scans_target(project: Option<&str>, json: bool) -> QueryTarget {
+    QueryTarget {
+        project: project.map(str::to_owned),
+        json,
+    }
+}
+
+#[test]
+fn scans_takes_the_project_as_its_first_argument() {
+    assert_eq!(
+        action(&["codeskimr", "scans", "shop", "--json"]),
+        QueryAction::Scans(ScansQuery {
+            target: scans_target(Some("shop"), true),
+        })
+    );
+    assert_eq!(
+        action(&["codeskimr", "scans"]),
+        QueryAction::Scans(ScansQuery {
+            target: scans_target(None, false),
+        })
+    );
+}
+
+#[test]
+fn compare_and_change_read_the_two_scans() {
+    let expected = CompareQuery {
+        base: Some(4),
+        newer: Some(9),
+        markdown: false,
+        target: scans_target(Some("shop"), false),
+    };
+    let arguments = ["shop", "--base", "4", "--target", "9"];
+    assert_eq!(
+        action(&[
+            "codeskimr",
+            "compare",
+            arguments[0],
+            arguments[1],
+            arguments[2],
+            arguments[3],
+            arguments[4]
+        ]),
+        QueryAction::Compare(expected.clone())
+    );
+    assert_eq!(
+        action(&[
+            "codeskimr",
+            "change",
+            arguments[0],
+            arguments[1],
+            arguments[2],
+            arguments[3],
+            arguments[4]
+        ]),
+        QueryAction::Change(expected)
+    );
+}
+
+#[test]
+fn change_without_options_takes_the_newest_scan_and_the_one_before() {
+    assert_eq!(
+        action(&["codeskimr", "change"]),
+        QueryAction::Change(CompareQuery {
+            base: None,
+            newer: None,
+            markdown: false,
+            target: scans_target(None, false),
+        })
+    );
+}
+
+#[test]
+fn markdown_is_a_flag_of_change_that_excludes_json() {
+    let QueryAction::Change(query) = action(&["codeskimr", "change", "--markdown"]) else {
+        panic!("not a change");
+    };
+    assert!(query.markdown);
+    let messages = Messages::load().unwrap();
+    let both = parse(
+        ["codeskimr", "change", "--markdown", "--json"],
+        &messages,
+        "en",
+    );
+    assert!(both.is_err(), "--json and --markdown exclude each other");
+    let compare = parse(["codeskimr", "compare", "--markdown"], &messages, "en");
+    assert!(compare.is_err(), "only change prints Markdown");
+}
+
+#[test]
+fn a_name_cannot_break_out_of_the_code_span_of_the_markdown() {
+    let answer = json!({
+        "base": {"snapshot": 1}, "target": {"snapshot": 2},
+        "summary": {"changed_symbols": 1, "public_symbols": 0, "usages_certain": 1,
+                    "usages_probable": 0, "usages_not_touched": 1},
+        "is_cut": true,
+        "impact": {"items": [{
+            "symbol": {"qualified_name": "A.`evil`\n# heading"},
+            "cause": "removed",
+            "usages": {"items": [{
+                "from": {"qualified_name": "B.run"},
+                "path": "b.cs", "line": 3, "kind": "call", "status": "not_touched"
+            }]}
+        }]},
+    });
+    let messages = Messages::load().unwrap();
+    let markdown = change_markdown(&messages, "en", &answer).unwrap();
+    let item = markdown
+        .lines()
+        .find(|line| line.starts_with("- [ ] "))
+        .unwrap();
+    assert!(item.contains("`A.'evil' # heading`"), "{item}");
+    assert!(
+        markdown.contains("cut to the configured limit"),
+        "{markdown}"
+    );
+    assert_eq!(markdown.lines().next(), Some("<!-- codeskimr-change -->"));
 }

@@ -132,6 +132,37 @@ impl NamespaceGraph {
     }
 }
 
+/// Finds the namespace of a symbol in a [`NamespaceGraph`] by its qualified name, the way the graph
+/// assigned the symbols to namespaces.
+#[derive(Debug, Clone)]
+pub struct NamespaceOwners<'a> {
+    known: HashMap<&'a str, usize>,
+}
+
+impl NamespaceOwners<'_> {
+    /// Position (in [`NamespaceGraph::namespaces`]) of the nearest enclosing namespace of the
+    /// symbol `name`; `None` if the symbol sits in none.
+    #[must_use]
+    pub fn owner_of(&self, name: &str) -> Option<usize> {
+        enclosing(&self.known, name).and_then(|key| self.known.get(key).copied())
+    }
+}
+
+impl NamespaceGraph {
+    /// The lookup from a qualified name to the namespace that holds it.
+    #[must_use]
+    pub fn owners(&self) -> NamespaceOwners<'_> {
+        NamespaceOwners {
+            known: self
+                .namespaces
+                .iter()
+                .enumerate()
+                .map(|(at, node)| (node.name.as_str(), at))
+                .collect(),
+        }
+    }
+}
+
 /// The longest name that is a proper prefix of `name` up to a separator and is in `known`.
 pub(crate) fn enclosing<'a, V>(known: &HashMap<&'a str, V>, name: &str) -> Option<&'a str> {
     let mut cuts: Vec<usize> = name

@@ -1,10 +1,14 @@
 /** Id of the command of the screen (crates/app/src/ui_commands/consts.rs). */
 export const COMMAND = {
   show: "rules.show",
+  hold: "rules.hold",
+  openFile: "project_file.open",
 } as const;
 
 /** The kinds of rules the command names. */
 export const KIND = {
+  layers: "layers",
+  cycles: "cycles",
   forbid: "forbid",
   publicApi: "public_api",
 } as const;
@@ -30,3 +34,8 @@ export const INTERNAL_SUFFIX = ".*";
 export const MORE_JOIN = " · ";
 /** Ends the places of a violation that has more of them than the row names. */
 export const PLACES_MORE = ", …";
+
+/** Separates the layers in the line of the layer rule. */
+export const LAYERS_JOIN = "; ";
+/** Separates the layers one layer may use. */
+export const USES_JOIN = ", ";

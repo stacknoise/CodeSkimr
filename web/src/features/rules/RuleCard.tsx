@@ -1,20 +1,23 @@
 import { createSignal, For, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { showModuleInGraph } from "../graph/show";
 import {
   ARROW,
   INTERNAL_JOIN,
   INTERNAL_SUFFIX,
   KIND,
+  LAYERS_JOIN,
   MARK,
   MORE_JOIN,
   PLACE_SEPARATOR,
   PLACES_JOIN,
   PLACES_MORE,
+  USES_JOIN,
   VISIBLE_PLACES,
   VISIBLE_VIOLATIONS,
 } from "./consts";
-import type { PlaceOut, RuleOut, ViolationOut } from "./types";
+import type { PlaceOut, RingOut, RuleOut, ViolationOut } from "./types";
 import styles from "./RulesScreen.module.css";
 
 /** `path:line` of a place, as an editor takes it. */
@@ -28,8 +31,49 @@ function placesText(violation: ViolationOut): string {
   return violation.places.length > VISIBLE_PLACES ? `${named}${PLACES_MORE}` : named;
 }
 
+/** The badge that says whether a violation is an old burden or new. */
+function Age(props: { old: boolean }) {
+  return (
+    <span class={props.old ? styles.badgeOld : styles.badgeNew}>
+      {props.old ? t(I18N_KEYS.RULES_VIOLATION_OLD) : t(I18N_KEYS.RULES_VIOLATION_NEW)}
+    </span>
+  );
+}
+
+/** One cycle: the way round the ring, its size, the weakest edge and where to cut it. */
+function CycleRow(props: { violation: ViolationOut; ring: RingOut }) {
+  return (
+    <li class={styles.violation}>
+      <span class={styles.symbol}>{props.ring.chain.join(` ${ARROW} `)}</span>
+      <span class={styles.advice}>
+        {t(I18N_KEYS.RULES_RING_ADVICE, {
+          edges: props.ring.resolution_edges,
+          places: props.violation.places.length,
+        })}
+      </span>
+      <button
+        type="button"
+        class={styles.show}
+        onClick={() => showModuleInGraph(props.violation.from)}
+      >
+        {t(I18N_KEYS.RULES_RING_SHOW)}
+      </button>
+      <Age old={props.violation.old} />
+    </li>
+  );
+}
+
 /** One violation: who reaches whom, how often, where, and whether it is an old burden. */
 function ViolationRow(props: { violation: ViolationOut }) {
+  return (
+    <Show when={props.violation.ring} fallback={<ReferenceRow violation={props.violation} />}>
+      {(ring) => <CycleRow violation={props.violation} ring={ring()} />}
+    </Show>
+  );
+}
+
+/** A reference that a rule forbids, from the symbol that refers to the one it reaches. */
+function ReferenceRow(props: { violation: ViolationOut }) {
   return (
     <li class={styles.violation}>
       <span class={styles.symbol}>{props.violation.from}</span>
@@ -41,35 +85,60 @@ function ViolationRow(props: { violation: ViolationOut }) {
         {t(I18N_KEYS.RULES_PLACES, { count: props.violation.places.length })}
       </span>
       <span class={styles.places}>{placesText(props.violation)}</span>
-      <span class={props.violation.old ? styles.badgeOld : styles.badgeNew}>
-        {props.violation.old ? t(I18N_KEYS.RULES_VIOLATION_OLD) : t(I18N_KEYS.RULES_VIOLATION_NEW)}
-      </span>
+      <Age old={props.violation.old} />
     </li>
   );
 }
 
-/** The title and the line of the rule as the project file says it. */
+/** What each layer may use, as the layer rule states it: `Api → Domain; Data → nothing`. */
+function layersSpec(rule: RuleOut): string {
+  return rule.allowed
+    .map((entry) =>
+      t(I18N_KEYS.RULES_LAYERS_ALLOWED, {
+        layer: entry.layer,
+        uses:
+          entry.may_use.length > 0
+            ? entry.may_use.join(USES_JOIN)
+            : t(I18N_KEYS.RULES_LAYERS_NOTHING),
+      }),
+    )
+    .join(LAYERS_JOIN);
+}
+
+/** The title of the rule and the line under the badge that says what it demands. */
+function titleAndSpec(rule: RuleOut): { title: string; spec: string } {
+  if (rule.kind === KIND.layers) {
+    return { title: t(I18N_KEYS.RULES_LAYERS_TITLE), spec: layersSpec(rule) };
+  }
+  if (rule.kind === KIND.cycles) {
+    return { title: t(I18N_KEYS.RULES_CYCLES_TITLE), spec: t(I18N_KEYS.RULES_CYCLES_SPEC) };
+  }
+  if (rule.kind === KIND.forbid) {
+    return {
+      title: t(I18N_KEYS.RULES_FORBID_TITLE, { from: rule.from, to: rule.to }),
+      spec: rule.reason ?? t(I18N_KEYS.RULES_FORBID_SPEC, { from: rule.from, to: rule.to }),
+    };
+  }
+  return {
+    title: t(I18N_KEYS.RULES_PUBLIC_API_TITLE),
+    spec: t(I18N_KEYS.RULES_PUBLIC_API_SPEC, {
+      module: rule.from,
+      internal: rule.internal.map((prefix) => `${prefix}${INTERNAL_SUFFIX}`).join(INTERNAL_JOIN),
+    }),
+  };
+}
+
+/** The title and the line of the rule as the project file says it. The layers are no new kind
+ * of rule, so they carry no badge. */
 function Heading(props: { rule: RuleOut }) {
-  const forbid = () => props.rule.kind === KIND.forbid;
+  const text = () => titleAndSpec(props.rule);
   return (
     <>
-      <span class={styles.title}>
-        {forbid()
-          ? t(I18N_KEYS.RULES_FORBID_TITLE, { from: props.rule.from, to: props.rule.to })
-          : t(I18N_KEYS.RULES_PUBLIC_API_TITLE)}
-      </span>
-      <span class={styles.kindBadge}>{t(I18N_KEYS.RULES_KIND_NEW)}</span>
-      <span class={styles.spec}>
-        {forbid()
-          ? (props.rule.reason ??
-            t(I18N_KEYS.RULES_FORBID_SPEC, { from: props.rule.from, to: props.rule.to }))
-          : t(I18N_KEYS.RULES_PUBLIC_API_SPEC, {
-              module: props.rule.from,
-              internal: props.rule.internal
-                .map((prefix) => `${prefix}${INTERNAL_SUFFIX}`)
-                .join(INTERNAL_JOIN),
-            })}
-      </span>
+      <span class={styles.title}>{text().title}</span>
+      <Show when={props.rule.kind !== KIND.layers}>
+        <span class={styles.kindBadge}>{t(I18N_KEYS.RULES_KIND_NEW)}</span>
+      </Show>
+      <span class={styles.spec}>{text().spec}</span>
     </>
   );
 }

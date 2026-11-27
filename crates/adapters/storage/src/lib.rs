@@ -11,6 +11,7 @@ mod answers;
 mod baselines;
 mod catalog;
 mod codec;
+mod compare;
 mod consent;
 mod consts;
 mod cycles;

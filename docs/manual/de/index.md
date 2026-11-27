@@ -13,9 +13,11 @@ Alles läuft auf Ihrem Rechner. Der Server hört nur auf `127.0.0.1`; Ihr Code w
 | Abhängigkeitskarte | die Schichten des Programms sehen und welche welche nutzt | [Abhängigkeitskarte](abhaengigkeitskarte.md) |
 | Verwendungen | wer ein Member nutzt und was bricht, wenn man es ändert | [Verwendungen](verwendungen.md) |
 | Statistik | Ranglisten: die meistverwendeten Symbole, die ohne Verwendung, die komplexesten | [Statistik](statistik.md) |
+| Änderung | zwei Scans vergleichen und sehen, welche Verwendungen ein Unterschied trifft, mit einer Prüfliste der nicht angefassten Stellen | [Änderung](aenderung.md) |
 | Notizen, Aufgaben, kritische Markierungen | Symbole als kritisch markieren, Notizen schreiben, Aufgaben verfolgen, Meldungen erhalten, wenn sich ein kritisches Symbol ändert | [Notizen, Aufgaben und kritische Markierungen](anmerkungen.md) |
 | Sprach-Indexer (Ebene 2) | Verwendungen exakt machen, indem das Werkzeug der Sprache sie prüft; standardmäßig aus | [Sprach-Indexer](indexer.md) |
 | MCP-Server | Code-Agenten dasselbe Wissen geben | [MCP einrichten](mcp.md) |
+| PR-Kommentar | die Auswirkung einer Änderung in jedem Pull Request | [PR-Kommentar](pr-comment.md) |
 | Quellen und Zugangsdaten | private Git-Repositories scannen, ohne Geheimnisse irgendwo abzulegen | [Quellen und Zugangsdaten](quellen-und-zugangsdaten.md) |
 | HTML-Export | eine eigenständige Datei eines Projekts für Menschen ohne CodeSkimr | [HTML-Export](export.md) |
 | Fehlercodes | was ein Code wie `SRC-401` bedeutet und was zu tun ist | [Fehlercodes](fehler.md) |

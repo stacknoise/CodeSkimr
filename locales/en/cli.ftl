@@ -222,6 +222,10 @@ cli-cmd-context = Give signature, callers, dependencies, affected files and note
 cli-cmd-unused = List the symbols for which no usage was found, with the reason for each (the answer of find_unused)
 cli-cmd-rules = Judge the architecture rules of the project file against the newest scan; fails only for violations that the held state does not have (the answer of check_rules)
 cli-query-rules-head = Rules: { $new } new, { $held } held as old burdens, { $resolved } resolved.
+cli-query-rules-held = { $entries ->
+    [one] State held on { $date }: 1 violation now counts as an old burden. Commit the file .codeskimr-baseline.toml.
+   *[other] State held on { $date }: { $entries } violations now count as old burdens. Commit the file .codeskimr-baseline.toml.
+}
 cli-query-rules-none = The project file declares no architecture rules.
 cli-query-rules-rule = { $rule }: { $new } new of { $total }
 cli-query-rules-line = { $from } -> { $to }  { $path }:{ $line }:{ $column }  ({ $held ->
@@ -230,6 +234,20 @@ cli-query-rules-line = { $from } -> { $to }  { $path }:{ $line }:{ $column }  ({
     }, { $places ->
         [one] 1 place
        *[other] { $places } places
+    })
+cli-arg-hold = Hold the state instead of judging: every violation of now counts as an old burden; writes .codeskimr-baseline.toml next to the project file (folder projects only)
+cli-query-rules-cycle-line = { $chain }  ({ $modules } modules, weakest edge { $weakest ->
+        [one] 1 reference
+       *[other] { $weakest } references
+    } at { $places ->
+        [one] 1 place
+       *[other] { $places } places
+    }; resolved over { $edges ->
+        [one] 1 edge
+       *[other] { $edges } edges
+    }, { $held ->
+        [true] held
+       *[other] NEW
     })
 cli-arg-query-text = Part of the symbol name; the characters must appear in this order
 cli-arg-query-symbol = Id or qualified name of the symbol
@@ -277,3 +295,11 @@ cli-context-files = Files a change can reach ({ $shown } of { $total }):
 cli-context-file = { $path }
 cli-context-notes = Notes ({ $shown } of { $total }):
 cli-context-note-line = { $kind }: { $text }
+# The commands scans, compare and change (ADR 0097).
+cli-cmd-scans = List the scans of a project that are kept, with time, kind, duration and changed files (the answer of the command scans.list)
+cli-cmd-compare = Compare two scans of a project: the symbols that were added, removed, changed or moved, the new layer violations and cycles, and the critical symbols the difference touches
+cli-cmd-change = Show what the difference between two scans hits: for every removed symbol and every symbol whose signature or visibility changed, its direct usages, and those that were not touched (the answer of the MCP tool impact_of_diff)
+cli-arg-compare-project = Id of the project, or the folder or Git URL it was scanned from (default: the current folder)
+cli-arg-compare-base = Id of the older scan (default: the scan before the target); `codeskimr scans` lists the ids
+cli-arg-compare-target = Id of the newer scan (default: the newest scan)
+cli-arg-markdown = Print the answer as Markdown for a comment on a pull request; cannot be combined with --json

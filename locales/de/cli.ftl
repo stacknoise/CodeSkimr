@@ -222,6 +222,10 @@ cli-cmd-context = Signatur, Aufrufer, Abhängigkeiten, betroffene Dateien und An
 cli-cmd-unused = Auflisten, für welche Symbole keine Verwendung gefunden wurde, mit dem Grund je Symbol (die Antwort von find_unused)
 cli-cmd-rules = Prüft die Architekturregeln der Projektdatei gegen den neuesten Scan; schlägt nur bei Verstößen fehl, die der festgehaltene Stand nicht hat (die Antwort von check_rules)
 cli-query-rules-head = Regeln: { $new } neu, { $held } als Altlast festgehalten, { $resolved } behoben.
+cli-query-rules-held = { $entries ->
+    [one] Stand festgehalten am { $date }: 1 Verstoß gilt jetzt als Altlast. Die Datei .codeskimr-baseline.toml gehört ins Repository.
+   *[other] Stand festgehalten am { $date }: { $entries } Verstöße gelten jetzt als Altlast. Die Datei .codeskimr-baseline.toml gehört ins Repository.
+}
 cli-query-rules-none = Die Projektdatei legt keine Architekturregeln fest.
 cli-query-rules-rule = { $rule }: { $new } neu von { $total }
 cli-query-rules-line = { $from } -> { $to }  { $path }:{ $line }:{ $column }  ({ $held ->
@@ -230,6 +234,20 @@ cli-query-rules-line = { $from } -> { $to }  { $path }:{ $line }:{ $column }  ({
     }, { $places ->
         [one] 1 Stelle
        *[other] { $places } Stellen
+    })
+cli-arg-hold = Den Stand festhalten statt prüfen: alle jetzigen Verstöße gelten als Altlast; schreibt .codeskimr-baseline.toml neben die Projektdatei (nur Ordnerprojekte)
+cli-query-rules-cycle-line = { $chain }  ({ $modules } Module, schwächste Kante { $weakest ->
+        [one] 1 Verweis
+       *[other] { $weakest } Verweise
+    } an { $places ->
+        [one] 1 Stelle
+       *[other] { $places } Stellen
+    }; aufgelöst über { $edges ->
+        [one] 1 Kante
+       *[other] { $edges } Kanten
+    }, { $held ->
+        [true] festgehalten
+       *[other] NEU
     })
 cli-arg-query-text = Teil des Symbolnamens; die Zeichen müssen in dieser Reihenfolge vorkommen
 cli-arg-query-symbol = Id oder qualifizierter Name des Symbols
@@ -277,3 +295,11 @@ cli-context-files = Dateien, die eine Änderung erreichen kann ({ $shown } von {
 cli-context-file = { $path }
 cli-context-notes = Anmerkungen ({ $shown } von { $total }):
 cli-context-note-line = { $kind }: { $text }
+# Die Befehle scans, compare und change (ADR 0097).
+cli-cmd-scans = Die aufbewahrten Scans eines Projekts auflisten, mit Zeit, Art, Dauer und geänderten Dateien (die Antwort des Befehls scans.list)
+cli-cmd-compare = Zwei Scans eines Projekts vergleichen: die hinzugekommenen, entfernten, geänderten und verschobenen Symbole, die neuen Schichtverstöße und Zyklen und die kritischen Symbole, die der Unterschied berührt
+cli-cmd-change = Zeigen, was der Unterschied zwischen zwei Scans trifft: zu jedem entfernten Symbol und jedem Symbol mit geänderter Signatur oder Sichtbarkeit seine direkten Verwendungen, darunter die nicht angefassten (die Antwort des MCP-Werkzeugs impact_of_diff)
+cli-arg-compare-project = Id des Projekts oder der Ordner oder die Git-URL, aus der es gescannt wurde (Standard: der aktuelle Ordner)
+cli-arg-compare-base = Id des älteren Scans (Standard: der Scan vor dem Ziel); `codeskimr scans` listet die Ids
+cli-arg-compare-target = Id des neueren Scans (Standard: der neueste Scan)
+cli-arg-markdown = Die Antwort als Markdown für einen Kommentar an einem Pull Request ausgeben; nicht zusammen mit --json

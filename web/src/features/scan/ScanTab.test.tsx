@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, within } from "@solidjs/testing-library";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { currentPath } from "../../app/router";
+import { enterChange } from "../change/change";
 import { openProject } from "../../shared/project/active";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { recordTime, resetTimings } from "../../shared/api/timings";
@@ -183,6 +185,17 @@ describe("the tab Scan", () => {
     expect(history.getByText("current")).toBeInTheDocument();
     expect(history.getAllByText("37").length).toBeGreaterThan(0);
     expect(history.getAllByText("—").length).toBeGreaterThan(0);
+    stop();
+  });
+
+  it("offers 'Compare with current' on every scan but the current one and opens the change screen with that scan as base", async () => {
+    const stop = await shown();
+    const history = within(await screen.findByRole("region", { name: "Recent scans" }));
+    const buttons = await history.findAllByRole("button", { name: "Compare with current" });
+    expect(buttons).toHaveLength(HISTORY.scans.length - 1);
+    fireEvent.click(buttons[0] as HTMLElement);
+    expect(currentPath()).toBe("/change");
+    expect(enterChange().base).toBe(HISTORY.scans[1]?.snapshot);
     stop();
   });
 

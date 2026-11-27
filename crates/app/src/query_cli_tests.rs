@@ -23,17 +23,17 @@ const TARGET: &str = "namespace Demo;\n\npublic class Target\n{\n    public stat
 const CALLER: &str = "namespace Demo;\n\npublic class Caller\n{\n    public int Run()\n    {\n        return Target.Do(1);\n    }\n}\n";
 const SYMBOL: &str = "Demo.Target.Do";
 
-struct World {
+pub(crate) struct World {
     _root: tempfile::TempDir,
-    folder: PathBuf,
+    pub(crate) folder: PathBuf,
     data: Locations,
     global: GlobalOptions,
     messages: Messages,
-    _session: Session,
+    pub(crate) session: Session,
 }
 
 impl World {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let done = scanned(&[("Target.cs", TARGET), ("Caller.cs", CALLER)]);
         Self {
             _root: done.root,
@@ -41,11 +41,15 @@ impl World {
             data: done.data,
             global: done.global,
             messages: Messages::load().unwrap(),
-            _session: done.session,
+            session: done.session,
         }
     }
 
-    fn run(&self, action: &QueryAction, language: &str) -> Result<String, query_cli::QueryFailure> {
+    pub(crate) fn run(
+        &self,
+        action: &QueryAction,
+        language: &str,
+    ) -> Result<String, query_cli::QueryFailure> {
         let around = Surroundings {
             global: &self.global,
             locations: &self.data,
@@ -65,7 +69,7 @@ impl World {
         query_cli::run(action, &around, &self.folder).unwrap()
     }
 
-    fn json(&self, action: &QueryAction) -> Value {
+    pub(crate) fn json(&self, action: &QueryAction) -> Value {
         serde_json::from_str(&self.run(action, "en").unwrap()).unwrap()
     }
 }
@@ -404,7 +408,7 @@ public class Target
         data: session.data,
         global: session.global,
         messages: Messages::load().unwrap(),
-        _session: session.session,
+        session: session.session,
     };
     let found = other.json(&rename("Calculate", true));
     assert_eq!(
@@ -419,6 +423,15 @@ public class Target
 fn rules(json: bool) -> QueryAction {
     QueryAction::Rules(RulesQuery {
         limit: None,
+        hold: false,
+        target: target(json),
+    })
+}
+
+fn hold_rules(json: bool) -> QueryAction {
+    QueryAction::Rules(RulesQuery {
+        limit: None,
+        hold: true,
         target: target(json),
     })
 }
@@ -486,4 +499,23 @@ fn a_broken_rule_or_held_state_fails_the_command_with_its_code() {
     fs::write(&held_file, "[[entries\n").unwrap();
     let failure = world.run(&rules(true), "en").unwrap_err();
     assert!(failure.json().contains(failure.code().id()));
+}
+
+#[test]
+fn holding_the_state_from_the_command_line_makes_every_violation_an_old_burden() {
+    let world = World::new();
+    fs::write(world.folder.join(".codeskimr.toml"), FORBID).unwrap();
+    assert!(world.answered(&rules(true)).failing);
+    let held = world.answered(&hold_rules(true));
+    assert!(!held.failing);
+    let answer: Value = serde_json::from_str(&held.text).unwrap();
+    assert_eq!(answer["entries"], 2);
+    let file = fs::read_to_string(world.folder.join(".codeskimr-baseline.toml")).unwrap();
+    assert!(file.contains(answer["held_on"].as_str().unwrap()), "{file}");
+    assert!(!world.answered(&rules(true)).failing);
+    let text = world.answered(&hold_rules(false)).text;
+    assert!(
+        text.contains("2 violations now count as old burdens"),
+        "{text}"
+    );
 }

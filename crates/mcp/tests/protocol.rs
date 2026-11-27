@@ -85,13 +85,14 @@ async fn connected_as(principal: Principal) -> Client {
 }
 
 /// The tools in the order of the list.
-const TOOL_NAMES: [&str; 17] = [
+const TOOL_NAMES: [&str; 18] = [
     "search_symbols",
     "get_symbol",
     "get_project",
     "get_architecture",
     "find_usages",
     "impact_of_change",
+    "impact_of_diff",
     "get_context",
     "get_dependencies",
     "find_similar_code",
@@ -106,7 +107,7 @@ const TOOL_NAMES: [&str; 17] = [
 ];
 
 #[tokio::test]
-async fn lists_exactly_the_seventeen_tools_with_schemas_and_only_rescan_writes() {
+async fn lists_exactly_the_eighteen_tools_with_schemas_and_only_rescan_writes() {
     let mut client = connected().await;
     let listed = client.call(2, "tools/list", json!({})).await;
     let tools = listed["result"]["tools"].as_array().unwrap();
@@ -253,7 +254,7 @@ async fn the_tool_list_shows_only_what_the_caller_may_run() {
     let read_only = Principal::limited(PermissionSet::none().with(Permission::Read));
     let mut client = connected_as(read_only).await;
     let names = client.tool_names(20).await;
-    assert_eq!(names.len(), 16);
+    assert_eq!(names.len(), 17);
     assert!(!names.iter().any(|name| name == "rescan"));
     let nobody = connected_as(Principal::limited(PermissionSet::none())).await;
     let mut nobody = nobody;
