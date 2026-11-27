@@ -7,6 +7,7 @@ import type { PillTone } from "../../shared/ui/Pill";
 export const COMMAND = {
   list: "scans.list",
   impact: "scans.impact",
+  markdown: "scans.impact_markdown",
 } as const;
 
 /** The two views of the screen (ADR 0097). */
