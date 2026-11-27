@@ -887,7 +887,7 @@ fn code_highlight_colours_only_what_its_limits_allow() {
         .call("code.highlight", json!({ "pieces": pieces }))
         .unwrap();
     let out = shown["pieces"].as_array().unwrap();
-    assert!(!out[199]["tokens"].as_array().unwrap().is_empty());
+    assert_ne!(out[199]["tokens"], json!([]));
     assert_eq!(out[200]["tokens"], json!([]));
     assert_eq!(out[201]["tokens"], json!([]));
     let exact = "a".repeat(593);
