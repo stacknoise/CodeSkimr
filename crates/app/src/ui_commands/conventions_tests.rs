@@ -45,6 +45,10 @@ fn a_function_over_the_limit_is_found_in_a_file_no_scan_has_seen() {
     fs::write(app.join("Long.cs"), long_method(60)).unwrap();
     let answer = check(&fixture, project);
     let found = long_finding(&answer);
+    assert!(
+        found["symbol_ref"].is_null(),
+        "a file no scan has seen: {found}"
+    );
     assert_eq!(found["path"], "Long.cs");
     assert_eq!(found["symbol"], "Demo.Long.Sum");
     assert!(found["lines"].as_u64().unwrap() > found["max_lines"].as_u64().unwrap());
@@ -97,17 +101,6 @@ fn a_project_is_checked_by_one_run_at_a_time() {
     assert!(runs.begin(8).is_ok(), "another project is not held up");
     drop(first);
     assert!(runs.begin(7).is_ok(), "the project is free again");
-}
-
-#[test]
-fn a_finding_names_the_symbol_of_the_scan_and_has_none_for_a_file_the_scan_has_not_seen() {
-    let fixture = Fixture::new();
-    let project = fixture.scanned();
-    let app = fixture.root.path().join("app");
-    fs::write(app.join("Long.cs"), long_method(60)).unwrap();
-    let before = check(&fixture, project);
-    let found = long_finding(&before);
-    assert!(found["symbol_ref"].is_null(), "not scanned yet: {found}");
 }
 
 #[test]
