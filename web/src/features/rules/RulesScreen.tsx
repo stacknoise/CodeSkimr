@@ -285,7 +285,5 @@ export function RulesScreen() {
     resetRules();
     closeDialog();
   });
-  return (
-    <RulesBody />
-  );
+  return <RulesBody />;
 }
