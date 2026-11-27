@@ -82,3 +82,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* The head stays at the top of the box while the rows scroll. */
+.scroll th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--surface);
+    box-shadow: inset 0 -1px var(--line);
+}

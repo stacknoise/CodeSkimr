@@ -5,7 +5,7 @@ import { TONE } from "../../shared/ui/consts";
 import { cx } from "../../shared/ui/cx";
 import { Pill } from "../../shared/ui/Pill";
 import { createTableColumns } from "../../shared/table/columns";
-import { ColumnWidths, HeadRow } from "../../shared/table/ResizableHead";
+import { ColumnWidths } from "../../shared/table/ResizableHead";
 import { KindBadge } from "../explorer/KindBadge";
 import {
   CAUSE,
@@ -19,7 +19,9 @@ import {
   VISIBILITY_TEXT,
 } from "./consts";
 import { changeRowKey, selectChangeRow } from "./change";
+import { impactOrder, sortImpactBy } from "./order";
 import { nextRow, pillsOf } from "./rows";
+import { SortHeads } from "./SortHeads";
 import type { ImpactRow } from "./types";
 import parts from "./Parts.module.css";
 import styles from "./SymbolTable.module.css";
@@ -123,7 +125,13 @@ export function SymbolTable(props: { rows: readonly ImpactRow[] }) {
       >
         <ColumnWidths columns={columns} />
         <thead>
-          <HeadRow columns={columns} heads={SYMBOL_COLUMNS} numberClass={parts.number} />
+          <SortHeads
+            columns={columns}
+            heads={SYMBOL_COLUMNS}
+            sort={impactOrder()}
+            onSort={sortImpactBy}
+            numberClass={parts.number}
+          />
         </thead>
         <tbody>
           <For each={props.rows}>{(row) => <SymbolRow row={row} />}</For>

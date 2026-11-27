@@ -73,6 +73,7 @@ Decisions made while building work package 3 (#756); they correct decisions 3, 4
 ## Addendum 2026-11-27 (long lists and filter in the view "Change")
 
 - **The two lists scroll on their own.** In both tabs the list of the symbols and (tab "Impact") the panel of the usages use the height down to the window bottom with a scrollbar each; the page keeps its size, the head of the table stays at the top. Long names and signatures in the tab "Comparison" are cut with an ellipsis and have the full text as tooltip.
+- **Both lists sort by a press on a column head and have width handles** (`shared/table`); the sort works after the filter and the selection stays. Default: the order of the answer.
 - **One filter row for both tabs** (search in the qualified name, kind of change, kind of symbol, only public, only with open places; the last is greyed out with a tooltip in "Comparison", which has no checklist). It works on the client on the listed symbols; the count says "N of M", and "N of M listed (T in all)" if `compare.max_symbols` cut a list. If the selected row is filtered out, the first row that is left is selected. Console counterpart: `--json` with `jq` (`docs/cli.md`); filters on the server before the cut are a follow-up, not part of this decision. Mocks `ChangeImpact.html` and `ChangeCompare.html` show the row and the scroll boxes.
 
 ## Addendum 2026-11-27 (time per step of saving)
