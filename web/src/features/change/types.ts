@@ -118,7 +118,7 @@ export interface ImpactRow {
   impact: SymbolImpactOut | null;
 }
 
-/** The two ends of a comparison as the screen asks for them; `null` leaves the choice to the
+/** The two ends of a comparison as the screen asks for them, by the `scan` id of the entry; `null` leaves the choice to the
  * registry (the newest scan against the one before). */
 export interface Selection {
   base: number | null;

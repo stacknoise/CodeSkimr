@@ -63,7 +63,15 @@ export function ImpactTab(props: { answer: ChangeAnswer }) {
       <Figures answer={props.answer} />
       <Show
         when={rows().length > 0}
-        fallback={<p class={parts.plain}>{t(I18N_KEYS.CHANGE_VIEW_NONE)}</p>}
+        fallback={
+          <p class={parts.plain}>
+            {t(
+              props.answer.base.snapshot === props.answer.target.snapshot
+                ? I18N_KEYS.CHANGE_VIEW_SAME
+                : I18N_KEYS.CHANGE_VIEW_NONE,
+            )}
+          </p>
+        }
       >
         <div class={styles.columns}>
           <div class={cx(parts.card, styles.list)}>

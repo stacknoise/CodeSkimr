@@ -71,10 +71,18 @@ pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files,
 /// milliseconds, changed files, snapshot id (ADR 0097).
 pub const SNAPSHOT_SCAN_SET: &str =
     "UPDATE snapshots SET duration_ms = ?1, files_changed = ?2 WHERE id = ?3";
-/// The retained snapshots of a project, newest first: project id (ADR 0097).
-pub const SCAN_HISTORY: &str = "SELECT id, commit_hash, created, mode, files, symbols, refs, \
-    duration_ms, files_changed FROM snapshots WHERE project_id = ?1 AND NOT EXISTS \
-    (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1) ORDER BY id DESC";
+/// The retained scans of a project, newest first, each with the totals of its snapshot: project
+/// id (ADR 0097, ADR 0093).
+pub const SCAN_HISTORY: &str = "SELECT l.id, l.snapshot_id, l.commit_hash, l.created, l.mode, \
+    s.files, s.symbols, s.refs, l.duration_ms, l.files_changed FROM scan_log l \
+    JOIN snapshots s ON s.id = l.snapshot_id WHERE s.project_id = ?1 AND NOT EXISTS \
+    (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1) ORDER BY l.id DESC";
+/// Records a scan: snapshot id, time, commit, mode, duration in milliseconds, changed files.
+pub const SCAN_LOG_INSERT: &str = "INSERT INTO scan_log (snapshot_id, created, commit_hash, mode, \
+    duration_ms, files_changed) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
+/// Deletes the rows of a snapshot but its newest ones: snapshot id, number to keep.
+pub const SCAN_LOG_TRIM: &str = "DELETE FROM scan_log WHERE snapshot_id = ?1 AND id NOT IN \
+    (SELECT id FROM scan_log WHERE snapshot_id = ?1 ORDER BY id DESC LIMIT ?2)";
 
 /// Confirms a snapshot after a scan that found nothing changed: creation time, commit, mode (the
 /// label of an incremental scan), snapshot id.

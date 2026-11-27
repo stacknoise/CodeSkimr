@@ -88,6 +88,7 @@ const HISTORY = {
   scans: [
     {
       snapshot: 5,
+      scan: 5,
       created: 1_800_000_000,
       commit: null,
       mode: "full",
@@ -98,6 +99,7 @@ const HISTORY = {
     },
     {
       snapshot: 4,
+      scan: 4,
       created: 1_799_990_000,
       commit: null,
       mode: "incremental",
@@ -108,6 +110,7 @@ const HISTORY = {
     },
     {
       snapshot: 3,
+      scan: 3,
       created: 1_799_900_000,
       commit: null,
       mode: "full",

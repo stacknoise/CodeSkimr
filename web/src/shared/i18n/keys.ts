@@ -201,6 +201,7 @@ export const I18N_KEYS = {
   CHANGE_VIEW_STATE_NONE: "change-view-state-none",
   CHANGE_VIEW_TABLE_LABEL: "change-view-table-label",
   CHANGE_VIEW_NONE: "change-view-none",
+  CHANGE_VIEW_SAME: "change-view-same",
   CHANGE_VIEW_DETAIL_SIGNATURE: "change-view-detail-signature",
   CHANGE_VIEW_DETAIL_VISIBILITY: "change-view-detail-visibility",
   CHANGE_VIEW_DETAIL_REMOVED: "change-view-detail-removed",

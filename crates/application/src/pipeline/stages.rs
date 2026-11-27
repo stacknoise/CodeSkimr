@@ -1103,6 +1103,7 @@ impl PersistStage {
             snapshot,
             at: self.clock.now(),
             commit: input.run.commit,
+            began: input.run.began,
         };
         let confirmed = self
             .store

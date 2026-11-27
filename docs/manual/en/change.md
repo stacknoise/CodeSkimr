@@ -6,7 +6,7 @@ The screen "Change" compares two scans of the open project and shows what the di
 
 ## Which scans are compared
 
-CodeSkimr keeps the last scans of a project (five by default). A scan without changes writes no entry, so every kept scan is one that changed something. The screen compares the newest scan with the one before it. In the tab "Comparison" you can pick any two kept scans: the base is the older one, the target the newer one. The project needs at least two scans.
+CodeSkimr keeps the last scans of a project (five by default). Every scan is an entry of its own; a scan that found nothing changed shows "0 changed". The screen compares the newest scan with the one before it; if nothing changed between them, it says so. In the tab "Comparison" you can pick any two kept scans: the base is the older one, the target the newer one. The project needs at least two scans.
 
 The tab "Scan" of the project page lists the kept scans. The button "Compare with current" in a row opens this screen with that scan as the base and the newest scan as the target.
 

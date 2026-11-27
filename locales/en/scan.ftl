@@ -96,7 +96,7 @@ scan-history-column-files = Files
 scan-history-column-changed = Changed
 scan-history-current = current
 scan-history-empty = No scan yet.
-scan-history-note = The duration is stored per scan; a scan without changes writes no entry and leaves the time and the duration of the entry before as they are.
+scan-history-note = The duration is stored per scan. Every scan is an entry of its own; a scan without changes shows 0 changed files and confirms the state before it.
 scan-history-last = Last scan
 scan-history-files-changed = { $count ->
     [one] { NUMBER($count) } file changed since the one before

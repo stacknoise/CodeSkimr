@@ -109,7 +109,7 @@ function Row(props: { project: number; scan: ScanEntry; newest: boolean }) {
             type="button"
             class={styles.compare}
             title={t(I18N_KEYS.SCAN_HISTORY_COMPARE_TITLE)}
-            onClick={() => compareWithCurrent(props.project, props.scan.snapshot)}
+            onClick={() => compareWithCurrent(props.project, props.scan.scan)}
           >
             {t(I18N_KEYS.SCAN_HISTORY_COMPARE)}
           </button>

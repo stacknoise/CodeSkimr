@@ -271,7 +271,7 @@ impl ProjectDb {
     /// # Errors
     /// A coded `STO` failure.
     pub fn scan_history(&self, project: ProjectId) -> Result<Vec<ScanEntry>, CodedError> {
-        self.read(|conn| crate::headers::scan_history(conn, project))
+        self.read(|conn| crate::scan_log::history(conn, project))
             .map_err(CodedError::from)
     }
 }

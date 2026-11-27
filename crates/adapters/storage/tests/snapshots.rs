@@ -99,6 +99,7 @@ fn confirmation(snapshot: u64, commit: Option<CommitHash>) -> Confirmation {
         snapshot: SnapshotId::new(snapshot),
         at: Timestamp(2_000),
         commit,
+        began: None,
     }
 }
 
@@ -517,4 +518,66 @@ fn coupling_metrics_belong_to_their_snapshot() {
     assert_eq!(ce_of_a(&store, 10), vec![1.0]);
     assert_eq!(ce_of_a(&store, 40), vec![5.0]);
     assert_eq!(ce_of_a(&store, 50), Vec::<f64>::new());
+}
+
+/// A scan that found nothing changed at `at`, after `snapshot`.
+#[cfg(test)]
+fn confirmed_at(snapshot: u64, at: i64) -> Confirmation {
+    Confirmation {
+        at: Timestamp(at),
+        began: Some(std::time::Instant::now()),
+        ..confirmation(snapshot, None)
+    }
+}
+
+#[test]
+fn every_confirmed_scan_is_a_row_of_the_history_with_no_changed_files() {
+    let store = common::store(5);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    store.persist(first_scan(10)).unwrap();
+    for at in [2_000, 3_000, 4_000] {
+        store.confirm(&confirmed_at(10, at)).unwrap().unwrap();
+    }
+    let history = store.scan_history(PROJECT).unwrap();
+    let times: Vec<i64> = history.iter().map(|entry| entry.created.0).collect();
+    assert_eq!(
+        times,
+        vec![4_000, 3_000, 2_000, 1_000],
+        "newest first, one row per scan"
+    );
+    assert!(history.iter().all(|entry| entry.snapshot.get() == 10));
+    let scans: std::collections::HashSet<u64> = history.iter().map(|entry| entry.scan).collect();
+    assert_eq!(scans.len(), history.len(), "the scan id is unique");
+    assert_eq!(history[0].files_changed, Some(0));
+    assert!(history[0].duration_ms.is_some());
+    assert_eq!((history[0].files, history[0].symbols), (2, 3));
+}
+
+#[test]
+fn a_snapshot_keeps_only_the_newest_rows_up_to_the_retention() {
+    let store = common::store(2);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    store.persist(first_scan(10)).unwrap();
+    for at in [2_000, 3_000, 4_000] {
+        store.confirm(&confirmed_at(10, at)).unwrap().unwrap();
+    }
+    let times: Vec<i64> = store
+        .scan_history(PROJECT)
+        .unwrap()
+        .iter()
+        .map(|entry| entry.created.0)
+        .collect();
+    assert_eq!(times, vec![4_000, 3_000]);
+}
+
+#[test]
+fn the_rows_of_a_pruned_snapshot_go_with_it() {
+    let store = common::store(1);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    store.persist(first_scan(10)).unwrap();
+    store.confirm(&confirmed_at(10, 2_000)).unwrap().unwrap();
+    store.persist(b_rewritten("App.B", vec![])).unwrap();
+    let history = store.scan_history(PROJECT).unwrap();
+    let snapshots: Vec<u64> = history.iter().map(|entry| entry.snapshot.get()).collect();
+    assert_eq!(snapshots, vec![40], "snapshot 10 and its rows are gone");
 }
