@@ -3,9 +3,9 @@
 
 use serde::Serialize;
 
-use super::consts::{RULES_ARRAY_HEADER, RULES_TABLE_HEADER, keys};
+use super::consts::{RULES_ARRAY_HEADER, RULES_NAME_END, RULES_TABLE_HEADER, keys};
 use super::error::{ConfigError, Violation};
-use super::layer_file::{rewrite_with, without_tables};
+use super::layer_file::{rewrite_with, without_tables_where};
 use super::model::{CycleRule, ForbidRule, PublicApiRule, Rules};
 
 /// The shape of the written tables.
@@ -22,6 +22,17 @@ struct Table<'a> {
     forbid: &'a [ForbidRule],
     #[serde(skip_serializing_if = "<[_]>::is_empty")]
     public_api: &'a [PublicApiRule],
+}
+
+/// Whether a header line opens `[rules]` or a table below it, such as `[[rules.forbid]]`; a
+/// table that only starts with the same letters, such as `[rules_notes]`, is not meant.
+fn is_rules_header(head: &str) -> bool {
+    [RULES_TABLE_HEADER, RULES_ARRAY_HEADER]
+        .iter()
+        .any(|start| {
+            head.strip_prefix(start)
+                .is_some_and(|rest| rest.starts_with(RULES_NAME_END))
+        })
 }
 
 /// The text of a project file with `wanted` as its rules (`cycles`, `forbid` and `public_api`).
@@ -46,10 +57,7 @@ pub fn with_rules(text: &str, wanted: &Rules) -> Result<String, ConfigError> {
                 violation: Violation::MustBeArchitectureRule,
             })?
         };
-    let kept = without_tables(
-        &without_tables(text, RULES_ARRAY_HEADER),
-        RULES_TABLE_HEADER,
-    );
+    let kept = without_tables_where(text, is_rules_header);
     rewrite_with(text, &kept, &block)
 }
 
@@ -100,6 +108,23 @@ mod tests {
         let none = with_rules(&written, &Rules::default()).unwrap();
         assert!(!none.contains("rules"));
         assert!(none.contains("[[layers]]"));
+    }
+
+    #[test]
+    fn a_table_that_only_starts_like_rules_is_not_taken_for_one_and_no_limits_leave_layers_alone() {
+        let text = "# note\n[rules_notes]\nx = 1\n\n[rules]\ncycles = \"deny\"\n";
+        let written = with_rules(text, &Rules::default());
+        assert!(
+            written.is_err(),
+            "a table the model does not know is refused, not removed"
+        );
+        let kept = "[[layers]]\nname = \"a\"\nnamespaces = [\"x\"]\n# keep me\n";
+        let same = with_layer_limits_unchanged(kept);
+        assert_eq!(same, kept);
+    }
+
+    fn with_layer_limits_unchanged(text: &str) -> String {
+        crate::config::with_layer_limits(text, &[]).unwrap()
     }
 
     #[test]

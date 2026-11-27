@@ -19,8 +19,7 @@ use super::consts::{
     UNUSED_LIFT_TITLE,
 };
 use super::explorer::ExplorerPorts;
-use super::layers::write_project_file;
-use crate::project_file::read_project_file;
+use super::layers::update_project_file;
 
 /// The input of `unused.keep`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -71,13 +70,16 @@ fn edit(
     change: impl FnOnce(&mut Vec<UnusedIgnore>) -> Result<(), CodedError>,
 ) -> Result<Listed, CodedError> {
     let path = project_file(ports, project)?;
-    let text = read_project_file(&path)?;
-    let mut entries = unused_ignore_in(&text);
-    change(&mut entries)?;
-    let written = with_unused_ignore(&text, &entries).map_err(CodedError::caused_by)?;
-    write_project_file(&path, &written)?;
-    Ok(Listed {
-        entries: entries.len(),
+    update_project_file(&path, |text| {
+        let mut entries = unused_ignore_in(text);
+        change(&mut entries)?;
+        let written = with_unused_ignore(text, &entries).map_err(CodedError::caused_by)?;
+        Ok((
+            written,
+            Listed {
+                entries: entries.len(),
+            },
+        ))
     })
 }
 

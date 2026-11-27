@@ -86,3 +86,29 @@ fn invalid_rules_fail_with_their_code_and_leave_the_file_alone() {
         Err("CFG-101")
     );
 }
+
+#[test]
+fn repeated_edits_keep_comments_and_layers() {
+    let (fixture, id) = fixture_with(OLD);
+    let handles: Vec<_> = (0..6)
+        .map(|n| {
+            let forbid = json!([{ "from": format!("A{n}"), "to": format!("B{n}") }]);
+            fixture.call("rules.set", edit(id, &forbid, &json!([])))
+        })
+        .collect();
+    assert!(handles.iter().all(Result::is_ok));
+    let text = fs::read_to_string(file(&fixture)).unwrap();
+    assert!(text.contains("[[layers]]") && text.contains("# my own note"));
+}
+
+#[test]
+fn too_many_rules_in_one_call_are_refused() {
+    let (fixture, id) = fixture_with(OLD);
+    let many: Vec<Value> = (0..501)
+        .map(|n| json!({ "from": format!("A{n}"), "to": format!("B{n}") }))
+        .collect();
+    assert_eq!(
+        fixture.call("rules.preview", edit(id, &Value::Array(many), &json!([]))),
+        Err("CFG-101")
+    );
+}

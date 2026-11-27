@@ -263,6 +263,8 @@ pub const LOWER_ONLY_SCAN_KEYS: [&str; 4] = [
 pub const LAYER_TABLE_HEADER: &str = "[[layers]]";
 /// Header of an entry of the exception list of the unused symbols.
 pub const UNUSED_TABLE_HEADER: &str = "[[unused.ignore]]";
+/// What may follow `[rules` or `[[rules` in a header: the end of the name or a sub-table.
+pub const RULES_NAME_END: [char; 2] = [']', '.'];
 /// Start of the header of the table `rules` and of its sub-tables, such as `[rules]`.
 pub const RULES_TABLE_HEADER: &str = "[rules";
 /// Start of the header of an array of tables below `rules`, such as `[[rules.forbid]]`.

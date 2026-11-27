@@ -20,11 +20,17 @@ struct Written<'a> {
 
 /// `text` without its tables that start with `header`: a table runs to the next table header.
 pub(super) fn without_tables(text: &str, header: &str) -> String {
+    without_tables_where(text, |head| head.starts_with(header))
+}
+
+/// Like [`without_tables`], for the tables whose header line (without its indent) `starts`
+/// accepts.
+pub(super) fn without_tables_where(text: &str, starts: impl Fn(&str) -> bool) -> String {
     let mut inside = false;
     let mut kept = Vec::new();
     for line in text.lines() {
         let head = line.trim_start();
-        if head.starts_with(header) {
+        if starts(head) {
             inside = true;
         } else if head.starts_with(TABLE_HEADER_START) {
             inside = false;
@@ -36,18 +42,30 @@ pub(super) fn without_tables(text: &str, header: &str) -> String {
     kept.join(&LINE_END.to_string())
 }
 
-/// The layers of `text` as rules; none if the file has none or cannot be read as such.
-fn existing_rules(text: &str) -> Vec<LayerRule> {
-    text.parse::<toml::Table>()
-        .ok()
-        .and_then(|mut table| table.remove(super::consts::keys::LAYERS))
-        .and_then(|value| value.try_into().ok())
-        .unwrap_or_default()
+/// The layers of `text` as rules; none if the file has none.
+///
+/// # Errors
+/// - `CFG-102` if `text` is not TOML, `CFG-101` if its layers cannot be read as rules.
+fn existing_rules(text: &str) -> Result<Vec<LayerRule>, ConfigError> {
+    let layer = ConfigLayer::parse(LayerSource::Project, text)?;
+    match layer.table().get(super::consts::keys::LAYERS) {
+        None => Ok(Vec::new()),
+        Some(value) => value
+            .clone()
+            .try_into()
+            .map_err(|_| ConfigError::OutOfRange {
+                key: super::consts::keys::LAYERS,
+                violation: Violation::MustBeLayerRule,
+            }),
+    }
 }
 
 /// Gives each wanted layer the `may_use` it has in `text`, as far as the layers it names stay.
-fn with_known_limits(text: &str, mut wanted: Vec<LayerRule>) -> Vec<LayerRule> {
-    let before = existing_rules(text);
+fn with_known_limits(
+    text: &str,
+    mut wanted: Vec<LayerRule>,
+) -> Result<Vec<LayerRule>, ConfigError> {
+    let before = existing_rules(text)?;
     let names: HashSet<String> = wanted.iter().map(|rule| rule.name.clone()).collect();
     for rule in &mut wanted {
         rule.may_use = before
@@ -56,7 +74,7 @@ fn with_known_limits(text: &str, mut wanted: Vec<LayerRule>) -> Vec<LayerRule> {
             .and_then(|old| old.may_use.clone())
             .map(|used| used.into_iter().filter(|n| names.contains(n)).collect());
     }
-    wanted
+    Ok(wanted)
 }
 
 /// The text of a project file with `wanted` as its layers, in that order. An entry's `may_use`
@@ -67,20 +85,27 @@ fn with_known_limits(text: &str, mut wanted: Vec<LayerRule>) -> Vec<LayerRule> {
 /// - `CFG-101` if the layers are not valid: a name or namespace is not valid, a name is used
 ///   twice, or a layer has no namespace.
 pub fn with_layers(text: &str, wanted: Vec<LayerRule>) -> Result<String, ConfigError> {
-    write_layers(text, &with_known_limits(text, wanted))
+    write_layers(text, &with_known_limits(text, wanted)?)
 }
 
 /// What one layer may use as the editor of the rules sets it: `None` is no limit.
 pub type LayerLimit = (String, Option<Vec<String>>);
 
 /// The text of a project file whose layers keep their names, namespaces and order but get the
-/// `may_use` of `limits` (a layer without an entry keeps its own).
+/// `may_use` of `limits` (a layer without an entry keeps its own). A limit that names a layer
+/// the file does not have is ignored. Without limits the text is returned as it is: the
+/// `[[layers]]` tables are not touched, comments inside them stay.
 ///
 /// # Errors
 /// - `CFG-102` if `text` is not valid TOML (the file is then left alone).
-/// - `CFG-101` if the result is not valid: a limit names a layer that does not exist.
+/// - `CFG-101` if the layers cannot be read, or the result is not valid: a limit lets a layer
+///   use a layer that does not exist.
 pub fn with_layer_limits(text: &str, limits: &[LayerLimit]) -> Result<String, ConfigError> {
-    let mut layers = existing_rules(text);
+    if limits.is_empty() {
+        ConfigLayer::parse(LayerSource::Project, text)?;
+        return Ok(text.to_owned());
+    }
+    let mut layers = existing_rules(text)?;
     for layer in &mut layers {
         if let Some((_, may_use)) = limits.iter().find(|(name, _)| name == &layer.name) {
             layer.may_use.clone_from(may_use);
@@ -198,5 +223,14 @@ mod tests {
         assert!(with_layers("", vec![rule("a", &[])]).is_err());
         assert!(with_layers("", vec![rule("a", &["x"]), rule("a", &["y"])]).is_err());
         assert!(with_layers("[scan", vec![rule("a", &["x"])]).is_err());
+    }
+
+    #[test]
+    fn a_limit_for_an_unknown_layer_is_ignored_and_a_broken_layer_table_is_refused() {
+        let text = "[[layers]]\nname = \"a\"\nnamespaces = [\"x\"]\n";
+        let limits = vec![("gone".to_owned(), Some(Vec::new()))];
+        let written = with_layer_limits(text, &limits).unwrap();
+        assert_eq!(written.trim_end(), text.trim_end());
+        assert!(with_layer_limits("[[layers]]\nname = 3\n", &limits).is_err());
     }
 }

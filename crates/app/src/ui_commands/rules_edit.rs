@@ -12,15 +12,15 @@ use codeskimr_application::config::{
 use codeskimr_application::error::CodedError;
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Permission, ProjectSource};
+use codeskimr_domain::{Permission, ProjectId, ProjectSource};
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
-    RULES_PREVIEW, RULES_PREVIEW_DESCRIPTION, RULES_PREVIEW_TITLE, RULES_SET,
+    MAX_RULES_PER_CALL, RULES_PREVIEW, RULES_PREVIEW_DESCRIPTION, RULES_PREVIEW_TITLE, RULES_SET,
     RULES_SET_DESCRIPTION, RULES_SET_TITLE,
 };
 use super::explorer::ExplorerPorts;
-use super::layers::write_project_file;
+use super::layers::update_project_file;
 use super::rules::{Candidate, RulesOut, judged};
 use crate::project_file::read_project_file;
 use crate::rules_check::files_of;
@@ -56,20 +56,22 @@ pub struct RulesSaved {
     pub rules: usize,
 }
 
-/// The project file of a folder project and the text it gets.
-struct Edit {
-    path: PathBuf,
-    text: String,
-}
-
-fn edit_of(ports: &ExplorerPorts, input: &EditInput) -> Result<(Edit, ProjectSource), CodedError> {
-    let project = ports
-        .projects
-        .project(codeskimr_domain::ProjectId::new(input.project))?;
+/// The path of the project file of a folder project.
+fn path_of(ports: &ExplorerPorts, project: u64) -> Result<(PathBuf, ProjectSource), CodedError> {
+    let project = ports.projects.project(ProjectId::new(project))?;
     let ProjectSource::Folder(folder) = &project.source else {
         return Err(CodedError::new(ErrorCode::ProjectSourceInvalid));
     };
     let path = std::path::Path::new(folder.as_str()).join(PROJECT_CONFIG_FILE);
+    Ok((path, project.source))
+}
+
+/// The text of the project file `old` with the wanted rules in it. At most `MAX_RULES_PER_CALL`
+/// rules are judged or written in one call.
+fn wanted_text(input: &EditInput, old: &str) -> Result<String, CodedError> {
+    if input.forbid.len() + input.public_api.len() > MAX_RULES_PER_CALL {
+        return Err(CodedError::new(ErrorCode::ConfigInvalidValue));
+    }
     let wanted = Rules {
         cycles: if input.cycles {
             CycleRule::Deny
@@ -84,9 +86,8 @@ fn edit_of(ports: &ExplorerPorts, input: &EditInput) -> Result<(Edit, ProjectSou
         .iter()
         .map(|limit| (limit.layer.clone(), limit.may_use.clone()))
         .collect();
-    let text = with_rules(&read_project_file(&path)?, &wanted).map_err(CodedError::caused_by)?;
-    let text = with_layer_limits(&text, &limits).map_err(CodedError::caused_by)?;
-    Ok((Edit { path, text }, project.source))
+    let text = with_rules(old, &wanted).map_err(CodedError::caused_by)?;
+    with_layer_limits(&text, &limits).map_err(CodedError::caused_by)
 }
 
 /// Writes the rules of a folder project into its `.codeskimr.toml`.
@@ -114,11 +115,11 @@ impl Command for RulesSet {
     fn execute(&self, request: Request<'_, Self>) -> Result<RulesSaved, CodedError> {
         access::require(request.principal, Permission::Manage)?;
         let input = &request.input;
-        let (edit, _) = edit_of(&self.ports, input)?;
-        write_project_file(&edit.path, &edit.text)?;
-        Ok(RulesSaved {
+        let (path, _) = path_of(&self.ports, input.project)?;
+        let saved = RulesSaved {
             rules: input.forbid.len() + input.public_api.len() + usize::from(input.cycles),
-        })
+        };
+        update_project_file(&path, |old| Ok((wanted_text(input, old)?, saved)))
     }
 }
 
@@ -146,9 +147,10 @@ impl Command for RulesPreview {
     fn execute(&self, request: Request<'_, Self>) -> Result<RulesOut, CodedError> {
         access::require(request.principal, Permission::Read)?;
         let input = &request.input;
-        let (edit, source) = edit_of(&self.ports, input)?;
+        let (path, source) = path_of(&self.ports, input.project)?;
+        let text = wanted_text(input, &read_project_file(&path)?)?;
         let layer =
-            ConfigLayer::parse(LayerSource::Project, &edit.text).map_err(CodedError::caused_by)?;
+            ConfigLayer::parse(LayerSource::Project, &text).map_err(CodedError::caused_by)?;
         let config = Config::resolve(&[layer]).map_err(CodedError::caused_by)?;
         let (_, baseline) = files_of(&source)?;
         let (_, snapshot) = self.ports.project_and_newest(input.project)?;
