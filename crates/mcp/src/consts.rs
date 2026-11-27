@@ -56,6 +56,11 @@ pub const ARG_LAYER: &str = "layer";
 /// Argument name reported when `symbol` and `layer` are both given or both missing.
 pub const ARG_SYMBOL_OR_LAYER: &str = "symbol or layer";
 
+/// Argument name reported when its value is invalid: the level of `get_dependencies`.
+pub const ARG_LEVEL: &str = "level";
+/// Value of `level`: the modules (namespaces) of the project with rings and coupling (ADR 0108).
+pub const LEVEL_MODULE: &str = "module";
+
 /// Value of `target.kind`: a symbol, namespace or type.
 pub const TARGET_SYMBOL: &str = "symbol";
 /// Value of `target.kind`: a layer.
