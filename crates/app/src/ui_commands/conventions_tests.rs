@@ -21,6 +21,16 @@ fn long_method(lines: u32) -> String {
     )
 }
 
+/// The finding of the method that is over the limit of lines.
+fn long_finding(answer: &Value) -> &Value {
+    answer["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|finding| finding["code"] == "CHK-104")
+        .unwrap_or_else(|| panic!("a finding for the long method: {answer}"))
+}
+
 fn check(fixture: &Fixture, project: u64) -> Value {
     fixture
         .call("conventions.check", json!({ "project": project }))
@@ -34,12 +44,7 @@ fn a_function_over_the_limit_is_found_in_a_file_no_scan_has_seen() {
     let app = fixture.root.path().join("app");
     fs::write(app.join("Long.cs"), long_method(60)).unwrap();
     let answer = check(&fixture, project);
-    let found = answer["findings"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|finding| finding["code"] == "CHK-104")
-        .unwrap_or_else(|| panic!("a finding for the long method: {answer}"));
+    let found = long_finding(&answer);
     assert_eq!(found["path"], "Long.cs");
     assert_eq!(found["symbol"], "Demo.Long.Sum");
     assert!(found["lines"].as_u64().unwrap() > found["max_lines"].as_u64().unwrap());
@@ -101,12 +106,7 @@ fn a_finding_names_the_symbol_of_the_scan_and_has_none_for_a_file_the_scan_has_n
     let app = fixture.root.path().join("app");
     fs::write(app.join("Long.cs"), long_method(60)).unwrap();
     let before = check(&fixture, project);
-    let found = before["findings"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|finding| finding["code"] == "CHK-104")
-        .unwrap();
+    let found = long_finding(&before);
     assert!(found["symbol_ref"].is_null(), "not scanned yet: {found}");
 }
 
@@ -120,12 +120,7 @@ fn a_finding_in_a_scanned_file_names_its_symbol() {
     .unwrap();
     let project = fixture.scanned();
     let answer = check(&fixture, project);
-    let found = answer["findings"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|finding| finding["code"] == "CHK-104")
-        .unwrap();
+    let found = long_finding(&answer);
     assert!(found["symbol_ref"]["id"].is_u64(), "{found}");
     assert_eq!(found["symbol_ref"]["kind"], "method", "{found}");
 }
