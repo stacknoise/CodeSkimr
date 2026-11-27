@@ -15,6 +15,7 @@ use codeskimr_application::events::{
     AlertsChanged, Event, EventBus, FilesChanged, Level2Finished, Level2Progressed, ScanProgressed,
     ScanStopped, SnapshotCreated, StopReason, Subscription,
 };
+use codeskimr_application::stage::PersistStep;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Permission;
 use serde::Serialize;
@@ -29,6 +30,12 @@ use crate::consts::{
 };
 use crate::error::Failure;
 use crate::state::AppState;
+
+/// Whether `value` is zero, so that a field without a meaning is left out of the JSON.
+#[allow(clippy::trivially_copy_pass_by_ref)] // the signature serde's `skip_serializing_if` needs
+const fn is_zero(value: &u32) -> bool {
+    *value == 0
+}
 
 /// One event as it goes over the wire. Only ids, counts and registered codes: no names, no paths
 /// and no source text, so a stream needs no more than the `read` permission.
@@ -47,6 +54,15 @@ pub enum WireEvent {
         total: u32,
         /// Milliseconds since the stage started.
         elapsed_ms: u64,
+        /// Label of the step of writing the snapshot, while the stage `persist` is in one.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        step: Option<&'static str>,
+        /// Place of that step in the write, counted from one; zero without a step.
+        #[serde(skip_serializing_if = "is_zero")]
+        step_number: u32,
+        /// How many steps a write has at most; zero without a step.
+        #[serde(skip_serializing_if = "is_zero")]
+        steps: u32,
     },
     /// A snapshot was written.
     SnapshotCreated {
@@ -120,12 +136,16 @@ impl WireEvent {
                 done,
                 total,
                 elapsed_ms,
+                step,
             }) => Self::ScanProgressed {
                 project: project.get(),
                 stage: stage.label(),
                 done: *done,
                 total: *total,
                 elapsed_ms: *elapsed_ms,
+                step: step.map(PersistStep::label),
+                step_number: step.map_or(0, PersistStep::number),
+                steps: step.map_or(0, |_| PersistStep::count()),
             },
             Event::SnapshotCreated(created) => Self::snapshot_created(created),
             Event::FilesChanged(FilesChanged {

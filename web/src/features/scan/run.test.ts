@@ -4,7 +4,9 @@ import {
   checkedOnly,
   files,
   filesPerSecond,
+  activeStep,
   latestRun,
+  minutesSeconds,
   percent,
   secondsLeft,
   isUnmeasured,
@@ -216,5 +218,54 @@ describe("a report that arrives late", () => {
       [progress("resolve", 3, 9), 1],
     ])[0] as Run;
     expect(run.stages.resolve?.done).toBe(3);
+  });
+});
+
+describe("the steps of the write", () => {
+  const step = (name: string, number: number, project = 1): WireEvent => ({
+    type: "scan_progressed",
+    project,
+    stage: "persist",
+    done: 0,
+    total: 1,
+    step: name,
+    step_number: number,
+    steps: 11,
+  });
+
+  it("names the step the write is in and counts its time from the first report of the step", () => {
+    const [run] = fold([
+      [step("reference_indexes", 5), 10_000],
+      [step("reference_indexes", 5), 70_000],
+    ]);
+    const active = activeStep(run as Run, 254_000);
+    expect(active?.step).toMatchObject({ name: "reference_indexes", number: 5, of: 11 });
+    expect(active?.seconds).toBe(244);
+  });
+
+  it("starts the time again with the next step", () => {
+    const [run] = fold([
+      [step("references", 4), 10_000],
+      [step("reference_indexes", 5), 50_000],
+    ]);
+    expect(activeStep(run as Run, 60_000)?.seconds).toBe(10);
+  });
+
+  it("has no step before the write reports one, and none once the scan is over", () => {
+    const [before] = fold([[progress("fetch", 1, 1), 1000]]);
+    expect(activeStep(before as Run, 2000)).toBeNull();
+    const [over] = fold([
+      [step("commit", 11), 1000],
+      [created, 2000],
+    ]);
+    expect(activeStep(over as Run, 3000)).toBeNull();
+  });
+});
+
+describe("minutesSeconds", () => {
+  it("writes minutes and two-digit seconds", () => {
+    expect(minutesSeconds(0)).toBe("0:00");
+    expect(minutesSeconds(252.7)).toBe("4:12");
+    expect(minutesSeconds(3605)).toBe("60:05");
   });
 });

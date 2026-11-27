@@ -7,6 +7,7 @@ use codeskimr_application::ports::{
     Confirmation, PreviousIndex, ProjectRepository, ScanWarning, SkippedFile, SnapshotData,
     SnapshotStore, SymbolKey,
 };
+use codeskimr_application::stage::PersistStep;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
     CommitHash, ContentHash, FileId, LanguageId, MetricKind, RelativePath, ScanMode, SnapshotId,
@@ -70,6 +71,22 @@ fn the_history_lists_the_retained_scans_newest_first_with_duration_and_changed_f
         history[1].duration_ms, None,
         "an untimed scan shows no duration"
     );
+}
+
+#[test]
+fn a_write_tells_each_step_when_it_begins_in_the_order_of_the_write() {
+    let store = registered_store();
+    let told = std::cell::RefCell::new(Vec::new());
+    store
+        .persist_with_steps(first_scan(10), &|step| told.borrow_mut().push(step))
+        .unwrap();
+    // A small first scan drops no index and prunes nothing before the load, but it still runs
+    // every other step, and the steps come in the order of `PersistStep::ALL`.
+    let told = told.into_inner();
+    assert_eq!(told.first(), Some(&PersistStep::Header));
+    assert_eq!(told.last(), Some(&PersistStep::Commit));
+    assert!(told.contains(&PersistStep::ReadModels));
+    assert!(told.windows(2).all(|pair| pair[0] < pair[1]), "{told:?}");
 }
 
 #[test]

@@ -8,7 +8,7 @@ use codeskimr_application::events::{
     AlertsChanged, Event, FilesChanged, Level2Finished, Level2Progressed, ScanProgressed,
     ScanStopped, StopReason,
 };
-use codeskimr_application::stage::StageKind;
+use codeskimr_application::stage::{PersistStep, StageKind};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{PermissionSet, Principal, ProjectId};
 use common::{Call, Running, owner, start};
@@ -43,8 +43,16 @@ async fn frame(stream: &mut TcpStream) -> String {
         .unwrap()
         .unwrap();
     assert_eq!(head[0], 0x81, "a final text frame");
-    let mut payload = vec![0_u8; usize::from(head[1])];
-    assert!(head[1] < 126);
+    let length = if head[1] == 126 {
+        // Sixteen-bit length for payloads of 126 bytes and more.
+        let mut extended = [0_u8; 2];
+        stream.read_exact(&mut extended).await.unwrap();
+        usize::from(u16::from_be_bytes(extended))
+    } else {
+        assert!(head[1] < 126);
+        usize::from(head[1])
+    };
+    let mut payload = vec![0_u8; length];
     stream.read_exact(&mut payload).await.unwrap();
     String::from_utf8(payload).unwrap()
 }
@@ -57,7 +65,28 @@ fn progressed(project: ProjectId) -> Event {
         done: 3,
         total: 10,
         elapsed_ms: 250,
+        step: None,
     })
+}
+
+#[tokio::test]
+async fn a_report_inside_a_step_of_the_write_names_the_step_and_its_place() {
+    let server = start(owner()).await;
+    let (mut stream, _) = open(&server, "").await;
+    server
+        .events
+        .publish(&Event::ScanProgressed(ScanProgressed {
+            project: ProjectId::new(7),
+            stage: StageKind::Persist,
+            done: 0,
+            total: 1,
+            elapsed_ms: 9,
+            step: Some(PersistStep::ReferenceIndexes),
+        }));
+    let json: serde_json::Value = serde_json::from_str(&frame(&mut stream).await).unwrap();
+    assert_eq!(json["step"], "reference_indexes");
+    assert_eq!(json["step_number"], PersistStep::ReferenceIndexes.number());
+    assert_eq!(json["steps"], PersistStep::count());
 }
 
 #[tokio::test]
