@@ -204,8 +204,7 @@ export const METRIC_TEXT: Record<string, MessageKey> = {
   ce: I18N_KEYS.CHANGE_METRICS_METRIC_CE,
   instability: I18N_KEYS.CHANGE_METRICS_METRIC_INSTABILITY,
 };
-/** What a move did, as the answer names it, and the tone of its pill. */
-export const MOVE_DIRECTION = { worse: "worse", better: "better", grew: "grew" } as const;
+/** The tone of the pill of a move, by what the move did as the answer names it. */
 export const DIRECTION_TONE: Record<string, PillTone> = {
   worse: TONE.bad,
   better: TONE.good,
@@ -222,8 +221,25 @@ export const DELTA_SIGN = { up: "+", down: "−" } as const;
 export const METRIC_DECIMALS = 2;
 /** The id of the box of the list of what got worse and of what got better. */
 export const METRICS_LIST = { worse: "worse", better: "better" } as const;
-/** Joins the parts of the line under the name of an object. */
-export const METRICS_LINE_JOIN = " · ";
+/** The prefix of the key under which the widths of the columns of a list are kept. */
+export const METRICS_TABLE_KEY = "change-metrics-";
+/** The columns of the two lists of the view "Metrics", by id. */
+export const METRICS_COLUMN = {
+  object: "object",
+  file: "file",
+  metric: "metric",
+  values: "values",
+  change: "change",
+} as const;
+export const METRICS_COLUMNS = [
+  { id: METRICS_COLUMN.object, label: I18N_KEYS.CHANGE_METRICS_COL_OBJECT, number: false },
+  { id: METRICS_COLUMN.file, label: I18N_KEYS.CHANGE_VIEW_COL_FILE, number: false },
+  { id: METRICS_COLUMN.metric, label: I18N_KEYS.CHANGE_METRICS_FILTER_LABEL, number: false },
+  { id: METRICS_COLUMN.values, label: I18N_KEYS.CHANGE_METRICS_COL_VALUES, number: true },
+  { id: METRICS_COLUMN.change, label: I18N_KEYS.CHANGE_VIEW_COL_CHANGE, number: true },
+] as const;
+/** The metrics that a level does not have (ADR 0114): members have no coupling and no stability. */
+export const METRICS_NOT_AT_MEMBER: readonly string[] = [METRIC.ce, METRIC.instability];
 /** Joins the parts of the key that tells one object from another. */
 export const OBJECT_KEY_JOIN = "\u0000";
 /** What a figure shows when its number is not known. */

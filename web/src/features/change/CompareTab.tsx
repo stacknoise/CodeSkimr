@@ -5,117 +5,18 @@ import { createTableColumns } from "../../shared/table/columns";
 import { ColumnWidths } from "../../shared/table/ResizableHead";
 import { cx } from "../../shared/ui/cx";
 import { Pill } from "../../shared/ui/Pill";
-import { changePicked, changeReading, changeScans, loadChange, pickScans } from "./change";
-import {
-  COMPARE_COLUMNS,
-  COMPARE_TABLE_KEY,
-  NOT_FOUND,
-  BASE_FIELD_ID,
-  REASON,
-  SCAN_ARROW,
-  TARGET_FIELD_ID,
-  TITLE_JOIN,
-} from "./consts";
+import { COMPARE_COLUMNS, COMPARE_TABLE_KEY, REASON, TITLE_JOIN } from "./consts";
 import { ChangeFilterBar, FilterEmpty } from "./ChangeFilter";
 import { changeFilter, kindsOf, passes } from "./filter";
 import { Figure } from "./Figure";
 import { Notes } from "./Notes";
+import { Selectors } from "./Selectors";
 import { compareOrder, compareValue, sortCompareBy, sortedBy } from "./order";
 import { SortHeads } from "./SortHeads";
 import { answerTotal, compareRows, reasonCount, type CompareRow } from "./rows";
-import { optionText } from "./scans";
 import type { ChangeAnswer } from "./types";
 import parts from "./Parts.module.css";
 import styles from "./CompareTab.module.css";
-
-/** The choice of one scan: a label and a list of the scans that can be that end of the comparison. */
-function ScanField(props: {
-  id: string;
-  label: string;
-  value: number | null;
-  /** Indexes into the list of the scans, newest first, that the field offers. */
-  indexes: readonly number[];
-  onPick: (scan: number) => void;
-}) {
-  return (
-    <div class={styles.field}>
-      <label class={parts.figureLabel} for={props.id}>
-        {props.label}
-      </label>
-      <select
-        id={props.id}
-        class={styles.select}
-        disabled={changeReading()}
-        onChange={(event) => props.onPick(Number(event.currentTarget.value))}
-      >
-        <For each={props.indexes}>
-          {(index) => {
-            const scan = () => changeScans()?.scans[index];
-            return (
-              <Show when={scan()}>
-                {(entry) => (
-                  <option value={entry().scan} selected={entry().scan === props.value}>
-                    {optionText(entry(), index === 0)}
-                  </option>
-                )}
-              </Show>
-            );
-          }}
-        </For>
-      </select>
-    </div>
-  );
-}
-
-/** The indexes of the scans that can be the base (older than the target) and the target (newer
- * than the base). */
-function offers(): { base: number[]; target: number[] } {
-  const scans = changeScans()?.scans ?? [];
-  const at = (id: number | null, fallback: number) => {
-    const found = scans.findIndex((scan) => scan.scan === id);
-    return found === NOT_FOUND ? fallback : found;
-  };
-  const target = at(changePicked().target, 0);
-  const base = at(changePicked().base, scans.length - 1);
-  const all = scans.map((_, index) => index);
-  return {
-    base: all.filter((index) => index > target),
-    target: all.filter((index) => index < base),
-  };
-}
-
-/** The two selectors of the scans and the button that compares them (mock 29). */
-export function Selectors(props: { project: number }) {
-  return (
-    <div class={styles.selectors}>
-      <ScanField
-        id={BASE_FIELD_ID}
-        label={t(I18N_KEYS.CHANGE_VIEW_BASE)}
-        value={changePicked().base}
-        indexes={offers().base}
-        onPick={(base) => pickScans({ ...changePicked(), base })}
-      />
-      <span class={styles.arrow} aria-hidden={true}>
-        {SCAN_ARROW}
-      </span>
-      <ScanField
-        id={TARGET_FIELD_ID}
-        label={t(I18N_KEYS.CHANGE_VIEW_TARGET)}
-        value={changePicked().target}
-        indexes={offers().target}
-        onPick={(target) => pickScans({ ...changePicked(), target })}
-      />
-      <button
-        type="button"
-        class={styles.run}
-        disabled={changeReading()}
-        onClick={() => void loadChange(props.project, changePicked())}
-      >
-        {t(I18N_KEYS.CHANGE_VIEW_RUN)}
-      </button>
-    </div>
-  );
-}
 
 /** The four figures: new, changed (with the reasons), removed and moved symbols. */
 function Figures(props: { answer: ChangeAnswer }) {

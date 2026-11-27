@@ -301,8 +301,8 @@ inEachTheme(
     await page.getByRole("tab", { name: "Metrics" }).click();
     const worse = page.getByRole("region", { name: "Got worse" });
     const better = page.getByRole("region", { name: "Got better" });
-    await expect(worse.getByText("Shop.Pricing.Fee.Total")).toBeVisible({ timeout: SCAN_MS });
-    await expect(better.getByText("Shop.Pricing.Legacy.Calculate")).toBeVisible();
+    await expect(worse.getByText("Shop.Pricing.Fee.Total").first()).toBeVisible({ timeout: SCAN_MS });
+    await expect(better.getByText("Shop.Pricing.Legacy.Calculate").first()).toBeVisible();
     await shot(page, SHOTS, `metrics-${theme}`, info);
 
     // The chips narrow both lists to one metric; the keyboard reaches them.
@@ -315,6 +315,6 @@ inEachTheme(
     await page.getByRole("button", { name: "All", exact: true }).click();
     // Another level reads the metrics again; types have complexity too.
     await page.getByLabel("Level").selectOption("type");
-    await expect(worse.getByText("Shop.Pricing.Fee")).toBeVisible();
+    await expect(worse.getByText("Shop.Pricing.Fee", { exact: true }).first()).toBeVisible();
   },
 );

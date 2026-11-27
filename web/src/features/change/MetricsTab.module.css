@@ -88,54 +88,43 @@
     font-size: 12px;
 }
 
-.items {
+/* The table fills the height of its box and scrolls inside it; the head stays at the top. */
+.scroll {
     flex: 1;
     min-height: 0;
-    margin: 0;
-    padding: 0;
-    list-style: none;
     overflow: auto;
 }
 
-.item {
-    display: flex;
-    gap: var(--space-10);
-    padding: var(--space-10) var(--space-12);
-    border-bottom: 1px solid var(--line-soft);
+.scroll th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--surface);
+    box-shadow: inset 0 -1px var(--line);
 }
 
-.item:last-child {
-    border-bottom: 0;
+.object {
+    max-width: 0;
+    width: 55%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .tag {
-    flex: none;
     display: inline-grid;
     place-items: center;
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
+    margin-right: var(--space-8);
     border-radius: 50%;
     background: var(--accent-bg);
     color: var(--accent);
     font: 600 11px var(--font-sans);
 }
 
-.body {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-}
-
-.name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font: 600 12.5px var(--font-mono);
-}
-
 .where {
+    max-width: 14ch;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -143,27 +132,8 @@
     font: 11px var(--font-mono);
 }
 
-.moves {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    margin-top: var(--space-4);
-}
-
-.move {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-8);
-}
-
-.metric {
-    width: 110px;
-    color: var(--muted);
-    font-size: 13px;
-}
-
 .cross {
+    margin-left: var(--space-8);
     color: var(--muted);
     font: 11px var(--font-mono);
 }

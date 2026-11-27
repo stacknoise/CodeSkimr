@@ -1,5 +1,12 @@
 import { currentLanguage } from "../../shared/i18n/i18n";
-import { DELTA_SIGN, METRIC_ALL, METRIC_DECIMALS, OBJECT_KEY_JOIN } from "./consts";
+import {
+  DELTA_SIGN,
+  METRIC_ALL,
+  METRIC_DECIMALS,
+  METRICS_LEVEL,
+  METRICS_NOT_AT_MEMBER,
+  OBJECT_KEY_JOIN,
+} from "./consts";
 import type { ChangeAnswer, Listed, MetricChangeOut, MetricMoveOut, MetricsAnswer } from "./types";
 
 /** The objects of a list that moved in `metric`, with only the moves of that metric; the whole
@@ -50,4 +57,27 @@ export function crossingCount(items: readonly MetricChangeOut[]): number {
 /** The objects of the comparison that cannot be compared: new and removed ones. */
 export function notComparable(answer: ChangeAnswer): { added: number; removed: number } {
   return { added: answer.added.total, removed: answer.removed.total };
+}
+
+/** One row of a list: a move of one object. An object with two moves has two rows. */
+export interface MetricRow {
+  key: string;
+  item: MetricChangeOut;
+  move: MetricMoveOut;
+}
+
+/** The rows of a list, one per move, in the order of the answer. */
+export function metricRows(items: readonly MetricChangeOut[]): MetricRow[] {
+  return items.flatMap((item) =>
+    item.moves.map((move) => ({
+      key: [objectKey(item), move.metric].join(OBJECT_KEY_JOIN),
+      item,
+      move,
+    })),
+  );
+}
+
+/** Whether a level has the metric; only the choice "all" and the metrics of members fit every level. */
+export function metricAvailable(metric: string, level: string): boolean {
+  return !(level === METRICS_LEVEL.member && METRICS_NOT_AT_MEMBER.includes(metric));
 }

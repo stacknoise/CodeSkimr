@@ -8,6 +8,7 @@ import type { ScanHistoryAnswer } from "../scan/types";
 import { resetFilter } from "./filter";
 import { COMMAND, METRIC_ALL, METRICS_LEVEL, MIN_SCANS, TAB } from "./consts";
 import { firstToSelect, impactRows } from "./rows";
+import { metricAvailable } from "./metrics";
 import type { ChangeAnswer, MetricsAnswer, Selection } from "./types";
 
 type Tab = (typeof TAB)[keyof typeof TAB];
@@ -86,6 +87,9 @@ export async function loadMetrics(project: number): Promise<void> {
 /** Chooses the level of the metrics and reads them again. */
 export function chooseMetricsLevel(project: number, level: string): void {
   setMetricsLevel(level);
+  if (!metricAvailable(metricsMetric(), level)) {
+    setMetricsMetric(METRIC_ALL);
+  }
   void loadMetrics(project);
 }
 
