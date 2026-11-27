@@ -87,7 +87,7 @@ fn a_project_is_checked_by_one_run_at_a_time() {
     let first = runs.begin(7).unwrap();
     assert_eq!(
         runs.begin(7).unwrap_err().code(),
-        ErrorCode::SnapshotInProgress
+        ErrorCode::CheckInProgress
     );
     assert!(runs.begin(8).is_ok(), "another project is not held up");
     drop(first);

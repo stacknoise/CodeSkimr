@@ -20,11 +20,11 @@ Option 1.
 - **No path from the caller.** The input holds no path; the folder comes from the project. A project that is not a folder on this machine (a Git source, whose files live in the cache of the scan) answers `PRJ-101`, as the MCP tool does. Choosing paths or "changed files" (variant B) is a later step; the command can take `paths` then without a change of meaning.
 - **No stored state.** Like the console, the check runs with `stored: None`: the layer rule `CHK-103` belongs to the rules (ADR 0082), and duplicates are searched among the checked files only. The tab says so under the findings (the list `not_checked`).
 - **The caller counts.** `check_folder` takes the principal of the request, not that of the process, so the check judges with the rights of the caller who was asked for them.
-- **One run per project.** A second check of a project that is being checked answers `PRJ-302`, so a double click or a second tab cannot start several full analyses of one folder. The lock is its own and does not mark the project as scanning.
+- **One run per project.** A second check of a project that is being checked answers `PRJ-304`, so a double click or a second tab cannot start several full analyses of one folder. The lock is its own and does not mark the project as scanning.
 - **Long runs.** The check runs on the server's blocking pool like every command. A very large project (tens of thousands of files) takes about as long as a scan's analysis stage; the tab shows that it is running and can be left. A cancel button is not part of this step.
 - **REST only.** The MCP tool exists already.
 
 ## Consequences
 
 - The console command and the tab give the same findings for the same folder, because both call `check::check_folder`.
-- No new error code, no new dependency.
+- One new error code, `PRJ-304` (a check of the project is already running), because `PRJ-302` says "a scan" and the person has started none; no new dependency.

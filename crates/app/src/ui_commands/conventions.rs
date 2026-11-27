@@ -45,7 +45,7 @@ pub struct ConventionsPorts {
     pub(super) running: Runs,
 }
 
-/// The projects with a running check; a second check of the same project is refused (`PRJ-302`),
+/// The projects with a running check; a second check of the same project is refused (`PRJ-304`),
 /// so a double click or a second tab cannot start several full analyses of one folder.
 #[derive(Debug, Default)]
 pub struct Runs {
@@ -63,7 +63,7 @@ impl Runs {
     /// Marks `project` as being checked.
     ///
     /// # Errors
-    /// `PRJ-302` if a check of the project is running already.
+    /// `PRJ-304` if a check of the project is running already.
     pub fn begin(&self, project: u64) -> Result<RunGuard, CodedError> {
         let fresh = self
             .projects
@@ -71,7 +71,7 @@ impl Runs {
             .unwrap_or_else(PoisonError::into_inner)
             .insert(project);
         if !fresh {
-            return Err(CodedError::new(ErrorCode::SnapshotInProgress));
+            return Err(CodedError::new(ErrorCode::CheckInProgress));
         }
         Ok(RunGuard {
             projects: Arc::clone(&self.projects),
@@ -109,7 +109,7 @@ impl Command for ConventionsCheck {
 
     /// # Errors
     /// - `AUTH-401` without the right to read source.
-    /// - `PRJ-302` if a check of the project is running already.
+    /// - `PRJ-304` if a check of the project is running already.
     /// - `PRJ-201` for an unknown project, `PRJ-101` for a Git project (its files live in the
     ///   cache of the scan, not in a folder of the person).
     /// - The coded failure of the configuration, the language packs or the file discovery.
