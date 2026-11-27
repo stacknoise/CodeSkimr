@@ -14,7 +14,7 @@ import {
   URL_CLOSE,
   URL_OPEN,
 } from "./consts";
-import { edgeKind, edgePath, rankColor, shown, styleOf } from "./geometry";
+import { edgeKind, edgePath, rankColor, relatedTo, shown, styleOf } from "./geometry";
 import type { GraphData, LayerBox, LayerLink, Size, View } from "./types";
 import { useNavigation } from "./useNavigation";
 import { transformOf } from "./viewport";
@@ -126,12 +126,18 @@ function BoxButton(props: {
   onSelect: (name: string) => void;
   onOpen: (name: string) => void;
   critical: boolean;
+  dimmed: boolean;
 }) {
   const box = () => props.box;
   return (
     <button
       type="button"
-      class={cx(styles.box, props.selected && styles.selected, props.critical && styles.critical)}
+      class={cx(
+        styles.box,
+        props.selected && styles.selected,
+        props.critical && styles.critical,
+        props.dimmed && styles.dimmed,
+      )}
       style={{
         left: box().x + PX,
         top: box().y + PX,
@@ -168,6 +174,7 @@ function Boxes(props: {
   onOpen: (name: string) => void;
   critical: (box: LayerBox) => boolean;
 }) {
+  const related = () => relatedTo(props.selected, props.data.links);
   return (
     <For each={props.data.boxes}>
       {(box) => (
@@ -177,6 +184,7 @@ function Boxes(props: {
           onSelect={props.onSelect}
           onOpen={props.onOpen}
           critical={props.critical(box)}
+          dimmed={related() !== null && !related()!.has(box.name)}
         />
       )}
     </For>

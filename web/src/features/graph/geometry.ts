@@ -29,6 +29,24 @@ export function edgeKind(link: LayerLink, selected: string | null): EdgeKind {
   return link.to === selected ? EDGE.in : EDGE.weak;
 }
 
+/** The selected box and every box joined to it by an edge; `null` while nothing is selected. The
+ * other boxes are drawn faint. */
+export function relatedTo(
+  selected: string | null,
+  links: readonly LayerLink[],
+): Set<string> | null {
+  if (selected === null) {
+    return null;
+  }
+  const names = new Set([selected]);
+  for (const link of links) {
+    if (link.from === selected || link.to === selected) {
+      names.add(link.from).add(link.to);
+    }
+  }
+  return names;
+}
+
 /** Whether an edge is drawn: with "violations only" every other edge is hidden. */
 export function shown(link: LayerLink, violationsOnly: boolean): boolean {
   return link.from !== link.to && (!violationsOnly || link.violates_layering);

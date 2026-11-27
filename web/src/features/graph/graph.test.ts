@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { LEVEL } from "./consts";
 import { graphLevel, resetGraph, setGraphFocus, setGraphLevel } from "./graph";
-import { edgeKind, edgePath, shown } from "./geometry";
+import { edgeKind, edgePath, relatedTo, shown } from "./geometry";
 import { neighboursOf, violations } from "./neighbours";
 import type { LayerBox, LayerLink } from "./types";
 import { fit, pan, zoomAt } from "./viewport";
@@ -112,5 +112,16 @@ describe("resetGraph", () => {
     setGraphLevel(LEVEL.namespaces);
     resetGraph();
     expect(graphLevel()).toBe(LEVEL.namespaces);
+  });
+});
+
+describe("relatedTo", () => {
+  it("is empty of meaning while nothing is selected", () => {
+    expect(relatedTo(null, [link("a", "b")])).toBeNull();
+  });
+
+  it("holds the selection and its direct neighbours, and no other box", () => {
+    const links = [link("a", "b"), link("c", "a"), link("d", "e"), link("a", "a")];
+    expect([...relatedTo("a", links)!].sort()).toEqual(["a", "b", "c"]);
   });
 });
