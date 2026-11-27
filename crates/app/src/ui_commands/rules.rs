@@ -22,6 +22,7 @@ use super::consts::{
 };
 use super::explorer::ExplorerPorts;
 use super::layers::write_project_file;
+use super::rules_symbols::attach_symbols;
 use crate::clock::SystemClock;
 use crate::rules_check::{project_file_state, project_files};
 
@@ -56,6 +57,19 @@ pub struct ViolationOut {
     pub places: Vec<PlaceOut>,
     /// For a cycle, the ring behind it; `from` and `to` are then the ends of its weakest edge.
     pub ring: Option<RingOut>,
+    /// The symbol `from` names in the newest scan, so the screen can show it in the explorer.
+    pub from_symbol: Option<SymbolRef>,
+    /// The symbol `to` names in the newest scan.
+    pub to_symbol: Option<SymbolRef>,
+}
+
+/// A symbol of the newest scan: what the explorer needs to open it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SymbolRef {
+    /// Id of the symbol.
+    pub id: u64,
+    /// Kind label.
+    pub kind: &'static str,
 }
 
 /// The ring of modules behind a cycle violation.
@@ -146,6 +160,8 @@ fn violations_of(outcome: &Outcome) -> Vec<ViolationOut> {
             to: violation.to.to_string(),
             old: violation.old,
             ring: violation.ring.as_ref().map(ring_out),
+            from_symbol: None,
+            to_symbol: None,
             places: violation
                 .places
                 .iter()
@@ -276,6 +292,7 @@ impl Command for RulesShow {
     ///   invalid value: the screen fails instead of showing every rule as kept.
     fn execute(&self, request: Request<'_, Self>) -> Result<RulesOut, CodedError> {
         let (project, snapshot) = self.ports.project_and_newest(request.input.project)?;
+        let snapshot_id = snapshot.map(|snapshot| snapshot.id);
         let files = project_files(&project.source)?;
         let holdable = matches!(project.source, ProjectSource::Folder(_));
         let shown = judged(
@@ -286,12 +303,16 @@ impl Command for RulesShow {
                 baseline: files.baseline.as_ref(),
                 holdable,
             },
-            snapshot.map(|snapshot| snapshot.id),
+            snapshot_id,
         )?;
-        Ok(RulesOut {
+        let mut shown = RulesOut {
             file_version: files.version,
             ..shown
-        })
+        };
+        if let Some(snapshot) = snapshot_id {
+            attach_symbols(self.ports.index.as_ref(), snapshot, &mut shown.rules);
+        }
+        Ok(shown)
     }
 }
 

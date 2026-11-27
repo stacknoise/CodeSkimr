@@ -21,6 +21,15 @@ export interface ViolationOut {
   old: boolean;
   places: PlaceOut[];
   ring: RingOut | null;
+  /** The symbol `from` names in the newest scan, `null` if the scan has none of that name. */
+  from_symbol: SymbolRef | null;
+  to_symbol: SymbolRef | null;
+}
+
+/** A symbol of the newest scan, as the explorer opens it. */
+export interface SymbolRef {
+  id: number;
+  kind: string;
 }
 
 /** What one layer that limits its use may use. */
