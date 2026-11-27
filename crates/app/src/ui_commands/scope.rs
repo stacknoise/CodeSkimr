@@ -1,8 +1,13 @@
 //! The commands behind the scope of a project: which languages and folders its scans cover
 //! (ADR 0102). The code stays one project; nothing is loaded twice.
 
+use std::io::Read;
+use std::path::Path;
 use std::sync::Arc;
 
+use codeskimr_application::abapgit::{
+    AbapGitConfig, AbapGitSummary, CONFIG_FILE, parse_config, summarize,
+};
 use codeskimr_application::access;
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::config::Config;
@@ -20,6 +25,7 @@ use super::consts::{
     SCOPE_GET, SCOPE_GET_DESCRIPTION, SCOPE_GET_TITLE, SCOPE_SET, SCOPE_SET_DESCRIPTION,
     SCOPE_SET_TITLE,
 };
+use crate::consts::ABAPGIT_CONFIG_MAX_BYTES;
 use crate::locations::Locations;
 use crate::wiring::{ScopeTools, scope_tools};
 
@@ -94,6 +100,61 @@ pub struct ScopeAnswer {
     pub folders_more: u64,
     /// The files in the project folder itself that an indexer needs.
     pub root_project_files: Vec<String>,
+    /// What the project holds if it is an abapGit repository (ADR 0113), else `null`.
+    pub abapgit: Option<AbapGitOut>,
+}
+
+/// The number of objects of one type in an abapGit repository.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ObjectCount {
+    /// The object type in upper case: `CLAS`, `INTF`, `PROG`, `FUGR`, `TABL` …
+    pub kind: String,
+    /// Number of objects of the type.
+    pub objects: u64,
+}
+
+/// What an abapGit repository holds.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct AbapGitOut {
+    /// The folder below which the objects lie, relative to the project; empty for the project
+    /// folder itself.
+    pub starting_folder: String,
+    /// How packages are turned into folders: `prefix` or `full`.
+    pub folder_logic: String,
+    /// Whether `.abapgit.xml` was read; if not, the defaults were used.
+    pub configured: bool,
+    /// Objects by type, the type with the most objects first.
+    pub kinds: Vec<ObjectCount>,
+    /// Number of packages (folders that hold objects).
+    pub packages: u64,
+    /// Number of files that hold source.
+    pub source_files: u64,
+}
+
+fn abapgit_out(summary: AbapGitSummary) -> AbapGitOut {
+    AbapGitOut {
+        starting_folder: summary.starting_folder,
+        folder_logic: summary.folder_logic.label().to_owned(),
+        configured: summary.configured,
+        kinds: summary
+            .objects
+            .into_iter()
+            .map(|(kind, objects)| ObjectCount { kind, objects })
+            .collect(),
+        packages: summary.packages,
+        source_files: summary.source_files,
+    }
+}
+
+/// The configuration in `.abapgit.xml` of a project folder, if the file is there and is a regular
+/// file; it is read through `fsguard` and not further than `ABAPGIT_CONFIG_MAX_BYTES`.
+fn read_config(root: &Path) -> Option<AbapGitConfig> {
+    let file = codeskimr_fsguard::open_regular(&root.join(CONFIG_FILE)).ok()?;
+    let mut text = String::new();
+    file.take(ABAPGIT_CONFIG_MAX_BYTES)
+        .read_to_string(&mut text)
+        .ok()?;
+    Some(parse_config(&text))
 }
 
 fn scope_out(scope: &Scope) -> ScopeOut {
@@ -129,7 +190,11 @@ fn folder_out(entry: FolderEntry) -> FolderOut {
     }
 }
 
-fn answer(project: ProjectId, (scope, live): (&Scope, bool), view: ScopeView) -> ScopeAnswer {
+fn answer(
+    project: ProjectId,
+    (scope, live): (&Scope, bool),
+    (view, abapgit): (ScopeView, Option<AbapGitSummary>),
+) -> ScopeAnswer {
     ScopeAnswer {
         project: project.get(),
         live,
@@ -138,6 +203,7 @@ fn answer(project: ProjectId, (scope, live): (&Scope, bool), view: ScopeView) ->
         folders: view.folders.into_iter().map(folder_out).collect(),
         folders_more: view.folders_more,
         root_project_files: view.root_project_files,
+        abapgit: abapgit.map(abapgit_out),
     }
 }
 
@@ -200,7 +266,16 @@ impl Command for ScopeGet {
             max_folders: self.config.scan.overview_max_folders,
         };
         let counted = overview(&files, &tools.project_files, limits);
-        Ok(answer(id, (&scope, live), scope_view(&scope, counted)))
+        let config = match &project.source {
+            ProjectSource::Folder(root) => read_config(Path::new(root.as_str())),
+            ProjectSource::Git { .. } => None,
+        };
+        let abapgit = summarize(&files, config.as_ref());
+        Ok(answer(
+            id,
+            (&scope, live),
+            (scope_view(&scope, counted), abapgit),
+        ))
     }
 }
 
