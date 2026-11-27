@@ -10,10 +10,12 @@ codeskimr_bench = ["codeskimr_domain"]  # dev-dependency of the benchmarks only 
 codeskimr_codes = ["codeskimr_codegen"]
 codeskimr_domain = ["codeskimr_codes"]
 codeskimr_application = ["codeskimr_domain", "codeskimr_codes"]
-codeskimr_parsing = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes"]
+codeskimr_parsing = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes", "codeskimr_grammar_abap"]
 codeskimr_storage = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes"]
 # Opens files without following links or waiting on pipes (issue #324); depends on no workspace crate.
 codeskimr_fsguard = []
+# Vendored C grammar of ABAP (ADR 0113); depends on no workspace crate.
+codeskimr_grammar_abap = []
 codeskimr_source = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes", "codeskimr_fsguard"]
 # Build script embeds the Fluent files with the generator (WP-16).
 codeskimr_i18n = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes", "codeskimr_codegen"]

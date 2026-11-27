@@ -99,6 +99,12 @@ mod tests {
             "box.php",
             "<?php\nclass Box {\n    public function work($x) {\n        return $x + 1;\n    }\n}\n",
         ),
+        (
+            "abap",
+            "\"",
+            "box.abap",
+            "CLASS box DEFINITION.\n  PUBLIC SECTION.\n    METHODS work.\nENDCLASS.\nCLASS box IMPLEMENTATION.\n  METHOD work.\n    rv = x + 1.\n  ENDMETHOD.\nENDCLASS.\n",
+        ),
     ];
 
     /// The packs load once for all tests of this file.

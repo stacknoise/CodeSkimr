@@ -1,0 +1,23 @@
+[package]
+name = "codeskimr_grammar_abap"
+description = "The ABAP Tree-sitter grammar (zooloo303/tree-sitter-abap, MIT), compiled from the vendored C source."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+build = "build.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+tree-sitter-language = "0.1"
+
+[build-dependencies]
+cc = "1"
+
+[dev-dependencies]
+tree-sitter = { workspace = true }
+blake3 = { workspace = true }

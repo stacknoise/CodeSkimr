@@ -28,7 +28,7 @@ Alles läuft auf Ihrem Rechner. Der Server hört nur auf `127.0.0.1`; Ihr Code w
 Es gibt zwei Stufen.
 
 - **Volle Stufe:** C#, Java, Kotlin, Python, Rust, TypeScript, TSX und JavaScript. Typen, Member, Signaturen, Dokumentationskommentare, Sichtbarkeit, Metriken und Verweise.
-- **Basis-Stufe:** C, C++, Go, PHP und Ruby. Typen, Namensräume und Funktionen mit Position und Größe, Codezeilen, Komplexität über Entscheidungspunkte und Aufrufe per Name. Keine Dokumentationskommentare und keine Sichtbarkeit.
+- **Basis-Stufe:** ABAP (aus abapGit-Ordnern), C, C++, Go, PHP und Ruby. Typen, Namensräume und Funktionen mit Position und Größe, Codezeilen, Komplexität über Entscheidungspunkte und Aufrufe per Name. Keine Dokumentationskommentare und keine Sichtbarkeit.
 
 Der Reiter „Scan“ eines Projekts zeigt die Stufe jeder Sprache, die in einem Projekt gefunden wurde.
 

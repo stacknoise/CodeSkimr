@@ -28,7 +28,7 @@ Everything runs on your machine. The server only listens on `127.0.0.1`; your co
 Two tiers exist.
 
 - **Full tier:** C#, Java, Kotlin, Python, Rust, TypeScript, TSX and JavaScript. Types, members, signatures, documentation comments, visibility, metrics and references.
-- **Basic tier:** C, C++, Go, PHP and Ruby. Types, namespaces and functions with position and size, lines of code, complexity by decision points, and calls by name. No documentation comments and no visibility.
+- **Basic tier:** ABAP (from abapGit folders), C, C++, Go, PHP and Ruby. Types, namespaces and functions with position and size, lines of code, complexity by decision points, and calls by name. No documentation comments and no visibility.
 
 The tab "Scan" of a project shows the tier of every language it found in a project.
 

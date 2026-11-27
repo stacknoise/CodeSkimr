@@ -10,6 +10,17 @@ use crate::consts::{MANIFEST_FILE, TIER_BASIC, TIER_FULL};
 use crate::error::ParsingError;
 use crate::indexer::IndexerManifest;
 
+/// How the names of a language are compared (ADR 0113).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum NameCase {
+    /// Names are kept as written: upper and lower case are different names (most languages).
+    #[default]
+    Keep,
+    /// Names are folded to lower case, for languages that do not tell the cases apart (ABAP).
+    Lower,
+}
+
 /// How much a language pack delivers (blueprint 8.2).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -123,6 +134,10 @@ pub struct PackManifest {
     /// languages with their own namespaces (ADR 0036).
     #[serde(default = "file_in_names_default")]
     pub file_in_names: bool,
+    /// How names are compared: `lower` folds every name of a declaration and of a reference to
+    /// lower case, so `PERFORM Do_It` finds `FORM do_it` (ABAP, ADR 0113).
+    #[serde(default)]
+    pub name_case: NameCase,
     /// Whether a name without receiver inside a function can mean a member of the enclosing type
     /// (Java, C#: `count` is `this.count`). False for languages where a member always needs its
     /// receiver (Python: `self.count`), so the name there is a local or an outer name (ADR 0053).
