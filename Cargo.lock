@@ -547,6 +547,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "codeskimr_grammar_abap"
+version = "1.0.0"
+dependencies = [
+ "blake3",
+ "cc",
+ "tree-sitter",
+ "tree-sitter-language",
+]
+
+[[package]]
 name = "codeskimr_i18n"
 version = "1.0.0"
 dependencies = [
@@ -594,6 +604,7 @@ dependencies = [
  "codeskimr_application",
  "codeskimr_codes",
  "codeskimr_domain",
+ "codeskimr_grammar_abap",
  "globset",
  "serde",
  "serde_json",

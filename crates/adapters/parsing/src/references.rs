@@ -200,7 +200,8 @@ fn pending_reference(
     occurrence: &Occurrence<'_>,
 ) -> Result<Option<PendingReference>, ParsingError> {
     let node = occurrence.name;
-    let name = text_of(node, ctx.source).trim();
+    let name = ctx.pack.fold_name(text_of(node, ctx.source).trim());
+    let name = name.as_ref();
     let seen = facts.receivers.get(&node.byte_range());
     let hidden = seen.is_none()
         && scopes

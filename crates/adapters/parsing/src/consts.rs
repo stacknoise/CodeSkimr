@@ -69,6 +69,8 @@ pub const HEADER_SEPARATOR: &str = " ";
 
 /// Prefix of a capture that marks a whole declaration; the rest is the symbol kind label.
 pub const SYMBOL_CAPTURE_PREFIX: &str = "symbol.";
+/// Start of the name of a capture that only a predicate uses and the adapter ignores (ADR 0113).
+pub const HELPER_CAPTURE_PREFIX: &str = "_";
 /// Prefix of a capture that marks an occurrence; the rest is the reference kind label.
 pub const REFERENCE_CAPTURE_PREFIX: &str = "reference.";
 /// Capture of the simple name of a declaration or of the target of a reference.
@@ -150,6 +152,9 @@ pub const GRAMMAR_JAVA: &str = "java";
 /// Grammar name of Kotlin in `language.toml`.
 pub const GRAMMAR_KOTLIN: &str = "kotlin";
 
+/// Grammar name of ABAP in `language.toml` (basic tier, ADR 0113).
+#[cfg(feature = "basic-grammars")]
+pub const GRAMMAR_ABAP: &str = "abap";
 /// Grammar name of Go in `language.toml` (basic tier).
 #[cfg(feature = "basic-grammars")]
 pub const GRAMMAR_GO: &str = "go";

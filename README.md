@@ -14,7 +14,7 @@ Everything runs on your machine. The server listens on `127.0.0.1` only; your co
 - **Metrics and conventions:** size, complexity and coupling per symbol; `codeskimr check` reports files that break the code rules (length, duplicates).
 - **MCP server** for code agents, over standard input and output (`codeskimr mcp`) or HTTP at `/mcp` of the running app; **HTML export** of a project as one self-contained file (`codeskimr export`).
 - **Private Git repositories:** logins live in the keystore of your system and are created in the UI or with `codeskimr credential`; no secret is stored anywhere else.
-- Languages: C#, Java, Kotlin, Python, Rust, TypeScript, TSX and JavaScript (full tier); C, C++, Go, PHP and Ruby (basic tier).
+- Languages: C#, Java, Kotlin, Python, Rust, TypeScript, TSX and JavaScript (full tier); ABAP (from abapGit folders), C, C++, Go, PHP and Ruby (basic tier).
 - The UI and the messages come in German and English; the UI has three themes (Hell, Petrol, Dunkel). Theme and language are kept by the server.
 
 ## Install

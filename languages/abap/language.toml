@@ -1,0 +1,25 @@
+# ABAP language pack, basic tier (blueprint 8.2, ADR 0113). Grammar: zooloo303/tree-sitter-abap.
+# Mapping onto the language-neutral symbol kinds:
+#   CLASS ... DEFINITION           -> class       INTERFACE ... ENDINTERFACE -> interface
+#   METHOD in CLASS ... IMPLEMENTATION -> method  METHODS of an interface   -> method
+#   FORM, FUNCTION, MODULE         -> function
+# A method is a symbol where it is implemented, not where it is declared, so a method is not found
+# twice (the declaration in the class definition is not a symbol). The grammar is flat: it has no
+# nesting of statements and no section of visibility, so symbols carry no visibility and the
+# complexity counts decision keywords (docs/language-packs.md, ADR 0113).
+# ABAP does not tell upper and lower case apart: names are folded to lower case (`name_case`).
+id = "abap"
+grammar = "abap"
+tier = "basic"
+extensions = ["abap"]
+separator = "=>"
+file_in_names = false
+name_case = "lower"
+comment_nodes = ["star_comment", "line_comment"]
+# A callable has a body if it holds a statement or a declaration.
+body_nodes = ["statement", "data_declaration", "inline_data_statement"]
+# The files of the test classes of abapGit (`zcl_a.clas.testclasses.abap`).
+test_patterns = ["**/*.testclasses.abap", "**/*.clas.testclasses.abap"]
+# Syntax fingerprints: all names alike, literals by kind only.
+identifier_nodes = ["identifier", "field_symbol", "macro_parameter"]
+literal_nodes = ["string", "backtick_string", "number", "string_template", "text_symbol_key"]

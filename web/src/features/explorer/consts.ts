@@ -63,6 +63,7 @@ export const KIND_TONE: Record<string, string> = {
 };
 /** The short name of a language in the tree; a language without one shows its id. */
 export const LANGUAGE_SHORT: Record<string, string> = {
+  abap: "ABAP",
   c: "C",
   cpp: "C++",
   csharp: "C#",

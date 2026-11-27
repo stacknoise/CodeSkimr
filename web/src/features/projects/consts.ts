@@ -88,6 +88,7 @@ export const SCAN_MODE = { full: "full", incremental: "incremental" } as const;
 
 /** Display names of the languages (proper names, not translated). */
 export const LANGUAGE_NAMES: Record<string, string> = {
+  abap: "ABAP",
   c: "C",
   cpp: "C++",
   csharp: "C#",
