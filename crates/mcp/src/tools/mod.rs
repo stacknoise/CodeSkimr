@@ -9,6 +9,7 @@ mod context;
 mod conventions;
 mod dependencies;
 mod diff;
+mod modules;
 mod project;
 mod rename;
 mod rescan;
@@ -34,7 +35,7 @@ use codeskimr_application::ports::{
 use codeskimr_application::rules::RulesChecks;
 use codeskimr_application::unused::UnusedSymbols;
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::{Project, ProjectId, QualifiedName, Snapshot, SymbolId};
+use codeskimr_domain::{Project, ProjectId, QualifiedName, RiskLimits, Snapshot, SymbolId};
 use codeskimr_i18n::Messages;
 use serde::Serialize;
 use serde_json::Value;
@@ -143,25 +144,35 @@ pub struct Tools {
     mentions: Arc<dyn NameMentions>,
     text: Arc<dyn SourceText>,
     limits: McpLimits,
+    risks: RiskLimits,
     default_project: Option<ProjectId>,
 }
 
 impl Tools {
-    /// Builds the tools. `default_project` answers calls that name no project.
+    /// Builds the tools. `risks` says when a module stands out (`[graph]` of the configuration);
+    /// `default_project` answers calls that name no project.
     #[must_use]
-    pub fn new(ports: Ports, limits: McpLimits, default_project: ProjectId) -> Self {
-        Self::build(ports, limits, Some(default_project))
+    pub fn new(
+        ports: Ports,
+        (limits, risks): (McpLimits, RiskLimits),
+        default_project: ProjectId,
+    ) -> Self {
+        Self::build(ports, (limits, risks), Some(default_project))
     }
 
     /// Builds tools without a default project, for a server that serves every registered
     /// project (the app). A call that names no project is `MCP-101` with `params.detail =
     /// project`.
     #[must_use]
-    pub fn unscoped(ports: Ports, limits: McpLimits) -> Self {
-        Self::build(ports, limits, None)
+    pub fn unscoped(ports: Ports, (limits, risks): (McpLimits, RiskLimits)) -> Self {
+        Self::build(ports, (limits, risks), None)
     }
 
-    fn build(ports: Ports, limits: McpLimits, default_project: Option<ProjectId>) -> Self {
+    fn build(
+        ports: Ports,
+        (limits, risks): (McpLimits, RiskLimits),
+        default_project: Option<ProjectId>,
+    ) -> Self {
         Self {
             projects: ports.projects,
             index: ports.index,
@@ -185,6 +196,7 @@ impl Tools {
             mentions: ports.mentions,
             text: ports.text,
             limits,
+            risks,
             default_project,
         }
     }
@@ -346,6 +358,10 @@ impl Tools {
 
     pub(crate) const fn limits(&self) -> &McpLimits {
         &self.limits
+    }
+
+    pub(crate) const fn risks(&self) -> &RiskLimits {
+        &self.risks
     }
 
     pub(crate) fn usage_index(&self) -> &dyn UsageIndex {
