@@ -18,6 +18,7 @@ import {
   showChangeTab,
 } from "./change";
 import { CompareTab } from "./CompareTab";
+import { CopyMarkdown } from "./CopyMarkdown";
 import {
   MIN_SCANS,
   PANEL_ID,
@@ -166,6 +167,13 @@ export function ChangeScreen() {
         <span class={styles.spacer} />
         <Show when={changeTab() === TAB.impact ? changeAnswer() : null}>
           {(answer) => <Compared answer={answer()} />}
+        </Show>
+        <Show when={changeTab() === TAB.impact ? changeAnswer() : null}>
+          {(answer) => (
+            <Show when={activeProject()}>
+              {(project) => <CopyMarkdown project={project()} answer={answer()} />}
+            </Show>
+          )}
         </Show>
       </header>
       <Show

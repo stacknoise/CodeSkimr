@@ -14,17 +14,17 @@ use codeskimr_application::compare::{ComparisonAnswer, ComparisonRequest, ScanLi
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{Clock, CodeIndex, FileDiscovery, ProjectRepository};
 use codeskimr_cli::{
-    CompareQuery, ContextQuery, ImpactQuery, QueryAction, QueryKind, RenameQuery, RulesQuery,
-    SymbolsQuery, UnusedQuery, UsagesQuery, change_markdown, query_code_report, query_error_json,
-    query_json, query_text,
+    CompareQuery, ContextQuery, ImpactQuery, ModulesQuery, QueryAction, QueryKind, RenameQuery,
+    RulesQuery, SymbolsQuery, UnusedQuery, UsagesQuery, change_markdown, query_code_report,
+    query_error_json, query_json, query_text,
 };
 use codeskimr_codes::i18n::COMPARE_DIRECT_ONLY_NOTE;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Permission, Principal, ProjectId, ProjectSource, SnapshotId};
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::{
-    ContextArgs, ImpactArgs, McpError, RenameArgs, RulesArgs, SearchArgs, Tools, UnusedArgs,
-    UsagesArgs,
+    ContextArgs, DependenciesArgs, ImpactArgs, LEVEL_MODULE, McpError, RenameArgs, RulesArgs,
+    SearchArgs, Tools, UnusedArgs, UsagesArgs,
 };
 use codeskimr_storage::SqliteStore;
 use serde_json::Value;
@@ -166,6 +166,7 @@ fn ask(tools: &Tools, principal: Principal, action: &QueryAction) -> Result<Valu
         QueryAction::Unused(query) => tools.find_unused(&principal, &unused_args(query)),
         QueryAction::Rules(query) => tools.check_rules(&principal, &rules_args(query)),
         QueryAction::Rename(query) => tools.preview_rename(&principal, &rename_args(query)),
+        QueryAction::Modules(query) => tools.get_dependencies(&principal, &modules_args(query)),
     }
 }
 
@@ -173,6 +174,20 @@ fn rename_args(query: &RenameQuery) -> RenameArgs {
     RenameArgs {
         symbol: query.symbol.clone(),
         new_name: query.new_name.clone(),
+        project: None,
+        limit: query.limit,
+    }
+}
+
+/// The question of `modules`: the module level of `get_dependencies`.
+fn modules_args(query: &ModulesQuery) -> DependenciesArgs {
+    DependenciesArgs {
+        symbol: None,
+        layer: None,
+        level: Some(LEVEL_MODULE.to_owned()),
+        depth: query.depth,
+        direction: None,
+        include_tests: None,
         project: None,
         limit: query.limit,
     }
@@ -262,6 +277,7 @@ const fn kind_of(action: &QueryAction) -> QueryKind {
         QueryAction::Unused(_) => QueryKind::Unused,
         QueryAction::Rules(_) => QueryKind::Rules,
         QueryAction::Rename(_) => QueryKind::Rename,
+        QueryAction::Modules(_) => QueryKind::Modules,
         QueryAction::Scans(_) => QueryKind::Scans,
         QueryAction::Compare(_) => QueryKind::Compare,
         QueryAction::Change(_) => QueryKind::Change,

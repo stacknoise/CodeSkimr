@@ -90,7 +90,7 @@ fn asked_during_the_write<T: Send>(
     thread::scope(|scope| {
         scope.spawn(move || {
             let stored = store.write(|tx| {
-                write_snapshot(tx, &scan(), KEPT_SNAPSHOTS)?;
+                write_snapshot(tx, &scan(), KEPT_SNAPSHOTS, &|_| {})?;
                 started.send(()).unwrap();
                 held.recv().unwrap();
                 Ok(())

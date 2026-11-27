@@ -14,6 +14,7 @@ mod credential;
 mod error;
 mod level2;
 mod locale;
+mod modules_text;
 mod notes;
 mod parser;
 mod query;
@@ -27,9 +28,9 @@ pub use args::{
     Action, AddAnnotation, AlertsAction, AnnotationFields, AnnotationsAction, ById, CheckArgs,
     Clears, CodesArgs, CompareQuery, ContextQuery, CredentialAction, DismissAlerts, ExportArgs,
     GlobalOptions, ImpactQuery, Invocation, Level2Action, ListAlerts, ListAnnotations, McpArgs,
-    OpenArgs, PageArgs, Parsed, ProviderChoice, QueryAction, QueryTarget, RenameQuery, RulesQuery,
-    ScanArgs, ScansQuery, ScopeArgs, ServeArgs, StartArgs, SymbolArg, SymbolsQuery, UnusedQuery,
-    UpdateAnnotation, UsagesQuery,
+    ModulesQuery, OpenArgs, PageArgs, Parsed, ProviderChoice, QueryAction, QueryTarget,
+    RenameQuery, RulesQuery, ScanArgs, ScansQuery, ScopeArgs, ServeArgs, StartArgs, SymbolArg,
+    SymbolsQuery, UnusedQuery, UpdateAnnotation, UsagesQuery,
 };
 pub use change_text::change_markdown;
 pub use check::{check_json, check_text};

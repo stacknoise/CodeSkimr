@@ -129,6 +129,7 @@ mod tests {
             done,
             total,
             elapsed_ms: u64::from(done),
+            step: None,
         })
     }
 

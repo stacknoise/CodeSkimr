@@ -3,7 +3,7 @@
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{LanguageId, Level2Stage, ProjectId, Snapshot, SnapshotId};
 
-use crate::stage::StageKind;
+use crate::stage::{PersistStep, StageKind};
 
 /// Something that happened and that other parts may want to show.
 #[derive(Debug, Clone, PartialEq)]
@@ -63,6 +63,8 @@ pub struct ScanProgressed {
     pub total: u32,
     /// Milliseconds since the stage started, so that a screen need not time the stream itself.
     pub elapsed_ms: u64,
+    /// The step of writing the snapshot that the stage `Persist` is in, if it tells.
+    pub step: Option<PersistStep>,
 }
 
 /// A scan ended with a snapshot: a new one, or the newest one confirmed.

@@ -438,6 +438,12 @@ pub const SCANS_IMPACT: &str = "scans.impact";
 pub const SCANS_IMPACT_TITLE: &str = i18n::COMMAND_SCANS_IMPACT_TITLE;
 /// Description key of `scans.impact`.
 pub const SCANS_IMPACT_DESCRIPTION: &str = i18n::COMMAND_SCANS_IMPACT_DESCRIPTION;
+/// Id of the command that returns the impact as the Markdown of `change --markdown`.
+pub const SCANS_IMPACT_MARKDOWN: &str = "scans.impact_markdown";
+/// Title key of `scans.impact_markdown`.
+pub const SCANS_IMPACT_MARKDOWN_TITLE: &str = i18n::COMMAND_SCANS_IMPACT_MARKDOWN_TITLE;
+/// Description key of `scans.impact_markdown`.
+pub const SCANS_IMPACT_MARKDOWN_DESCRIPTION: &str = i18n::COMMAND_SCANS_IMPACT_MARKDOWN_DESCRIPTION;
 /// Id of the command that summarises a project for the statistics screen (ADR 0081).
 pub const STATS_OVERVIEW: &str = "stats.overview";
 /// Title key of `stats.overview`.

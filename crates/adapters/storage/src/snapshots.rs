@@ -6,6 +6,7 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     Confirmation, Confirmed, Level2Replacement, SnapshotData, SnapshotStore, SymbolFingerprints,
 };
+use codeskimr_application::stage::PersistStep;
 use codeskimr_domain::{
     CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats, SourceFile,
     SymbolId,
@@ -19,9 +20,7 @@ use crate::codec::column_int;
 use crate::consts::{
     BULK_FINGERPRINTS_MIN, BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR,
     LARGE_LOAD_REFERENCES_MIN, LOAD_CACHE_SIZE_KIB, LOG_CACHE_NOT_RESTORED, LOG_PERSIST_STEP,
-    PRAGMA_CACHE_SIZE, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON, STEP_COMMIT, STEP_DETAILS, STEP_FACTS,
-    STEP_FINGERPRINTS, STEP_HEADER, STEP_INTEGRITY, STEP_PRUNE, STEP_PRUNE_BEFORE,
-    STEP_READ_MODELS, STEP_REFERENCE_INDEXES, STEP_REFERENCES,
+    PRAGMA_CACHE_SIZE, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON, SORT_CACHE_SIZE_KIB,
 };
 use crate::error::{StorageError, StorageResult};
 use crate::headers::{
@@ -37,13 +36,22 @@ use crate::store::ProjectDb;
 
 impl SnapshotStore for ProjectDb {
     fn persist(&self, data: SnapshotData) -> Result<Snapshot, CodedError> {
+        self.persist_with_steps(data, &|_| {})
+    }
+
+    fn persist_with_steps(
+        &self,
+        data: SnapshotData,
+        step: &dyn Fn(PersistStep),
+    ) -> Result<Snapshot, CodedError> {
         let started = Instant::now();
         let mut inside = Duration::ZERO;
         let stored = self
             .write(|tx| {
-                let stored = write_snapshot(tx, &data, self.retention().get())?;
+                let stored = write_snapshot(tx, &data, self.retention().get(), step)?;
                 self.forget_builds();
                 inside = started.elapsed();
+                step(PersistStep::Commit);
                 Ok(stored)
             })
             .map_err(CodedError::from)?;
@@ -51,7 +59,11 @@ impl SnapshotStore for ProjectDb {
         // large write can be told from the steps before it.
         let elapsed_ms =
             u64::try_from(started.elapsed().saturating_sub(inside).as_millis()).unwrap_or(u64::MAX);
-        tracing::info!(event = LOG_PERSIST_STEP, step = STEP_COMMIT, elapsed_ms);
+        tracing::info!(
+            event = LOG_PERSIST_STEP,
+            step = PersistStep::Commit.label(),
+            elapsed_ms
+        );
         Ok(stored)
     }
 
@@ -105,6 +117,7 @@ pub(crate) fn write_snapshot(
     conn: &Connection,
     data: &SnapshotData,
     keep: u32,
+    steps: &dyn Fn(PersistStep),
 ) -> StorageResult<Snapshot> {
     let header = &data.snapshot;
     let project = column_int(header.project.get())?;
@@ -114,13 +127,21 @@ pub(crate) fn write_snapshot(
     }
     conn.pragma_update(None, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON)?;
     let _cache = LoadCache::raise(conn, data.references.len())?;
-    timed(STEP_HEADER, || insert_header(conn, header))?;
-    let pruned = timed(STEP_PRUNE_BEFORE, || prune_before_load(conn, data, keep))?;
-    timed(STEP_FACTS, || insert_facts(conn, data, pruned))?;
-    timed(STEP_DETAILS, || insert_details(conn, data))?;
-    timed(STEP_INTEGRITY, || integrity::check(conn, data))?;
-    let stats = timed(STEP_READ_MODELS, || finish_read_models(conn, data))?;
-    timed(STEP_PRUNE, || prune(conn, project, keep))?;
+    timed(PersistStep::Header, steps, || insert_header(conn, header))?;
+    let pruned = timed(PersistStep::PruneBeforeLoad, steps, || {
+        prune_before_load(conn, data, keep)
+    })?;
+    timed(PersistStep::Facts, steps, || {
+        insert_facts(conn, data, pruned, steps)
+    })?;
+    timed(PersistStep::Details, steps, || insert_details(conn, data))?;
+    timed(PersistStep::Integrity, steps, || {
+        integrity::check(conn, data)
+    })?;
+    let stats = timed(PersistStep::ReadModels, steps, || {
+        finish_read_models(conn, data)
+    })?;
+    timed(PersistStep::Prune, steps, || prune(conn, project, keep))?;
     record_scan(conn, data)?;
     Ok(Snapshot {
         stats,
@@ -163,6 +184,23 @@ impl Drop for LoadCache<'_> {
     }
 }
 
+/// Runs the build of an index with the small page cache that sorts fastest. `SQLite` sorts the keys
+/// of a new index in runs as large as the page cache; with the large cache of a big load the runs
+/// no longer fit the CPU caches and the build takes twice as long (6 million rows: 3 s with 2 MiB,
+/// 7 s with 1 GiB), and the gap grows with the table. The size it had comes back afterwards.
+pub(crate) fn with_sort_cache<T>(
+    conn: &Connection,
+    run: impl FnOnce() -> StorageResult<T>,
+) -> StorageResult<T> {
+    let before: i64 = conn.pragma_query_value(None, PRAGMA_CACHE_SIZE, |row| row.get(0))?;
+    conn.pragma_update(None, PRAGMA_CACHE_SIZE, SORT_CACHE_SIZE_KIB)?;
+    let result = run();
+    if let Err(cause) = conn.pragma_update(None, PRAGMA_CACHE_SIZE, before) {
+        tracing::warn!(event = LOG_CACHE_NOT_RESTORED, %cause);
+    }
+    result
+}
+
 /// Writes what belongs to the snapshot besides the facts: the naming rules, parse times,
 /// warnings, left-out and skipped files, and for an incremental scan the carried-over rows.
 fn insert_details(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
@@ -186,13 +224,18 @@ fn insert_details(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
     Ok(())
 }
 
-/// Runs one step of the write and logs how long it took (`CODESKIMR_LOG=info`), so that the slow
-/// step of a large write can be found on real data.
-fn timed<T>(step: &'static str, run: impl FnOnce() -> StorageResult<T>) -> StorageResult<T> {
+/// Tells `steps` that `step` of the write begins, runs it and logs how long it took
+/// (`CODESKIMR_LOG=info`), so that the slow step of a large write can be found on real data.
+fn timed<T>(
+    step: PersistStep,
+    steps: &dyn Fn(PersistStep),
+    run: impl FnOnce() -> StorageResult<T>,
+) -> StorageResult<T> {
+    steps(step);
     let started = Instant::now();
     let result = run();
     let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
-    tracing::info!(event = LOG_PERSIST_STEP, step, elapsed_ms);
+    tracing::info!(event = LOG_PERSIST_STEP, step = step.label(), elapsed_ms);
     result
 }
 
@@ -285,6 +328,7 @@ fn insert_facts(
     conn: &Connection,
     data: &SnapshotData,
     indexes_dropped: bool,
+    steps: &dyn Fn(PersistStep),
 ) -> StorageResult<()> {
     let snapshot = column_int(data.snapshot.id.get())?;
     for file in &data.files {
@@ -299,14 +343,18 @@ fn insert_facts(
         insert_symbol(conn, symbol, hashes.get(&symbol.id).copied())?;
     }
     let bulk = indexes_dropped || bulk_load_starts(conn, data.references.len())?;
-    timed(STEP_REFERENCES, || insert_references(conn, data, snapshot))?;
+    timed(PersistStep::References, steps, || {
+        insert_references(conn, data, snapshot)
+    })?;
     if bulk {
-        timed(STEP_REFERENCE_INDEXES, || create_reference_indexes(conn))?;
+        timed(PersistStep::ReferenceIndexes, steps, || {
+            with_sort_cache(conn, || create_reference_indexes(conn))
+        })?;
     }
     for metric in &data.metrics {
         insert_metric(conn, snapshot, metric)?;
     }
-    timed(STEP_FINGERPRINTS, || {
+    timed(PersistStep::Fingerprints, steps, || {
         insert_fingerprints(conn, &data.fingerprints)
     })?;
     pending::insert_all(conn, &data.pending)?;
@@ -381,7 +429,10 @@ fn insert_fingerprints(conn: &Connection, found: &[SymbolFingerprints]) -> Stora
     let bulk = bulk_fingerprints_start(conn, found)?;
     similarity::insert_all(conn, found)?;
     if bulk {
-        conn.execute(sql::FINGERPRINT_INDEX_CREATE, [])?;
+        with_sort_cache(conn, || {
+            conn.execute(sql::FINGERPRINT_INDEX_CREATE, [])?;
+            Ok(())
+        })?;
     }
     Ok(())
 }

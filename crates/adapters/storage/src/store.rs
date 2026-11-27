@@ -246,7 +246,8 @@ impl ProjectDb {
         enable_wal(&conn)?;
         conn.pragma_update(None, PRAGMA_SYNCHRONOUS, SYNCHRONOUS_NORMAL)?;
         conn.pragma_update(None, PRAGMA_CACHE_SIZE, CACHE_SIZE_KIB)?;
-        conn.pragma_update(None, PRAGMA_TEMP_STORE, TEMP_STORE_MEMORY)?;
+        // No `temp_store = MEMORY` here: the sort of an index build over millions of rows is twice as
+        // fast in temporary files than in memory (see `with_sort_cache` in snapshots.rs).
         migrate::apply(&mut conn)?;
         if let Some(pages) = options.growth_limit_pages {
             limit_growth(&conn, pages)?;

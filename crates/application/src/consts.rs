@@ -12,6 +12,28 @@ pub const STAGE_RESOLVE: &str = "resolve";
 pub const STAGE_MEASURE: &str = "measure";
 /// Label of `StageKind::Persist`.
 pub const STAGE_PERSIST: &str = "persist";
+/// Label of `PersistStep::Header`, also the `step` of the log event of the write.
+pub const STEP_HEADER: &str = "header";
+/// Label of `PersistStep::PruneBeforeLoad`.
+pub const STEP_PRUNE_BEFORE: &str = "prune_before_load";
+/// Label of `PersistStep::Facts`.
+pub const STEP_FACTS: &str = "facts";
+/// Label of `PersistStep::References`.
+pub const STEP_REFERENCES: &str = "references";
+/// Label of `PersistStep::ReferenceIndexes`.
+pub const STEP_REFERENCE_INDEXES: &str = "reference_indexes";
+/// Label of `PersistStep::Fingerprints`.
+pub const STEP_FINGERPRINTS: &str = "fingerprints";
+/// Label of `PersistStep::Details`.
+pub const STEP_DETAILS: &str = "details";
+/// Label of `PersistStep::Integrity`.
+pub const STEP_INTEGRITY: &str = "integrity";
+/// Label of `PersistStep::ReadModels`.
+pub const STEP_READ_MODELS: &str = "read_models";
+/// Label of `PersistStep::Prune`.
+pub const STEP_PRUNE: &str = "prune";
+/// Label of `PersistStep::Commit`.
+pub const STEP_COMMIT: &str = "commit";
 /// The stage labels in execution order, the same order as `StageKind::ALL`.
 pub const STAGE_LABELS: [&str; 6] = [
     STAGE_FETCH,

@@ -20,6 +20,16 @@ Das Layout berechnet CodeSkimr selbst (geschichtetes Zeichnen), sodass dasselbe 
 - Der Schalter „alle Verbindungen schwach“ zeigt oder verbirgt die Linien, die nicht zur Auswahl gehören; „nur Verstöße“ verbirgt jede Linie, die die Schichtung nicht verletzt.
 - `Enter` bei gewählter Schicht öffnet den Explorer für das Projekt.
 
+## Module
+
+Die Ebene „Module“ in der Werkzeugleiste zeigt die Namespaces des Projekts als Module, ein Kasten je Modul in der Zeile seiner Schicht (ADR 0108). Das Feld rechts hat eine Tabelle und drei Listen:
+
+- **Tabelle.** Je Modul: an wie vielen Stellen in anderen Modulen es genutzt wird (`ein`), wie viele Stellen darin andere Module nutzen (`aus`), seine **Stabilität** `aus / (ein + aus)` und die Zahl seiner Typen. Stabilität 0 heißt: viele hängen vom Modul ab und es hängt von wenig ab, es sollte sich selten ändern; 1 heißt das Gegenteil. Ein Modul ohne jede Abhängigkeit hat keine. Gezählt werden Stellen im Code, nicht verschiedene Module oder Typen.
+- **Zyklen.** Module, die sich im Ring voneinander abhängen. Zu jedem Zyklus steht, welche Abhängigkeiten man wegnimmt, um ihn zu beenden, die mit den wenigsten Stellen zuerst. Das ist ein Vorschlag nach der Zahl der zu ändernden Stellen, keine Aussage darüber, welche Richtung richtig ist.
+- **Gegen die Schichtung** und **Auffällig.** Abhängigkeiten zwischen Modulen, die die Schichten nicht erlauben, und Module, die an vielen Stellen genutzt werden und von einem deutlich weniger stabilen Modul abhängen.
+
+Mehr Module als `graph.max_modules` werden nicht gezeichnet und nicht aufgelistet (die am meisten verwendeten bleiben); Zyklen und die beiden Listen zählen immer alle Module. Dieselben Zahlen gibt es auf der Kommandozeile (`codeskimr modules`, `--json` für Skripte) und für Agenten (`get_dependencies` mit `level` `module`).
+
 ## Bekannte Grenzen
 
 Die Karte zeigt nur Beziehungen zwischen Schichten. Eine Linie gilt als „gegen die Schichtung“, wenn die Quellschicht eine `may_use`-Liste hat, die die Zielschicht nicht nennt ([Projekte und Scan](projekte-und-scan.md#schichten)); eine Schicht ohne `may_use` ist nicht beschränkt. Nehmen Sie die Karte als Hinweis, nicht als Urteil.

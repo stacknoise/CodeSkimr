@@ -459,6 +459,17 @@ pub struct RulesQuery {
     pub target: QueryTarget,
 }
 
+/// Arguments of `codeskimr modules`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModulesQuery {
+    /// Merge the namespaces into their first `depth` segments; all of them if left out.
+    pub depth: Option<u32>,
+    /// Number of modules listed.
+    pub limit: Option<u32>,
+    /// Project and output.
+    pub target: QueryTarget,
+}
+
 /// Arguments of `codeskimr preview-rename`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RenameQuery {
@@ -511,6 +522,8 @@ pub enum QueryAction {
     Rules(RulesQuery),
     /// Shows what a new name for a symbol would hit; changes nothing.
     Rename(RenameQuery),
+    /// Shows the modules with cycles, coupling and stability.
+    Modules(ModulesQuery),
     /// Lists the retained scans of the project.
     Scans(ScansQuery),
     /// Compares two retained scans.
@@ -531,6 +544,7 @@ impl QueryAction {
             | Self::Unused(UnusedQuery { target, .. })
             | Self::Rules(RulesQuery { target, .. })
             | Self::Rename(RenameQuery { target, .. })
+            | Self::Modules(ModulesQuery { target, .. })
             | Self::Scans(ScansQuery { target })
             | Self::Compare(CompareQuery { target, .. })
             | Self::Change(CompareQuery { target, .. }) => target,

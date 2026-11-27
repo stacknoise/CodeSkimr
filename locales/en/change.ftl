@@ -19,6 +19,10 @@ change-view-run = Compare
 change-view-scan-option = Scan of { $time }
 change-view-scan-current = Current scan
 
+change-view-copy = Copy as Markdown
+change-view-copy-done = Copied
+change-view-copy-failed = Not copied
+
 change-view-tile-symbols = changed symbols
 change-view-tile-public = of them public
 change-view-tile-usages = affected usages

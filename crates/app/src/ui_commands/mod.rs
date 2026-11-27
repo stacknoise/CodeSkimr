@@ -89,6 +89,7 @@ use codeskimr_application::ports::{IndexRunner, ProjectToolCheck};
 use codeskimr_application::registry::{Command, Registry};
 use codeskimr_cli::GlobalOptions;
 use codeskimr_domain::{Author, LanguageId};
+use codeskimr_i18n::Messages;
 use codeskimr_parsing::{Blake3Digest, TreeSitterHighlighter};
 use codeskimr_server::CommandApi;
 use codeskimr_source::{FolderMentions, FolderText};
@@ -138,7 +139,10 @@ use projects_rename::{RenameProject, SuggestName};
 use rename_preview::{RenamePreviewCommand, RenamePreviewPorts};
 pub(crate) use rules::hold;
 use rules::{RulesHold, RulesShow};
-use scans::{ComparePorts, ScanListPorts, ScansCompare, ScansImpact, ScansList};
+use scans::{
+    ComparePorts, MarkdownPorts, ScanListPorts, ScansCompare, ScansImpact, ScansImpactMarkdown,
+    ScansList,
+};
 pub(crate) use scope::{
     GetInput as ScopeGetInput, ScopeAnswer, ScopeGet, ScopeSet, SetInput as ScopeSetInput,
 };
@@ -350,7 +354,7 @@ fn register_views(
             }),
         },
     )?;
-    register_compare(registry, catalog, config)?;
+    register_compare(registry, catalog, (config, locations))?;
     add(registry, status_info(config))?;
     register_explorer(registry, catalog, config.metrics.clone(), locations)?;
     register_preferences(registry, locations)?;
@@ -359,11 +363,12 @@ fn register_views(
     add(registry, export_command(catalog, config, locations))
 }
 
-/// Registers the commands that compare two scans: the plain comparison and the impact.
+/// Registers the commands that compare two scans: the plain comparison, the impact and the impact
+/// as Markdown.
 fn register_compare(
     registry: &mut Registry,
     catalog: &Arc<SqliteStore>,
-    config: &Config,
+    (config, locations): (&Config, &Locations),
 ) -> Result<(), CodedError> {
     let ports = Arc::new(ComparePorts {
         projects: catalog.clone(),
@@ -375,7 +380,22 @@ fn register_compare(
             ports: Arc::clone(&ports),
         },
     )?;
-    add(registry, ScansImpact { ports })
+    add(
+        registry,
+        ScansImpact {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(
+        registry,
+        ScansImpactMarkdown {
+            ports: Arc::new(MarkdownPorts {
+                compare: ports,
+                messages: Messages::load().map_err(CodedError::caused_by)?,
+                preferences: PreferencesFile::in_dir(&locations.data_dir),
+            }),
+        },
+    )
 }
 
 /// Registers the two commands of the level 2 switch (ADR 0071). Neither is an MCP tool.
@@ -523,6 +543,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ScansList>()?;
     api.expose::<ScansCompare>()?;
     api.expose::<ScansImpact>()?;
+    api.expose::<ScansImpactMarkdown>()?;
     api.expose::<GetPreferences>()?;
     api.expose::<SetPreferences>()?;
     api.expose::<GetUiSettings>()?;
