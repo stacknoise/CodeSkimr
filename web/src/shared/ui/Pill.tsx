@@ -7,7 +7,12 @@ import styles from "./Pill.module.css";
 export type PillTone = (typeof TONE)[keyof typeof TONE];
 
 /** A small label such as "Selected" or "current". `compact` is for miniatures. */
-export function Pill(props: { tone?: PillTone; compact?: boolean; title?: string; children: JSX.Element }) {
+export function Pill(props: {
+  tone?: PillTone;
+  compact?: boolean;
+  title?: string;
+  children: JSX.Element;
+}) {
   return (
     <span
       title={props.title}
