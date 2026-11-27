@@ -749,6 +749,30 @@ fn a_large_full_scan_removes_the_expired_snapshots_before_it_loads() {
 }
 
 #[test]
+fn a_large_full_scan_builds_the_indexes_of_the_pending_names_again_after_the_delete() {
+    let db = TempDb::new();
+    let store = ProjectDb::open(&db.0, keep(1)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    persist_counted(&store, &[(10, 100), (20, 200)], 25_000);
+    let conn = Connection::open(&db.0).unwrap();
+    let mut statement = conn
+        .prepare(
+            "SELECT name FROM sqlite_master WHERE type = 'index' \
+             AND tbl_name = 'pending_references' ORDER BY name",
+        )
+        .unwrap();
+    let names: Vec<String> = statement
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    assert_eq!(
+        names,
+        ["pending_references_bases", "pending_references_by_file"]
+    );
+}
+
+#[test]
 fn a_large_full_scan_keeps_the_rows_a_retained_incremental_scan_shares() {
     let db = TempDb::new();
     let store = ProjectDb::open(&db.0, keep(2)).unwrap();

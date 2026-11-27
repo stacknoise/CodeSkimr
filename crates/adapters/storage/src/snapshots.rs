@@ -361,6 +361,13 @@ fn insert_facts(
         insert_fingerprints(conn, &data.fingerprints)
     })?;
     pending::insert_all(conn, &data.pending)?;
+    // Built again after a delete that dropped them (`prune_before_load`); a no-op otherwise.
+    with_sort_cache(conn, || {
+        for create in sql::PENDING_INDEXES_CREATE {
+            conn.execute(create, [])?;
+        }
+        Ok(())
+    })?;
     pending::mark_stored(conn, snapshot)?;
     let mut dropped = conn.prepare_cached(sql::REFERENCE_DELETE)?;
     for id in &data.dropped_references {
@@ -403,7 +410,10 @@ fn prune_before_load(conn: &Connection, data: &SnapshotData, keep: u32) -> Stora
     if !expired {
         return Ok(false);
     }
-    for drop in sql::REFERENCE_INDEXES_DROP {
+    for drop in sql::REFERENCE_INDEXES_DROP
+        .iter()
+        .chain(sql::PENDING_INDEXES_DROP)
+    {
         conn.execute(drop, [])?;
     }
     prune(conn, project, keep)?;

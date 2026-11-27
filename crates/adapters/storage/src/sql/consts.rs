@@ -269,6 +269,19 @@ pub const REFERENCE_INDEXES_CREATE: &[&str] = &[
     "CREATE INDEX references_by_source ON symbol_references (from_symbol)",
     "CREATE INDEX references_by_file ON symbol_references (file_id)",
 ];
+/// Drops the indexes of `pending_references` that migration 0011 creates, before the snapshots
+/// beyond the retention are deleted: every deleted row also leaves two indexes in random places,
+/// which made this the slowest table of the delete (12 s of 28 s on 3 million rows, 2 s without).
+pub const PENDING_INDEXES_DROP: &[&str] = &[
+    "DROP INDEX IF EXISTS pending_references_by_file",
+    "DROP INDEX IF EXISTS pending_references_bases",
+];
+/// Builds them again (the same ones migration 0011 creates); a no-op when they exist.
+pub const PENDING_INDEXES_CREATE: &[&str] = &[
+    "CREATE INDEX IF NOT EXISTS pending_references_by_file ON pending_references (file_id, from_symbol)",
+    "CREATE INDEX IF NOT EXISTS pending_references_bases ON pending_references (file_id) \
+        WHERE kind IN ('inherit', 'implement')",
+];
 /// Number of stored fingerprints, over all snapshots.
 pub const FINGERPRINT_COUNT: &str = "SELECT COUNT(*) FROM fingerprints";
 /// Drops the index of `fingerprints` before a bulk load. The hashes arrive in random order, so
