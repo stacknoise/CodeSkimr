@@ -88,15 +88,24 @@ export const SHORT_COMMIT = 7;
 /** The arrow between the two scans of a comparison. */
 export const SCAN_ARROW = "→";
 
+/** The ids of the columns of the table of the impact (the sort and the widths go by them). */
+export const SYMBOL_COLUMN = {
+  symbol: "symbol",
+  change: "change",
+  visibility: "visibility",
+  usages: "usages",
+  state: "state",
+} as const;
+
 /** The columns of the table of the symbols by id, with their head texts, and the key the widths are
  * kept under. */
 export const SYMBOL_TABLE_KEY = "change-symbols";
 export const SYMBOL_COLUMNS = [
-  { id: "symbol", label: I18N_KEYS.CHANGE_VIEW_COL_SYMBOL, number: false },
-  { id: "change", label: I18N_KEYS.CHANGE_VIEW_COL_CHANGE, number: false },
-  { id: "visibility", label: I18N_KEYS.CHANGE_VIEW_COL_VISIBILITY, number: false },
-  { id: "usages", label: I18N_KEYS.CHANGE_VIEW_COL_USAGES, number: true },
-  { id: "state", label: I18N_KEYS.CHANGE_VIEW_COL_STATE, number: true },
+  { id: SYMBOL_COLUMN.symbol, label: I18N_KEYS.CHANGE_VIEW_COL_SYMBOL, number: false },
+  { id: SYMBOL_COLUMN.change, label: I18N_KEYS.CHANGE_VIEW_COL_CHANGE, number: false },
+  { id: SYMBOL_COLUMN.visibility, label: I18N_KEYS.CHANGE_VIEW_COL_VISIBILITY, number: false },
+  { id: SYMBOL_COLUMN.usages, label: I18N_KEYS.CHANGE_VIEW_COL_USAGES, number: true },
+  { id: SYMBOL_COLUMN.state, label: I18N_KEYS.CHANGE_VIEW_COL_STATE, number: true },
 ] as const;
 
 /** Keys that move the selection of the table, and how far each moves; Home and End go to the ends. */
@@ -144,3 +153,13 @@ export const KIND_JOIN = " · ";
 export const FILTER_FIELD_ID = "change-filter-query";
 /** Joins the name of a symbol and its signature in a tooltip. */
 export const TITLE_JOIN = " ";
+
+/** The columns of the list of the comparison by id, with their head texts, and the key the widths
+ * are kept under. */
+export const COMPARE_TABLE_KEY = "change-compare";
+export const COMPARE_COLUMN = { change: "change", symbol: "symbol", file: "file" } as const;
+export const COMPARE_COLUMNS = [
+  { id: COMPARE_COLUMN.change, label: I18N_KEYS.CHANGE_VIEW_COL_CHANGE, number: false },
+  { id: COMPARE_COLUMN.symbol, label: I18N_KEYS.CHANGE_VIEW_COL_SYMBOL, number: false },
+  { id: COMPARE_COLUMN.file, label: I18N_KEYS.CHANGE_VIEW_COL_FILE, number: false },
+] as const;
