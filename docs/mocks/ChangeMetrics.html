@@ -1,0 +1,111 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Mock 43: Kennzahlen im Scan-Vergleich</title><style>
+.hell{--bg:#F6F7F9;--surface:#FFFFFF;--line:#E3E6EB;--soft:#EEF0F3;--ink:#14171C;--ink2:#3A414C;--muted:#5B6370;--accent:#2457D6;--accentbg:#EAF0FD;--fg:#fff;--good:#15803D;--goodbg:#EAF7EF;--warn:#B45309;--warnbg:#FFF4E5;--bad:#B91C1C;--badbg:#FDF2F2}
+.petrol{--bg:#F4F6F8;--surface:#FFFFFF;--line:#DDE3EA;--soft:#E8EDF2;--ink:#1B2430;--ink2:#3A4656;--muted:#5D6B7C;--accent:#0C727B;--accentbg:#DFF1F2;--fg:#fff;--good:#1F7A45;--goodbg:#DDF3E5;--warn:#8A5A00;--warnbg:#FBECCB;--bad:#A82D2D;--badbg:#F9DCDC}
+.dunkel{--bg:#12171D;--surface:#1A212A;--line:#2C3643;--soft:#232C37;--ink:#E6EBF1;--ink2:#C5CED9;--muted:#97A4B4;--accent:#3BB6C1;--accentbg:#16363B;--fg:#06222A;--good:#5FD18B;--goodbg:#173826;--warn:#F0BD5A;--warnbg:#3A2D10;--bad:#FF8C8C;--badbg:#401B1B}
+*{box-sizing:border-box}html,body{margin:0}
+.board{width:1440px;height:900px;overflow:hidden;background:var(--bg);color:var(--ink);font:13px Inter,system-ui,sans-serif;display:flex;flex-direction:column;position:relative}
+.mono{font-family:'JetBrains Mono','DejaVu Sans Mono',monospace;font-size:11.5px}
+.top{height:48px;flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.logo{width:24px;height:24px;border-radius:6px;background:var(--ink);color:var(--surface);display:grid;place-items:center;font-weight:700}
+.search{width:520px;border:1px solid var(--line);border-radius:8px;padding:6px 12px;color:var(--muted);background:var(--bg);margin-left:12px}
+.main{display:flex;flex:1;min-height:0}
+.rail{width:56px;flex:none;background:var(--surface);border-right:1px solid var(--line);padding:10px 8px;display:flex;flex-direction:column;gap:6px}
+.rail i{display:block;height:38px;border-radius:8px;background:var(--soft);opacity:.55}.rail i.on{background:var(--accentbg);opacity:1}
+.content{flex:1;min-width:0;padding:22px 28px;display:flex;gap:16px}
+.status{height:28px;flex:none;border-top:1px solid var(--line);background:var(--surface);display:flex;align-items:center;gap:18px;padding:0 16px;font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.list{width:300px;flex:none;padding:16px;display:flex;flex-direction:column;gap:10px}
+.li{padding:8px 10px;border-radius:6px;border-left:3px solid transparent}.li.sel{background:var(--accentbg);border-left-color:var(--accent)}.li b{display:block}
+.page{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+.head{display:flex;align-items:flex-end;gap:12px}h1{margin:0;font:600 22px Inter,system-ui,sans-serif}h2{margin:0;font:600 15px Inter,system-ui,sans-serif}
+.sp{flex:1}.muted{color:var(--muted)}.k{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:6px 12px;white-space:nowrap;display:inline-block}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--fg);font-weight:600}.btn.sm{font-size:12px;padding:4px 9px}
+.tabs{display:flex;gap:26px;padding:0 20px;border-bottom:1px solid var(--line)}.tabs span{padding:13px 0;color:var(--ink2)}.tabs .on{color:var(--accent);font-weight:600;box-shadow:inset 0 -2px 0 var(--accent)}
+.body{padding:18px 20px;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;border-radius:9px;padding:2px 9px;white-space:nowrap}
+.good{background:var(--goodbg);color:var(--good)}.warn{background:var(--warnbg);color:var(--warn)}.bad{background:var(--badbg);color:var(--bad)}.n{background:var(--soft);color:var(--ink2)}.acc{background:var(--accentbg);color:var(--accent)}
+.cols{display:flex;gap:16px}.col{flex:1;min-width:0}
+.tree{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.tr{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--soft)}.tr:last-child{border:0}
+.cb{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--muted);flex:none;display:grid;place-items:center;font-size:11px;line-height:1;color:var(--fg)}
+.cb.on{background:var(--accent);border-color:var(--accent)}.cb.part{background:var(--accentbg);border-color:var(--accent);color:var(--accent)}
+.num{margin-left:auto;font-family:'JetBrains Mono','DejaVu Sans Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap}
+.note{border-radius:8px;padding:10px 14px;line-height:1.45}.note.i{background:var(--accentbg);color:var(--ink)}.note.w{background:var(--warnbg);color:var(--ink)}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:16px;padding:4px 12px 4px 8px}
+.chip.off{opacity:.55}.scrim{position:absolute;inset:0;background:rgba(10,14,20,.45)}
+.dlg{position:absolute;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.dh{padding:18px 20px 8px}.db{padding:8px 20px 14px;display:flex;flex-direction:column;gap:10px}.df{padding:12px 20px;border-top:1px solid var(--soft);display:flex;gap:10px;align-items:center}
+.in{border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:var(--bg)}
+.pick{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;gap:10px}.pick.sel{border-color:var(--accent);background:var(--accentbg)}
+.rd{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--muted);flex:none;margin-top:1px}.pick.sel .rd{border-color:var(--accent);box-shadow:inset 0 0 0 3px var(--surface);background:var(--accent)}
+.rowx{display:flex;gap:12px;padding:10px 12px;border-bottom:1px solid var(--soft);align-items:flex-start}.rowx:last-child{border:0}
+.mark{position:absolute;right:20px;bottom:40px;background:var(--ink);color:var(--surface);padding:5px 12px;border-radius:6px;font-size:12px;opacity:.85}
+
+table{width:100%;border-collapse:collapse}th{text-align:left;font-size:12px;font-weight:600;color:var(--muted);padding:8px 12px;border-bottom:1px solid var(--line);white-space:nowrap}td{padding:9px 12px;border-bottom:1px solid var(--soft)}tr:last-child td{border:0}
+.r{text-align:right}.bar{height:8px;border-radius:4px;background:var(--soft);overflow:hidden}.bar i{display:block;height:100%;background:var(--accent)}
+.tg{width:34px;height:20px;border-radius:10px;background:var(--accent);position:relative;flex:none}.tg::after{content:"";position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--fg)}.tg.off{background:var(--soft);border:1px solid var(--line)}.tg.off::after{right:auto;left:3px;background:var(--muted)}
+.fr{display:flex;align-items:center;gap:10px}.lab{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;display:block}
+.code{font:600 26px 'JetBrains Mono','DejaVu Sans Mono',monospace;letter-spacing:.12em;text-align:center;padding:14px;background:var(--bg);border:1px dashed var(--accent);border-radius:8px}
+.new{background:var(--goodbg);color:var(--good)}
+</style></head><body><div class="board" id="b"></div><script>
+const q=new URLSearchParams(location.search),pick=(k,list)=>list.find(x=>x===q.get(k))||list[0],v=pick('v',['a','b','c']),th=pick('t',['petrol','hell','dunkel']);
+const P=(c,t)=>`<span class="pill ${c}">${t}</span>`;
+const kpi=(k,x,s,c)=>`<div class="card" style="padding:12px 14px;flex:1"><div class="k">${k}</div><div style="font:600 20px 'JetBrains Mono','DejaVu Sans Mono',monospace;margin-top:6px;${c?'color:var(--'+c+')':''}">${x}</div>${s?`<div class="muted" style="margin-top:3px">${s}</div>`:''}</div>`;
+const rail=(n=0)=>`<div class="rail">${[0,1,2,3,4].map(i=>`<i class="${i===n?'on':''}"></i>`).join('')}</div>`;
+const projects=(sel)=>`<div class="card list"><div class="fr"><h2 style="font-size:17px">Projekte</h2><span class="sp"></span><span class="btn pri sm">+ Neu</span></div><div class="in muted">Projekte filtern …</div>${[['webshop-backend','C# · vor 12 Min.'],['kundenportal','TypeScript · Rust · vor 2 Std.'],['shared-lib','TypeScript · vor 1 Tag'],['lagerverwaltung','Java · gestern']].map(([a,b])=>`<div class="li ${a===sel?'sel':''}"><b>${a}</b><span class="muted">${b}</span></div>`).join('')}</div>`;
+const tabs=(arr,on)=>`<div class="tabs">${arr.map(t=>`<span class="${t===on?'on':''}">${t}</span>`).join('')}</div>`;
+const page=(o)=>`<div class="top"><span class="logo">C</span><b style="font-size:14px">CodeSkimr</b><span class="search">Typ, Member oder Befehl …</span><span class="sp"></span></div><div class="main">${rail(1)}<div class="content">${projects('kundenportal')}<div class="page"><div class="head"><h1>Änderung</h1><span class="muted mono" style="padding-bottom:3px">kundenportal</span><span class="sp"></span>${o.actions||''}</div><div class="card" style="flex:1;display:flex;flex-direction:column;min-height:0">${tabs(o.tabs,o.on)}<div class="body" style="flex:1">${o.body}</div></div></div></div></div><div class="status"><span style="color:var(--good)">● Verbunden</span><span>4 Projekte · 3.107 Typen</span><span>RAM 118 MB</span></div>`;
+const TABS=['Auswirkung','Vergleich','Kennzahlen'];
+const pair=()=>`<div class="fr" style="gap:10px"><span class="lab" style="margin:0">Basis</span><span class="in" style="padding:4px 10px">gestern 09:10</span><span>→</span><span class="lab" style="margin:0">Ziel</span><span class="in" style="padding:4px 10px">aktuell</span><span class="btn sm">Ändern</span></div>`;
+// delta: from,to, worseWhenUp (true/false/null for neutral size)
+const dl=(a,b,up,fmt=x=>x)=>{const d=b-a,w=up===null?(Math.abs(d)>=20?'warn':'n'):((d>0)===up?'bad':'good'),s=(d>0?'+':'−')+fmt(Math.abs(d)).toString();return `<span class="mono">${fmt(a)} → ${fmt(b)}</span> ${P(w,s)}`};
+const f1=x=>x.toFixed(2).replace('.',',');
+const tag=(t)=>`<span class="pill acc" style="width:22px;text-align:center;padding:2px 0">${t}</span>`;
+const V={};
+const WORSE=[['M','PriceCalc.total','src/pricing/calc.ts:48',[['Komplexität',6,14,true],['Wartbarkeit',71,58,false],['Zeilen',22,47,null]],'14 Verwendungen'],
+['M','OrderService.placeOrder','src/orders/service.ts:61',[['Komplexität',9,17,true],['Wartbarkeit',64,52,false],['Zeilen',41,63,null]],'12 Verwendungen · über der Grenze'],
+['T','CheckoutFlow','src/checkout/flow.ts:12',[['Kopplung aus',7,12,true],['Komplexität',31,44,true]],'systemkritisch'],
+['M','Mailer.send','src/mail/mailer.ts:30',[['Komplexität',3,5,true],['Wartbarkeit',80,74,false]],'']];
+const BETTER=[['M','ReportBuilder.build','src/reports/builder.ts:20',[['Komplexität',18,11,true],['Wartbarkeit',49,61,false],['Zeilen',88,54,null]],'über der Grenze → darunter'],
+['M','LegacyImport.run','src/import/legacy.ts:9',[['Komplexität',15,9,true],['Zeilen',70,52,null]],''],
+['T','InvoiceRepo','src/billing/repo.ts:5',[['Kopplung aus',14,9,true]],''],
+['M','formatMoney','shared/money.ts:3',[['Wartbarkeit',66,78,false]],'']];
+const mrow=(r,sel)=>`<div class="rowx" style="${sel?'background:var(--accentbg)':''}">${tag(r[0])}<div style="flex:1;min-width:0"><b class="mono" style="font-size:12.5px">${r[1]}</b><div class="muted mono" style="font-size:11px">${r[2]}${r[4]?' · '+r[4]:''}</div><div style="margin-top:6px;display:flex;flex-direction:column;gap:3px">${r[3].map(m=>`<div class="fr" style="gap:8px"><span class="muted" style="width:92px">${m[0]}</span>${dl(m[1],m[2],m[3])}</div>`).join('')}</div></div></div>`;
+const chips=(on)=>`<div class="fr" style="gap:8px;flex-wrap:wrap"><span class="lab" style="margin:0">Kennzahl</span>${['Alle','Komplexität','Wartbarkeit','Zeilen','Kopplung','Stabilität'].map(c=>`<span class="chip ${c===on?'':'off'}" style="padding:3px 12px;${c===on?'background:var(--accentbg);border-color:var(--accent);opacity:1':''}">${c}</span>`).join('')}<span class="sp"></span><span class="muted">Ebene</span><span class="chip" style="padding:3px 12px">Typen und Member</span></div>`;
+const foot=`<div class="note i">Verglichen werden Typen, Member und Module, die in beiden Scans vorkommen (gleicher Schlüssel wie im Vergleich). Neue und entfernte Objekte stehen im Reiter „Vergleich“. Gezählt wird erst ab einer Schwelle (Einstellung <span class="mono">compare.*</span>), damit ein Zeilenwechsel nicht als Verschlechterung gilt.</div>`;
+
+V.a=()=>page({tabs:TABS,on:'Kennzahlen',actions:'',body:`${pair()}
+<div style="display:flex;gap:12px">${kpi('Verschlechtert','7','Objekte, 3 über einer Grenze','bad')}${kpi('Verbessert','11','Objekte, 2 unter die Grenze','good')}${kpi('Gleich geblieben','1.804','nicht aufgelistet')}${kpi('Nicht vergleichbar','17','neu 14 · entfernt 3')}</div>
+${chips('Alle')}
+<div class="cols" style="flex:1;min-height:0"><div class="col card" style="overflow:hidden"><div class="fr" style="padding:10px 12px;border-bottom:1px solid var(--line)"><h2 style="color:var(--bad)">▲ Verschlechtert</h2>${P('bad','7')}<span class="sp"></span><span class="muted">stärkste zuerst</span></div>${WORSE.map((r,i)=>mrow(r,i===0)).join('')}</div>
+<div class="col card" style="overflow:hidden"><div class="fr" style="padding:10px 12px;border-bottom:1px solid var(--line)"><h2 style="color:var(--good)">▼ Verbessert</h2>${P('good','11')}<span class="sp"></span><span class="muted">stärkste zuerst</span></div>${BETTER.map(r=>mrow(r,false)).join('')}</div></div>
+${foot}`});
+
+const cell=(a,b,up,fmt)=>a===b?`<span class="muted mono">${fmt?fmt(a):a}</span>`:dl(a,b,up,fmt);
+const TB=[['M','PriceCalc.total','src/pricing/calc.ts',[6,14,true],[71,58,false],[22,47,null],[3,4,true],'bad','schlechter'],
+['M','OrderService.placeOrder','src/orders/service.ts',[9,17,true],[64,52,false],[41,63,null],[5,5,true],'bad','schlechter'],
+['T','CheckoutFlow','src/checkout/flow.ts',[31,44,true],[58,55,false],[210,236,null],[7,12,true],'bad','schlechter'],
+['M','Mailer.send','src/mail/mailer.ts',[3,5,true],[80,74,false],[14,19,null],[2,2,true],'warn','leicht schlechter'],
+['M','ReportBuilder.build','src/reports/builder.ts',[18,11,true],[49,61,false],[88,54,null],[8,6,true],'good','besser'],
+['M','LegacyImport.run','src/import/legacy.ts',[15,9,true],[52,60,false],[70,52,null],[6,6,true],'good','besser'],
+['T','InvoiceRepo','src/billing/repo.ts',[40,38,true],[63,64,false],[180,171,null],[14,9,true],'good','besser']];
+V.b=()=>page({tabs:TABS,on:'Kennzahlen',body:`${pair()}
+<div class="fr" style="gap:10px;flex-wrap:wrap"><span class="chip" style="background:var(--accentbg);border-color:var(--accent);padding:3px 12px">Alle geänderten 18</span><span class="chip off" style="padding:3px 12px">▲ Verschlechtert 7</span><span class="chip off" style="padding:3px 12px">▼ Verbessert 11</span><span class="sp"></span><span class="muted">Ebene</span><span class="chip" style="padding:3px 12px">Typen und Member ▾</span><span class="chip" style="padding:3px 12px">Test-Code ausblenden</span></div>
+<div class="tree" style="flex:1;overflow:hidden"><table><tr><th>Objekt</th><th>Komplexität ⇅</th><th>Wartbarkeit</th><th>Zeilen</th><th>Kopplung aus</th><th class="r">Wertung ▾</th></tr>
+${TB.map((r,i)=>`<tr style="${i===0?'background:var(--accentbg)':''}"><td>${tag(r[0])} <b class="mono" style="font-size:12.5px">${r[1]}</b><div class="muted mono" style="font-size:11px;margin-left:30px">${r[2]}</div></td><td>${cell(...r[3])}</td><td>${cell(...r[4])}</td><td>${cell(...r[5])}</td><td>${cell(...r[6])}</td><td class="r">${P(r[7],r[8])}</td></tr>`).join('')}</table></div>
+<div class="fr"><span class="btn sm">Als Markdown kopieren</span><span class="btn sm">Als CSV speichern</span><span class="sp"></span><span class="muted">Zeile anklicken: öffnet das Objekt im Explorer, mit beiden Ständen nebeneinander</span></div>
+${foot}`});
+
+const dumb=(a,b,bad)=>{const l=Math.min(a,b)*100,w=Math.abs(b-a)*100;return `<div style="position:relative;height:18px;width:150px;flex:none"><div style="position:absolute;left:0;right:0;top:8px;height:2px;background:var(--line)"></div><div style="position:absolute;left:${l}%;width:${w}%;top:7px;height:4px;border-radius:2px;background:var(--${bad?'bad':'good'})"></div><div style="position:absolute;left:calc(${a*100}% - 5px);top:4px;width:10px;height:10px;border-radius:50%;border:2px solid var(--muted);background:var(--surface)"></div><div style="position:absolute;left:calc(${b*100}% - 5px);top:4px;width:10px;height:10px;border-radius:50%;background:var(--${bad?'bad':'good'})"></div></div>`};
+const MODS=[['src/pricing',0.42,0.61,true,'Aufrufer 14',['Zyklus mit src/orders']],['src/orders',0.71,0.58,false,'Aufrufer 9',[]],['src/checkout',0.55,0.68,true,'Aufrufer 3',[]],['src/reports',0.80,0.66,false,'Aufrufer 2',[]],['src/mail',0.30,0.31,null,'Aufrufer 11',[]]];
+V.c=()=>page({tabs:TABS,on:'Kennzahlen',body:`${pair()}
+<div style="display:flex;gap:12px">${kpi('Module schlechter','2','Stabilität sinkt bei viel genutzten Modulen','bad')}${kpi('Module besser','2','','good')}${kpi('Neue Zyklen','1','src/pricing ↔ src/orders','bad')}${kpi('Zyklen gelöst','0')}</div>
+<div class="cols" style="flex:1;min-height:0;gap:16px"><div class="col card" style="flex:1.25;overflow:hidden"><div class="fr" style="padding:10px 12px;border-bottom:1px solid var(--line)"><h2>Module</h2><span class="sp"></span><span class="muted mono" style="width:150px;display:flex;justify-content:space-between"><span>0 stabil</span><span>Instabilität</span><span>1</span></span></div>
+${MODS.map((m,i)=>`<div class="rowx" style="align-items:center;${i===0?'background:var(--accentbg)':''}"><div style="width:150px;flex:none"><b class="mono" style="font-size:12.5px">${m[0]}</b><div class="muted" style="font-size:11.5px">${m[4]}${m[5].length?' · '+P('bad','Zyklus'):''}</div></div>${dumb(m[1],m[2],m[3]===true)}<span class="mono" style="width:112px;flex:none;white-space:nowrap">${f1(m[1])} → ${f1(m[2])}</span>${m[3]===null?P('n','gleich'):P(m[3]?'bad':'good',m[3]?'schlechter':'besser')}</div>`).join('')}</div>
+<div class="col card" style="overflow:hidden"><div class="fr" style="padding:10px 12px;border-bottom:1px solid var(--line)"><h2 class="mono" style="font-size:13px">src/pricing</h2><span class="sp"></span><span class="muted">was sich darin geändert hat</span></div>
+${WORSE.slice(0,1).concat(BETTER.slice(3)).map(r=>mrow(r,false)).join('')}
+<div class="note w" style="margin:10px 12px">Dieses Modul wird von 14 Stellen genutzt und wurde instabiler (0,42 → 0,61): Änderungen hier treffen mehr als vorher.</div></div></div>
+${foot}`});
+const b=document.getElementById('b');b.classList.add(th);b.innerHTML=V[v]()+`<span class="mark">43 ${v}</span>`;
+</script></body></html>

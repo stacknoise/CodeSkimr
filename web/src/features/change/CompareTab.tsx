@@ -85,7 +85,7 @@ function offers(): { base: number[]; target: number[] } {
 }
 
 /** The two selectors of the scans and the button that compares them (mock 29). */
-function Selectors(props: { project: number }) {
+export function Selectors(props: { project: number }) {
   return (
     <div class={styles.selectors}>
       <ScanField

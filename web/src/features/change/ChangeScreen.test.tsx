@@ -7,7 +7,7 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { compareWithCurrent, resetChange, showChangeTab } from "./change";
 import { ChangeScreen } from "./ChangeScreen";
 import { TAB } from "./consts";
-import type { ChangeAnswer, SymbolOut, UsageOut } from "./types";
+import type { ChangeAnswer, MetricsAnswer, SymbolOut, UsageOut } from "./types";
 
 useServerSession();
 
@@ -561,5 +561,113 @@ describe("ChangeScreen, without an answer", () => {
     fetchMock.mockReset();
     render(() => <ChangeScreen />);
     expect(screen.getByText(/Pick a project first/)).toBeInTheDocument();
+  });
+});
+
+const METRICS: MetricsAnswer = {
+  schema: 1,
+  project: 1,
+  base: ANSWER.base,
+  target: ANSWER.target,
+  level: "member",
+  looked_at: 10,
+  worse: {
+    total: 1,
+    is_cut: false,
+    items: [
+      {
+        name: "Shop.Checkout.Total",
+        kind: "method",
+        path: "src/Checkout.cs",
+        verdict: "mixed",
+        crosses: true,
+        moves: [
+          { metric: "cc", from: 6, to: 14, direction: "worse", crossing: "into_poor" },
+          { metric: "loc", from: 22, to: 47, direction: "grew", crossing: null },
+        ],
+      },
+    ],
+  },
+  better: {
+    total: 2,
+    is_cut: false,
+    items: [
+      {
+        name: "Shop.Checkout.Total",
+        kind: "method",
+        path: "src/Checkout.cs",
+        verdict: "mixed",
+        crosses: false,
+        moves: [{ metric: "mi", from: 49.5, to: 61, direction: "better", crossing: null }],
+      },
+      {
+        name: "Shop.Legacy.Run",
+        kind: "method",
+        path: "src/Legacy.cs",
+        verdict: "better",
+        crosses: true,
+        moves: [{ metric: "cc", from: 15, to: 9, direction: "better", crossing: "out_of_poor" }],
+      },
+    ],
+  },
+  is_cut: false,
+};
+
+describe("ChangeScreen, view Metrics", () => {
+  it("reads the metrics of the compared pair and shows both lists with their moves", async () => {
+    serveChange({ "scans.metrics": () => answer(METRICS) });
+    render(() => <ChangeScreen />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Metrics" }));
+    expect(await screen.findByText("Got worse", { selector: "h2" })).toBeInTheDocument();
+    expect(bodiesOf("scans.metrics")).toEqual([
+      { project: 1, base: 8, target: 9, level: "member" },
+    ]);
+    const worse = within(screen.getByRole("region", { name: "Got worse" }));
+    expect(worse.getByText("Shop.Checkout.Total")).toBeInTheDocument();
+    expect(worse.getByText("6 → 14")).toBeInTheDocument();
+    expect(worse.getByText("+8")).toBeInTheDocument();
+    expect(worse.getByText("past the limit")).toBeInTheDocument();
+    const better = within(screen.getByRole("region", { name: "Got better" }));
+    expect(better.getByText("49.5 → 61")).toBeInTheDocument();
+    expect(better.getByText("−6")).toBeInTheDocument();
+    expect(better.getByText("back under the limit")).toBeInTheDocument();
+    expect(screen.getByText("objects, 1 past a limit")).toBeInTheDocument();
+    expect(screen.getByText("not listed")).toBeInTheDocument();
+    expect(screen.getByText("new 1 · removed 1")).toBeInTheDocument();
+  });
+
+  it("narrows the lists to one metric and reads again for another level", async () => {
+    serveChange({ "scans.metrics": () => answer(METRICS) });
+    render(() => <ChangeScreen />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Metrics" }));
+    await screen.findByText("Shop.Legacy.Run");
+    fireEvent.click(screen.getByRole("button", { name: "Maintainability" }));
+    expect(screen.queryByText("Shop.Legacy.Run")).not.toBeInTheDocument();
+    expect(screen.queryByText("+8")).not.toBeInTheDocument();
+    expect(screen.getByText("49.5 → 61")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox", { name: "Level" }), {
+      target: { value: "type" },
+    });
+    await screen.findByText("Got worse", { selector: "h2" });
+    expect(bodiesOf("scans.metrics").at(-1)).toMatchObject({ level: "type" });
+  });
+
+  it("says so when nothing moved by its threshold", async () => {
+    const none = { ...METRICS, worse: { total: 0, is_cut: false, items: [] } };
+    serveChange({
+      "scans.metrics": () => answer({ ...none, better: { total: 0, is_cut: false, items: [] } }),
+    });
+    render(() => <ChangeScreen />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Metrics" }));
+    expect(await screen.findByText("No object moved by its threshold.")).toBeInTheDocument();
+  });
+
+  it("shows the failure of the read with its code", async () => {
+    serveChange({
+      "scans.metrics": () => answer({ code: "CMP-201", message: "x", retryable: false }, 400),
+    });
+    render(() => <ChangeScreen />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Metrics" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
 });

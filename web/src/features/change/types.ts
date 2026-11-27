@@ -129,3 +129,35 @@ export interface Selection {
 export interface MarkdownAnswer {
   markdown: string;
 }
+
+/** One metric that moved (`MoveOut` in crates/application/src/compare/metrics_wire.rs). */
+export interface MetricMoveOut {
+  metric: string;
+  from: number;
+  to: number;
+  direction: string;
+  crossing: string | null;
+}
+
+/** One object whose metrics moved (`MetricChangeOut`). */
+export interface MetricChangeOut {
+  name: string;
+  kind: string;
+  path: string;
+  verdict: string;
+  crosses: boolean;
+  moves: MetricMoveOut[];
+}
+
+/** The answer of `scans.metrics` (docs/compare.md, `"schema": 1`). */
+export interface MetricsAnswer {
+  schema: number;
+  project: number;
+  base: ScanEntry;
+  target: ScanEntry;
+  level: string;
+  looked_at: number;
+  worse: Listed<MetricChangeOut>;
+  better: Listed<MetricChangeOut>;
+  is_cut: boolean;
+}

@@ -30,6 +30,7 @@ import {
   TABS,
 } from "./consts";
 import { ImpactTab } from "./ImpactTab";
+import { MetricsTab } from "./MetricsTab";
 import { chipText } from "./scans";
 import type { ChangeAnswer } from "./types";
 import styles from "./ChangeScreen.module.css";
@@ -116,6 +117,9 @@ function Views(props: { project: number }) {
         </Match>
         <Match when={changeTab() === TAB.compare}>
           <CompareTab project={props.project} answer={changeAnswer()} />
+        </Match>
+        <Match when={changeTab() === TAB.metrics}>
+          <MetricsTab project={props.project} answer={changeAnswer()} />
         </Match>
       </Switch>
     </div>
