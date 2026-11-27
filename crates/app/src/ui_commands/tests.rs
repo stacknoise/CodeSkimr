@@ -1493,7 +1493,7 @@ fn the_places_of_a_module_dependency_name_file_line_and_both_symbols() {
     assert!(found["snapshot"].is_u64());
     let places = found["places"].as_array().unwrap();
     assert_eq!(found["total"], places.len());
-    assert!(!places.is_empty());
+    assert_ne!(found["total"], 0);
     assert!(places[0]["path"].as_str().unwrap().ends_with("Engine.cs"));
     assert!(places[0]["line"].as_u64().unwrap() >= 1);
     assert!(places[0]["from"].as_str().unwrap().starts_with("Demo.Core"));
