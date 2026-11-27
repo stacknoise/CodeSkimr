@@ -155,10 +155,11 @@ pub(crate) fn history(conn: &Connection, project: ProjectId) -> StorageResult<Ve
 fn steps_of(conn: &Connection, project: ProjectId) -> StorageResult<HashMap<i64, Vec<StepTime>>> {
     let mut statement = conn.prepare_cached(sql::SCAN_STEPS)?;
     let rows = statement.query_map(params![column_int(project.get())?], |row| {
+        let cols = Cols::new(row);
         Ok((
-            row.get::<_, i64>(0)?,
-            row.get::<_, String>(1)?,
-            row.get::<_, i64>(2)?,
+            cols.take::<i64>()?,
+            cols.take::<String>()?,
+            cols.take::<i64>()?,
         ))
     })?;
     let mut by_scan: HashMap<i64, Vec<StepTime>> = HashMap::new();
