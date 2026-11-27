@@ -409,6 +409,7 @@ export const I18N_KEYS = {
   CLI_SCOPE_LANGUAGE: "cli-scope-language",
   CLI_SCOPE_FOLDER: "cli-scope-folder",
   CLI_SCOPE_MORE: "cli-scope-more",
+  CLI_SCOPE_ABAPGIT: "cli-scope-abapgit",
   CLI_SCOPE_SAVED: "cli-scope-saved",
   CLI_SCOPE_UNCHANGED: "cli-scope-unchanged",
   CLI_CMD_SYMBOLS: "cli-cmd-symbols",
