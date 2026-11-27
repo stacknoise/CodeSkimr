@@ -63,6 +63,9 @@ rules-ring-advice = Auflösbar über { $edges ->
    *[other] { $places } Stellen
 }
 rules-ring-show = Im Graphen zeigen
+rules-ring-explorer = Im Explorer zeigen
+rules-symbol-explorer = { $name } im Explorer zeigen
+rules-symbol-gone = Nicht im letzten Scan, der Explorer kann es nicht zeigen. Neu scannen.
 rules-add = Regel hinzufügen
 rules-add-git = Nur für Ordnerprojekte: Ein Git-Projekt hat keine Projektdatei, in die die Regeln kämen.
 rules-add-forbid = Verbot
@@ -107,6 +110,3 @@ rules-saving = Speichere …
 rules-delete-confirm = Löschen
 rules-save-failed = Die Regeln konnten nicht gespeichert werden.
 rules-toml-label = Text, der in die Datei geschrieben wird
-rules-tab-rules = Regeln
-rules-tab-layers = Schichten
-rules-tabs-label = Regeln und Schichten

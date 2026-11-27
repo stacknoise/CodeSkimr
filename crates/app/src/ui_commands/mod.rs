@@ -52,6 +52,7 @@ mod rules;
 mod rules_edit;
 #[cfg(test)]
 mod rules_edit_tests;
+mod rules_symbols;
 #[cfg(test)]
 mod rules_tests;
 mod scans;

@@ -1,6 +1,6 @@
 # Rules
 
-The screen **Rules** (left bar) checks the architecture rules of your project file `.codeskimr.toml` against the last scan and lists their violations. It has two tabs: **Rules** and **Layers** (the editor of the layers, see [Projects and scan](projects-and-scan.md)).
+The screen **Rules** (left bar) checks the architecture rules of your project file `.codeskimr.toml` against the last scan and lists their violations. The layers have a screen of their own, **Layers**, in the left bar (the editor of the layers, see [Projects and scan](projects-and-scan.md)).
 
 ## What a rule is
 
@@ -11,7 +11,7 @@ The screen **Rules** (left bar) checks the architecture rules of your project fi
 | Ban | module A must not use module B | `[[rules.forbid]]` with `from`, `to`, optional `reason` |
 | Public interface | the inside of a module may be used from inside only | `[[rules.public_api]]` with `module`, `internal` |
 
-A violation is a symbol that reaches a symbol it must not reach, with every place. **Hold state** records all current violations as old burdens; the CI (`codeskimr rules`) then fails only for new ones.
+A violation is a symbol that reaches a symbol it must not reach, with every place. Both names are buttons that show the symbol in the explorer; a ring has the button **Show in the explorer**. A name that the last scan does not know is off, with the hint to scan again. **Hold state** records all current violations as old burdens; the CI (`codeskimr rules`) then fails only for new ones.
 
 ## Creating and changing rules in the UI
 

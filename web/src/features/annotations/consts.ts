@@ -23,6 +23,9 @@ export type TaskStatus = (typeof STATUS)[keyof typeof STATUS];
 /** Kind of the target of an annotation on a namespace; types and members carry their own kind. */
 export const NAMESPACE_KIND = "namespace";
 
+/** Kind of a module, which the explorer tree shows as a row like a namespace. */
+export const MODULE_KIND = "module";
+
 /** Rows per call. The summary and the project-wide list are read page by page until the server
  * names no next page. */
 export const PAGE_SIZE = 500;

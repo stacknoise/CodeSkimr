@@ -63,6 +63,9 @@ rules-ring-advice = Resolvable over { $edges ->
    *[other] { $places } places
 }
 rules-ring-show = Show in the graph
+rules-ring-explorer = Show in the explorer
+rules-symbol-explorer = Show { $name } in the explorer
+rules-symbol-gone = Not in the last scan, so the explorer cannot show it. Scan again.
 rules-add = Add rule
 rules-add-git = Folder projects only: a Git project has no project file to write the rules into.
 rules-add-forbid = Ban
@@ -107,6 +110,3 @@ rules-saving = Saving …
 rules-delete-confirm = Delete
 rules-save-failed = The rules could not be saved.
 rules-toml-label = Text written into the file
-rules-tab-rules = Rules
-rules-tab-layers = Layers
-rules-tabs-label = Rules and layers

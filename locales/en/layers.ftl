@@ -1,5 +1,6 @@
 # Setting layers: a choice from the detected namespaces (ADR 0065).
 
+nav-layers = Layers
 layers-title = Layers
 layers-subtitle = Build layers from the detected namespaces. The choice is saved in .codeskimr.toml in the project folder.
 layers-no-project = Pick a project first, the one whose layers you want to set.

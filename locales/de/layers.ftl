@@ -1,5 +1,6 @@
 # Schichten festlegen: Auswahl aus den erkannten Namensräumen (ADR 0065).
 
+nav-layers = Schichten
 layers-title = Schichten
 layers-subtitle = Stelle aus den erkannten Namensräumen Schichten zusammen. Die Auswahl wird in .codeskimr.toml im Projektordner gespeichert.
 layers-no-project = Wähle zuerst ein Projekt, dessen Schichten du festlegen willst.

@@ -1,6 +1,6 @@
 # Regeln
 
-Die Seite **Regeln** (linke Leiste) prüft die Architekturregeln Ihrer Projektdatei `.codeskimr.toml` gegen den letzten Scan und listet ihre Verstöße auf. Sie hat zwei Reiter: **Regeln** und **Schichten** (der Editor der Schichten, siehe [Projekte und Scan](projekte-und-scan.md)).
+Die Seite **Regeln** (linke Leiste) prüft die Architekturregeln Ihrer Projektdatei `.codeskimr.toml` gegen den letzten Scan und listet ihre Verstöße auf. Die Schichten haben eine eigene Seite **Schichten** in der linken Leiste (der Editor der Schichten, siehe [Projekte und Scan](projekte-und-scan.md)).
 
 ## Was eine Regel ist
 
@@ -11,7 +11,7 @@ Die Seite **Regeln** (linke Leiste) prüft die Architekturregeln Ihrer Projektda
 | Verbot | Modul A darf Modul B nicht nutzen | `[[rules.forbid]]` mit `from`, `to`, optional `reason` |
 | Öffentliche Schnittstelle | das Innere eines Moduls darf nur von innen genutzt werden | `[[rules.public_api]]` mit `module`, `internal` |
 
-Ein Verstoß ist ein Symbol, das ein Symbol erreicht, das es nicht erreichen darf, mit allen Stellen. **Stand festhalten** hält alle jetzigen Verstöße als Altlast fest; die CI (`codeskimr rules`) schlägt dann nur bei neuen fehl.
+Ein Verstoß ist ein Symbol, das ein Symbol erreicht, das es nicht erreichen darf, mit allen Stellen. Beide Namen sind Knöpfe, die das Symbol im Explorer zeigen; ein Zyklus hat den Knopf **Im Explorer zeigen**. Bei einem Namen, den der letzte Scan nicht kennt, ist der Knopf ausgegraut, mit dem Hinweis, neu zu scannen. **Stand festhalten** hält alle jetzigen Verstöße als Altlast fest; die CI (`codeskimr rules`) schlägt dann nur bei neuen fehl.
 
 ## Regeln im UI anlegen und ändern
 
