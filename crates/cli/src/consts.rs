@@ -696,9 +696,9 @@ pub const VALUE_LEVEL: &str = "LEVEL";
 /// The names the text of `compare --metrics` reads from the JSON of the answer and passes to the
 /// texts (ADR 0114).
 pub mod metrics {
-    /// The list of what got worse.
+    /// The field of the answer that lists what got worse (a key of the JSON, not a verdict).
     pub const WORSE: &str = "worse";
-    /// The list of what got better.
+    /// The field of the answer that lists what got better.
     pub const BETTER: &str = "better";
     /// The level of the answer.
     pub const LEVEL: &str = "level";
@@ -734,18 +734,6 @@ pub mod metrics {
     pub const ARG_BETTER: &str = "better";
     /// `{ $looked }`.
     pub const ARG_LOOKED: &str = "looked";
-    /// The label of a crossing into the poor range.
-    pub const INTO_POOR: &str = "into_poor";
-    /// The labels of the judged metrics in the JSON.
-    pub const LABEL_LOC: &str = "loc";
-    /// Cyclomatic complexity.
-    pub const LABEL_CC: &str = "cc";
-    /// Maintainability index.
-    pub const LABEL_MI: &str = "mi";
-    /// Efferent coupling.
-    pub const LABEL_CE: &str = "ce";
-    /// Instability.
-    pub const LABEL_INSTABILITY: &str = "instability";
     /// Separates the moves of one object.
     pub const MOVE_JOIN: &str = ", ";
     /// Values are shown with this many hundredths of precision: the value is multiplied by it,
@@ -753,6 +741,8 @@ pub mod metrics {
     pub const ROUNDING: f64 = 100.0;
 }
 
+/// Separates the names after `--metric`, so that `--metric cc,mi` names two metrics.
+pub const METRIC_LIST_DELIMITER: char = ',';
 /// What a missing `layer` or `signature` is in the JSON.
 pub const JSON_NULL_TEXT: &str = "null";
 /// What a control character in a text of the project becomes.

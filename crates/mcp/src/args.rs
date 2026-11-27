@@ -183,9 +183,11 @@ pub struct DiffArgs {
     /// and those that got better by complexity, maintainability, lines and coupling; `false` if
     /// left out.
     pub metrics: Option<bool>,
-    /// The level of the metric changes: `module`, `type` or `member`; `member` if left out.
+    /// The level of the metric changes: `module`, `type` or `member`; `member` if left out. Counts
+    /// only with `metrics: true`.
     pub metrics_level: Option<String>,
-    /// Whether test code counts in the metric changes; `false` if left out.
+    /// Whether test code counts in the metric changes; `false` if left out. Counts only with
+    /// `metrics: true`.
     pub include_tests: Option<bool>,
 }
 

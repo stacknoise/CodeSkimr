@@ -3,19 +3,21 @@
 //!
 //! Every text from the project (names, paths) loses its control characters.
 
+use codeskimr_application::compare::CROSSING_INTO_POOR;
 use codeskimr_codes::i18n::{
     COMPARE_CUT, METRICS_BETTER, METRICS_HEAD, METRICS_INTO_POOR, METRICS_LINE, METRICS_MOVE,
     METRICS_MOVE_CROSSING, METRICS_NAME_CC, METRICS_NAME_CE, METRICS_NAME_INSTABILITY,
     METRICS_NAME_LOC, METRICS_NAME_MI, METRICS_NONE, METRICS_OUT_OF_POOR, METRICS_WORSE,
 };
+use codeskimr_domain::MetricKind;
 use codeskimr_i18n::I18nError;
 use serde_json::Value;
 
 use crate::consts::change::{field_name, name};
 use crate::consts::metrics::{
     ARG_BETTER, ARG_CROSSING, ARG_FROM, ARG_LEVEL, ARG_LOOKED, ARG_METRIC, ARG_MOVE, ARG_MOVES,
-    ARG_TO, ARG_WORSE, BETTER, CROSSING, FROM, INTO_POOR, LABEL_CC, LABEL_CE, LABEL_INSTABILITY,
-    LABEL_LOC, LABEL_MI, LEVEL, LOOKED_AT, METRIC, MOVE_JOIN, MOVES, ROUNDING, TO, WORSE,
+    ARG_TO, ARG_WORSE, BETTER, CROSSING, FROM, LEVEL, LOOKED_AT, METRIC, MOVE_JOIN, MOVES,
+    ROUNDING, TO, WORSE,
 };
 use crate::consts::{arg, key};
 use crate::speech::{Speaker, child, count, entries, field, section, text};
@@ -23,11 +25,11 @@ use crate::speech::{Speaker, child, count, entries, field, section, text};
 /// The name of a metric as text; its label if it has no name.
 fn metric_name(speak: &Speaker<'_>, label: &str) -> Result<String, I18nError> {
     let known = [
-        (LABEL_LOC, METRICS_NAME_LOC),
-        (LABEL_CC, METRICS_NAME_CC),
-        (LABEL_MI, METRICS_NAME_MI),
-        (LABEL_CE, METRICS_NAME_CE),
-        (LABEL_INSTABILITY, METRICS_NAME_INSTABILITY),
+        (MetricKind::Loc.label(), METRICS_NAME_LOC),
+        (MetricKind::CyclomaticComplexity.label(), METRICS_NAME_CC),
+        (MetricKind::MaintainabilityIndex.label(), METRICS_NAME_MI),
+        (MetricKind::EfferentCoupling.label(), METRICS_NAME_CE),
+        (MetricKind::Instability.label(), METRICS_NAME_INSTABILITY),
     ];
     known
         .iter()
@@ -51,7 +53,7 @@ fn move_text(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
     let said = speak.say(METRICS_MOVE, &numbers)?;
     let crossing = match field(found, CROSSING).as_str() {
         "" => return Ok(said),
-        label if label == INTO_POOR => speak.say(METRICS_INTO_POOR, &[])?,
+        label if label == CROSSING_INTO_POOR => speak.say(METRICS_INTO_POOR, &[])?,
         _ => speak.say(METRICS_OUT_OF_POOR, &[])?,
     };
     speak.say(

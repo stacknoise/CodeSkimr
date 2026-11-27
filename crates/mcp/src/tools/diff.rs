@@ -2,11 +2,10 @@
 
 use codeskimr_application::access;
 use codeskimr_application::compare::{
-    ComparisonAnswer, ComparisonRequest, MetricsAnswer, MetricsRequest, parse_level,
+    ComparisonAnswer, ComparisonRequest, MetricsAnswer, MetricsWanted, metrics_request,
 };
-use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::COMPARE_DIRECT_ONLY_NOTE;
-use codeskimr_domain::{MetricLevel, Principal, SnapshotId};
+use codeskimr_domain::{Principal, ProjectId, SnapshotId};
 use serde_json::Value;
 
 use super::{Tools, to_json};
@@ -51,26 +50,20 @@ impl Tools {
     }
 
     /// The metric changes between the same two scans, as `scans.metrics` answers them (ADR 0114).
-    fn metric_changes(
-        &self,
-        project: codeskimr_domain::ProjectId,
-        args: &DiffArgs,
-    ) -> Result<Value, McpError> {
-        let level = args
-            .metrics_level
-            .as_deref()
-            .map_or(Ok(MetricLevel::Member), |text| {
-                parse_level(text).ok_or(ErrorCode::RequestInvalid)
-            })
-            .map_err(|code| McpError::from(codeskimr_application::error::CodedError::new(code)))?;
-        let found = self.scan_diffs().compare_metrics(&MetricsRequest {
+    fn metric_changes(&self, project: ProjectId, args: &DiffArgs) -> Result<Value, McpError> {
+        let request = metrics_request(
             project,
-            base: args.base.map(SnapshotId::new),
-            target: args.target.map(SnapshotId::new),
-            level,
-            include_tests: args.include_tests == Some(true),
-            only: Vec::new(),
-        })?;
+            (
+                args.base.map(SnapshotId::new),
+                args.target.map(SnapshotId::new),
+            ),
+            MetricsWanted {
+                level: args.metrics_level.as_deref(),
+                only: &[],
+                include_tests: args.include_tests == Some(true),
+            },
+        )?;
+        let found = self.scan_diffs().compare_metrics(&request)?;
         to_json(&MetricsAnswer::new(&found))
     }
 }

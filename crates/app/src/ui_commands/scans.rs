@@ -10,15 +10,15 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::compare::ScanListAnswer;
 use codeskimr_application::compare::{
-    ComparisonAnswer, ComparisonRequest, MetricsAnswer, MetricsRequest, ScanDiffs,
-    parse_judged_metric, parse_level,
+    ComparisonAnswer, ComparisonRequest, MetricsAnswer, MetricsRequest, MetricsWanted, ScanDiffs,
+    metrics_request,
 };
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{CodeIndex, ProjectRepository};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_cli::change_markdown;
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{MetricLevel, Permission, ProjectId, SnapshotId};
+use codeskimr_domain::{Permission, ProjectId, SnapshotId};
 use codeskimr_i18n::{DEFAULT_LANGUAGE, Messages};
 use serde::{Deserialize, Serialize};
 
@@ -181,26 +181,18 @@ pub struct MetricsInput {
 impl MetricsInput {
     /// The request of the use case; `RequestInvalid` for a level or a metric that is not known.
     fn request(&self) -> Result<MetricsRequest, CodedError> {
-        let invalid = || CodedError::new(ErrorCode::RequestInvalid);
-        let level = self
-            .level
-            .as_deref()
-            .map_or(Ok(MetricLevel::Member), |text| {
-                parse_level(text).ok_or_else(invalid)
-            })?;
-        let only = self
-            .metrics
-            .iter()
-            .map(|text| parse_judged_metric(text).ok_or_else(invalid))
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(MetricsRequest {
-            project: ProjectId::new(self.compare.project),
-            base: self.compare.base.map(SnapshotId::new),
-            target: self.compare.target.map(SnapshotId::new),
-            level,
-            include_tests: self.include_tests,
-            only,
-        })
+        metrics_request(
+            ProjectId::new(self.compare.project),
+            (
+                self.compare.base.map(SnapshotId::new),
+                self.compare.target.map(SnapshotId::new),
+            ),
+            MetricsWanted {
+                level: self.level.as_deref(),
+                only: &self.metrics,
+                include_tests: self.include_tests,
+            },
+        )
     }
 }
 

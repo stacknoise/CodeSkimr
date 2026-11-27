@@ -21,12 +21,13 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{AnnotationKind, Comparison, ProjectId, SnapshotId, compare_symbols};
 
 use crate::config::Compare;
+pub use crate::consts::CROSSING_INTO_POOR;
 use crate::error::CodedError;
 use crate::ports::{
     AnnotationFilter, AnnotationStore, CodeIndex, ComparisonSource, ScanEntry, UsageIndex,
 };
 pub use metrics::{MetricComparison, MetricRules, MetricsRequest};
-pub use metrics_wire::{MetricChangeOut, MetricsAnswer, MoveOut, parse_judged_metric, parse_level};
+pub use metrics_wire::{MetricChangeOut, MetricsAnswer, MetricsWanted, MoveOut, metrics_request};
 pub use report::{
     ComparisonRequest, CriticalChange, CriticalOutcome, Impact, ImpactUsage, LayerChange,
     LayerChanges, Listed, ScanComparison, SymbolImpact, UsageStatus,

@@ -4,12 +4,14 @@
 //!
 //! The types only copy what [`MetricComparison`] holds into plain fields; no decision is made here.
 
+use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
-    Crossing, MetricChange, MetricKind, MetricLevel, MetricMove, MoveDirection, Verdict,
+    Crossing, MetricChange, MetricKind, MetricLevel, MetricMove, MoveDirection, ProjectId,
+    SnapshotId, Verdict,
 };
 use serde::Serialize;
 
-use super::metrics::MetricComparison;
+use super::metrics::{MetricComparison, MetricsRequest};
 use super::report::Listed;
 use super::wire::{ListedOut, ScanOut};
 use crate::consts::{
@@ -17,6 +19,7 @@ use crate::consts::{
     DIRECTION_WORSE, LEVEL_MEMBER, LEVEL_MODULE, LEVEL_TYPE, VERDICT_BETTER, VERDICT_MIXED,
     VERDICT_WORSE,
 };
+use crate::error::CodedError;
 
 /// One metric that moved.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -77,16 +80,14 @@ const fn level_label(level: MetricLevel) -> &'static str {
 }
 
 /// The level a label names (`module`, `type` or `member`); `None` for any other text.
-#[must_use]
-pub fn parse_level(label: &str) -> Option<MetricLevel> {
+fn parse_level(label: &str) -> Option<MetricLevel> {
     [MetricLevel::Module, MetricLevel::Type, MetricLevel::Member]
         .into_iter()
         .find(|level| level_label(*level) == label)
 }
 
 /// The metrics a request may name to ask only for them; `None` for a metric that is not judged.
-#[must_use]
-pub fn parse_judged_metric(label: &str) -> Option<MetricKind> {
+fn parse_judged_metric(label: &str) -> Option<MetricKind> {
     [
         MetricKind::CyclomaticComplexity,
         MetricKind::MaintainabilityIndex,
@@ -96,6 +97,46 @@ pub fn parse_judged_metric(label: &str) -> Option<MetricKind> {
     ]
     .into_iter()
     .find(|kind| kind.label() == label)
+}
+
+/// What a caller names in text to narrow the metric changes: the same for the registry command,
+/// the command line and the MCP tool.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct MetricsWanted<'a> {
+    /// `module`, `type` or `member`; `member` if left out.
+    pub level: Option<&'a str>,
+    /// Only objects in which one of these metrics moved; every judged metric if empty.
+    pub only: &'a [String],
+    /// Whether test code is looked at too.
+    pub include_tests: bool,
+}
+
+/// The request for the scans `(base, target)` of `project` as the caller named it.
+///
+/// # Errors
+/// `API-101` for a level or a metric that is not known.
+pub fn metrics_request(
+    project: ProjectId,
+    (base, target): (Option<SnapshotId>, Option<SnapshotId>),
+    wanted: MetricsWanted<'_>,
+) -> Result<MetricsRequest, CodedError> {
+    let invalid = || CodedError::new(ErrorCode::RequestInvalid);
+    let level = wanted.level.map_or(Ok(MetricLevel::Member), |text| {
+        parse_level(text).ok_or_else(invalid)
+    })?;
+    let only = wanted
+        .only
+        .iter()
+        .map(|text| parse_judged_metric(text).ok_or_else(invalid))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(MetricsRequest {
+        project,
+        base,
+        target,
+        level,
+        include_tests: wanted.include_tests,
+        only,
+    })
 }
 
 /// One object whose metrics moved.
