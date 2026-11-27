@@ -20,15 +20,6 @@ use crate::consts::{
 };
 use crate::log_file::LogFile;
 
-/// The levels the UI offers, from silent to everything.
-pub const LEVELS: [LevelFilter; 5] = [
-    LevelFilter::OFF,
-    LevelFilter::WARN,
-    LevelFilter::INFO,
-    LevelFilter::DEBUG,
-    LevelFilter::TRACE,
-];
-
 /// The filter for a chosen level: the program itself logs at `level`, libraries at most at the
 /// default level, so that Debug and Trace do not show what their requests carry.
 #[must_use]

@@ -624,3 +624,11 @@ pub const LOG_RESET_THREAD: &str = "log-level-reset";
 pub const LOG_TARGET_PREFIX: &str = "codeskimr";
 /// Permission bits of the folder of the log files on Unix: the owner only.
 pub const LOG_DIR_MODE: u32 = 0o700;
+/// The log levels the UI offers, from silent to everything.
+pub const LOG_LEVELS: [tracing_subscriber::filter::LevelFilter; 5] = [
+    tracing_subscriber::filter::LevelFilter::OFF,
+    tracing_subscriber::filter::LevelFilter::WARN,
+    tracing_subscriber::filter::LevelFilter::INFO,
+    tracing_subscriber::filter::LevelFilter::DEBUG,
+    tracing_subscriber::filter::LevelFilter::TRACE,
+];

@@ -210,7 +210,7 @@ mod tests {
         }
         log.clear().unwrap();
         assert_eq!(log.size(), 0);
-        assert!(log.tail(5).unwrap().is_empty());
+        assert_eq!(log.tail(5).unwrap(), Vec::<String>::new());
         log.write(b"after\n").unwrap();
         assert_eq!(log.tail(5).unwrap(), ["after"]);
         assert!(!old_name(&path, 1).exists());

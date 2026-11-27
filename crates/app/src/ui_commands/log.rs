@@ -10,9 +10,11 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use codeskimr_application::access;
-use codeskimr_application::error::CodedError;
-use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
+use codeskimr_application::{
+    access,
+    error::CodedError,
+    registry::{Command, CommandDescriptor, CommandId, Request},
+};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Permission;
 use serde::{Deserialize, Serialize};
@@ -24,7 +26,7 @@ use super::consts::{
     LOG_SET_LEVEL_TITLE, LOG_STATUS, LOG_STATUS_DESCRIPTION, LOG_STATUS_TITLE, LOG_TAIL,
     LOG_TAIL_DESCRIPTION, LOG_TAIL_TITLE,
 };
-use crate::consts::{LOG_FILE_MAX_BYTES, LOG_FILES_KEPT, LOG_TAIL_MAX_LINES};
+use crate::consts::{LOG_FILE_MAX_BYTES, LOG_FILES_KEPT, LOG_LEVELS, LOG_TAIL_MAX_LINES};
 use crate::file_opener::FileOpener;
 use crate::log_control;
 
@@ -64,10 +66,7 @@ fn status(opener: &dyn FileOpener) -> LogStatus {
     LogStatus {
         level: word(log_control::level()),
         default_level: word(log_control::default_level()),
-        levels: log_control::LEVELS
-            .iter()
-            .map(|level| word(*level))
-            .collect(),
+        levels: LOG_LEVELS.iter().map(|level| word(*level)).collect(),
         adjustable: log_control::is_installed(),
         file: info
             .as_ref()
@@ -147,7 +146,7 @@ impl Command for LogSetLevel {
         access::require(request.principal, Permission::Manage)?;
         let level = LevelFilter::from_str(&request.input.level)
             .ok()
-            .filter(|level| log_control::LEVELS.contains(level))
+            .filter(|level| LOG_LEVELS.contains(level))
             .ok_or_else(|| CodedError::new(ErrorCode::RequestInvalid))?;
         if !log_control::set_level(level) {
             return Err(CodedError::new(ErrorCode::RequestInvalid));
