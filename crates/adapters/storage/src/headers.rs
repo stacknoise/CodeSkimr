@@ -1,7 +1,6 @@
 //! The header of a snapshot as stored: the newest one of a project, its totals and the writing of
 //! references and metrics, shared by the writes of `snapshots` and `replace`.
 
-use codeskimr_application::ports::ScanEntry;
 use codeskimr_domain::{
     CommitHash, Metric, ProjectId, Reference, Snapshot, SnapshotId, SnapshotStats, Symbol,
     Timestamp, Visibility,
@@ -175,33 +174,4 @@ pub(crate) fn insert_symbol(
         content_hash,
     ])?;
     Ok(())
-}
-
-/// The retained snapshots of `project` with the duration and the changed files of their scans,
-/// newest first (ADR 0097).
-pub fn scan_history(conn: &Connection, project: ProjectId) -> StorageResult<Vec<ScanEntry>> {
-    let mut statement = conn.prepare_cached(sql::SCAN_HISTORY)?;
-    let rows = statement.query_map(params![column_int(project.get())?], |row| {
-        let cols = Cols::new(row);
-        let head = snapshot_columns(&cols)?;
-        Ok((
-            head,
-            (cols.take::<Option<i64>>()?, cols.take::<Option<i64>>()?),
-        ))
-    })?;
-    let mut entries = Vec::new();
-    for row in rows {
-        let ((id, commit, created, mode, (files, symbols, _)), (duration, changed)) = row?;
-        entries.push(ScanEntry {
-            snapshot: SnapshotId::new(id_from(id)?),
-            created: Timestamp(created),
-            commit: commit.map(CommitHash::new).transpose()?,
-            mode: label_from(&mode)?,
-            files: small_from(files)?,
-            symbols: small_from(symbols)?,
-            duration_ms: duration.map(id_from).transpose()?,
-            files_changed: changed.map(small_from).transpose()?,
-        });
-    }
-    Ok(entries)
 }

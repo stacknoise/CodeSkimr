@@ -6,7 +6,7 @@ change-view-subtitle = What does this change hit?
 change-view-no-project = Pick a project first, the one whose scans you want to compare.
 change-view-load-failed = The comparison could not be read.
 change-view-reading = Comparing the scans …
-change-view-too-few = The project has fewer than two scans, so there is nothing to compare yet. A scan without changes writes no entry.
+change-view-too-few = The project has fewer than two scans, so there is nothing to compare yet.
 change-view-tabs-label = Views of the change
 change-view-tab-impact = Impact
 change-view-tab-compare = Comparison
@@ -55,6 +55,7 @@ change-view-state-none = no checklist
 
 change-view-table-label = Symbols the change touches
 change-view-none = The two scans have no difference in symbols.
+change-view-same = Nothing changed: both scans have the same state, because no file changed between them.
 
 change-view-detail-signature = Changed signature
 change-view-detail-visibility = Changed visibility

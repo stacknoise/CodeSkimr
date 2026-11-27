@@ -77,7 +77,8 @@ impl SnapshotStore for ProjectDb {
     }
 
     fn confirm(&self, scan: &Confirmation) -> Result<Option<Confirmed>, CodedError> {
-        self.write(|tx| confirm(tx, scan)).map_err(CodedError::from)
+        self.write(|tx| confirm(tx, scan, self.retention().get()))
+            .map_err(CodedError::from)
     }
 
     fn next_free_ids(&self, _project: ProjectId) -> Result<(u64, u64), CodedError> {
@@ -86,8 +87,8 @@ impl SnapshotStore for ProjectDb {
 }
 
 /// Marks the snapshot of `scan` as the result of a scan that found nothing changed, if it still
-/// is the newest of its project.
-fn confirm(conn: &Connection, scan: &Confirmation) -> StorageResult<Option<Confirmed>> {
+/// is the newest of its project, and logs the scan (ADR 0093).
+fn confirm(conn: &Connection, scan: &Confirmation, keep: u32) -> StorageResult<Option<Confirmed>> {
     let Some(latest) = latest_snapshot(conn, scan.project)?.filter(|it| it.id == scan.snapshot)
     else {
         return Ok(None);
@@ -101,6 +102,7 @@ fn confirm(conn: &Connection, scan: &Confirmation) -> StorageResult<Option<Confi
             column_int(latest.id.get())?,
         ],
     )?;
+    crate::scan_log::record_confirmed(conn, scan, keep)?;
     Ok(Some(Confirmed {
         warnings: warnings(conn, latest.id)?,
         left_out: left_out(conn, latest.id)?,
@@ -143,6 +145,7 @@ pub(crate) fn write_snapshot(
     })?;
     timed(PersistStep::Prune, steps, || prune(conn, project, keep))?;
     record_scan(conn, data)?;
+    crate::scan_log::record_written(conn, data)?;
     Ok(Snapshot {
         stats,
         ..header.clone()

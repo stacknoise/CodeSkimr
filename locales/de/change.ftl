@@ -6,7 +6,7 @@ change-view-subtitle = Was trifft diese Änderung?
 change-view-no-project = Zuerst ein Projekt wählen, dessen Scans verglichen werden sollen.
 change-view-load-failed = Der Vergleich konnte nicht gelesen werden.
 change-view-reading = Die Scans werden verglichen …
-change-view-too-few = Das Projekt hat weniger als zwei Scans, also gibt es noch nichts zu vergleichen. Ein Scan ohne Änderung schreibt keinen Eintrag.
+change-view-too-few = Das Projekt hat weniger als zwei Scans, also gibt es noch nichts zu vergleichen.
 change-view-tabs-label = Ansichten der Änderung
 change-view-tab-impact = Auswirkung
 change-view-tab-compare = Vergleich
@@ -55,6 +55,7 @@ change-view-state-none = keine Prüfliste
 
 change-view-table-label = Symbole, die die Änderung trifft
 change-view-none = Die beiden Scans unterscheiden sich in keinem Symbol.
+change-view-same = Nichts geändert: beide Scans haben denselben Stand, weil zwischen ihnen keine Datei geändert wurde.
 
 change-view-detail-signature = Geänderte Signatur
 change-view-detail-visibility = Geänderte Sichtbarkeit

@@ -112,3 +112,25 @@ test("'Compare with current' of the tab Scan opens the view Comparison with that
   await expect(page.getByRole("tab", { name: "Comparison", selected: true })).toBeVisible();
   await expect(page.getByLabel("Target (after)")).toContainText("Current scan");
 });
+
+test("every scan is a row of the history, also a scan without changes, and Change says nothing changed", async ({
+  page,
+  harness,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await addTwiceScanned(page, harness, "changesame");
+  const rows = page.getByRole("region", { name: "Recent scans" }).locator("tbody tr");
+  await expect(rows).toHaveCount(2);
+  // Two scans in a row that find every file as it was: each one is a row of its own, with 0 changed.
+  for (const count of [3, 4]) {
+    await page.getByRole("button", { name: "Scan again" }).click();
+    await expect(rows).toHaveCount(count, { timeout: SCAN_MS });
+  }
+  await expect(rows.first().locator("td").nth(4)).toHaveText("0");
+  await expect(rows.nth(1).locator("td").nth(4)).toHaveText("0");
+  // The newest scan against the one before it: the same state, so the answer is "nothing changed".
+  await page.getByRole("link", { name: "Change", exact: true }).click();
+  await expect(page.getByText(/Nothing changed: both scans have the same state/)).toBeVisible({
+    timeout: SCAN_MS,
+  });
+});

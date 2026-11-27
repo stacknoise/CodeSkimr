@@ -90,8 +90,11 @@ export type BudgetTargets = Record<
 
 /** One scan of the list of the last scans (`scans.list`, ADR 0097). */
 export interface ScanEntry {
-  /** The snapshot the scan wrote. */
+  /** The snapshot the scan wrote, or confirmed if it found nothing changed; scans without a change
+   * share the snapshot of the scan before them. */
   snapshot: number;
+  /** Identifies the scan itself; unlike `snapshot` it is unique in the list. */
+  scan: number;
   /** Seconds since the Unix epoch. */
   created: number;
   commit: string | null;

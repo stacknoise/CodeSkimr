@@ -1256,6 +1256,7 @@ pub struct FakeDiffs;
 
 fn scan_entry(id: u64) -> codeskimr_application::ports::ScanEntry {
     codeskimr_application::ports::ScanEntry {
+        scan: id,
         snapshot: SnapshotId::new(id),
         created: codeskimr_domain::Timestamp(1_700_000_000 + i64::try_from(id).unwrap()),
         commit: None,
