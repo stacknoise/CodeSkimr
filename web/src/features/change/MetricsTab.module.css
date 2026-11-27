@@ -1,0 +1,139 @@
+/* The view "Metrics" (mock 43 a): the choice of metric and level and the two lists. */
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-8);
+}
+
+.chip {
+    padding: var(--space-4) var(--space-12);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font: 12px var(--font-sans);
+    cursor: pointer;
+}
+
+.chip.on {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    color: var(--ink);
+}
+
+.chip:focus-visible,
+.level:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.spacer {
+    flex: 1;
+}
+
+.levelLabel {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.level {
+    padding: var(--space-4) var(--space-12);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--ink);
+    font: 12px var(--font-sans);
+}
+
+.sides {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--space-12);
+    flex: 1;
+    min-height: 240px;
+}
+
+.side {
+    overflow: hidden;
+    min-height: 0;
+}
+
+.sideHead {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    padding: var(--space-10) var(--space-12);
+    border-bottom: 1px solid var(--line-soft);
+}
+
+.sideTitle {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.sideTitle.bad {
+    color: var(--bad);
+}
+
+.sideTitle.good {
+    color: var(--good);
+}
+
+.order {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+/* The table fills the height of its box and scrolls inside it; the head stays at the top. */
+.scroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+.scroll th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--surface);
+    box-shadow: inset 0 -1px var(--line);
+}
+
+.object {
+    max-width: 0;
+    width: 55%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tag {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    margin-right: var(--space-8);
+    border-radius: 50%;
+    background: var(--accent-bg);
+    color: var(--accent);
+    font: 600 11px var(--font-sans);
+}
+
+.where {
+    max-width: 14ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted);
+    font: 11px var(--font-mono);
+}
+
+.cross {
+    margin-left: var(--space-8);
+    color: var(--muted);
+    font: 11px var(--font-mono);
+}

@@ -1,7 +1,15 @@
 import { createSignal } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { compareValues, type SortState } from "../../shared/table/sort";
-import { COMPARE_COLUMN, SYMBOL_COLUMN, VISIBILITY_TEXT } from "./consts";
+import {
+  COMPARE_COLUMN,
+  METRIC_TEXT,
+  METRICS_COLUMN,
+  METRICS_LIST,
+  SYMBOL_COLUMN,
+  VISIBILITY_TEXT,
+} from "./consts";
+import type { MetricRow } from "./metrics";
 import { openCount, pillsOf, type CompareRow } from "./rows";
 import type { ImpactRow } from "./types";
 
@@ -62,4 +70,29 @@ export function compareValue(row: CompareRow, column: string): string | number |
     [COMPARE_COLUMN.file]: row.where,
   };
   return values[column] ?? null;
+}
+
+const [worseSort, setWorseSort] = createSignal<SortState | null>(null);
+const [betterSort, setBetterSort] = createSignal<SortState | null>(null);
+
+/** How the two lists of the view "Metrics" are sorted, by list; `null` keeps the order of the
+ * answer, the strongest move first. */
+export const METRICS_ORDER = {
+  [METRICS_LIST.worse]: [worseSort, setWorseSort],
+  [METRICS_LIST.better]: [betterSort, setBetterSort],
+} as const;
+
+/** What a column of a list of the view "Metrics" holds for a row, as it is shown. */
+export function metricsValue(row: MetricRow, column: string): string | number | null {
+  const values: Record<string, () => string | number | null> = {
+    [METRICS_COLUMN.object]: () => row.item.name,
+    [METRICS_COLUMN.file]: () => row.item.path,
+    [METRICS_COLUMN.metric]: () => {
+      const key = METRIC_TEXT[row.move.metric];
+      return key === undefined ? row.move.metric : t(key);
+    },
+    [METRICS_COLUMN.values]: () => row.move.to,
+    [METRICS_COLUMN.change]: () => Math.abs(row.move.to - row.move.from),
+  };
+  return values[column]?.() ?? null;
 }
