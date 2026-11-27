@@ -117,3 +117,16 @@ fn a_finding_in_a_scanned_file_names_its_symbol() {
     assert!(found["symbol_ref"]["id"].is_u64(), "{found}");
     assert_eq!(found["symbol_ref"]["kind"], "method", "{found}");
 }
+
+#[test]
+fn without_a_scan_every_finding_has_no_symbol_but_the_check_still_runs() {
+    let fixture = Fixture::new();
+    fs::write(
+        fixture.root.path().join("app").join("Long.cs"),
+        long_method(60),
+    )
+    .unwrap();
+    fixture.registered(9);
+    let answer = check(&fixture, 9);
+    assert!(long_finding(&answer)["symbol_ref"].is_null(), "{answer}");
+}

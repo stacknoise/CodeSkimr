@@ -818,6 +818,7 @@ export const I18N_KEYS = {
   CONVENTIONS_OPEN: "conventions-open",
   CONVENTIONS_OPEN_HINT: "conventions-open-hint",
   CONVENTIONS_EXPLORER: "conventions-explorer",
+  CONVENTIONS_EXPLORER_GONE: "conventions-explorer-gone",
   CONVENTIONS_EXPLORER_HINT: "conventions-explorer-hint",
   CONVENTIONS_OPEN_UNAVAILABLE: "conventions-open-unavailable",
   CONVENTIONS_MEASURE_LINES: "conventions-measure-lines",

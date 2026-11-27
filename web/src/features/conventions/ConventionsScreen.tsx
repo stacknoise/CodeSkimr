@@ -113,7 +113,9 @@ function ExplorerButton(props: { project: number; finding: Finding }) {
       class={styles.small}
       disabled={symbol() === null}
       title={t(
-        symbol() === null ? I18N_KEYS.RULES_SYMBOL_GONE : I18N_KEYS.CONVENTIONS_EXPLORER_HINT,
+        symbol() === null
+          ? I18N_KEYS.CONVENTIONS_EXPLORER_GONE
+          : I18N_KEYS.CONVENTIONS_EXPLORER_HINT,
       )}
       onClick={() => {
         const found = symbol();
@@ -140,8 +142,10 @@ function Row(props: { project: number; finding: Finding }) {
       <td class={styles.mono}>{props.finding.symbol}</td>
       <td class={styles.num}>{measureText(props.finding, PLACE_SEPARATOR)}</td>
       <td>
-        <OpenButton project={props.project} finding={props.finding} />
-        <ExplorerButton project={props.project} finding={props.finding} />
+        <div class={styles.rowActions}>
+          <OpenButton project={props.project} finding={props.finding} />
+          <ExplorerButton project={props.project} finding={props.finding} />
+        </div>
       </td>
     </tr>
   );

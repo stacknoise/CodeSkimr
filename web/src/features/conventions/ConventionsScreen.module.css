@@ -60,6 +60,11 @@
     font-size: 12px;
 }
 
+.rowActions {
+    display: flex;
+    gap: var(--space-8);
+}
+
 .primary:disabled,
 .secondary:disabled,
 .small:disabled {
