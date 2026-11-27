@@ -46,17 +46,19 @@ function Choice<Id extends string | null>(props: {
   );
 }
 
-/** The text with a capital first letter. */
+/** The text with a capital first letter, in the language of the screen. */
 function capital(text: string): string {
-  return text.charAt(0).toLocaleUpperCase() + text.slice(1);
+  return text.charAt(0).toLocaleUpperCase(currentLanguage()) + text.slice(1);
 }
 
-/** The choices of the filter with "all", sorted by their text in the language of the screen. */
+/** The choices of the filter: "all" first, then the others sorted by their text in the language
+ * of the screen. */
 function unusedChoices(): { id: string; text: string }[] {
-  const all = { id: LANGUAGE_ALL, label: I18N_KEYS.STATS_ASSESSMENT_ALL };
-  return [all, ...UNUSED_FILTERS]
-    .map((entry) => ({ id: entry.id as string, text: capital(t(entry.label)) }))
-    .sort((first, second) => first.text.localeCompare(second.text, currentLanguage()));
+  const choose = (id: string, label: MessageKey) => ({ id, text: capital(t(label)) });
+  const sorted = UNUSED_FILTERS.map((entry) => choose(entry.id, entry.label)).sort(
+    (first, second) => first.text.localeCompare(second.text, currentLanguage()),
+  );
+  return [choose(LANGUAGE_ALL, I18N_KEYS.STATS_ASSESSMENT_ALL), ...sorted];
 }
 
 /** The assessment or reason the unused symbols are cut to, as a list (it holds more choices than
