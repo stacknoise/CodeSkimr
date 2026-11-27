@@ -1,7 +1,6 @@
 import {
   CHIP,
   DEFAULT_SORT,
-  NAME_COLLATION,
   METHOD_KINDS,
   NUMBER_COLUMNS,
   PROPERTY_KINDS,
@@ -13,6 +12,8 @@ import {
   type SortColumn,
   type SortDirection,
 } from "./consts";
+import { TEXT_COLLATION } from "../../shared/table/consts";
+import { pressSort } from "../../shared/table/sort";
 import type { MemberRow } from "./types";
 
 /** How the member table is sorted. */
@@ -42,7 +43,7 @@ function valueOf(row: MemberRow, column: SortColumn): string | number | null {
 function compare(a: string | number, b: string | number): number {
   return typeof a === "number" && typeof b === "number"
     ? a - b
-    : String(a).localeCompare(String(b), undefined, NAME_COLLATION);
+    : String(a).localeCompare(String(b), undefined, TEXT_COLLATION);
 }
 
 /** The rows in the order of `sort`. A row without a value in the column comes last in either
@@ -67,24 +68,7 @@ export function sortMembers(rows: readonly MemberRow[], sort: MemberSort | null)
  * direction (numbers largest first); the same column turns around once and the next press
  * removes the sort (`null`, the rows keep to the order of the code). */
 export function pressColumn(current: MemberSort | null, column: SortColumn): MemberSort | null {
-  if (current?.column !== column) {
-    return {
-      column,
-      direction: NUMBER_COLUMNS.includes(column)
-        ? SORT_DIRECTION.descending
-        : SORT_DIRECTION.ascending,
-    };
-  }
-  const first = NUMBER_COLUMNS.includes(column)
-    ? SORT_DIRECTION.descending
-    : SORT_DIRECTION.ascending;
-  return current.direction === first ? { column, direction: turned(first) } : null;
-}
-
-function turned(direction: SortDirection): SortDirection {
-  return direction === SORT_DIRECTION.ascending
-    ? SORT_DIRECTION.descending
-    : SORT_DIRECTION.ascending;
+  return pressSort(current, column, NUMBER_COLUMNS.includes(column)) as MemberSort | null;
 }
 
 export const INITIAL_SORT: MemberSort = { ...DEFAULT_SORT };

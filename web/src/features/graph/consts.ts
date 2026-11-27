@@ -152,3 +152,26 @@ export const MODULES_PANE_BOUNDS = { initial: 540, min: 360, max: 900 } as const
 export const NO_STABILITY = "–";
 /** The ARIA role of a hint in the panel of the modules. */
 export const NOTE_ROLE = "note";
+
+/** The columns of the table of modules, by the id that the sort and the width handles use. */
+export const MODULE_COLUMN = {
+  name: "name",
+  incoming: "in",
+  outgoing: "out",
+  stability: "stability",
+  types: "types",
+} as const;
+export type ModuleColumn = (typeof MODULE_COLUMN)[keyof typeof MODULE_COLUMN];
+export const MODULE_COLUMNS: readonly ModuleColumn[] = Object.values(MODULE_COLUMN);
+/** The columns of numbers sort the largest first when they are chosen. */
+export const MODULE_NUMBER_COLUMNS: readonly ModuleColumn[] = [
+  MODULE_COLUMN.incoming,
+  MODULE_COLUMN.outgoing,
+  MODULE_COLUMN.stability,
+  MODULE_COLUMN.types,
+];
+/** The name under which the widths of the columns of that table are kept. */
+export const MODULES_TABLE_KEY = "modules";
+
+/** The table of modules is sorted by name until a column head is pressed. */
+export const DEFAULT_MODULE_SORT = { column: MODULE_COLUMN.name, direction: "ascending" } as const;

@@ -67,3 +67,19 @@
     color: var(--surface);
     font-weight: 500;
 }
+
+/* A function that is not available now looks switched off, not clickable. */
+.level:disabled {
+    color: var(--faint);
+    background: var(--bg);
+    cursor: not-allowed;
+}
+
+.toggle:has(input:disabled) {
+    color: var(--faint);
+    cursor: not-allowed;
+}
+
+.toggle input:disabled {
+    cursor: not-allowed;
+}
