@@ -550,6 +550,7 @@ dependencies = [
 name = "codeskimr_grammar_abap"
 version = "1.0.0"
 dependencies = [
+ "blake3",
  "cc",
  "tree-sitter",
  "tree-sitter-language",

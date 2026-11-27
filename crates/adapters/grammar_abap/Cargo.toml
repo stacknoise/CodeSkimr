@@ -9,14 +9,8 @@ repository.workspace = true
 publish = false
 build = "build.rs"
 
-# R-08 allows `unsafe` only in `codeskimr_secrets::memory`; this crate is the second place, for the
-# one call that turns the C entry point of the grammar into a `LanguageFn` (ADR 0113).
-[lints.rust]
-missing_docs = "deny"
-unsafe_code = "allow"
-
-[lints.clippy]
-pedantic = { level = "deny", priority = -1 }
+[lints]
+workspace = true
 
 [dependencies]
 tree-sitter-language = "0.1"
@@ -26,3 +20,4 @@ cc = "1"
 
 [dev-dependencies]
 tree-sitter = { workspace = true }
+blake3 = { workspace = true }
