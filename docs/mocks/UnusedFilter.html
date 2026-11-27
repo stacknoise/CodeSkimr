@@ -209,8 +209,9 @@ function unused(th,v){
 
 const q=new URLSearchParams(location.search);
 const ALL_THEMES=['hell','petrol','dunkel'],ALL_VIEWS=['zu','offen','privat'];
-const themes=q.get('themes')?q.get('themes').split(',').filter(x=>ALL_THEMES.includes(x)):['petrol'];
+const wantedThemes=(q.get('themes')||'petrol').split(',');
+const themes=ALL_THEMES.filter(x=>wantedThemes.includes(x));
 const v=q.get('v');
-const views=ALL_VIEWS.includes(v)?[v]:ALL_VIEWS;
+const views=ALL_VIEWS.filter(x=>x===v||!ALL_VIEWS.includes(v));
 document.getElementById('root').innerHTML=themes.map(t=>views.map(x=>unused(t,x)).join('')).join('');
 </script></body></html>
