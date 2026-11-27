@@ -55,6 +55,13 @@ fn open_append(path: &Path) -> io::Result<File> {
     Ok(file)
 }
 
+/// Opens `path` with `options` without following a link on Unix.
+fn open_plain(options: &mut OpenOptions, path: &Path) -> io::Result<File> {
+    #[cfg(unix)]
+    std::os::unix::fs::OpenOptionsExt::custom_flags(options, libc::O_NOFOLLOW);
+    options.open(path)
+}
+
 /// Creates the folder of the log; on Unix only its owner may enter it.
 fn create_folder(folder: &Path) -> io::Result<()> {
     let mut builder = fs::DirBuilder::new();
@@ -149,7 +156,7 @@ impl LogFile {
     /// # Errors
     /// The file cannot be read.
     pub fn tail(&self, lines: usize) -> io::Result<Vec<String>> {
-        let mut file = File::open(&self.path)?;
+        let mut file = open_plain(OpenOptions::new().read(true), &self.path)?;
         let length = file.metadata()?.len();
         let start = length.saturating_sub(LOG_TAIL_BYTES);
         file.seek(SeekFrom::Start(start))?;

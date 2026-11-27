@@ -52,4 +52,4 @@ When something goes wrong, the log tells what the program did. You do not need a
 - **File.** The log is also written to `logs/codeskimr.log` in the data folder (see [Installation](installation.md#where-data-lives)). At 10 MB the file is renamed and a new one starts; five files are kept at most, so the logs take 50 MB at most. Logins, tokens and source text are not in it: they are removed before a line is written.
 - **Buttons.** "Copy log" copies the last 2000 lines (for a bug report), "Open folder" opens the folder with the program of your system (only on the machine of the app), "Empty file" empties the file and removes the old ones. Below them you see the last lines.
 
-The level is the same as the environment variable `CODESKIMR_LOG`; the tab replaces starting the program from a terminal for that purpose.
+The level is the same as the environment variable `CODESKIMR_LOG`, and like the tab it applies to the program itself (libraries stay at Warnings); the tab replaces starting the program from a terminal for that purpose.
