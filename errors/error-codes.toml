@@ -159,6 +159,22 @@ description = "The system did not start a program for the project file."
 since = "1.2.0"
 
 [[codes]]
+id = "APP-606"
+name = "log_folder_open_failed"
+severity = "error"
+retryable = true
+description = "The system did not open the folder of the log files."
+since = "1.2.0"
+
+[[codes]]
+id = "APP-607"
+name = "log_file_unavailable"
+severity = "error"
+retryable = true
+description = "The log file does not exist, cannot be read or cannot be emptied."
+since = "1.2.0"
+
+[[codes]]
 id = "CFG-101"
 name = "config_invalid_value"
 severity = "error"

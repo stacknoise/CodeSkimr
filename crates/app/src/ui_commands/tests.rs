@@ -186,7 +186,7 @@ impl Fixture {
 }
 
 /// Every command of the registry, in the order the API lists them.
-const COMMAND_IDS: [&str; 61] = [
+const COMMAND_IDS: [&str; 66] = [
     "alerts.dismiss",
     "alerts.dismiss_all",
     "alerts.list",
@@ -212,6 +212,11 @@ const COMMAND_IDS: [&str; 61] = [
     "layers.set",
     "level2.revoke",
     "level2.status",
+    "log.clear",
+    "log.open_folder",
+    "log.set_level",
+    "log.status",
+    "log.tail",
     "preferences.get",
     "preferences.set",
     "project_file.open",
@@ -1298,6 +1303,31 @@ fn only_a_manager_may_save_the_memory_limit_of_an_indexer() {
     assert!(as_reader("ui_settings.get", json!(null)).is_ok());
     assert_eq!(
         as_reader("ui_settings.set_indexer_memory", input).unwrap_err(),
+        "AUTH-401"
+    );
+}
+
+#[test]
+fn the_log_level_is_checked_and_only_a_manager_may_change_the_log() {
+    let fixture = Fixture::new();
+    let status = fixture.call("log.status", json!(null)).unwrap();
+    assert_eq!(
+        status["levels"],
+        json!(["off", "warn", "info", "debug", "trace"])
+    );
+    for word in ["error", "loud", ""] {
+        assert_eq!(
+            fixture.call("log.set_level", json!({"level": word})),
+            Err("API-101")
+        );
+    }
+    let as_reader = |id: &str, input: Value| run_as(&fixture, principal::reader(), id, input);
+    assert!(as_reader("log.status", json!(null)).is_ok());
+    for id in ["log.clear", "log.open_folder"] {
+        assert_eq!(as_reader(id, json!(null)).unwrap_err(), "AUTH-401");
+    }
+    assert_eq!(
+        as_reader("log.set_level", json!({"level": "debug"})).unwrap_err(),
         "AUTH-401"
     );
 }

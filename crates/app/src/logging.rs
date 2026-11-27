@@ -9,25 +9,36 @@ use std::panic::PanicHookInfo;
 use codeskimr_codes::ErrorCode;
 use tracing::Subscriber;
 use tracing_subscriber::filter::LevelFilter;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::reload::{self, Handle};
+use tracing_subscriber::{Registry, fmt};
 
 use crate::consts::{DEFAULT_LOG_LEVEL, ENV_LOG};
 use crate::locations::Lookup;
+use crate::log_control;
 use crate::log_writer::RedactingWriter;
 
 /// Installs the subscriber and the panic hook. The level comes from `CODESKIMR_LOG`.
+///
+/// Every line goes to standard error and, once the data folder is known
+/// ([`log_control::attach_file`]), into the log file. The level can be changed later
+/// ([`log_control::set_level`]).
 ///
 /// Calling it again keeps the subscriber that is already installed.
 pub fn init(env: Lookup<'_>) {
     let level = env(ENV_LOG)
         .and_then(|value| value.parse::<LevelFilter>().ok())
         .unwrap_or(DEFAULT_LOG_LEVEL);
+    let (subscriber, handle) = layered(level, || Tee);
     // Another subscriber may be installed already; then it stays, and so does the panic hook.
-    if tracing::subscriber::set_global_default(subscriber(level, io::stderr)).is_ok() {
+    if tracing::subscriber::set_global_default(subscriber).is_ok() {
+        log_control::register(handle, level);
         std::panic::set_hook(Box::new(report_panic));
     }
 }
 
 /// A subscriber that writes every log line through a [`RedactingWriter`] around `sink()`.
+#[cfg(test)]
 pub fn subscriber<W>(
     level: LevelFilter,
     sink: impl Fn() -> W + Send + Sync + 'static,
@@ -35,11 +46,41 @@ pub fn subscriber<W>(
 where
     W: Write + 'static,
 {
-    tracing_subscriber::fmt()
-        .with_max_level(level)
+    layered(level, sink).0
+}
+
+/// Like [`subscriber`], with the handle that changes the level later.
+fn layered<W>(
+    level: LevelFilter,
+    sink: impl Fn() -> W + Send + Sync + 'static,
+) -> (impl Subscriber + Send + Sync, Handle<LevelFilter, Registry>)
+where
+    W: Write + 'static,
+{
+    let (filter, handle) = reload::Layer::new(level);
+    let lines = fmt::layer()
         .with_ansi(false)
-        .with_writer(move || RedactingWriter::new(sink()))
-        .finish()
+        .with_writer(move || RedactingWriter::new(sink()));
+    (Registry::default().with(filter).with(lines), handle)
+}
+
+/// The place a log line goes: standard error and the log file.
+struct Tee;
+
+impl Write for Tee {
+    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+        self.write_all(buffer)?;
+        Ok(buffer.len())
+    }
+
+    fn write_all(&mut self, buffer: &[u8]) -> io::Result<()> {
+        log_control::write_file(buffer);
+        io::stderr().write_all(buffer)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        io::stderr().flush()
+    }
 }
 
 /// Logs a panic as an error event instead of the unfiltered text of the default hook.
@@ -61,7 +102,7 @@ mod tests {
 
     use tracing_subscriber::filter::LevelFilter;
 
-    use super::{report_panic, subscriber};
+    use super::{layered, report_panic, subscriber};
 
     const CANARY: &str = "CANARY7f3a9c1e5b2d4f60";
 
@@ -113,6 +154,22 @@ mod tests {
             tracing::warn!("loud");
         });
         assert!(text.contains("loud") && !text.contains("quiet"));
+    }
+
+    #[test]
+    fn the_level_can_change_while_the_subscriber_is_installed() {
+        let sink = Sink::default();
+        let copy = sink.clone();
+        let (subscriber, handle) = layered(LevelFilter::WARN, move || copy.clone());
+        tracing::subscriber::with_default(subscriber, || {
+            tracing::info!("before");
+            handle.modify(|level| *level = LevelFilter::INFO).unwrap();
+            tracing::info!("after");
+            handle.modify(|level| *level = LevelFilter::OFF).unwrap();
+            tracing::error!("never");
+        });
+        let text = sink.text();
+        assert!(text.contains("after") && !text.contains("before") && !text.contains("never"));
     }
 
     #[test]

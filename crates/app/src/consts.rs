@@ -598,3 +598,24 @@ pub const UI_LAYER_NEWLINE: &str = "\n";
 
 /// The field of the answer of `rules` that counts the violations the held state does not have.
 pub const NEW_VIOLATIONS: &str = "new";
+
+/// The folder of the log files inside the data folder (ADR 0113).
+pub const LOG_DIR: &str = "logs";
+/// The active log file inside [`LOG_DIR`]; older ones carry `.1`, `.2` and so on behind it.
+pub const LOG_FILE: &str = "codeskimr.log";
+/// The size at which the active log file is renamed and a new one starts.
+pub const LOG_FILE_MAX_BYTES: u64 = 10 * 1024 * 1024;
+/// How many log files exist at most, the active one included.
+pub const LOG_FILES_KEPT: u32 = 5;
+/// How much of the end of the log file the UI can read at once.
+pub const LOG_TAIL_BYTES: u64 = 512 * 1024;
+/// The most lines one read of the log gives.
+pub const LOG_TAIL_MAX_LINES: usize = 2000;
+/// How long a level other than the default stays; then the default counts again.
+pub const LOG_LEVEL_HOLD: Duration = Duration::from_secs(24 * 60 * 60);
+/// Permission bits of a log file on Unix: the owner only.
+pub const LOG_FILE_MODE: u32 = 0o600;
+/// Separates the name of the log file from the number of an old one: `codeskimr.log.1`.
+pub const LOG_OLD_SEPARATOR: &str = ".";
+/// Name of the thread that takes the default log level back.
+pub const LOG_RESET_THREAD: &str = "log-level-reset";

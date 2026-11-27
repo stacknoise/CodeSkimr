@@ -24,6 +24,7 @@ import { effectiveSearch } from "./effective";
 import { searchSettings, settingsTab, showSettingsTab } from "./tab";
 import { IndexerMemoryPanel } from "./IndexerMemoryPanel";
 import { IndexersPanel } from "./IndexersPanel";
+import { LogPanel } from "./LogPanel";
 import { ThemeCard } from "./ThemeCard";
 import { LANGUAGES } from "../../shared/i18n/consts";
 import { CODES_ROUTE } from "../../app/consts";
@@ -185,11 +186,14 @@ function TabPage() {
         <ConfigSourcesPanel />
         <CodesPanel />
       </Match>
+      <Match when={settingsTab() === SETTINGS_TAB.diagnosis}>
+        <LogPanel />
+      </Match>
     </Switch>
   );
 }
 
-/** Screen 13: the settings in five tabs (ADR 0098): appearance (theme with live preview,
+/** Screen 13: the settings in six tabs (ADR 0098, ADR 0113): appearance (theme with live preview,
  * language), analysis (layers, tools for stage 2), access (Git logins, editor link), the effective
  * settings and information (configuration file, error codes; the version is in the header) (blueprint 15.3). */
 export function SettingsScreen() {

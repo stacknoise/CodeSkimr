@@ -136,3 +136,27 @@ status-performance-missed =
         [one] Performance: 1 target missed
        *[other] Performance: { $count } targets missed
     }
+settings-tab-diagnosis = Diagnosis
+settings-log-title = Log
+settings-log-note = The log helps to find errors. It holds no logins (they are removed before it is written) and no source text. The level counts at once, without a restart, and also for the console.
+settings-log-level = Level
+settings-log-level-off = Off
+settings-log-level-warn = Warnings
+settings-log-level-info = Info
+settings-log-level-debug = Debug
+settings-log-level-trace = Trace
+settings-log-default = Default: { $level }. From Debug on, large scans get slower and the file gets big.
+settings-log-resets = Back to the default in { $hours } h { $minutes } min
+settings-log-file = File
+settings-log-limit = at most { $count } files of { $size }
+settings-log-copy = Copy log
+settings-log-copied = Copied
+settings-log-copy-failed = The log could not be copied.
+settings-log-open-folder = Open folder
+settings-log-clear = Empty file
+settings-log-cleared = Emptied
+settings-log-last-lines = Last lines
+settings-log-no-lines = Nothing has been logged at this level yet.
+settings-log-failed = The log could not be read or changed. Check that the data folder can be written.
+settings-log-fixed = Another program owns the log of this run, so the level cannot be changed here.
+settings-log-no-file = The log file could not be created in the data folder; the log goes to the console only.
