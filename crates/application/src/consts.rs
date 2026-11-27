@@ -292,6 +292,14 @@ pub const PLACE_LINE_OFFSET: u32 = 1;
 
 /// Name of the file that marks an abapGit repository, in the project folder (ADR 0113).
 pub const ABAPGIT_CONFIG_FILE: &str = ".abapgit.xml";
+/// The start of an opening tag in `.abapgit.xml`.
+pub const ABAPGIT_TAG_OPEN: &str = "<";
+/// The start of a closing tag in `.abapgit.xml`.
+pub const ABAPGIT_TAG_CLOSE: &str = "</";
+/// The end of a tag in `.abapgit.xml`.
+pub const ABAPGIT_TAG_END: &str = ">";
+/// The folder name of files directly below the starting folder.
+pub const ABAPGIT_ROOT_FOLDER: &str = "";
 /// Tag of the folder below which abapGit keeps the objects.
 pub const ABAPGIT_STARTING_FOLDER_TAG: &str = "STARTING_FOLDER";
 /// Tag of the rule that turns a package into a folder.

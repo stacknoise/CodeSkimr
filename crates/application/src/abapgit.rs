@@ -10,8 +10,9 @@ use crate::consts::{
     ABAPGIT_CONFIG_FILE, ABAPGIT_DEFAULT_STARTING_FOLDER, ABAPGIT_FOLDER_LOGIC_FULL,
     ABAPGIT_FOLDER_LOGIC_TAG, ABAPGIT_LOGIC_FULL_LABEL, ABAPGIT_LOGIC_PREFIX_LABEL,
     ABAPGIT_METADATA_EXTENSION, ABAPGIT_NAME_SEPARATOR, ABAPGIT_NAMESPACE_MARK,
-    ABAPGIT_NAMESPACE_SLASH, ABAPGIT_PACKAGE_FILE, ABAPGIT_PACKAGE_TYPE, ABAPGIT_SOURCE_EXTENSIONS,
-    ABAPGIT_STARTING_FOLDER_TAG, PATH_SEPARATOR,
+    ABAPGIT_NAMESPACE_SLASH, ABAPGIT_PACKAGE_FILE, ABAPGIT_PACKAGE_TYPE, ABAPGIT_ROOT_FOLDER,
+    ABAPGIT_SOURCE_EXTENSIONS, ABAPGIT_STARTING_FOLDER_TAG, ABAPGIT_TAG_CLOSE, ABAPGIT_TAG_END,
+    ABAPGIT_TAG_OPEN, PATH_SEPARATOR,
 };
 use crate::ports::ListedFile;
 
@@ -61,8 +62,8 @@ impl Default for AbapGitConfig {
 /// The text between `<tag>` and `</tag>`, trimmed. The file is machine written and flat, so a
 /// search for the tags is enough; nothing is parsed as XML and nothing is resolved.
 fn tag_text<'a>(text: &'a str, tag: &str) -> Option<&'a str> {
-    let open = format!("<{tag}>");
-    let close = format!("</{tag}>");
+    let open = [ABAPGIT_TAG_OPEN, tag, ABAPGIT_TAG_END].concat();
+    let close = [ABAPGIT_TAG_CLOSE, tag, ABAPGIT_TAG_END].concat();
     let start = text.find(&open)?.checked_add(open.len())?;
     let rest = text.get(start..)?;
     let end = rest.find(&close)?;
@@ -177,7 +178,9 @@ pub fn summarize<'a>(
         };
         let (folder, name) = inside
             .rsplit_once(PATH_SEPARATOR)
-            .map_or(("", inside), |(folder, name)| (folder, name));
+            .map_or((ABAPGIT_ROOT_FOLDER, inside), |(folder, name)| {
+                (folder, name)
+            });
         let is_package = name == ABAPGIT_PACKAGE_FILE;
         let object = object_of(name);
         if is_package || object.is_some() {
