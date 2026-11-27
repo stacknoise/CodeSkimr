@@ -98,7 +98,7 @@ fn the_history_keeps_how_long_each_step_of_the_write_took_and_a_confirmation_has
     let [confirmed, written] = history.as_slice() else {
         panic!("two scans expected: {history:?}");
     };
-    assert!(confirmed.steps.is_empty());
+    assert_eq!(confirmed.steps.len(), 0);
     let steps: Vec<PersistStep> = written.steps.iter().map(|time| time.step).collect();
     assert_eq!(steps.first(), Some(&PersistStep::Header));
     assert_eq!(steps.last(), Some(&PersistStep::Commit));
