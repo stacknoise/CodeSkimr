@@ -16,25 +16,37 @@ use crate::error::{StorageError, StorageResult};
 use crate::sql;
 use crate::store::ProjectDb;
 
-/// The columns of `COMPARISON_FACTS`, still raw.
-struct FactRow {
+/// The columns every read of an object starts with: its id, kind, name and signature.
+struct ObjectHead {
     id: i64,
     kind: String,
     name: String,
     signature: Option<String>,
-    visibility: Option<String>,
-    path: String,
-    content_hash: Option<String>,
 }
 
-impl FactRow {
-    // codeskimr: allow CHK-102 maps the columns of a fact row into its fields
+impl ObjectHead {
     fn read(cols: &Cols<'_>) -> rusqlite::Result<Self> {
         Ok(Self {
             id: cols.take()?,
             kind: cols.take()?,
             name: cols.take()?,
             signature: cols.take()?,
+        })
+    }
+}
+
+/// The columns of `COMPARISON_FACTS`, still raw.
+struct FactRow {
+    head: ObjectHead,
+    visibility: Option<String>,
+    path: String,
+    content_hash: Option<String>,
+}
+
+impl FactRow {
+    fn read(cols: &Cols<'_>) -> rusqlite::Result<Self> {
+        Ok(Self {
+            head: ObjectHead::read(cols)?,
             visibility: cols.take()?,
             path: cols.take()?,
             content_hash: cols.take()?,
@@ -43,10 +55,10 @@ impl FactRow {
 
     fn decode(self) -> StorageResult<SymbolFact> {
         Ok(SymbolFact {
-            id: SymbolId::new(id_from(self.id)?),
-            kind: label_from::<SymbolKind>(&self.kind)?,
-            qualified_name: QualifiedName::new(self.name)?,
-            signature: self.signature,
+            id: SymbolId::new(id_from(self.head.id)?),
+            kind: label_from::<SymbolKind>(&self.head.kind)?,
+            qualified_name: QualifiedName::new(self.head.name)?,
+            signature: self.head.signature,
             visibility: self
                 .visibility
                 .as_deref()
@@ -80,23 +92,16 @@ fn facts(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<SymbolFac
 
 /// The columns of `METRIC_FACTS`, still raw: one object and one of its metrics.
 struct MetricRow {
-    id: i64,
-    kind: String,
-    name: String,
-    signature: Option<String>,
+    head: ObjectHead,
     path: String,
     metric: String,
     value: f64,
 }
 
 impl MetricRow {
-    // codeskimr: allow CHK-102 maps the columns of a metric row into its fields
     fn read(cols: &Cols<'_>) -> rusqlite::Result<Self> {
         Ok(Self {
-            id: cols.take()?,
-            kind: cols.take()?,
-            name: cols.take()?,
-            signature: cols.take()?,
+            head: ObjectHead::read(cols)?,
             path: cols.take()?,
             metric: cols.take()?,
             value: cols.take()?,
@@ -105,9 +110,9 @@ impl MetricRow {
 
     fn fact(&self) -> StorageResult<MetricFact> {
         Ok(MetricFact {
-            kind: label_from::<SymbolKind>(&self.kind)?,
-            qualified_name: QualifiedName::new(self.name.clone())?,
-            signature: self.signature.clone(),
+            kind: label_from::<SymbolKind>(&self.head.kind)?,
+            qualified_name: QualifiedName::new(self.head.name.clone())?,
+            signature: self.head.signature.clone(),
             path: RelativePath::new(self.path.clone())?,
             values: MetricValues::default(),
         })
@@ -117,8 +122,8 @@ impl MetricRow {
 /// Adds the metric of `row` to its object, which starts a new one when the id changes. The rows
 /// come ordered by object, so the rows of one object follow each other.
 fn add_metric(found: &mut Vec<(i64, MetricFact)>, row: &MetricRow) -> StorageResult<()> {
-    if found.last().is_none_or(|(id, _)| *id != row.id) {
-        found.push((row.id, row.fact()?));
+    if found.last().is_none_or(|(id, _)| *id != row.head.id) {
+        found.push((row.head.id, row.fact()?));
     }
     if let (Some((_, fact)), Ok(metric)) = (found.last_mut(), label_from::<MetricKind>(&row.metric))
     {

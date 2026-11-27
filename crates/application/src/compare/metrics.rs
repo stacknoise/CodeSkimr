@@ -165,8 +165,8 @@ fn order(
     direction: MoveDirection,
     limits: &MoveLimits,
 ) -> Ordering {
-    b.crosses()
-        .cmp(&a.crosses())
+    b.crosses_on(direction)
+        .cmp(&a.crosses_on(direction))
         .then_with(|| {
             b.weight(direction, limits)
                 .total_cmp(&a.weight(direction, limits))

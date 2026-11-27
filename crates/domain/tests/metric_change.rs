@@ -67,7 +67,7 @@ mod tests {
         assert!(kinds.contains(&(MetricKind::CyclomaticComplexity, MoveDirection::Worse)));
         assert!(kinds.contains(&(MetricKind::MaintainabilityIndex, MoveDirection::Worse)));
         assert!(kinds.contains(&(MetricKind::Loc, MoveDirection::Grew)));
-        assert!(found[0].crosses());
+        assert!(found[0].crosses_on(MoveDirection::Worse));
     }
 
     #[test]
@@ -133,5 +133,44 @@ mod tests {
             Some(MetricLevel::Member)
         );
         assert_eq!(MetricLevel::of(SymbolKind::Parameter), None);
+    }
+
+    #[test]
+    fn a_crossing_counts_only_on_the_side_it_moved_to() {
+        let found = one(member(9.0, 30.0, 22.0), member(14.0, 45.0, 22.0));
+        assert_eq!(found[0].verdict, Verdict::Mixed);
+        assert!(
+            found[0].crosses_on(MoveDirection::Worse),
+            "complexity entered the poor range"
+        );
+        assert!(
+            found[0].crosses_on(MoveDirection::Better),
+            "the index left the poor range"
+        );
+        let found = one(member(6.0, 50.0, 22.0), member(12.0, 70.0, 22.0));
+        assert!(found[0].crosses_on(MoveDirection::Worse));
+        assert!(
+            !found[0].crosses_on(MoveDirection::Better),
+            "70 was not poor before"
+        );
+    }
+
+    #[test]
+    fn a_move_of_exactly_the_threshold_counts_whatever_the_rounding() {
+        let module = |instability| MetricValues {
+            instability: Some(instability),
+            ca: Some(14.0),
+            ..MetricValues::default()
+        };
+        let found = compare_metrics(
+            &[fact(SymbolKind::Module, "m", module(0.5))],
+            &[fact(SymbolKind::Module, "m", module(0.6))],
+            &limits(),
+        );
+        assert_eq!(
+            found.len(),
+            1,
+            "0.6 - 0.5 is a hair under 0.1 in floating point"
+        );
     }
 }

@@ -7,10 +7,10 @@
 use std::collections::HashMap;
 
 use crate::compare::SymbolIdentity;
+use crate::consts::MOVE_TOLERANCE;
 use crate::file::RelativePath;
 use crate::metric::MetricKind;
 use crate::qualified_name::QualifiedName;
-use crate::signature::signature_parameters;
 use crate::symbol::SymbolKind;
 
 /// The measured values of one object; `None` where the metric does not exist for it.
@@ -81,15 +81,7 @@ impl MetricFact {
     /// The key that names the object across snapshots.
     #[must_use]
     pub fn identity(&self) -> SymbolIdentity {
-        SymbolIdentity {
-            kind: self.kind,
-            name: self.qualified_name.clone(),
-            parameters: self
-                .signature
-                .as_deref()
-                .map(signature_parameters)
-                .unwrap_or_default(),
-        }
+        SymbolIdentity::of(self.kind, &self.qualified_name, self.signature.as_deref())
     }
 }
 
@@ -203,10 +195,14 @@ pub struct MetricChange {
 }
 
 impl MetricChange {
-    /// Whether any move crosses the bound of the rating: such an object ranks first.
+    /// Whether a move to `direction` crosses the bound of the rating: such an object ranks first
+    /// on the list of that side. A move to the worse can only enter the poor range and a move to
+    /// the better can only leave it, so a crossing of the other side does not count here.
     #[must_use]
-    pub fn crosses(&self) -> bool {
-        self.moves.iter().any(|m| m.crossing.is_some())
+    pub fn crosses_on(&self, direction: MoveDirection) -> bool {
+        self.moves
+            .iter()
+            .any(|m| m.direction == direction && m.crossing.is_some())
     }
 
     /// The moves of one side; the marks of grown lines go with every side.
@@ -289,7 +285,7 @@ fn judge_metric(
         });
     }
     let up_is_worse = higher_is_worse(kind)?;
-    if delta.abs() < threshold(kind, limits) {
+    if delta.abs() + MOVE_TOLERANCE < threshold(kind, limits) {
         return None;
     }
     let worse = delta.is_sign_positive() == up_is_worse;
