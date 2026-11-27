@@ -6,6 +6,7 @@ mod common;
 
 #[cfg(test)]
 mod tests {
+    use codeskimr_application::module_places::{Between, places_between};
     use codeskimr_application::ports::TypeNeighbour;
     use codeskimr_domain::{
         Confidence, NamespaceGraph, Reference, ReferenceKind, SnapshotId, Symbol, SymbolId,
@@ -133,6 +134,25 @@ mod tests {
             assert_ne!(wanted, NamespaceGraph::default(), "snapshot {snapshot}");
             let got = store.namespace_graph(SnapshotId::new(snapshot)).unwrap();
             assert_eq!(got, wanted, "snapshot {snapshot}");
+        }
+    }
+
+    #[test]
+    fn the_places_of_every_edge_add_up_to_its_count() {
+        let store = two_projects();
+        for snapshot in [10, 20, 30] {
+            let id = SnapshotId::new(snapshot);
+            let graph = store.namespace_graph(id).unwrap();
+            for edge in &graph.edges {
+                let between = Between {
+                    from: &graph.name_at(edge.from),
+                    to: &graph.name_at(edge.to),
+                    depth: 0,
+                };
+                let found = places_between(&store, id, &between, usize::MAX).unwrap();
+                assert_eq!(found.total, edge.count as usize, "snapshot {snapshot}");
+                assert_eq!(found.places.len(), found.total, "snapshot {snapshot}");
+            }
         }
     }
 

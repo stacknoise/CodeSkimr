@@ -19,6 +19,7 @@ mod export;
 mod export_tests;
 mod graph;
 mod graph_focus;
+mod graph_module_places;
 mod graph_modules;
 mod graph_types;
 mod graph_wrap;
@@ -127,6 +128,7 @@ use credentials::{DeleteCredential, ListCredentials, SetCredential};
 use explorer::{ExplorerOutline, ExplorerPorts};
 pub(crate) use export::{ExportInput, HtmlExport};
 use graph::{GraphLayers, GraphPorts};
+use graph_module_places::GraphModulePlaces;
 use graph_modules::GraphModules;
 use indexers::ListIndexers;
 use layers::{LayersGet, LayersSet};
@@ -542,6 +544,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     expose_index_views(api)?;
     api.expose::<GraphLayers>()?;
     api.expose::<GraphModules>()?;
+    api.expose::<GraphModulePlaces>()?;
     expose_project_file(api)?;
     api.expose::<StatusInfo>()?;
     api.expose::<StatsOverview>()?;
@@ -820,7 +823,13 @@ fn register_graph(
             ports: Arc::clone(&ports),
         },
     )?;
-    add(registry, GraphModules { ports })
+    add(
+        registry,
+        GraphModules {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(registry, GraphModulePlaces { ports })
 }
 
 fn register_explorer(
@@ -894,6 +903,7 @@ fn graph_ports(store: &Arc<SqliteStore>, look: Graph) -> Arc<GraphPorts> {
     Arc::new(GraphPorts {
         projects: store.clone(),
         index: store.clone(),
+        references: store.clone(),
         look,
     })
 }

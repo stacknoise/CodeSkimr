@@ -2,6 +2,8 @@ import { For, Show } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
+import { Pill } from "../../shared/ui/Pill";
+import { TONE } from "../../shared/ui/consts";
 import { count } from "../projects/format";
 import { panelStyle } from "../../shared/layout/panelStyle";
 import { modulesPanelWidth } from "./layout";
@@ -13,6 +15,7 @@ import {
   STABILITY_DIGITS,
   STABILITY_ONE,
 } from "./consts";
+import { EdgePlaces } from "./ModulePlaces";
 import type { ModuleCycle, ModuleRow, ModulesInfo } from "./types";
 import styles from "./ModulesPanel.module.css";
 
@@ -42,12 +45,14 @@ function Badges(props: { row: ModuleRow }) {
   return (
     <>
       <Show when={props.row.in_cycle}>
-        <span class={cx(styles.pill, styles.bad)}>{t(I18N_KEYS.GRAPH_MODULES_BADGE_CYCLE)}</span>
+        <Pill tone={TONE.bad} compact>
+          {t(I18N_KEYS.GRAPH_MODULES_BADGE_CYCLE)}
+        </Pill>
       </Show>
       <Show when={props.row.violations > 0}>
-        <span class={cx(styles.pill, styles.warn)}>
+        <Pill tone={TONE.warn} compact>
           {t(I18N_KEYS.GRAPH_MODULES_BADGE_VIOLATIONS, { count: props.row.violations })}
-        </span>
+        </Pill>
       </Show>
     </>
   );
@@ -107,7 +112,7 @@ function Table(props: {
   );
 }
 
-function Cycle(props: { cycle: ModuleCycle }) {
+function Cycle(props: { project: number; cycle: ModuleCycle }) {
   return (
     <div class={styles.item}>
       <div class={styles.mono}>{props.cycle.modules.join(CYCLE_JOIN)}</div>
@@ -130,6 +135,7 @@ function Cycle(props: { cycle: ModuleCycle }) {
               to: edge.to,
               count: edge.count,
             })}
+            <EdgePlaces project={props.project} edge={edge} />
           </div>
         )}
       </For>
@@ -137,7 +143,7 @@ function Cycle(props: { cycle: ModuleCycle }) {
   );
 }
 
-function Cycles(props: { info: ModulesInfo }) {
+function Cycles(props: { project: number; info: ModulesInfo }) {
   return (
     <section class={styles.group}>
       <h3>{t(I18N_KEYS.GRAPH_MODULES_CYCLES_TITLE)}</h3>
@@ -145,13 +151,15 @@ function Cycles(props: { info: ModulesInfo }) {
         when={props.info.cycles.length > 0}
         fallback={<p class={styles.detail}>{t(I18N_KEYS.GRAPH_MODULES_CYCLES_NONE)}</p>}
       >
-        <For each={props.info.cycles}>{(cycle) => <Cycle cycle={cycle} />}</For>
+        <For each={props.info.cycles}>
+          {(cycle) => <Cycle project={props.project} cycle={cycle} />}
+        </For>
       </Show>
     </section>
   );
 }
 
-function Violations(props: { info: ModulesInfo }) {
+function Violations(props: { project: number; info: ModulesInfo }) {
   return (
     <Show when={props.info.violations.length > 0}>
       <section class={styles.group}>
@@ -166,6 +174,7 @@ function Violations(props: { info: ModulesInfo }) {
                 toLayer: found.to_layer,
                 count: found.edge.count,
               })}
+              <EdgePlaces project={props.project} edge={found.edge} />
             </div>
           )}
         </For>
@@ -186,7 +195,7 @@ function Risks(props: { info: ModulesInfo }) {
               {t(I18N_KEYS.GRAPH_MODULES_RISK, {
                 module: risk.module,
                 stability: stabilityText(risk.stability, language()),
-                incoming: count(risk.incoming, language()),
+                incoming: risk.incoming,
                 other: risk.depends_on,
                 otherStability: stabilityText(risk.depends_on_stability, language()),
               })}
@@ -202,6 +211,7 @@ function Risks(props: { info: ModulesInfo }) {
  * the cycles with the edge that ends them, the dependencies against the layering and the modules
  * that stand out. */
 export function ModulesPanel(props: {
+  project: number;
   info: ModulesInfo;
   selected: string | null;
   onSelect: (name: string) => void;
@@ -219,8 +229,8 @@ export function ModulesPanel(props: {
           {t(I18N_KEYS.GRAPH_MODULES_MORE, { count: props.info.modules_more })}
         </p>
       </Show>
-      <Cycles info={props.info} />
-      <Violations info={props.info} />
+      <Cycles project={props.project} info={props.info} />
+      <Violations project={props.project} info={props.info} />
       <Risks info={props.info} />
     </aside>
   );

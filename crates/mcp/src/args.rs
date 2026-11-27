@@ -265,6 +265,12 @@ pub struct DependenciesArgs {
     /// With `level` `module`: merge the namespaces into their first `depth` segments; all of
     /// them if left out.
     pub depth: Option<u32>,
+    /// With `level` `module`, together with `to_module`: the module that depends on the other.
+    /// The answer then lists the places (file, line and both symbols) of that one dependency
+    /// instead of the modules.
+    pub from_module: Option<String>,
+    /// With `level` `module`, together with `from_module`: the module that is depended on.
+    pub to_module: Option<String>,
     /// `outgoing` (what the target depends on, the default) or `incoming` (what depends on it).
     pub direction: Option<String>,
     /// Whether references from test code count; `false` if left out. Applies to `symbol` only.

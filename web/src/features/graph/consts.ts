@@ -4,6 +4,8 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 export const GRAPH_COMMAND = "graph.layers";
 /** Id of the command behind the level "modules" (ADR 0108). */
 export const MODULES_COMMAND = "graph.modules";
+/** The command that lists the places of one dependency between two modules. */
+export const PLACES_COMMAND = "graph.module_places";
 
 /** The levels of the map, as the command names them. */
 export const LEVEL = {

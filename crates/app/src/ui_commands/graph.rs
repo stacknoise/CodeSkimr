@@ -7,7 +7,7 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::config::Graph;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{CodeIndex, ProjectRepository};
+use codeskimr_application::ports::{CodeIndex, ProjectRepository, ReferencePlaces};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_domain::{
     Layer, LayerEdge, LayerMap, NodePlacement, NodeSize, Permission, Project, ProjectId, Snapshot,
@@ -174,6 +174,7 @@ pub struct FocusOut {
 pub struct GraphPorts {
     pub(super) projects: Arc<dyn ProjectRepository>,
     pub(super) index: Arc<dyn CodeIndex>,
+    pub(super) references: Arc<dyn ReferencePlaces>,
     pub(super) look: Graph,
 }
 

@@ -483,6 +483,12 @@ pub const VALUE_DIRECTION: &str = "DIRECTION";
 pub const DIRECTIONS: [&str; 2] = ["incoming", "outgoing"];
 /// Option of `usages`: how many steps the walk goes.
 pub const ARG_DEPTH: &str = "depth";
+/// Option of `modules`: the depending module of the dependency whose places are listed.
+pub const ARG_MODULE_FROM: &str = "from";
+/// Option of `modules`: the module that is depended on.
+pub const ARG_MODULE_TO: &str = "to";
+/// Value name of the module options of `modules`.
+pub const VALUE_MODULE: &str = "MODULE";
 /// Flag of `usages`: references from tests count.
 pub const ARG_INCLUDE_TESTS: &str = "include-tests";
 /// Long flag of `rules` that holds the state.

@@ -28,7 +28,7 @@ The level "Modules" in the toolbar shows the namespaces of the project as module
 - **Cycles.** Modules that depend on each other in a ring. Each cycle names the dependencies to take away to end it, the one with the fewest places first; this is a suggestion by the number of places to change, not a statement about which direction is right.
 - **Against the layering** and **Stands out.** Dependencies between modules that the layers do not allow, and modules that many places use and that depend on a clearly less stable module.
 
-More modules than `graph.max_modules` are not drawn or listed (the most referenced stay); cycles and the two lists always count all modules. The same numbers are available on the command line (`codeskimr modules`, `--json` for scripts) and for agents (`get_dependencies` with `level` `module`).
+More modules than `graph.max_modules` are not drawn or listed (the most referenced stay); cycles and the two lists always count all modules. The button "Show the places" under a dependency that ends a cycle, or that goes against the layering, lists the places of that dependency: file and line, and which symbol of one module uses which symbol of the other. It lists at most `graph.max_places` of them and says how many more there are. The same numbers are available on the command line (`codeskimr modules`, `--json` for scripts; `--from` and `--to` name a dependency and list its places) and for agents (`get_dependencies` with `level` `module`; `from_module` and `to_module` name a dependency).
 
 ## Known limits
 

@@ -568,6 +568,8 @@ pub struct Graph {
     pub risk_max: u32,
     /// Most modules the module map draws and lists.
     pub max_modules: u32,
+    /// Most places of one dependency between modules that are listed.
+    pub max_places: u32,
 }
 
 impl Graph {

@@ -16,9 +16,10 @@ use codeskimr_application::ports::{
     FileDiscovery, FileFacts, FileHit, ImpactPage, ImpactedSymbol, KeyEntry, KeyKind, KeySearch,
     LanguageLine, LanguageOutcome, LanguageShare, LastScan, Level2Report, MemberRef, PathsReport,
     PreviousIndex, ProjectCatalog, ProjectKeys, ProjectOverview, ProjectRepository, ProjectScanner,
-    ProjectToolCheck, ReferenceSite, ReferenceSites, ReportWrite, Rescanned, ScanReport,
-    ScanReportStore, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex, SnippetFingerprinter,
-    SourceText, SymbolDetail, SymbolKey, SymbolLabel, TypeFocus, UsageEntry, UsageIndex, UsagePage,
+    ProjectToolCheck, ReferencePlace, ReferencePlaces, ReferenceSite, ReferenceSites, ReportWrite,
+    Rescanned, ScanReport, ScanReportStore, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex,
+    SnippetFingerprinter, SourceText, SymbolDetail, SymbolKey, SymbolLabel, TypeFocus, UsageEntry,
+    UsageIndex, UsagePage,
 };
 use codeskimr_application::unused::{Finding, Findings, UnusedSymbols};
 use codeskimr_codes::ErrorCode;
@@ -211,15 +212,7 @@ impl CodeIndex for FakeIndex {
     }
 
     fn namespace_graph(&self, _snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
-        let node = |name: &str| NamespaceNode {
-            name: QualifiedName::new(name).unwrap(),
-            types: 2,
-        };
-        let edge = |from, to, count| NamespaceEdge { from, to, count };
-        Ok(NamespaceGraph {
-            namespaces: vec![node("App.Domain"), node("App.Application"), node("App.Web")],
-            edges: vec![edge(0, 1, 2), edge(1, 0, 7), edge(2, 1, 3), edge(2, 0, 4)],
-        })
+        Ok(demo_graph())
     }
 
     fn type_focus(
@@ -228,6 +221,49 @@ impl CodeIndex for FakeIndex {
         _symbol: SymbolId,
     ) -> Result<Option<TypeFocus>, CodedError> {
         Ok(None)
+    }
+}
+
+/// Three modules: the domain and the application use each other, the Web uses both.
+fn demo_graph() -> NamespaceGraph {
+    let node = |name: &str| NamespaceNode {
+        name: QualifiedName::new(name).unwrap(),
+        types: 2,
+    };
+    let edge = |from, to, count| NamespaceEdge { from, to, count };
+    NamespaceGraph {
+        namespaces: vec![node("App.Domain"), node("App.Application"), node("App.Web")],
+        edges: vec![edge(0, 1, 2), edge(1, 0, 7), edge(2, 1, 3), edge(2, 0, 4)],
+    }
+}
+
+/// The places of the references of the three modules: two where the Web uses the domain.
+pub struct FakePlaces;
+
+impl ReferencePlaces for FakePlaces {
+    fn for_each_reference(
+        &self,
+        _snapshot: SnapshotId,
+        visit: &mut dyn FnMut(ReferencePlace),
+    ) -> Result<(), CodedError> {
+        for (path, line, to) in [
+            ("web/Page.cs", 7, "App.Domain.Invoice.Total"),
+            ("web/Page.cs", 19, "App.Domain.Invoice.Pay"),
+            ("web/Page.cs", 21, "App.Application.Billing.Run"),
+        ] {
+            let at = Position { line, column: 4 };
+            visit(ReferencePlace {
+                path: RelativePath::new(path).unwrap(),
+                span: Span::new(at, at).unwrap(),
+                from: QualifiedName::new("App.Web.Page.Show").unwrap(),
+                to: QualifiedName::new(to).unwrap(),
+            });
+        }
+        Ok(())
+    }
+
+    fn namespaces(&self, _snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
+        Ok(demo_graph())
     }
 }
 
@@ -782,6 +818,7 @@ fn assemble_with(
                 has_prints,
             }),
             references: Arc::new(FakeReferences),
+            places: Arc::new(FakePlaces),
             snippets: Arc::new(FakeSnippets),
             checker: checker(),
             clock: Arc::new(FixedClock),
@@ -1175,6 +1212,7 @@ pub fn tools_annotated(annotations: FakeAnnotations) -> Tools {
                 has_prints: true,
             }),
             references: Arc::new(FakeReferences),
+            places: Arc::new(FakePlaces),
             snippets: Arc::new(FakeSnippets),
             checker: checker(),
             clock: Arc::new(FixedClock),
