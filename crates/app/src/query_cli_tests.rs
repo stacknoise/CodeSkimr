@@ -524,6 +524,8 @@ fn modules(json: bool) -> QueryAction {
     QueryAction::Modules(ModulesQuery {
         depth: None,
         limit: None,
+        from: None,
+        to: None,
         target: target(json),
     })
 }
@@ -547,4 +549,19 @@ fn modules_answer_like_the_module_level_of_get_dependencies() {
     let text = world.answered(&modules(false)).text;
     assert!(text.contains("Demo"), "{text}");
     assert!(text.contains("stability"), "{text}");
+}
+
+#[test]
+fn modules_with_two_modules_answer_the_places_of_that_dependency() {
+    let world = World::new();
+    let QueryAction::Modules(mut query) = modules(true) else {
+        unreachable!("a modules query")
+    };
+    query.from = Some("Demo".to_owned());
+    query.to = Some("Demo.Other".to_owned());
+    let answer = world.json(&QueryAction::Modules(query));
+    assert_eq!(answer["level"], "module");
+    assert_eq!(answer["from"], "Demo");
+    assert_eq!(answer["total"], 0);
+    assert_eq!(answer["places"], serde_json::json!([]));
 }

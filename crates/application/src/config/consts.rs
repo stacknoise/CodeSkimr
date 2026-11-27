@@ -122,6 +122,8 @@ pub mod keys {
     pub const GRAPH_RISK_MAX: &str = "graph.risk_max";
     /// `graph.max_modules`
     pub const GRAPH_MAX_MODULES: &str = "graph.max_modules";
+    /// `graph.max_places`
+    pub const GRAPH_MAX_PLACES: &str = "graph.max_places";
     /// `export.max_references`
     pub const EXPORT_MAX_REFERENCES: &str = "export.max_references";
     /// `compare.max_symbols`

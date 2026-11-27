@@ -286,3 +286,6 @@ pub const OUTCOME_REMOVED: &str = "removed";
 pub const OUTCOME_MOVED: &str = "moved";
 /// Outcome for a critical symbol that changed.
 pub const OUTCOME_CHANGED: &str = "changed";
+
+/// Lines of a place are counted from 1 when shown, the stored ones from 0.
+pub const PLACE_LINE_OFFSET: u32 = 1;

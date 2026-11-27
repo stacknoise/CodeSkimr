@@ -186,6 +186,8 @@ fn modules_args(query: &ModulesQuery) -> DependenciesArgs {
         layer: None,
         level: Some(LEVEL_MODULE.to_owned()),
         depth: query.depth,
+        from_module: query.from.clone(),
+        to_module: query.to.clone(),
         direction: None,
         include_tests: None,
         project: None,

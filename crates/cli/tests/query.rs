@@ -397,12 +397,66 @@ fn modules_reads_the_depth_the_limit_and_the_output() {
         QueryAction::Modules(ModulesQuery {
             depth: Some(2),
             limit: Some(20),
+            from: None,
+            to: None,
             target: QueryTarget {
                 project: None,
                 json: true
             },
         })
     );
+}
+
+#[test]
+fn modules_reads_the_two_modules_of_a_dependency_and_wants_both() {
+    let QueryAction::Modules(query) = action(&[
+        "codeskimr",
+        "modules",
+        "--from",
+        "App.Web",
+        "--to",
+        "App.Domain",
+    ]) else {
+        unreachable!("a modules command")
+    };
+    assert_eq!(query.from.as_deref(), Some("App.Web"));
+    assert_eq!(query.to.as_deref(), Some("App.Domain"));
+    let messages = Messages::load().unwrap();
+    let alone = parse(
+        ["codeskimr", "modules", "--from", "App.Web"],
+        &messages,
+        "en",
+    );
+    assert!(alone.is_err());
+}
+
+#[test]
+fn the_text_of_the_places_of_a_dependency_lists_file_line_and_symbols_in_both_languages() {
+    let messages = Messages::load().unwrap();
+    let answer = json!({
+        "level": "module", "from": "App.Web", "to": "App.Domain", "total": 3,
+        "places": [
+            {"path": "web/Page.cs", "line": 8, "from": "App.Web.Page.Show", "to": "App.Domain.Invoice.Total"},
+            {"path": "web/Page.cs", "line": 20, "from": "App.Web.Page.Show", "to": "App.Domain.Invoice.Pay"}
+        ]
+    });
+    let english = query_text(&messages, "en", QueryKind::Modules, (&answer, None)).unwrap();
+    assert!(
+        english.contains("Places of App.Web -> App.Domain: 2 of 3 shown."),
+        "{english}"
+    );
+    assert!(
+        english.contains("web/Page.cs:8  App.Web.Page.Show -> App.Domain.Invoice.Total"),
+        "{english}"
+    );
+    let german = query_text(&messages, "de", QueryKind::Modules, (&answer, None)).unwrap();
+    assert!(
+        german.contains("Stellen von App.Web -> App.Domain: 2 von 3 gezeigt."),
+        "{german}"
+    );
+    let none = json!({"from": "A", "to": "B", "total": 0, "places": []});
+    let empty = query_text(&messages, "en", QueryKind::Modules, (&none, None)).unwrap();
+    assert_eq!(empty, "No places of A -> B found.");
 }
 
 fn module_answer() -> Value {
