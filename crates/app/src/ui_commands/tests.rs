@@ -186,7 +186,7 @@ impl Fixture {
 }
 
 /// Every command of the registry, in the order the API lists them.
-const COMMAND_IDS: [&str; 58] = [
+const COMMAND_IDS: [&str; 60] = [
     "alerts.dismiss",
     "alerts.dismiss_all",
     "alerts.list",
@@ -226,6 +226,8 @@ const COMMAND_IDS: [&str; 58] = [
     "projects.tools",
     "rename.preview",
     "rules.hold",
+    "rules.preview",
+    "rules.set",
     "rules.show",
     "scans.compare",
     "scans.impact",

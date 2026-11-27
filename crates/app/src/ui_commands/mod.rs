@@ -47,6 +47,9 @@ mod projects_tests;
 mod rating;
 mod rename_preview;
 mod rules;
+mod rules_edit;
+#[cfg(test)]
+mod rules_edit_tests;
 #[cfg(test)]
 mod rules_tests;
 mod scans;
@@ -139,6 +142,7 @@ use projects_rename::{RenameProject, SuggestName};
 use rename_preview::{RenamePreviewCommand, RenamePreviewPorts};
 pub(crate) use rules::hold;
 use rules::{RulesHold, RulesShow};
+use rules_edit::{RulesPreview, RulesSet};
 use scans::{
     ComparePorts, MarkdownPorts, ScanListPorts, ScansCompare, ScansImpact, ScansImpactMarkdown,
     ScansList,
@@ -507,6 +511,8 @@ fn expose_project_file(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<LayersSet>()?;
     api.expose::<RulesShow>()?;
     api.expose::<RulesHold>()?;
+    api.expose::<RulesSet>()?;
+    api.expose::<RulesPreview>()?;
     api.expose::<ProjectFileOpen>()?;
     api.expose::<UnusedKeep>()?;
     api.expose::<UnusedLift>()?;
@@ -738,6 +744,25 @@ fn register_project_file_open(
     )
 }
 
+/// The commands that change the rules of the project file (ADR 0112).
+fn register_rules_edit(
+    registry: &mut Registry,
+    ports: &Arc<ExplorerPorts>,
+) -> Result<(), CodedError> {
+    add(
+        registry,
+        RulesSet {
+            ports: Arc::clone(ports),
+        },
+    )?;
+    add(
+        registry,
+        RulesPreview {
+            ports: Arc::clone(ports),
+        },
+    )
+}
+
 /// The commands of the project file, see [`expose_project_file`].
 fn register_project_file(
     registry: &mut Registry,
@@ -812,6 +837,7 @@ fn register_explorer(
         },
     )?;
     register_project_file(registry, &ports)?;
+    register_rules_edit(registry, &ports)?;
     add(
         registry,
         ExplorerSource {

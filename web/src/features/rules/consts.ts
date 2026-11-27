@@ -1,9 +1,41 @@
+import { I18N_KEYS } from "../../shared/i18n/keys";
+
 /** Id of the command of the screen (crates/app/src/ui_commands/consts.rs). */
 export const COMMAND = {
   show: "rules.show",
   hold: "rules.hold",
   openFile: "project_file.open",
+  set: "rules.set",
+  preview: "rules.preview",
+  layers: "layers.get",
 } as const;
+
+/** The kinds of dialog the rules screen opens to change the rules (ADR 0112). */
+export const DIALOG = {
+  forbid: "forbid",
+  publicApi: "public_api",
+  layers: "layers",
+  remove: "remove",
+} as const;
+
+/** How long after the last key the preview of a rule is asked for, in milliseconds. */
+export const PREVIEW_DELAY_MS = 350;
+/** Separates the lines of a list of prefixes in its field. */
+export const LINE_BREAK = "\n";
+/** The id of the title of the dialog, for `aria-labelledby`. */
+export const DIALOG_TITLE_ID = "rule-dialog-title";
+/** The id of the list of namespaces the fields of the dialog offer. */
+export const NAMESPACES_LIST_ID = "rule-namespaces";
+/** The key that closes the dialog. */
+export const CLOSE_KEY = "Escape";
+/** The head of an entry of `[[rules.forbid]]` as the file gets it. */
+export const TOML_FORBID_HEAD = "[[rules.forbid]]";
+/** The head of an entry of `[[rules.public_api]]` as the file gets it. */
+export const TOML_API_HEAD = "[[rules.public_api]]";
+/** The mark of a layer that may use another one. */
+export const TICK = "✓";
+/** The mark of a layer in its own column: it never uses itself. */
+export const SELF = "–";
 
 /** The kinds of rules the command names. */
 export const KIND = {
@@ -39,3 +71,18 @@ export const PLACES_MORE = ", …";
 export const LAYERS_JOIN = "; ";
 /** Separates the layers one layer may use. */
 export const USES_JOIN = ", ";
+
+/** The icons of the buttons of a rule card and their size. */
+export const ICON = { pen: "pen", bin: "bin" } as const;
+export const ICON_SIZE = 16;
+/** How many lines the field for the inside of a module shows. */
+export const INSIDE_ROWS = 3;
+
+/** The tabs of the screen Rules. */
+export const RULES_TAB = { rules: "rules", layers: "layers" } as const;
+export type RulesTab = (typeof RULES_TAB)[keyof typeof RULES_TAB];
+/** The tabs in their order, with the text of each. */
+export const RULES_TABS = [
+  { id: RULES_TAB.rules, label: I18N_KEYS.RULES_TAB_RULES },
+  { id: RULES_TAB.layers, label: I18N_KEYS.RULES_TAB_LAYERS },
+] as const;

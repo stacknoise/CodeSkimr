@@ -26,7 +26,7 @@ import { IndexerMemoryPanel } from "./IndexerMemoryPanel";
 import { IndexersPanel } from "./IndexersPanel";
 import { ThemeCard } from "./ThemeCard";
 import { LANGUAGES } from "../../shared/i18n/consts";
-import { CODES_ROUTE, LAYERS_ROUTE } from "../../app/consts";
+import { CODES_ROUTE } from "../../app/consts";
 import { navigate } from "../../app/router";
 import { statusInfo } from "../status/status";
 
@@ -85,19 +85,6 @@ function LanguagePanel() {
         </For>
       </select>
       <p class={styles.note}>{t(I18N_KEYS.SETTINGS_STORAGE_NOTE)}</p>
-    </section>
-  );
-}
-
-/** The way to the layer editor. */
-function LayersPanel() {
-  return (
-    <section class={`${styles.panel} ${styles.narrow}`}>
-      <h2>{t(I18N_KEYS.SETTINGS_LAYERS_TITLE)}</h2>
-      <p class={styles.note}>{t(I18N_KEYS.SETTINGS_LAYERS_NOTE)}</p>
-      <button type="button" class={styles.field} onClick={() => navigate(LAYERS_ROUTE.path)}>
-        {t(I18N_KEYS.SETTINGS_LAYERS_ACTION)}
-      </button>
     </section>
   );
 }
@@ -184,7 +171,6 @@ function TabPage() {
         <LanguagePanel />
       </Match>
       <Match when={settingsTab() === SETTINGS_TAB.analysis}>
-        <LayersPanel />
         <IndexersPanel />
         <IndexerMemoryPanel />
       </Match>

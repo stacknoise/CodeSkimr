@@ -168,3 +168,22 @@ fn a_file_that_cannot_be_written_is_cfg_104_and_leaves_nothing_behind() {
     assert_eq!(failure.code().entry().id, "CFG-104");
     assert_eq!(fs::read_dir(dir.path()).unwrap().count(), 0);
 }
+
+#[test]
+fn edits_of_the_project_file_at_the_same_time_do_not_lose_each_other() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join(".codeskimr.toml");
+    std::thread::scope(|scope| {
+        for n in 0..8 {
+            let path = &path;
+            scope.spawn(move || {
+                super::layers::update_project_file(path, |text| {
+                    Ok((format!("{text}# edit {n}\n"), ()))
+                })
+                .unwrap();
+            });
+        }
+    });
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert_eq!(text.lines().count(), 8, "{text}");
+}

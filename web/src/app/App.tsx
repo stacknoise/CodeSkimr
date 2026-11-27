@@ -6,7 +6,6 @@ import { CodesScreen } from "../features/codes/CodesScreen";
 import { BoardScreen } from "../features/annotations/BoardScreen";
 import { ConnectionScreen } from "../features/session/ConnectionScreen";
 import { GraphScreen } from "../features/graph/GraphScreen";
-import { LayersScreen } from "../features/layers/LayersScreen";
 import { ExplorerScreen } from "../features/explorer/ExplorerScreen";
 import { listenToScans } from "../features/scan/events";
 import { ChangeScreen } from "../features/change/ChangeScreen";
@@ -34,7 +33,6 @@ import {
   FLUSH_PATHS,
   FOOTER_ROUTES,
   GRAPH_ROUTE,
-  LAYERS_ROUTE,
   MAIN_ROUTES,
   PROJECT_PATHS,
   PROJECTS_ROUTE,
@@ -54,7 +52,6 @@ import { currentPath, navigate } from "./router";
 /** The screens of the app by their path; the projects screen answers every other path. */
 const SCREENS: ScreenTable = [
   [SETTINGS_ROUTE.path, SettingsScreen],
-  [LAYERS_ROUTE.path, LayersScreen],
   [CODES_ROUTE.path, CodesScreen],
   [GRAPH_ROUTE.path, GraphScreen],
   [STATS_ROUTE.path, StatsScreen],

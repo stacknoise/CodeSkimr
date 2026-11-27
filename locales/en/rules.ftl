@@ -63,3 +63,50 @@ rules-ring-advice = Resolvable over { $edges ->
    *[other] { $places } places
 }
 rules-ring-show = Show in the graph
+rules-add = Add rule
+rules-add-git = Folder projects only: a Git project has no project file to write the rules into.
+rules-add-forbid = Ban
+rules-add-forbid-hint = Module A must not use module B
+rules-add-public-api = Only through the public interface
+rules-add-public-api-hint = The inside of a module stays closed
+rules-add-cycles = Forbid cycles
+rules-add-cycles-hint = A switch, no new card
+rules-add-layers = Layers
+rules-add-layers-hint = What each layer may use
+rules-edit = Change rule
+rules-delete = Delete rule
+rules-dialog-forbid-new = Add ban
+rules-dialog-forbid-edit = Change ban
+rules-dialog-api-new = Add rule: only through the public interface
+rules-dialog-api-edit = Change rule: only through the public interface
+rules-dialog-layers = Layers: who may use whom
+rules-dialog-delete = Delete rule?
+rules-dialog-delete-body = The rule "{ $rule }" is removed from .codeskimr.toml. Violations of it are no longer reported.
+rules-field-from = This module …
+rules-field-to = … must not use this module
+rules-field-reason = Reason (optional, shown on the page)
+rules-field-module = Module
+rules-field-internal = Inside (one prefix per line, each below the module)
+rules-field-hint = From the namespaces of the scan ({ $count }); a prefix of your own can be typed.
+rules-layers-help = A row uses the columns. Without "Limit" a layer may use anything; with it, only the ticked layers (none if nothing is ticked). Names and namespaces of the layers stay in the layer editor.
+rules-layers-limit = Limit
+rules-layers-uses = may use →
+rules-layers-none = The project has no layers yet. Set them up in the layer editor first.
+rules-preview-checking = Checking against the last scan …
+rules-preview-none = With the last scan there would be no violation.
+rules-preview-some = { $count ->
+    [one] With the last scan this would be 1 violation ({ $old } already held).
+   *[other] With the last scan this would be { $count } violations ({ $old } already held).
+}
+rules-preview-unscanned = The project has no scan yet, so there is no preview.
+rules-preview-invalid = This is not a rule yet: check the names.
+rules-promise = Writes into .codeskimr.toml. The other tables and comments stay; comments inside the rules tables are rewritten.
+rules-cancel = Cancel
+rules-save = Save
+rules-saving = Saving …
+rules-delete-confirm = Delete
+rules-save-failed = The rules could not be saved.
+rules-toml-label = Text written into the file
+rules-tab-rules = Rules
+rules-tab-layers = Layers
+rules-tabs-label = Rules and layers
