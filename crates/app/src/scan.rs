@@ -678,6 +678,7 @@ mod stage_time_tests {
             done: 1,
             total: 1,
             elapsed_ms,
+            step: None,
         })
     }
 
