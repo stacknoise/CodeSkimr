@@ -11,7 +11,9 @@ use serde_json::Value;
 use super::usages::{cut_notice, direction_label, parse_direction};
 use super::{Scope, SnapshotInfo, Tools, to_json};
 use crate::args::DependenciesArgs;
-use crate::consts::{ARG_DEPTH, ARG_LAYER, ARG_SYMBOL_OR_LAYER, READ_TOOL_PERMISSION};
+use crate::consts::{
+    ARG_DEPTH, ARG_FROM_MODULE, ARG_LAYER, ARG_SYMBOL_OR_LAYER, ARG_TO_MODULE, READ_TOOL_PERMISSION,
+};
 use crate::error::{CodeReport, McpError};
 
 /// What the caller asked about.
@@ -58,6 +60,19 @@ struct Answer {
     layers: Vec<LayerLink>,
     dependencies: Vec<Dependency>,
     notice: Option<CodeReport>,
+}
+
+/// The first argument that only makes sense with `level` `module`, if one is given.
+fn needs_level(args: &DependenciesArgs) -> Option<&'static str> {
+    if args.depth.is_some() {
+        Some(ARG_DEPTH)
+    } else if args.from_module.is_some() {
+        Some(ARG_FROM_MODULE)
+    } else if args.to_module.is_some() {
+        Some(ARG_TO_MODULE)
+    } else {
+        None
+    }
 }
 
 /// The layer edge from `from` to `to`, if the scan recorded one.
@@ -219,8 +234,8 @@ impl Tools {
         if args.level.is_some() {
             return self.module_answer(args);
         }
-        if args.depth.is_some() {
-            return Err(McpError::ArgumentsInvalid(ARG_DEPTH.to_owned()));
+        if let Some(argument) = needs_level(args) {
+            return Err(McpError::ArgumentsInvalid(argument.to_owned()));
         }
         let subject = subject(args)?;
         let direction = parse_direction(args.direction.as_deref(), Direction::Outgoing)?;

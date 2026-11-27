@@ -29,8 +29,9 @@ use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     AnnotationStore, Clock, CodeIndex, NameMentions, ProjectCatalog, ProjectKeys,
-    ProjectRepository, ProjectScanner, ProjectToolCheck, ReferenceSites, ScanReportStore,
-    SimilarityIndex, SnippetFingerprinter, SourceText, SymbolDetail, SymbolKey, UsageIndex,
+    ProjectRepository, ProjectScanner, ProjectToolCheck, ReferencePlaces, ReferenceSites,
+    ScanReportStore, SimilarityIndex, SnippetFingerprinter, SourceText, SymbolDetail, SymbolKey,
+    UsageIndex,
 };
 use codeskimr_application::rules::RulesChecks;
 use codeskimr_application::unused::UnusedSymbols;
@@ -86,6 +87,8 @@ pub struct Ports {
     pub similarity: Arc<dyn SimilarityIndex>,
     /// The stored references, for the layer rule of `check_conventions`.
     pub references: Arc<dyn ReferenceSites>,
+    /// The places of the references and the namespaces, for the places of a module dependency.
+    pub places: Arc<dyn ReferencePlaces>,
     /// Fingerprints of a snippet, with the same normalisation as a scan.
     pub snippets: Arc<dyn SnippetFingerprinter>,
     /// The convention check, which reads the files of a project afresh.
@@ -127,6 +130,7 @@ pub struct Tools {
     usages: Arc<dyn UsageIndex>,
     similarity: Arc<dyn SimilarityIndex>,
     references: Arc<dyn ReferenceSites>,
+    places: Arc<dyn ReferencePlaces>,
     snippets: Arc<dyn SnippetFingerprinter>,
     checker: Arc<ConventionChecker>,
     clock: Arc<dyn Clock>,
@@ -179,6 +183,7 @@ impl Tools {
             usages: ports.usages,
             similarity: ports.similarity,
             references: ports.references,
+            places: ports.places,
             snippets: ports.snippets,
             checker: ports.checker,
             clock: ports.clock,
@@ -310,6 +315,10 @@ impl Tools {
 
     pub(crate) fn references(&self) -> &dyn ReferenceSites {
         self.references.as_ref()
+    }
+
+    pub(crate) fn places(&self) -> &dyn ReferencePlaces {
+        self.places.as_ref()
     }
 
     pub(crate) fn project_keys(&self) -> &dyn ProjectKeys {

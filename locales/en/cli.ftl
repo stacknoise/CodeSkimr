@@ -306,7 +306,12 @@ cli-arg-compare-target = Id of the newer scan (default: the newest scan)
 cli-arg-markdown = Print the answer as Markdown for a comment on a pull request; cannot be combined with --json
 cli-cmd-modules = Show the modules (namespaces) of the project: references in and out, stability, the cycles between modules with the dependencies that end them, the dependencies against the layering and the modules that stand out (the answer of get_dependencies with level module)
 cli-arg-modules-depth = Merge the namespaces into their first N segments (all of them if left out)
+cli-arg-modules-from = The module that depends on the other; with --to, the places of that dependency are listed instead of the modules
+cli-arg-modules-to = The module that is depended on (with --from)
 cli-query-modules-none = No modules found.
+cli-query-modules-places-head = Places of { $from } -> { $to }: { $shown } of { $total } shown.
+cli-query-modules-place = { $path }:{ $line }  { $from } -> { $to }
+cli-query-modules-places-none = No places of { $from } -> { $to } found.
 cli-query-modules-head = Modules: { $shown } of { $total } shown, the most referenced first. in: places in other modules that use it; out: places in it that use other modules; stability = out / (in + out).
 cli-query-modules-line = { $name }{ $layer }  in { $incoming }, out { $outgoing }, stability { $stability }{ $flags }
 cli-query-modules-layer = [{ $name }]

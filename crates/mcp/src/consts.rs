@@ -60,6 +60,10 @@ pub const ARG_SYMBOL_OR_LAYER: &str = "symbol or layer";
 pub const ARG_LEVEL: &str = "level";
 /// Value of `level`: the modules (namespaces) of the project with rings and coupling (ADR 0108).
 pub const LEVEL_MODULE: &str = "module";
+/// Argument of `get_dependencies` that names the depending module of a dependency.
+pub const ARG_FROM_MODULE: &str = "from_module";
+/// Argument of `get_dependencies` that names the module that is depended on.
+pub const ARG_TO_MODULE: &str = "to_module";
 
 /// Value of `target.kind`: a symbol, namespace or type.
 pub const TARGET_SYMBOL: &str = "symbol";

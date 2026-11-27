@@ -525,6 +525,11 @@ fn the_size_of_a_graph_box_must_be_positive() {
             "graph.max_modules",
             Violation::MustBePositive,
         ),
+        (
+            "[graph]\nmax_places = 0\n",
+            "graph.max_places",
+            Violation::MustBePositive,
+        ),
     ]);
 }
 

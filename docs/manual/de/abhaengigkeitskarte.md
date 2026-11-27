@@ -28,7 +28,7 @@ Die Ebene „Module“ in der Werkzeugleiste zeigt die Namespaces des Projekts a
 - **Zyklen.** Module, die sich im Ring voneinander abhängen. Zu jedem Zyklus steht, welche Abhängigkeiten man wegnimmt, um ihn zu beenden, die mit den wenigsten Stellen zuerst. Das ist ein Vorschlag nach der Zahl der zu ändernden Stellen, keine Aussage darüber, welche Richtung richtig ist.
 - **Gegen die Schichtung** und **Auffällig.** Abhängigkeiten zwischen Modulen, die die Schichten nicht erlauben, und Module, die an vielen Stellen genutzt werden und von einem deutlich weniger stabilen Modul abhängen.
 
-Mehr Module als `graph.max_modules` werden nicht gezeichnet und nicht aufgelistet (die am meisten verwendeten bleiben); Zyklen und die beiden Listen zählen immer alle Module. Dieselben Zahlen gibt es auf der Kommandozeile (`codeskimr modules`, `--json` für Skripte) und für Agenten (`get_dependencies` mit `level` `module`).
+Mehr Module als `graph.max_modules` werden nicht gezeichnet und nicht aufgelistet (die am meisten verwendeten bleiben); Zyklen und die beiden Listen zählen immer alle Module. Der Knopf „Die Stellen zeigen“ unter einer Abhängigkeit, die einen Zyklus beendet oder gegen die Schichtung geht, listet die Stellen dieser Abhängigkeit: Datei und Zeile, und welches Symbol des einen Moduls welches Symbol des anderen nutzt. Es sind höchstens `graph.max_places`; wie viele mehr es gibt, steht dabei. Dieselben Zahlen gibt es auf der Kommandozeile (`codeskimr modules`, `--json` für Skripte; `--from` und `--to` nennen eine Abhängigkeit und listen ihre Stellen) und für Agenten (`get_dependencies` mit `level` `module`; `from_module` und `to_module` nennen eine Abhängigkeit).
 
 ## Bekannte Grenzen
 

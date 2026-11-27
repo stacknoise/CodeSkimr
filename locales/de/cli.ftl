@@ -306,7 +306,12 @@ cli-arg-compare-target = Id des neueren Scans (Standard: der neueste Scan)
 cli-arg-markdown = Die Antwort als Markdown für einen Kommentar an einem Pull Request ausgeben; nicht zusammen mit --json
 cli-cmd-modules = Zeigt die Module (Namespaces) des Projekts: Stellen hinein und heraus, Stabilität, die Zyklen zwischen Modulen mit den Abhängigkeiten, die sie beenden, die Abhängigkeiten gegen die Schichtung und die auffälligen Module (die Antwort von get_dependencies mit level module)
 cli-arg-modules-depth = Namespaces auf ihre ersten N Segmente zusammenfassen (alle, wenn weggelassen)
+cli-arg-modules-from = Das Modul, das vom anderen abhängt; zusammen mit --to werden die Stellen dieser Abhängigkeit statt der Module aufgelistet
+cli-arg-modules-to = Das Modul, von dem abgehangen wird (mit --from)
 cli-query-modules-none = Keine Module gefunden.
+cli-query-modules-places-head = Stellen von { $from } -> { $to }: { $shown } von { $total } gezeigt.
+cli-query-modules-place = { $path }:{ $line }  { $from } -> { $to }
+cli-query-modules-places-none = Keine Stellen von { $from } -> { $to } gefunden.
 cli-query-modules-head = Module: { $shown } von { $total } gezeigt, die am meisten verwendeten zuerst. ein: Stellen in anderen Modulen, die es nutzen; aus: Stellen darin, die andere Module nutzen; Stabilität = aus / (ein + aus).
 cli-query-modules-line = { $name }{ $layer }  ein { $incoming }, aus { $outgoing }, Stabilität { $stability }{ $flags }
 cli-query-modules-layer = [{ $name }]

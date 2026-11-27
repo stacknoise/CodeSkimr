@@ -7,7 +7,8 @@
 use codeskimr_codes::i18n::{
     CLI_QUERY_MODULES_CYCLE, CLI_QUERY_MODULES_CYCLES, CLI_QUERY_MODULES_FLAG_CYCLE,
     CLI_QUERY_MODULES_FLAG_VIOLATIONS, CLI_QUERY_MODULES_HEAD, CLI_QUERY_MODULES_LAYER,
-    CLI_QUERY_MODULES_LINE, CLI_QUERY_MODULES_NONE, CLI_QUERY_MODULES_RESOLVE,
+    CLI_QUERY_MODULES_LINE, CLI_QUERY_MODULES_NONE, CLI_QUERY_MODULES_PLACE,
+    CLI_QUERY_MODULES_PLACES_HEAD, CLI_QUERY_MODULES_PLACES_NONE, CLI_QUERY_MODULES_RESOLVE,
     CLI_QUERY_MODULES_RISK, CLI_QUERY_MODULES_RISKS, CLI_QUERY_MODULES_STABILITY,
     CLI_QUERY_MODULES_STABILITY_NONE, CLI_QUERY_MODULES_VIOLATION, CLI_QUERY_MODULES_VIOLATIONS,
 };
@@ -82,6 +83,38 @@ fn edge_arguments(edge: &Value) -> Vec<(&'static str, FluentValue<'static>)> {
     ]
 }
 
+/// The places of one dependency between two modules, one line each.
+fn places_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<String>, I18nError> {
+    let places = entries(answer, key::PLACES);
+    let ends = [
+        (arg::FROM, text(field(answer, key::FROM))),
+        (arg::TO, text(field(answer, key::TO))),
+    ];
+    if places.is_empty() {
+        return Ok(vec![speak.say(CLI_QUERY_MODULES_PLACES_NONE, &ends)?]);
+    }
+    let mut head = ends.to_vec();
+    head.push((arg::SHOWN, FluentValue::from(places.len())));
+    head.push((arg::TOTAL, count(answer, key::TOTAL)));
+    let mut lines = vec![speak.say(CLI_QUERY_MODULES_PLACES_HEAD, &head)?];
+    for place in places {
+        let named = [
+            (arg::PATH, text(field(place, key::PATH))),
+            (arg::LINE, count(place, key::LINE)),
+            (arg::FROM, text(field(place, key::FROM))),
+            (arg::TO, text(field(place, key::TO))),
+        ];
+        lines.push(
+            [
+                LIST_INDENT,
+                speak.say(CLI_QUERY_MODULES_PLACE, &named)?.as_str(),
+            ]
+            .concat(),
+        );
+    }
+    Ok(lines)
+}
+
 /// A ring: the way round it and the dependencies to remove to end it.
 fn cycle_lines(speak: &Speaker<'_>, ring: &Value) -> Result<Vec<String>, I18nError> {
     let chain: Vec<String> = entries(ring, key::MODULES)
@@ -129,6 +162,9 @@ fn risk_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
 /// The modules of the answer, then the rings, the dependencies against the layering and the
 /// modules that stand out, each only if there are any.
 pub(crate) fn modules_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<String>, I18nError> {
+    if answer.get(key::PLACES).is_some() {
+        return places_lines(speak, answer);
+    }
     let modules = entries(answer, key::MODULES);
     if modules.is_empty() {
         return Ok(vec![speak.say(CLI_QUERY_MODULES_NONE, &[])?]);

@@ -112,6 +112,7 @@ mod tests {
             risk_instability_gap: 100,
             risk_max: 5,
             max_modules: 200,
+            max_places: 100,
         }
     }
 

@@ -86,6 +86,13 @@ pub const GRAPH_MODULES_TITLE: &str = i18n::COMMAND_GRAPH_MODULES_TITLE;
 /// Description key of `graph.modules`.
 pub const GRAPH_MODULES_DESCRIPTION: &str = i18n::COMMAND_GRAPH_MODULES_DESCRIPTION;
 
+/// Id of the command that lists the places of one dependency between two modules (ADR 0108).
+pub const GRAPH_MODULE_PLACES: &str = "graph.module_places";
+/// Title key of `graph.module_places`.
+pub const GRAPH_MODULE_PLACES_TITLE: &str = i18n::COMMAND_GRAPH_MODULE_PLACES_TITLE;
+/// Description key of `graph.module_places`.
+pub const GRAPH_MODULE_PLACES_DESCRIPTION: &str = i18n::COMMAND_GRAPH_MODULE_PLACES_DESCRIPTION;
+
 /// Id of the command of the quick search.
 pub const SEARCH_QUERY: &str = "search.query";
 /// Most hits the quick search returns.

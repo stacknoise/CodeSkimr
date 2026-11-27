@@ -466,6 +466,10 @@ pub struct ModulesQuery {
     pub depth: Option<u32>,
     /// Number of modules listed.
     pub limit: Option<u32>,
+    /// With `to`: the depending module of one dependency, whose places are listed instead.
+    pub from: Option<String>,
+    /// With `from`: the module that is depended on.
+    pub to: Option<String>,
     /// Project and output.
     pub target: QueryTarget,
 }
