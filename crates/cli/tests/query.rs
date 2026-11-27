@@ -462,6 +462,19 @@ fn the_text_of_modules_names_rings_violations_and_risks_in_both_languages() {
 }
 
 #[test]
+fn the_text_of_modules_rounds_the_stability_like_the_ui() {
+    let messages = Messages::load().unwrap();
+    let mut answer = module_answer();
+    answer["modules"][0]["stability"] = json!(995);
+    answer["modules"][1]["stability"] = json!(999);
+    let english = query_text(&messages, "en", QueryKind::Modules, (&answer, None)).unwrap();
+    assert!(english.contains("stability 1.00"), "{english}");
+    assert!(!english.contains("stability 0.99"), "{english}");
+    let german = query_text(&messages, "de", QueryKind::Modules, (&answer, None)).unwrap();
+    assert!(german.contains("Stabilität 1,00"), "{german}");
+}
+
+#[test]
 fn the_text_of_modules_says_when_there_are_none() {
     let messages = Messages::load().unwrap();
     let none = json!({"modules": [], "total": 0});

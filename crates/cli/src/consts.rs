@@ -679,10 +679,12 @@ pub const FLAG_JOIN: &str = ", ";
 pub const FLAG_PREFIX: &str = "  ";
 /// Before the layer of a module in the text of `modules`.
 pub const LAYER_PREFIX: &str = " ";
-/// A stability of a module is given in thousandths: this is 1.
-pub const STABILITY_ONE: u64 = 1000;
 /// Thousandths in one hundredth, the step the text of `modules` shows.
 pub const STABILITY_STEP: u64 = 10;
+/// Half a step, added before the division so that the hundredths are rounded like in the UI.
+pub const STABILITY_HALF_STEP: u64 = 5;
+/// Hundredths in one whole.
+pub const STABILITY_HUNDRED: u64 = 100;
 /// Digits after the separator in the text of a stability.
 pub const STABILITY_DIGITS: usize = 2;
 /// Joins the modules of the way round a ring in a line of the terminal.

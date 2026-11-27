@@ -15,8 +15,8 @@ use codeskimr_i18n::{FluentValue, I18nError};
 use serde_json::Value;
 
 use crate::consts::{
-    CHAIN_JOIN, FLAG_JOIN, FLAG_PREFIX, LAYER_PREFIX, LIST_INDENT, STABILITY_DIGITS, STABILITY_ONE,
-    STABILITY_STEP, arg, key,
+    CHAIN_JOIN, FLAG_JOIN, FLAG_PREFIX, LAYER_PREFIX, LIST_INDENT, STABILITY_DIGITS,
+    STABILITY_HALF_STEP, STABILITY_HUNDRED, STABILITY_STEP, arg, key,
 };
 use crate::speech::{Speaker, child, count, entries, field, json_list, plain, section, text};
 
@@ -26,10 +26,11 @@ fn stability_text(speak: &Speaker<'_>, value: &Value, name: &str) -> Result<Stri
     let Some(thousandths) = value.get(name).and_then(Value::as_u64) else {
         return speak.say(CLI_QUERY_MODULES_STABILITY_NONE, &[]);
     };
-    let hundredths = thousandths % STABILITY_ONE / STABILITY_STEP;
+    let rounded = (thousandths + STABILITY_HALF_STEP) / STABILITY_STEP;
+    let hundredths = rounded % STABILITY_HUNDRED;
     let width = STABILITY_DIGITS;
     let shown = [
-        (arg::WHOLE, FluentValue::from(thousandths / STABILITY_ONE)),
+        (arg::WHOLE, FluentValue::from(rounded / STABILITY_HUNDRED)),
         (arg::HUNDREDTHS, text(format!("{hundredths:0>width$}"))),
     ];
     speak.say(CLI_QUERY_MODULES_STABILITY, &shown)
