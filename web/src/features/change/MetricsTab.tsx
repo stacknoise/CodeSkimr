@@ -2,7 +2,6 @@ import { For, Show } from "solid-js";
 import { currentLanguage, errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { NoticeBox } from "../../shared/ui/NoticeBox";
-import { Pill, type PillTone } from "../../shared/ui/Pill";
 import { TONE } from "../../shared/ui/consts";
 import { cx } from "../../shared/ui/cx";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
@@ -15,12 +14,11 @@ import {
   chooseMetricsLevel,
   showMetricsMetric,
 } from "./change";
-import { Selectors } from "./CompareTab";
+import { Selectors } from "./Selectors";
+import { Side } from "./MetricsTable";
 import {
-  CROSSING_TEXT,
-  DIRECTION_TONE,
   METRIC_CHOICES,
-  METRIC_TEXT,
+  METRICS_LIST,
   METRICS_LEVEL_FIELD_ID,
   METRICS_LEVELS,
   NO_TAG,
@@ -29,93 +27,27 @@ import {
 import { Figure } from "./Figure";
 import {
   crossingCount,
-  deltaText,
-  metricValue,
+  metricAvailable,
   narrowedTo,
   notComparable,
   unchangedCount,
 } from "./metrics";
-import type { ChangeAnswer, Listed, MetricChangeOut, MetricMoveOut, MetricsAnswer } from "./types";
+import type { ChangeAnswer, MetricsAnswer } from "./types";
 import parts from "./Parts.module.css";
 import styles from "./MetricsTab.module.css";
 
-/** One metric of an object: its name, from and to, the size of the move and, where it crossed the
- * bound of the rating, a note. */
-function Move(props: { move: MetricMoveOut }) {
-  return (
-    <div class={styles.move}>
-      <span class={styles.metric}>
-        {t(METRIC_TEXT[props.move.metric] ?? I18N_KEYS.CHANGE_METRICS_FILTER_ALL)}
-      </span>
-      <span class={parts.name}>
-        {metricValue(props.move.from)} → {metricValue(props.move.to)}
-      </span>
-      <Pill tone={DIRECTION_TONE[props.move.direction] ?? TONE.neutral}>
-        {deltaText(props.move)}
-      </Pill>
-      <Show when={props.move.crossing}>
-        {(crossing) => (
-          <span class={styles.cross}>
-            {t(CROSSING_TEXT[crossing()] ?? I18N_KEYS.CHANGE_METRICS_CROSSING_INTO)}
-          </span>
-        )}
-      </Show>
-    </div>
-  );
-}
-
-/** One object: the tag of its level, its name, its file and the moves of its metrics. */
-function Item(props: { item: MetricChangeOut; tag: string }) {
-  return (
-    <li class={styles.item}>
-      <span class={styles.tag} aria-hidden={true}>
-        {props.tag}
-      </span>
-      <div class={styles.body}>
-        <b class={styles.name} title={props.item.name}>
-          {props.item.name}
-        </b>
-        <span class={styles.where} title={props.item.path}>
-          {props.item.path}
-        </span>
-        <div class={styles.moves}>
-          <For each={props.item.moves}>{(move) => <Move move={move} />}</For>
-        </div>
-      </div>
-    </li>
-  );
-}
-
-/** One of the two lists: its heading with the count, the order and the objects. */
-function Side(props: {
-  title: string;
-  list: Listed<MetricChangeOut>;
-  items: MetricChangeOut[];
-  tag: string;
-  tone: PillTone;
-}) {
-  return (
-    <section class={cx(parts.card, styles.side)} aria-label={props.title}>
-      <header class={styles.sideHead}>
-        <h2 class={cx(styles.sideTitle, styles[props.tone])}>{props.title}</h2>
-        <Pill tone={props.tone}>{props.list.total}</Pill>
-        <span class={styles.order}>{t(I18N_KEYS.CHANGE_METRICS_ORDER)}</span>
-      </header>
-      <ul class={styles.items} aria-label={t(I18N_KEYS.CHANGE_METRICS_LIST_LABEL)}>
-        <For each={props.items}>{(item) => <Item item={item} tag={props.tag} />}</For>
-      </ul>
-    </section>
-  );
-}
-
 /** The figure of the objects that cannot be compared: the new and the removed ones. */
-function NotComparable(props: { compared: ChangeAnswer }) {
-  const numbers = () => notComparable(props.compared);
+function NotComparable(props: { compared: ChangeAnswer | null }) {
+  const numbers = () => (props.compared === null ? null : notComparable(props.compared));
   return (
     <Figure
       label={t(I18N_KEYS.CHANGE_METRICS_CARD_NEW)}
-      value={String(numbers().added + numbers().removed)}
-      hint={t(I18N_KEYS.CHANGE_METRICS_CARD_NEW_HINT, numbers())}
+      value={String(numbers() === null ? UNKNOWN_FIGURE : numbers()!.added + numbers()!.removed)}
+      hint={
+        numbers() === null
+          ? t(I18N_KEYS.CHANGE_METRICS_CARD_NEW_UNKNOWN)
+          : t(I18N_KEYS.CHANGE_METRICS_CARD_NEW_HINT, numbers()!)
+      }
     />
   );
 }
@@ -152,8 +84,26 @@ function Figures(props: { answer: MetricsAnswer; compared: ChangeAnswer | null }
             : I18N_KEYS.CHANGE_METRICS_CARD_SAME_HINT,
         )}
       />
-      <Show when={props.compared}>{(compared) => <NotComparable compared={compared()} />}</Show>
+      <NotComparable compared={props.compared} />
     </div>
+  );
+}
+
+/** The chip of one metric. A metric that the level does not have is greyed out; the tooltip says
+ * why. */
+function Chip(props: { choice: (typeof METRIC_CHOICES)[number] }) {
+  const unavailable = () => !metricAvailable(props.choice.id, changeMetricsLevel());
+  return (
+    <button
+      type="button"
+      class={cx(styles.chip, changeMetricsMetric() === props.choice.id && styles.on)}
+      aria-pressed={changeMetricsMetric() === props.choice.id}
+      disabled={unavailable()}
+      title={unavailable() ? t(I18N_KEYS.CHANGE_METRICS_UNAVAILABLE) : undefined}
+      onClick={() => showMetricsMetric(props.choice.id)}
+    >
+      {t(props.choice.label)}
+    </button>
   );
 }
 
@@ -162,18 +112,7 @@ function Controls(props: { project: number }) {
   return (
     <div class={styles.controls}>
       <span class={parts.figureLabel}>{t(I18N_KEYS.CHANGE_METRICS_FILTER_LABEL)}</span>
-      <For each={METRIC_CHOICES}>
-        {(choice) => (
-          <button
-            type="button"
-            class={cx(styles.chip, changeMetricsMetric() === choice.id && styles.on)}
-            aria-pressed={changeMetricsMetric() === choice.id}
-            onClick={() => showMetricsMetric(choice.id)}
-          >
-            {t(choice.label)}
-          </button>
-        )}
-      </For>
+      <For each={METRIC_CHOICES}>{(choice) => <Chip choice={choice} />}</For>
       <span class={styles.spacer} />
       <label class={styles.levelLabel} for={METRICS_LEVEL_FIELD_ID}>
         {t(I18N_KEYS.CHANGE_METRICS_LEVEL_LABEL)}
@@ -182,6 +121,7 @@ function Controls(props: { project: number }) {
         id={METRICS_LEVEL_FIELD_ID}
         class={styles.level}
         disabled={changeMetricsReading()}
+        title={changeMetricsReading() ? t(I18N_KEYS.CHANGE_METRICS_READING) : undefined}
         onChange={(event) => chooseMetricsLevel(props.project, event.currentTarget.value)}
       >
         <For each={METRICS_LEVELS}>
@@ -199,25 +139,28 @@ function Controls(props: { project: number }) {
 /** The two lists side by side. */
 function Lists(props: { answer: MetricsAnswer }) {
   const tag = () => METRICS_LEVELS.find((level) => level.id === props.answer.level)?.tag ?? NO_TAG;
-  const worse = () => narrowedTo(props.answer.worse, changeMetricsMetric());
-  const better = () => narrowedTo(props.answer.better, changeMetricsMetric());
+  const moved = () =>
+    narrowedTo(props.answer.worse, changeMetricsMetric()).length +
+    narrowedTo(props.answer.better, changeMetricsMetric()).length;
   return (
     <Show
-      when={worse().length + better().length > 0}
+      when={moved() > 0}
       fallback={<p class={parts.plain}>{t(I18N_KEYS.CHANGE_METRICS_NONE)}</p>}
     >
       <div class={styles.sides}>
         <Side
+          side={METRICS_LIST.worse}
           title={t(I18N_KEYS.CHANGE_METRICS_LIST_WORSE)}
           list={props.answer.worse}
-          items={worse()}
+          metric={changeMetricsMetric()}
           tag={tag()}
           tone={TONE.bad}
         />
         <Side
+          side={METRICS_LIST.better}
           title={t(I18N_KEYS.CHANGE_METRICS_LIST_BETTER)}
           list={props.answer.better}
-          items={better()}
+          metric={changeMetricsMetric()}
           tag={tag()}
           tone={TONE.good}
         />
