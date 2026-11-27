@@ -231,6 +231,89 @@ describe("ChangeScreen, view Impact", () => {
   });
 });
 
+const SEARCH = "Search by qualified name";
+const REGION = { name: "Usages of the selected symbol" };
+
+describe("ChangeScreen, filter of the symbols", () => {
+  it("searches by qualified name, counts the rows and moves the selection off a hidden row", async () => {
+    serveChange();
+    render(() => <ChangeScreen />);
+    const search = await screen.findByRole("searchbox", { name: SEARCH });
+    expect(screen.getByText("4 of 4")).toBeInTheDocument();
+    expect(within(screen.getByRole("region", REGION)).getByText("Changed signature")).toBeVisible();
+    fireEvent.input(search, { target: { value: "legacy" } });
+    expect(screen.getByText("1 of 4")).toBeInTheDocument();
+    const table = within(screen.getByRole("grid", { name: "Symbols the change touches" }));
+    expect(table.queryByText("Price.Round")).not.toBeInTheDocument();
+    expect(within(screen.getByRole("region", REGION)).getByText("Removed symbol")).toBeVisible();
+  });
+
+  it("keeps only the public symbols, the kinds of change, the kinds of symbol and the open ones", async () => {
+    serveChange();
+    render(() => <ChangeScreen />);
+    await screen.findByRole("searchbox", { name: SEARCH });
+    const table = () => within(screen.getByRole("grid", { name: "Symbols the change touches" }));
+    fireEvent.click(screen.getByRole("button", { name: "Only public" }));
+    expect(screen.getByText("3 of 4")).toBeInTheDocument();
+    expect(table().queryByText("DiscountPolicy")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox", { name: "Kind of change" }), {
+      target: { value: "moved" },
+    });
+    expect(screen.getByText("1 of 4")).toBeInTheDocument();
+    expect(table().getByText("Money.Format")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reset filter" }));
+    expect(screen.getByText("4 of 4")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Only with open places" }));
+    expect(screen.getByText("1 of 4")).toBeInTheDocument();
+    expect(table().getByText("2 open")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reset filter" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Kind of symbol" }), {
+      target: { value: "class" },
+    });
+    expect(screen.getByText("No symbol matches the filter.")).toBeInTheDocument();
+    expect(screen.queryByRole("region", REGION)).not.toBeInTheDocument();
+  });
+
+  it("says so when no symbol matches, and the reset button brings the list back", async () => {
+    serveChange();
+    render(() => <ChangeScreen />);
+    const search = await screen.findByRole("searchbox", { name: SEARCH });
+    fireEvent.input(search, { target: { value: "no such symbol" } });
+    expect(screen.getByText("No symbol matches the filter.")).toBeInTheDocument();
+    expect(screen.getByText("0 of 4")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reset filter" }));
+    expect(screen.getByRole("grid", { name: "Symbols the change touches" })).toBeInTheDocument();
+  });
+
+  it("is honest about a cut answer: it counts the listed rows and names the total", async () => {
+    serveChange({
+      "scans.impact": () =>
+        answer({
+          ...ANSWER,
+          is_cut: true,
+          changed: { ...ANSWER.changed, total: 2305, is_cut: true },
+        }),
+    });
+    render(() => <ChangeScreen />);
+    expect(await screen.findByText("4 of 4 listed (2,308 in all)")).toBeInTheDocument();
+  });
+
+  it("filters the list of the view Comparison too, with the filter for open places greyed out", async () => {
+    showChangeTab(TAB.compare);
+    serveChange();
+    render(() => <ChangeScreen />);
+    const search = await screen.findByRole("searchbox", { name: SEARCH });
+    const open = screen.getByRole("button", { name: "Only with open places" });
+    expect(open).toBeDisabled();
+    expect(open).toHaveAttribute("title", expect.stringContaining("no checklist"));
+    fireEvent.input(search, { target: { value: "money" } });
+    const list = within(screen.getByRole("table", { name: "The symbols of the difference" }));
+    expect(list.getByText("Money.Format")).toBeInTheDocument();
+    expect(list.queryByText("Price.Round")).not.toBeInTheDocument();
+    expect(screen.getByText("1 of 4")).toBeInTheDocument();
+  });
+});
+
 describe("ChangeScreen, button Copy as Markdown", () => {
   const setClipboard = useClipboard();
   const TEXT = { markdown: "<!-- codeskimr-change -->\n## Impact" };

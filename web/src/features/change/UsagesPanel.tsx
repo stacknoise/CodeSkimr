@@ -150,7 +150,10 @@ function Usages(props: { impact: SymbolImpactOut }) {
  * change can break, with the checklist of the places that were not touched (mock erw-auswirkung). */
 export function UsagesPanel(props: { row: ImpactRow }) {
   return (
-    <section class={parts.card} aria-label={t(I18N_KEYS.CHANGE_VIEW_DETAIL_LABEL)}>
+    <section
+      class={cx(parts.card, styles.panel)}
+      aria-label={t(I18N_KEYS.CHANGE_VIEW_DETAIL_LABEL)}
+    >
       <div class={styles.top}>
         <span class={parts.figureLabel}>{t(headingOf(props.row))}</span>
         <Lines lines={diffLines(props.row)} />
