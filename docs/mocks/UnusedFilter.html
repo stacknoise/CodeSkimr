@@ -185,7 +185,7 @@ function ranking(th){
 }
 
 /* ---------- Ohne Verwendung: Filter als Auswahlliste (Mock 40) ---------- */
-const OPTS=[['alle','Alle',''],['likely','sehr wahrscheinlich ungenutzt',''],['private','privat',''],['internal','intern oder geschützt',''],['public','öffentlich: von außen möglich',''],['approximate','unsicher: Verwendungen sind eine Näherung','']];
+const OPTS=[['alle','Alle',''],['internal','Intern oder geschützt',''],['public','Öffentlich: von außen möglich',''],['private','Privat',''],['approximate','Unsicher: Verwendungen sind eine Näherung',''],['likely','Sehr wahrscheinlich ungenutzt','']];
 const COUNT={alle:123,likely:25,private:19,internal:6,public:43,approximate:55};
 const MATCH={alle:()=>true,likely:u=>u[4]==='good',private:u=>u[4]==='good'&&u[3]==='privat',internal:u=>u[3]==='intern',public:u=>u[4]==='warn',approximate:u=>u[4]==='bad'};
 const dd=(label,text,open)=>`<span class="k">${label}</span><span style="position:relative"><span class="btn ${open?'on':''}" style="display:inline-flex;gap:8px;align-items:center;min-width:${label==='Einschätzung'?250:130}px;justify-content:space-between;height:28px">${text}<span>▾</span></span>`;

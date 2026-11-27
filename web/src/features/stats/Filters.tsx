@@ -1,5 +1,5 @@
-import { For, Show } from "solid-js";
-import { t } from "../../shared/i18n/i18n";
+import { For, Show, createMemo } from "solid-js";
+import { currentLanguage, t } from "../../shared/i18n/i18n";
 import type { MessageKey } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
@@ -46,9 +46,23 @@ function Choice<Id extends string | null>(props: {
   );
 }
 
+/** The text with a capital first letter. */
+function capital(text: string): string {
+  return text.charAt(0).toLocaleUpperCase() + text.slice(1);
+}
+
+/** The choices of the filter with "all", sorted by their text in the language of the screen. */
+function unusedChoices(): { id: string; text: string }[] {
+  const all = { id: LANGUAGE_ALL, label: I18N_KEYS.STATS_ASSESSMENT_ALL };
+  return [all, ...UNUSED_FILTERS]
+    .map((entry) => ({ id: entry.id as string, text: capital(t(entry.label)) }))
+    .sort((first, second) => first.text.localeCompare(second.text, currentLanguage()));
+}
+
 /** The assessment or reason the unused symbols are cut to, as a list (it holds more choices than
  * a row of buttons shows). */
 function UnusedFilterField() {
+  const choices = createMemo(unusedChoices);
   return (
     <label class={styles.field}>
       <span class={styles.label}>{t(I18N_KEYS.STATS_FILTER_ASSESSMENT)}</span>
@@ -60,11 +74,10 @@ function UnusedFilterField() {
           )
         }
       >
-        <option value={LANGUAGE_ALL}>{t(I18N_KEYS.STATS_ASSESSMENT_ALL)}</option>
-        <For each={UNUSED_FILTERS}>
+        <For each={choices()}>
           {(entry) => (
-            <option value={entry.id} selected={entry.id === statsAssessment()}>
-              {t(entry.label)}
+            <option value={entry.id} selected={entry.id === (statsAssessment() ?? LANGUAGE_ALL)}>
+              {entry.text}
             </option>
           )}
         </For>

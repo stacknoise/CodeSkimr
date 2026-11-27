@@ -309,6 +309,18 @@ describe("StatsScreen: rankings", () => {
       within(table).getByText("public: users outside the project are possible"),
     ).toBeInTheDocument();
     const filter = screen.getByRole("combobox", { name: "Assessment" });
+    expect(
+      within(filter)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual([
+      "All",
+      "Internal or protected",
+      "Private",
+      "Public: may be used from outside",
+      "Uncertain: usages are an approximation",
+      "Very likely unused",
+    ]);
     fireEvent.change(filter, { target: { value: "likely" } });
     await waitFor(() =>
       expect(inputs("stats.ranking").at(-1)).toMatchObject({ assessment: "likely", reason: null }),
