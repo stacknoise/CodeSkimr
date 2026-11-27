@@ -90,6 +90,22 @@ fn a_write_tells_each_step_when_it_begins_in_the_order_of_the_write() {
 }
 
 #[test]
+fn the_history_keeps_how_long_each_step_of_the_write_took_and_a_confirmation_has_none() {
+    let store = registered_store();
+    store.persist(first_scan(10)).unwrap();
+    store.confirm(&confirmation(10, None)).unwrap();
+    let history = store.scan_history(PROJECT).unwrap();
+    let [confirmed, written] = history.as_slice() else {
+        panic!("two scans expected: {history:?}");
+    };
+    assert_eq!(confirmed.steps.len(), 0);
+    let steps: Vec<PersistStep> = written.steps.iter().map(|time| time.step).collect();
+    assert_eq!(steps.first(), Some(&PersistStep::Header));
+    assert_eq!(steps.last(), Some(&PersistStep::Commit));
+    assert!(steps.windows(2).all(|pair| pair[0] < pair[1]), "{steps:?}");
+}
+
+#[test]
 fn confirming_the_newest_snapshot_changes_its_time_commit_and_mode_and_nothing_else() {
     let store = registered_store();
     let written = store.persist(first_scan(10)).unwrap();

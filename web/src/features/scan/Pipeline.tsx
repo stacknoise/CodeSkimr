@@ -1,8 +1,10 @@
-import { createSignal, For, onCleanup, Show } from "solid-js";
+import { createResource, createSignal, For, onCleanup, Show } from "solid-js";
+import { runCommand } from "../../shared/api/commands";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { count, seconds } from "../projects/format";
 import {
+  COMMAND_SCANS_LIST,
   FILE_STAGE,
   PERCENT,
   NOTE_ID_PREFIX,
@@ -13,6 +15,7 @@ import {
   STAGE_STATE,
   STAGE_TEXT,
   STAGES,
+  STATE,
   STATE_ATTRIBUTE,
   STEP_STAGE,
   STEP_TEXT,
@@ -28,7 +31,8 @@ import {
   stageState,
   type StageState,
 } from "./run";
-import type { Run, Stage } from "./types";
+import type { Run, ScanHistoryAnswer, Stage } from "./types";
+import { StepTimes } from "./StepTimes";
 import { cx } from "../../shared/ui/cx";
 import styles from "./Pipeline.module.css";
 
@@ -142,6 +146,19 @@ function Row(props: { run: Run | undefined; stage: Stage }) {
   );
 }
 
+/** The times of the steps of the write for a scan that is over and wrote a snapshot, read from the
+ * list of the last scans once the scan has ended: the server keeps them with the scan. */
+function SavedSteps(props: { run: Run }) {
+  const source = () =>
+    props.run.state === STATE.done && !props.run.unchanged
+      ? { project: props.run.project, endedAt: props.run.endedAt }
+      : undefined;
+  const [answer] = createResource(source, (input) =>
+    runCommand<ScanHistoryAnswer>(COMMAND_SCANS_LIST, { project: input.project }),
+  );
+  return <StepTimes steps={answer.latest?.scans[0]?.steps ?? []} />;
+}
+
 /** The six stages of the pipeline with state, detail, bar and the time each took (mock 5). The
  * times are measured in the browser between the events of the stream. */
 export function Pipeline(props: { run: Run | undefined }) {
@@ -149,6 +166,7 @@ export function Pipeline(props: { run: Run | undefined }) {
     <div class={styles.card}>
       <div class={styles.title}>{t(I18N_KEYS.SCAN_PIPELINE)}</div>
       <For each={STAGES}>{(stage) => <Row run={props.run} stage={stage} />}</For>
+      <Show when={props.run}>{(run) => <SavedSteps run={run()} />}</Show>
     </div>
   );
 }

@@ -46,6 +46,18 @@ pub struct ScanOut {
     /// Files that scan changed against the previous snapshot; `None` for the first scan and for
     /// a snapshot written before this was stored.
     pub files_changed: Option<u32>,
+    /// How long each step of writing the snapshot took, in the order of the write; empty for a
+    /// scan that wrote nothing and for one stored before the times were kept.
+    pub steps: Vec<StepOut>,
+}
+
+/// The time one step of writing a snapshot took.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct StepOut {
+    /// Label of the step (`PersistStep::label`).
+    pub step: &'static str,
+    /// Wall time of the step in milliseconds.
+    pub duration_ms: u64,
 }
 
 impl From<&ScanEntry> for ScanOut {
@@ -60,6 +72,14 @@ impl From<&ScanEntry> for ScanOut {
             symbols: entry.symbols,
             duration_ms: entry.duration_ms,
             files_changed: entry.files_changed,
+            steps: entry
+                .steps
+                .iter()
+                .map(|time| StepOut {
+                    step: time.step.label(),
+                    duration_ms: time.duration_ms,
+                })
+                .collect(),
         }
     }
 }

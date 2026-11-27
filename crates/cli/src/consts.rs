@@ -722,6 +722,8 @@ pub mod change {
         pub const DURATION: &str = "duration";
         pub const COMMIT: &str = "commit";
         pub const MS: &str = "ms";
+        pub const STEP: &str = "step";
+        pub const STEPS: &str = "steps";
         pub const BASE: &str = "base";
         pub const BASE_TIME: &str = "base_time";
         pub const TARGET: &str = "target";
@@ -758,6 +760,8 @@ pub mod change {
         pub const FILES: &str = "files";
         pub const FILES_CHANGED: &str = "files_changed";
         pub const DURATION: &str = "duration_ms";
+        pub const STEP: &str = "step";
+        pub const STEPS: &str = "steps";
         pub const COMMIT: &str = "commit";
         pub const BASE: &str = "base";
         pub const TARGET: &str = "target";

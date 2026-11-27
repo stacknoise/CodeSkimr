@@ -29,7 +29,7 @@ pub use report::{
 };
 pub use wire::{
     ComparisonAnswer, CriticalOut, HolderOut, LayerEdgeOut, LayersOut, ListedOut, MatchedOut,
-    ScanListAnswer, ScanOut, SummaryOut, SymbolImpactOut, SymbolOut, UsageOut,
+    ScanListAnswer, ScanOut, StepOut, SummaryOut, SymbolImpactOut, SymbolOut, UsageOut,
 };
 
 /// The limits of the lists of a comparison (`compare.*`).

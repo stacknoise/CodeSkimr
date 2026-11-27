@@ -69,3 +69,7 @@ Decisions made while building work package 3 (#756); they correct decisions 3, 4
 
 - **Registry command `scans.impact_markdown`** (permission `read`) belongs to decision 6. It builds the answer like `scans.impact` and renders it with the same function as `codeskimr change --markdown`; its answer is `{ "markdown" }`. It is the counterpart of `--markdown` in the UI (ADR 0092), so `--markdown` is no longer an exception there.
 
+
+## Addendum 2026-11-27 (time per step of saving)
+
+- **The scan keeps how long each step of writing the snapshot took.** On a large project one step of the write takes minutes (vscode-main: dropping old snapshots, building the reference indexes), and until now only the log (`persist_step`) said which. The new table `scan_steps` (schema version 27, `docs/storage.md`) holds one row per step of `PersistStep` for the scan that wrote the snapshot; a scan without a change has none. `scans.list` and `codeskimr scans --json` carry them as `steps` (`step`, `duration_ms`); `codeskimr scans` prints one line per scan; the UI folds a list under the stage "Save" of the Pipeline card and under the list of the last scans (decision 6: what the console shows, the UI shows).

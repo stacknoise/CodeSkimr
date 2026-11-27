@@ -28,6 +28,7 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0024_project_scope.sql"),
     include_str!("../migrations/0025_scan_history.sql"),
     include_str!("../migrations/0026_scan_log.sql"),
+    include_str!("../migrations/0027_scan_steps.sql"),
 ];
 
 /// Files changed by a scan that found nothing changed (ADR 0093).
@@ -248,3 +249,5 @@ pub const LOAD_CACHE_SIZE_KIB: i64 = -1_048_576;
 pub const SORT_CACHE_SIZE_KIB: i64 = -2_000;
 /// Log event: the cache size of the write connection could not be set back.
 pub const LOG_CACHE_NOT_RESTORED: &str = "cache_size_not_restored";
+/// Log event: the time of the commit could not be stored with the scan (the snapshot is stored).
+pub const LOG_COMMIT_TIME_NOT_STORED: &str = "commit_time_not_stored";

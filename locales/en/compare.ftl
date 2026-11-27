@@ -5,6 +5,8 @@ compare-direct-only-note = Only direct usages are known; reflection, strings and
 compare-scans-head = Scans of the project: { $count } kept (up to { $keep }), average duration { $average }.
 compare-scans-none = The project has no scan yet.
 compare-scans-line = { $snapshot }  { $created }  { $mode }  { $files } files, { $changed } changed, { $duration }  { $commit }
+compare-scans-steps = Saving took: { $steps }
+compare-scans-step = { $step } { $ms } ms
 compare-duration = { $ms } ms
 compare-unknown = -
 

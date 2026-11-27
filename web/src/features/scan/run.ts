@@ -16,7 +16,7 @@ import {
   STATE,
   STOP,
 } from "./consts";
-import type { Run, Stage, StageRun, StepRun, WireEvent } from "./types";
+import type { Run, Stage, StageRun, StepRun, StepTime, WireEvent } from "./types";
 
 type ProgressEvent = Extract<WireEvent, { type: typeof EVENT.progressed }>;
 
@@ -275,4 +275,18 @@ export function minutesSeconds(value: number): string {
   const whole = Math.floor(value);
   const rest = String(whole % SECONDS_PER_MINUTE).padStart(CLOCK_SECONDS_WIDTH, "0");
   return `${Math.floor(whole / SECONDS_PER_MINUTE)}:${rest}`;
+}
+
+/** The milliseconds of all steps together. */
+export function totalMs(steps: readonly StepTime[]): number {
+  return steps.reduce((sum, time) => sum + time.duration_ms, 0);
+}
+
+/** The step that took longest, `undefined` without steps. */
+export function slowestStep(steps: readonly StepTime[]): StepTime | undefined {
+  return steps.reduce<StepTime | undefined>(
+    (slowest, time) =>
+      slowest === undefined || time.duration_ms > slowest.duration_ms ? time : slowest,
+    undefined,
+  );
 }

@@ -41,6 +41,7 @@ mod tests {
             symbols: 1,
             duration_ms: None,
             files_changed: None,
+            steps: Vec::new(),
         }
     }
 
