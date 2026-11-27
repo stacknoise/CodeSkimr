@@ -9,15 +9,20 @@ use crate::ports::ScanEntry;
 /// The positions in the history of the scans that wrote or confirmed `snapshot`, newest first, as
 /// `(newest, oldest)`; `CMP-201` if retention does not keep it.
 fn span(history: &[ScanEntry], snapshot: SnapshotId) -> Result<(usize, usize), CodedError> {
-    let mut at = history
-        .iter()
-        .enumerate()
-        .filter(|(_, entry)| entry.snapshot == snapshot)
-        .map(|(index, _)| index);
-    let newest = at
-        .next()
-        .ok_or_else(|| CodedError::new(ErrorCode::SnapshotNotFound))?;
-    Ok((newest, at.last().unwrap_or(newest)))
+    let at = |reverse: bool| {
+        let mut found = history
+            .iter()
+            .enumerate()
+            .filter(|(_, it)| it.snapshot == snapshot);
+        if reverse {
+            found.next_back()
+        } else {
+            found.next()
+        }
+        .map(|(index, _)| index)
+    };
+    let newest = at(false).ok_or_else(|| CodedError::new(ErrorCode::SnapshotNotFound))?;
+    Ok((newest, at(true).unwrap_or(newest)))
 }
 
 /// The scans to compare: `base` and `target` of the request, or the scan before the newest and
