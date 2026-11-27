@@ -294,6 +294,8 @@ export const I18N_KEYS = {
   CHANGE_METRICS_COL_VALUES: "change-metrics-col-values",
   CHANGE_METRICS_UNAVAILABLE: "change-metrics-unavailable",
   CHANGE_METRICS_CARD_NEW_UNKNOWN: "change-metrics-card-new-unknown",
+  CHANGE_METRICS_COPY_WAITING: "change-metrics-copy-waiting",
+  CHANGE_METRICS_COPY_FAILED: "change-metrics-copy-failed",
   CHANGE_METRICS_LIST_LABEL: "change-metrics-list-label",
   CHANGE_METRICS_CROSSING_INTO: "change-metrics-crossing-into",
   CHANGE_METRICS_CROSSING_OUT: "change-metrics-crossing-out",

@@ -12,7 +12,7 @@ use codeskimr_codes::i18n::{
     METRICS_WORSE,
 };
 use codeskimr_domain::MetricKind;
-use codeskimr_i18n::{FluentValue, I18nError, Messages};
+use codeskimr_i18n::{I18nError, Messages};
 use serde_json::Value;
 
 use crate::change_text::code;
@@ -22,8 +22,8 @@ use crate::consts::metrics::{
     ARG_TO, ARG_WORSE, BETTER, CROSSING, FROM, LEVEL, LOOKED_AT, METRIC, MOVE_JOIN, MOVES,
     ROUNDING, TO, WORSE,
 };
-use crate::consts::{LINE_BREAK, METRICS_MARKDOWN_MARKER, arg, key};
-use crate::speech::{Speaker, child, count, entries, field, section, text};
+use crate::consts::{LINE_BREAK, METRICS_MARKDOWN_MARKER, NO_INDENT, arg, key};
+use crate::speech::{Speaker, child, count, entries, field, section, section_with, text};
 
 /// The name of a metric as text; its label if it has no name.
 fn metric_name(speak: &Speaker<'_>, label: &str) -> Result<String, I18nError> {
@@ -69,21 +69,31 @@ fn move_text(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
     )
 }
 
-/// One object with its moves.
-fn object_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
+/// One object with its moves, in the message `line`; `quote` shapes its name and file (a code span
+/// for Markdown, as they are for the console).
+fn object_as(
+    speak: &Speaker<'_>,
+    found: &Value,
+    (line, quote): (&str, fn(&str) -> String),
+) -> Result<String, I18nError> {
     let moves = entries(found, MOVES)
         .iter()
         .map(|moved| move_text(speak, moved))
         .collect::<Result<Vec<_>, _>>()?;
     speak.say(
-        METRICS_LINE,
+        line,
         &[
             (arg::KIND, text(field(found, key::KIND))),
-            (arg::NAME, text(field(found, key::NAME))),
-            (arg::PATH, text(field(found, key::PATH))),
+            (arg::NAME, text(quote(&field(found, key::NAME)))),
+            (arg::PATH, text(quote(&field(found, key::PATH)))),
             (ARG_MOVES, text(moves.join(MOVE_JOIN))),
         ],
     )
+}
+
+/// One object of the console text.
+fn object_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
+    object_as(speak, found, (METRICS_LINE, str::to_owned))
 }
 
 /// The heading: both scans, the level and the counts.
@@ -135,38 +145,18 @@ pub(crate) fn metrics_lines(
 
 /// One object as a line of Markdown: its kind, name and file in code spans and its moves.
 fn markdown_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
-    let moves = entries(found, MOVES)
-        .iter()
-        .map(|moved| move_text(speak, moved))
-        .collect::<Result<Vec<_>, _>>()?;
-    speak.say(
-        METRICS_MD_LINE,
-        &[
-            (arg::KIND, text(field(found, key::KIND))),
-            (arg::NAME, text(code(&field(found, key::NAME)))),
-            (arg::PATH, text(code(&field(found, key::PATH)))),
-            (ARG_MOVES, text(moves.join(MOVE_JOIN))),
-        ],
-    )
+    object_as(speak, found, (METRICS_MD_LINE, code))
 }
 
-/// A list of the answer as a heading with its count and one line for each object; nothing if the
-/// list is empty.
+/// A list of the answer as an empty line, a heading with its count and one line for each object;
+/// nothing if the list is empty.
 fn markdown_side(
     speak: &Speaker<'_>,
     (heading, list): (&str, &Value),
 ) -> Result<Vec<String>, I18nError> {
-    let listed = entries(list, key::ITEMS);
-    if listed.is_empty() {
-        return Ok(Vec::new());
-    }
-    let numbers = [
-        (arg::SHOWN, FluentValue::from(listed.len())),
-        (arg::TOTAL, count(list, key::TOTAL)),
-    ];
-    let mut block = vec![String::new(), speak.say(heading, &numbers)?];
-    for found in listed {
-        block.push(markdown_line(speak, found)?);
+    let mut block = section_with(speak, (heading, list), (markdown_line, NO_INDENT))?;
+    if !block.is_empty() {
+        block.insert(0, String::new());
     }
     Ok(block)
 }
@@ -190,14 +180,16 @@ pub fn metrics_markdown(
         head(speak, answer, METRICS_MD_COUNTS)?,
     ];
     let (worse, better) = (child(answer, WORSE), child(answer, BETTER));
+    let mut blocks = Vec::new();
     if sides.0 {
-        lines.extend(markdown_side(speak, (METRICS_MD_WORSE, &worse))?);
+        blocks.push(markdown_side(speak, (METRICS_MD_WORSE, &worse))?);
     }
     if sides.1 {
-        lines.extend(markdown_side(speak, (METRICS_MD_BETTER, &better))?);
+        blocks.push(markdown_side(speak, (METRICS_MD_BETTER, &better))?);
     }
-    if lines.len() == 3 {
+    if blocks.iter().all(Vec::is_empty) {
         lines.extend([String::new(), speak.say(METRICS_MD_NONE, &[])?]);
     }
+    lines.extend(blocks.into_iter().flatten());
     Ok(lines.join(LINE_BREAK))
 }

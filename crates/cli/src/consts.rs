@@ -751,6 +751,8 @@ pub const JSON_NULL_TEXT: &str = "null";
 pub const CONTROL_REPLACEMENT: char = ' ';
 /// Puts the entries of a list below its heading.
 pub const LIST_INDENT: &str = "  ";
+/// The indent of a list whose lines start at the left edge, as in Markdown.
+pub const NO_INDENT: &str = "";
 /// Between the flags of one module in the text of `modules`.
 pub const FLAG_JOIN: &str = ", ";
 /// Before the flags of a module in the text of `modules`.

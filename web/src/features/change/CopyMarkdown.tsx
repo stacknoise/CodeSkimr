@@ -16,6 +16,8 @@ export function CopyMarkdown(props: {
   command: string;
   /** What the command is asked: the project, the two scans and, for the metrics, the level. */
   input: () => Record<string, unknown>;
+  /** Why there is nothing to copy yet; set means the button is greyed out and says why. */
+  unavailable?: string | undefined;
 }) {
   const [refused, setRefused] = createSignal(false);
   const { state, copy } = createCopier();
@@ -40,7 +42,13 @@ export function CopyMarkdown(props: {
         : t(I18N_KEYS.CHANGE_VIEW_COPY);
   return (
     <span role="status">
-      <button type="button" class={styles.copy} onClick={() => void ask()}>
+      <button
+        type="button"
+        class={styles.copy}
+        disabled={props.unavailable !== undefined}
+        title={props.unavailable}
+        onClick={() => void ask()}
+      >
         {label()}
       </button>
     </span>

@@ -396,7 +396,8 @@ describe("ChangeScreen, button Copy as Markdown", () => {
     });
     render(() => <ChangeScreen />);
     fireEvent.click(await screen.findByRole("tab", { name: "Metrics" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Copy as Markdown" }));
+    await screen.findByText("Got worse", { selector: "h2" });
+    fireEvent.click(screen.getByRole("button", { name: "Copy as Markdown" }));
     expect(await screen.findByRole("button", { name: "Copied" })).toBeInTheDocument();
     expect(writeText).toHaveBeenCalledWith(metrics.markdown);
     expect(bodiesOf("scans.metrics_markdown")).toEqual([
@@ -408,6 +409,32 @@ describe("ChangeScreen, button Copy as Markdown", () => {
         language: "en",
       },
     ]);
+  });
+
+  it("copies only the metric that is chosen, as the lists show it", async () => {
+    setClipboard({ writeText: vi.fn().mockResolvedValue(undefined) });
+    serveChange({
+      "scans.metrics": () => answer(METRICS),
+      "scans.metrics_markdown": () => answer({ markdown: "x" }),
+    });
+    render(() => <ChangeScreen />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Metrics" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Maintainability" }));
+    fireEvent.click(screen.getByRole("button", { name: "Copy as Markdown" }));
+    await screen.findByRole("button", { name: "Copied" });
+    expect(bodiesOf("scans.metrics_markdown").at(-1)).toMatchObject({ metrics: ["mi"] });
+  });
+
+  it("greys out the button of the metrics with the reason while there is nothing to copy", async () => {
+    serveChange({
+      "scans.metrics": () => answer({ code: "CMP-201", message: "x", retryable: false }, 400),
+    });
+    render(() => <ChangeScreen />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Metrics" }));
+    await screen.findByRole("alert");
+    const button = screen.getByRole("button", { name: "Copy as Markdown" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("title", expect.stringContaining("could not be read"));
   });
 
   it("says so when the browser has no clipboard", async () => {
