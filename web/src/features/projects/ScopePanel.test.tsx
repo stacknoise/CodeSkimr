@@ -60,14 +60,15 @@ const SCOPE: ScopeAnswer = {
   ],
   folders_more: 0,
   root_project_files: ["package.json"],
+  abapgit: null,
 };
 
 useServerSession();
 
-async function openScope(): Promise<void> {
+async function openScope(scope: ScopeAnswer = SCOPE): Promise<void> {
   serve({
     "projects.list": () => answer([ROW]),
-    "scope.get": () => answer(SCOPE),
+    "scope.get": () => answer(scope),
     "scope.set": () => answer({ project: 1, scope: SCOPE.scope, changed: true }),
     "projects.rescan": () => answer({ project: 1 }),
   });
@@ -93,6 +94,32 @@ describe("the scope of a project", () => {
     expect(screen.getByText("Level 2: Cargo.toml")).toBeInTheDocument();
     expect(screen.getByText("1 of 3 folders")).toBeInTheDocument();
     expect(screen.getByText(/A project of its own is not needed/)).toBeInTheDocument();
+  });
+
+  it("shows the card of an abapGit repository with the objects by type", async () => {
+    await openScope({
+      ...SCOPE,
+      abapgit: {
+        starting_folder: "src",
+        folder_logic: "prefix",
+        configured: false,
+        kinds: [
+          { kind: "CLAS", objects: 101 },
+          { kind: "INTF", objects: 11 },
+        ],
+        packages: 9,
+        source_files: 120,
+      },
+    });
+    expect(screen.getByRole("heading", { name: "abapGit repository" })).toBeInTheDocument();
+    expect(screen.getByText(/9 packages, 120 files with source/)).toBeInTheDocument();
+    expect(screen.getByText(/No \.abapgit\.xml was read/)).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Objects by type" })).toHaveTextContent("CLAS101");
+  });
+
+  it("shows no abapGit card for other projects", async () => {
+    await openScope();
+    expect(screen.queryByRole("heading", { name: "abapGit repository" })).toBeNull();
   });
 
   it("names the consequences of a language that is left out and saves, then scans", async () => {
