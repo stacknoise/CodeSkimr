@@ -893,5 +893,5 @@ fn a_scan_is_stored_even_when_the_time_of_its_commit_cannot_be_stored() {
     let history = store.scan_history(PROJECT).unwrap();
     let steps: Vec<_> = history[0].steps.iter().map(|time| time.step).collect();
     assert!(!steps.contains(&codeskimr_application::stage::PersistStep::Commit));
-    assert!(!steps.is_empty());
+    assert_ne!(steps.len(), 0);
 }
