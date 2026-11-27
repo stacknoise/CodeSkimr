@@ -115,7 +115,7 @@ fn the_reason_cuts_the_unused_symbols_to_the_private_ones() {
         id,
         &json!({ "ranking": "unused", "kinds": "functions", "reason": "internal" }),
     );
-    assert!(names(&internal).is_empty());
+    assert_eq!(names(&internal), [] as [&str; 0]);
     assert_eq!(internal["total"], 0);
 }
 
