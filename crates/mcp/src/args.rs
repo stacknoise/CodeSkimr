@@ -204,6 +204,8 @@ pub struct UnusedArgs {
     pub language: Option<String>,
     /// `likely`, `public` or `approximate`: only symbols with this assessment.
     pub assessment: Option<String>,
+    /// `private`, `internal`, `public` or `approximate`: only symbols with this reason.
+    pub reason: Option<String>,
     /// Whether test code counts; `false` if left out.
     pub include_tests: Option<bool>,
     /// Id of the project; the project of this server if left out.

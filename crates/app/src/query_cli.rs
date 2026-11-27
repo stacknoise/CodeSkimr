@@ -205,6 +205,7 @@ fn unused_args(query: &UnusedQuery) -> UnusedArgs {
         kind: query.kind.clone(),
         language: query.language.clone(),
         assessment: query.assessment.clone(),
+        reason: query.reason.clone(),
         include_tests: Some(query.include_tests),
         project: None,
         limit: query.limit,

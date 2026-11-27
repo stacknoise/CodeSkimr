@@ -97,6 +97,8 @@ pub const ARG_QUERY: &str = "query";
 pub const ARG_KIND: &str = "kind";
 /// Name of the argument that cuts `find_unused` to one assessment.
 pub const ARG_ASSESSMENT: &str = "assessment";
+/// Name of the argument that cuts `find_unused` to one reason.
+pub const ARG_REASON: &str = "reason";
 /// Argument name reported when its value is invalid: the new name of `preview_rename`.
 pub const ARG_NEW_NAME: &str = "new_name";
 /// Argument name reported when its value is invalid: the symbol.

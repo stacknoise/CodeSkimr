@@ -123,6 +123,31 @@ impl From<AssessmentName> for Assessment {
     }
 }
 
+/// A reason of "no usage found", as the screen filters by it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReasonName {
+    /// Private: only its own class or file can use it.
+    Private,
+    /// Internal or protected: only the project (or a subclass) can use it.
+    Internal,
+    /// Public: code outside the project may use it.
+    Public,
+    /// In a language whose usages are an approximation.
+    Approximate,
+}
+
+impl From<ReasonName> for UnusedReason {
+    fn from(name: ReasonName) -> Self {
+        match name {
+            ReasonName::Private => Self::Private,
+            ReasonName::Internal => Self::Internal,
+            ReasonName::Public => Self::Public,
+            ReasonName::Approximate => Self::Approximate,
+        }
+    }
+}
+
 /// The input of `stats.overview`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub struct OverviewInput {
@@ -155,6 +180,9 @@ pub struct RankingInput {
     /// For the ranking `unused`: only rows with this assessment; all if left out.
     #[serde(default)]
     pub assessment: Option<AssessmentName>,
+    /// For the ranking `unused`: only rows with this reason; all if left out.
+    #[serde(default)]
+    pub reason: Option<ReasonName>,
     /// Most rows of the answer; the default if left out, and never more than the maximum.
     #[serde(default)]
     pub limit: Option<u32>,
@@ -366,8 +394,12 @@ impl StatsPorts {
         Assessment::of(fact.visibility, self.is_approximate(fact))
     }
 
+    fn reason_of(&self, fact: &SymbolFacts) -> UnusedReason {
+        UnusedReason::of(fact.visibility, self.is_approximate(fact))
+    }
+
     fn reason(&self, fact: &SymbolFacts) -> &'static str {
-        UnusedReason::of(fact.visibility, self.is_approximate(fact)).label()
+        self.reason_of(fact).label()
     }
 
     fn row(&self, fact: &SymbolFacts) -> RowOut {
@@ -445,18 +477,21 @@ impl StatsPorts {
     }
 
     /// The ranking of unused symbols from the judged facts: the first rows of the wanted
-    /// assessment, and the symbols the list leaves out.
+    /// assessment and reason, and the symbols the list leaves out.
     fn judged_ranking(
         &self,
         judged: &Judged,
         rules: &[UnusedIgnore],
-        assessment: Option<Assessment>,
+        wanted: Wanted,
         limit: usize,
     ) -> RankingOut {
         let kept: Vec<&SymbolFacts> = judged
             .kept
             .iter()
-            .filter(|fact| assessment.is_none_or(|wanted| self.assess(fact) == wanted))
+            .filter(|fact| {
+                wanted.assessment.is_none_or(|one| self.assess(fact) == one)
+                    && wanted.reason.is_none_or(|one| self.reason_of(fact) == one)
+            })
             .collect();
         let rows: Vec<RowOut> = kept.iter().take(limit).map(|fact| self.row(fact)).collect();
         let left_out = judged
@@ -478,6 +513,13 @@ impl StatsPorts {
             left_out,
         }
     }
+}
+
+/// What the filters of the ranking of unused symbols ask for; both hold if both are set.
+#[derive(Clone, Copy)]
+struct Wanted {
+    assessment: Option<Assessment>,
+    reason: Option<UnusedReason>,
 }
 
 fn unused_out(counts: UnusedCounts) -> UnusedOut {
@@ -525,9 +567,14 @@ impl StatsRanking {
     ) -> Result<RankingOut, CodedError> {
         let ports = &self.ports;
         let rules = ports.rules(input.project)?;
-        if !rules.is_empty() {
+        // The stored statistics know the assessment, not the reason: a reason is judged from the
+        // facts, as a project with an exception list is.
+        if !rules.is_empty() || input.reason.is_some() {
             let judged = ports.judged(snapshot, query, &rules)?;
-            let wanted = input.assessment.map(Assessment::from);
+            let wanted = Wanted {
+                assessment: input.assessment.map(Assessment::from),
+                reason: input.reason.map(UnusedReason::from),
+            };
             return Ok(ports.judged_ranking(&judged, &rules, wanted, limit_of(input)));
         }
         let counts = ports

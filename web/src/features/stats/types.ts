@@ -1,4 +1,4 @@
-import type { ASSESSMENTS, KINDS, ORDERS, TAB } from "./consts";
+import type { ASSESSMENTS, KINDS, ORDERS, TAB, UNUSED_FILTERS } from "./consts";
 
 /** A view of the screen. */
 export type Tab = (typeof TAB)[keyof typeof TAB];
@@ -10,6 +10,9 @@ export type Kinds = (typeof KINDS)[number]["id"];
 export type Order = (typeof ORDERS)[number]["id"];
 /** How much "no usage found" says about a symbol. */
 export type Assessment = (typeof ASSESSMENTS)[number]["id"];
+
+/** A choice of the filter of the unused symbols. */
+export type UnusedFilter = (typeof UNUSED_FILTERS)[number]["id"];
 
 /** One symbol of a ranking (`RowOut` of crates/app/src/ui_commands/stats.rs). */
 export interface Row {

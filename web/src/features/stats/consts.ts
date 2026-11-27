@@ -72,6 +72,23 @@ export const ASSESSMENTS = [
   },
 ] as const;
 
+/** The choices of the filter of the unused symbols, in the order of the list. `assessment` and
+ * `reason` name the field of the request that carries the choice: "very likely unused" is an
+ * assessment, "private" and "internal" are the reasons inside it. */
+export const FILTER_FIELD = { assessment: "assessment", reason: "reason" } as const;
+
+export const UNUSED_FILTERS = [
+  { id: "likely", field: FILTER_FIELD.assessment, label: I18N_KEYS.STATS_ASSESSMENT_LIKELY },
+  { id: "private", field: FILTER_FIELD.reason, label: I18N_KEYS.STATS_FILTER_PRIVATE },
+  { id: "internal", field: FILTER_FIELD.reason, label: I18N_KEYS.STATS_FILTER_INTERNAL },
+  { id: "public", field: FILTER_FIELD.assessment, label: I18N_KEYS.STATS_ASSESSMENT_PUBLIC },
+  {
+    id: "approximate",
+    field: FILTER_FIELD.assessment,
+    label: I18N_KEYS.STATS_ASSESSMENT_APPROXIMATE,
+  },
+] as const;
+
 /** The text of each reason of a symbol without usages. */
 export const REASON_TEXT = {
   private: I18N_KEYS.STATS_REASON_PRIVATE,
