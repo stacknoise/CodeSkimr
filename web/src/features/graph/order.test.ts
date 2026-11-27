@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { sortCycles, sortLinkPairs, sortLinks, sortRows } from "./order";
-import type { LayerLink, ModuleCycle, ModuleRow } from "./types";
+import { sortCycles, sortLinkPairs, sortLinks, sortRows, sortViolations } from "./order";
+import type { LayerLink, ModuleCycle, ModuleRow, ModuleViolation } from "./types";
 
 const link = (from: string, to: string): LayerLink => ({
   from,
@@ -40,6 +40,16 @@ describe("the order of the lists in the panels", () => {
     expect(by("stability", "ascending")).toEqual(["b", "c", "a"]);
     expect(by("stability", "descending")).toEqual(["c", "b", "a"]);
     expect(by("name", "descending")).toEqual(["c", "b", "a"]);
+  });
+
+  it("sorts the dependencies against the layering by name and not by count", () => {
+    const found = (from: string, to: string, count: number) =>
+      ({ edge: { from, to, count }, from_layer: "x", to_layer: "y" }) as ModuleViolation;
+    const sorted = sortViolations(
+      [found("b", "a", 99), found("a", "z", 1), found("a", "c", 5)],
+      "en",
+    );
+    expect(sorted.map((item) => item.edge.from + item.edge.to)).toEqual(["ac", "az", "ba"]);
   });
 
   it("sorts cycles and their edges but keeps the way round one ring", () => {
