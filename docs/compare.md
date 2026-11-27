@@ -6,7 +6,7 @@ One use case, `codeskimr_application::compare::ScanComparer`, compares two retai
 
 - `codeskimr_domain::compare_symbols` is the pure comparison. It takes the facts of the symbols of both snapshots (`SymbolFact`: id, kind, qualified name, signature, visibility, file, content hash) and returns a `Comparison` with the lists `added`, `removed`, `changed` and `moved`. It knows no database and no snapshot id.
 - `codeskimr_application::ports::ComparisonSource` reads the facts and the naming rules of one retained snapshot (adapter: `codeskimr_storage`, see [storage](storage.md)).
-- `codeskimr_application::compare::ScanComparer` chooses the two scans, checks that they can be compared, reads the facts, and adds the impact, the layer changes and the critical symbols. Its limits are `compare.max_symbols` and `compare.max_usages` of `config/default.toml`.
+- `codeskimr_application::compare::ScanComparer` chooses the two scans, checks that they can be compared, reads the facts, and adds the impact, the layer changes and the critical symbols. Its limits are `compare.max_symbols` and `compare.max_usages` of `config/default.toml`. `ScanComparer::compare_metrics` (ADR 0114) answers a second question with the same two scans: which objects got worse and which got better by their metrics. `codeskimr_domain::compare_metrics` pairs the objects by the key of the comparison and judges each metric against the thresholds of `MetricRules` (`compare.metric_*`, the rating bounds of `metrics.*`, `graph.risk_min_incoming` and the test folders of `conventions.test_folders`); the use case reads the facts through `ComparisonSource::metric_facts`, leaves out what the request does not ask for and sorts and cuts the two lists.
 
 ## Rules
 

@@ -19,6 +19,7 @@ mod layer;
 mod layer_map;
 mod measure;
 mod metric;
+mod metric_change;
 mod metrics;
 mod module_graph;
 mod namespace_graph;
@@ -63,6 +64,10 @@ pub use layer::LayerEdge;
 pub use layer_map::{LayerMap, layer_map};
 pub use measure::{BodyCounts, SymbolCounts, measure};
 pub use metric::{Metric, MetricKind, MetricValue};
+pub use metric_change::{
+    Crossing, MetricChange, MetricFact, MetricLevel, MetricMove, MetricValues, MoveDirection,
+    MoveLimits, Verdict, compare_metrics, judge,
+};
 pub use metrics::{
     HalsteadCounts, LineKind, cyclomatic_complexity, lines_of_code, maintainability_index,
 };

@@ -566,6 +566,21 @@ fn the_comparison_limits_have_defaults() {
 }
 
 #[test]
+fn the_metric_thresholds_must_be_positive_and_have_defaults() {
+    assert_rejected(&[(
+        "[compare]\nmetric_min_cc = 0\n",
+        "compare.metric_min_cc",
+        Violation::MustBePositive,
+    )]);
+    let compare = Config::resolve(&[]).expect("valid").compare;
+    assert_eq!(compare.metric_min_cc, 2);
+    assert_eq!(compare.metric_min_mi, 5);
+    assert_eq!(compare.metric_min_ce, 2);
+    assert_eq!(compare.metric_min_instability, 100);
+    assert_eq!(compare.metric_loc_growth, 20);
+}
+
+#[test]
 fn every_error_maps_to_a_registered_code() {
     let error = Config::resolve(&[user("[watcher]\ndebounce_ms = 0\n")]).expect_err("range");
     assert_eq!(error.code().id(), "CFG-101");

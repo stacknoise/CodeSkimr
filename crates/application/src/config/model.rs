@@ -539,6 +539,16 @@ pub struct Compare {
     pub max_symbols: u32,
     /// Most usages listed per symbol whose usages a change can break.
     pub max_usages: u32,
+    /// Smallest move of the cyclomatic complexity that counts as worse or better (ADR 0114).
+    pub metric_min_cc: u32,
+    /// Smallest move of the maintainability index, in points, that counts.
+    pub metric_min_mi: u32,
+    /// Smallest move of the efferent coupling that counts.
+    pub metric_min_ce: u32,
+    /// Smallest move of the instability, in thousandths, that counts.
+    pub metric_min_instability: u32,
+    /// Growth in lines from which an object is marked as grown a lot; lines are never worse alone.
+    pub metric_loc_growth: u32,
 }
 
 /// The picture of the dependency map (blueprint 15, screen 3), in layout units.

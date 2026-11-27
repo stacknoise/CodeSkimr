@@ -290,6 +290,9 @@ pub const OUTCOME_CHANGED: &str = "changed";
 /// Lines of a place are counted from 1 when shown, the stored ones from 0.
 pub const PLACE_LINE_OFFSET: u32 = 1;
 
+/// Thousandths in one: the thresholds of instability are configured in thousandths (ADR 0114).
+pub const PERMILLE: f64 = 1000.0;
+
 /// Name of the file that marks an abapGit repository, in the project folder (ADR 0113).
 pub const ABAPGIT_CONFIG_FILE: &str = ".abapgit.xml";
 /// The start of an opening tag in `.abapgit.xml`.
