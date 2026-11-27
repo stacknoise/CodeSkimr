@@ -105,14 +105,19 @@ impl<'a> StageContext<'a> {
         }
     }
 
-    /// Publishes the last report of the stage again, now with the time the whole stage took.
-    fn finished(&self) {
-        let (done, total) = self.last.map_or((0, 0), |last| {
+    /// The counts of the last report of the stage, zero before it reported.
+    fn last_counts(&self) -> (u32, u32) {
+        self.last.map_or((0, 0), |last| {
             (
                 last.done.load(Ordering::Relaxed),
                 last.total.load(Ordering::Relaxed),
             )
-        });
+        })
+    }
+
+    /// Publishes the last report of the stage again, now with the time the whole stage took.
+    fn finished(&self) {
+        let (done, total) = self.last_counts();
         self.progress(done, total);
     }
 
@@ -136,12 +141,7 @@ impl<'a> StageContext<'a> {
     /// Tells which step of writing the snapshot the stage `Persist` has begun. The count of
     /// units stays as it was: the steps differ too much in size to be a share of the work.
     pub fn step(&self, step: PersistStep) {
-        let (done, total) = self.last.map_or((0, 0), |last| {
-            (
-                last.done.load(Ordering::Relaxed),
-                last.total.load(Ordering::Relaxed),
-            )
-        });
+        let (done, total) = self.last_counts();
         self.report(done, total, Some(step));
     }
 
