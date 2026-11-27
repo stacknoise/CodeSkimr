@@ -13,6 +13,7 @@ CodeSkimr scannt Code-Repositories und macht sie als Dokumentation navigierbar: 
 | Dependency map / Abhängigkeitskarte | [en/dependency-map.md](en/dependency-map.md) | [de/abhaengigkeitskarte.md](de/abhaengigkeitskarte.md) |
 | Usages / Verwendungen | [en/usages.md](en/usages.md) | [de/verwendungen.md](de/verwendungen.md) |
 | Statistics / Statistik | [en/statistics.md](en/statistics.md) | [de/statistik.md](de/statistik.md) |
+| Change / Änderung | [en/change.md](en/change.md) | [de/aenderung.md](de/aenderung.md) |
 | Notes, tasks, critical marks / Notizen, Aufgaben, kritische Markierungen | [en/annotations.md](en/annotations.md) | [de/anmerkungen.md](de/anmerkungen.md) |
 | Language indexers / Sprach-Indexer | [en/indexers.md](en/indexers.md) | [de/indexer.md](de/indexer.md) |
 | MCP setup / MCP einrichten | [en/mcp.md](en/mcp.md) | [de/mcp.md](de/mcp.md) |

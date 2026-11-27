@@ -56,6 +56,13 @@ export const STATS_ROUTE: Route = {
   icon: "stats",
   needsProject: true,
 };
+/** What the difference between two scans of the project hits (ADR 0097). */
+export const CHANGE_ROUTE: Route = {
+  path: "/change",
+  label: I18N_KEYS.NAV_CHANGE,
+  icon: "diff",
+  needsProject: true,
+};
 /** The architecture rules of the project and their violations (ADR 0104). */
 export const RULES_ROUTE: Route = {
   path: "/rules",
@@ -80,6 +87,7 @@ export const PROJECT_PATHS: readonly string[] = [
   GRAPH_ROUTE.path,
   ANNOTATIONS_ROUTE.path,
   STATS_ROUTE.path,
+  CHANGE_ROUTE.path,
   RULES_ROUTE.path,
   USAGES_ROUTE.path,
 ];
@@ -90,6 +98,7 @@ export const MAIN_ROUTES: Route[] = [
   EXPLORER_ROUTE,
   GRAPH_ROUTE,
   STATS_ROUTE,
+  CHANGE_ROUTE,
   RULES_ROUTE,
   ANNOTATIONS_ROUTE,
 ];

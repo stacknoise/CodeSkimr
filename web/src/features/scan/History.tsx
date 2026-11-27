@@ -5,17 +5,18 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import { createTableColumns } from "../../shared/table/columns";
 import { ColumnWidths, HeadRow } from "../../shared/table/ResizableHead";
 import { SCAN_MODE } from "../projects/consts";
+import { compareWithCurrent } from "../change/change";
 import { ago, count, seconds } from "../projects/format";
 import type { ProjectRow } from "../projects/types";
 import {
   COMMAND_SCANS_LIST,
   HISTORY_COLUMNS,
-  HISTORY_MOMENT,
   HISTORY_TABLE_KEY,
   MS_PER_SECOND,
   NOTE_SEPARATOR,
   SECONDS_UNIT,
 } from "./consts";
+import { moment } from "./moment";
 import type { ScanEntry, ScanHistoryAnswer } from "./types";
 import styles from "./History.module.css";
 
@@ -23,11 +24,6 @@ const columns = createTableColumns(
   HISTORY_TABLE_KEY,
   HISTORY_COLUMNS.map((column) => column.id),
 );
-
-/** The day and the time of a scan, in the language of the screen. */
-function moment(created: number): string {
-  return new Date(created * MS_PER_SECOND).toLocaleString(currentLanguage(), HISTORY_MOMENT);
-}
 
 /** A duration in milliseconds as "2,4 s", or a dash for a scan stored before it was kept. */
 function took(ms: number | null): string {
@@ -89,7 +85,7 @@ function Cards(props: { answer: ScanHistoryAnswer }) {
 }
 
 /** One row of the table: the newest scan carries the mark "current". */
-function Row(props: { scan: ScanEntry; newest: boolean }) {
+function Row(props: { project: number; scan: ScanEntry; newest: boolean }) {
   const lang = () => currentLanguage();
   return (
     <tr class={props.newest ? styles.current : undefined}>
@@ -107,12 +103,24 @@ function Row(props: { scan: ScanEntry; newest: boolean }) {
           ? t(I18N_KEYS.SCAN_UNAVAILABLE)
           : count(props.scan.files_changed, lang())}
       </td>
+      <td class={styles.action}>
+        <Show when={!props.newest}>
+          <button
+            type="button"
+            class={styles.compare}
+            title={t(I18N_KEYS.SCAN_HISTORY_COMPARE_TITLE)}
+            onClick={() => compareWithCurrent(props.project, props.scan.snapshot)}
+          >
+            {t(I18N_KEYS.SCAN_HISTORY_COMPARE)}
+          </button>
+        </Show>
+      </td>
     </tr>
   );
 }
 
 /** The table of the scans and the note under it. */
-function Table(props: { scans: readonly ScanEntry[] }) {
+function Table(props: { project: number; scans: readonly ScanEntry[] }) {
   return (
     <>
       <div class={styles.wrap}>
@@ -123,7 +131,7 @@ function Table(props: { scans: readonly ScanEntry[] }) {
           </thead>
           <tbody>
             <For each={props.scans}>
-              {(scan, index) => <Row scan={scan} newest={index() === 0} />}
+              {(scan, index) => <Row project={props.project} scan={scan} newest={index() === 0} />}
             </For>
           </tbody>
         </table>
@@ -171,7 +179,7 @@ export function History(props: { row: ProjectRow }) {
               when={list().scans.length > 0}
               fallback={<div class={styles.note}>{t(I18N_KEYS.SCAN_HISTORY_EMPTY)}</div>}
             >
-              <Table scans={list().scans} />
+              <Table project={props.row.id} scans={list().scans} />
             </Show>
           </>
         )}
