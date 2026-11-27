@@ -2,6 +2,7 @@ import { createEffect, For, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
+import { AbapGitCard } from "./AbapGitCard";
 import { PART_SEPARATOR, SCOPE_DEPTH_VAR, SCOPE_HEADING_ID } from "./consts";
 import { failureText } from "./failure";
 import {
@@ -267,6 +268,7 @@ function Loaded(props: { row: ProjectRow; answer: ScopeAnswer; state: ScopeState
   const confirming = () => changed() && takesOut(consequences(props.answer, choice()));
   return (
     <>
+      <Show when={props.answer.abapgit}>{(info) => <AbapGitCard info={info()} />}</Show>
       <Languages answer={props.answer} choice={choice()} onChoice={props.state.setChoice} />
       <Folders
         answer={props.answer}
