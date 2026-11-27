@@ -876,7 +876,7 @@ fn the_reverse_index_of_a_file_database_is_loaded_on_its_own_connection() {
 
 #[test]
 fn a_scan_is_stored_even_when_the_time_of_its_commit_cannot_be_stored() {
-    use codeskimr_application::ports::{ProjectRepository, SnapshotStore};
+    use codeskimr_application::ports::SnapshotStore;
     let db = TempDb::new();
     let store = ProjectDb::open(&db.0, keep(3)).unwrap();
     store.save_project(&project(1, "/work/app", &[])).unwrap();
