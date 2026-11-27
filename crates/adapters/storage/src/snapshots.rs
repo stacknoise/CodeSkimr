@@ -20,7 +20,7 @@ use crate::codec::column_int;
 use crate::consts::{
     BULK_FINGERPRINTS_MIN, BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR,
     LARGE_LOAD_REFERENCES_MIN, LOAD_CACHE_SIZE_KIB, LOG_CACHE_NOT_RESTORED, LOG_PERSIST_STEP,
-    PRAGMA_CACHE_SIZE, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON,
+    PRAGMA_CACHE_SIZE, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON, SORT_CACHE_SIZE_KIB,
 };
 use crate::error::{StorageError, StorageResult};
 use crate::headers::{
@@ -77,7 +77,8 @@ impl SnapshotStore for ProjectDb {
     }
 
     fn confirm(&self, scan: &Confirmation) -> Result<Option<Confirmed>, CodedError> {
-        self.write(|tx| confirm(tx, scan)).map_err(CodedError::from)
+        self.write(|tx| confirm(tx, scan, self.retention().get()))
+            .map_err(CodedError::from)
     }
 
     fn next_free_ids(&self, _project: ProjectId) -> Result<(u64, u64), CodedError> {
@@ -86,8 +87,8 @@ impl SnapshotStore for ProjectDb {
 }
 
 /// Marks the snapshot of `scan` as the result of a scan that found nothing changed, if it still
-/// is the newest of its project.
-fn confirm(conn: &Connection, scan: &Confirmation) -> StorageResult<Option<Confirmed>> {
+/// is the newest of its project, and logs the scan (ADR 0093).
+fn confirm(conn: &Connection, scan: &Confirmation, keep: u32) -> StorageResult<Option<Confirmed>> {
     let Some(latest) = latest_snapshot(conn, scan.project)?.filter(|it| it.id == scan.snapshot)
     else {
         return Ok(None);
@@ -101,6 +102,7 @@ fn confirm(conn: &Connection, scan: &Confirmation) -> StorageResult<Option<Confi
             column_int(latest.id.get())?,
         ],
     )?;
+    crate::scan_log::record_confirmed(conn, scan, keep)?;
     Ok(Some(Confirmed {
         warnings: warnings(conn, latest.id)?,
         left_out: left_out(conn, latest.id)?,
@@ -143,6 +145,7 @@ pub(crate) fn write_snapshot(
     })?;
     timed(PersistStep::Prune, steps, || prune(conn, project, keep))?;
     record_scan(conn, data)?;
+    crate::scan_log::record_written(conn, data)?;
     Ok(Snapshot {
         stats,
         ..header.clone()
@@ -182,6 +185,23 @@ impl Drop for LoadCache<'_> {
             }
         }
     }
+}
+
+/// Runs the build of an index with the small page cache that sorts fastest. `SQLite` sorts the keys
+/// of a new index in runs as large as the page cache; with the large cache of a big load the runs
+/// no longer fit the CPU caches and the build takes twice as long (6 million rows: 3 s with 2 MiB,
+/// 7 s with 1 GiB), and the gap grows with the table. The size it had comes back afterwards.
+pub(crate) fn with_sort_cache<T>(
+    conn: &Connection,
+    run: impl FnOnce() -> StorageResult<T>,
+) -> StorageResult<T> {
+    let before: i64 = conn.pragma_query_value(None, PRAGMA_CACHE_SIZE, |row| row.get(0))?;
+    conn.pragma_update(None, PRAGMA_CACHE_SIZE, SORT_CACHE_SIZE_KIB)?;
+    let result = run();
+    if let Err(cause) = conn.pragma_update(None, PRAGMA_CACHE_SIZE, before) {
+        tracing::warn!(event = LOG_CACHE_NOT_RESTORED, %cause);
+    }
+    result
 }
 
 /// Writes what belongs to the snapshot besides the facts: the naming rules, parse times,
@@ -331,7 +351,7 @@ fn insert_facts(
     })?;
     if bulk {
         timed(PersistStep::ReferenceIndexes, steps, || {
-            create_reference_indexes(conn)
+            with_sort_cache(conn, || create_reference_indexes(conn))
         })?;
     }
     for metric in &data.metrics {
@@ -412,7 +432,10 @@ fn insert_fingerprints(conn: &Connection, found: &[SymbolFingerprints]) -> Stora
     let bulk = bulk_fingerprints_start(conn, found)?;
     similarity::insert_all(conn, found)?;
     if bulk {
-        conn.execute(sql::FINGERPRINT_INDEX_CREATE, [])?;
+        with_sort_cache(conn, || {
+            conn.execute(sql::FINGERPRINT_INDEX_CREATE, [])?;
+            Ok(())
+        })?;
     }
     Ok(())
 }

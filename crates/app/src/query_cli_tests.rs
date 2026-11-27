@@ -6,8 +6,8 @@ use std::fs;
 use std::path::PathBuf;
 
 use codeskimr_cli::{
-    ContextQuery, GlobalOptions, ImpactQuery, QueryAction, QueryTarget, RenameQuery, RulesQuery,
-    ScopeArgs, SymbolsQuery, UnusedQuery, UsagesQuery,
+    ContextQuery, GlobalOptions, ImpactQuery, ModulesQuery, QueryAction, QueryTarget, RenameQuery,
+    RulesQuery, ScopeArgs, SymbolsQuery, UnusedQuery, UsagesQuery,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_i18n::Messages;
@@ -248,6 +248,7 @@ fn unused(json: bool) -> QueryAction {
         kind: Some("functions".to_owned()),
         language: None,
         assessment: None,
+        reason: None,
         include_tests: false,
         limit: None,
         target: target(json),
@@ -322,6 +323,7 @@ fn every_assessment_and_kind_the_command_line_offers_is_accepted_by_the_tool() {
                 kind: Some(kind.to_owned()),
                 language: None,
                 assessment: Some(assessment.to_owned()),
+                reason: None,
                 include_tests: false,
                 limit: None,
                 target: target(true),
@@ -518,4 +520,33 @@ fn holding_the_state_from_the_command_line_makes_every_violation_an_old_burden()
         text.contains("2 violations now count as old burdens"),
         "{text}"
     );
+}
+
+fn modules(json: bool) -> QueryAction {
+    QueryAction::Modules(ModulesQuery {
+        depth: None,
+        limit: None,
+        target: target(json),
+    })
+}
+
+#[test]
+fn modules_answer_like_the_module_level_of_get_dependencies() {
+    let world = World::new();
+    let answer = world.json(&modules(true));
+    assert_eq!(answer["level"], "module");
+    assert_eq!(answer["schema"], 1);
+    let names: Vec<&str> = answer["modules"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|module| module["name"].as_str().unwrap())
+        .collect();
+    // The fixture has one namespace: its classes are types, not modules.
+    assert_eq!(names, ["Demo"]);
+    assert_eq!(answer["total"], 1);
+    assert_eq!(answer["cycles"], serde_json::json!([]));
+    let text = world.answered(&modules(false)).text;
+    assert!(text.contains("Demo"), "{text}");
+    assert!(text.contains("stability"), "{text}");
 }

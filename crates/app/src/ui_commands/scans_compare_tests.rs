@@ -81,10 +81,11 @@ fn a_base_that_is_not_older_is_refused_with_its_code() {
     let id = two_scans(&fixture);
     let scans = ask(&fixture, "scans.list", json!({ "project": id })).unwrap();
     let newest = scans["scans"][0]["snapshot"].clone();
+    let oldest = scans["scans"][1]["snapshot"].clone();
     let refused = ask(
         &fixture,
         "scans.compare",
-        json!({ "project": id, "base": newest, "target": newest }),
+        json!({ "project": id, "base": newest, "target": oldest }),
     );
     assert_eq!(refused.unwrap_err(), "CMP-101");
 }

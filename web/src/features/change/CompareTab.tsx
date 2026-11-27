@@ -19,7 +19,7 @@ function ScanField(props: {
   value: number | null;
   /** Indexes into the list of the scans, newest first, that the field offers. */
   indexes: readonly number[];
-  onPick: (snapshot: number) => void;
+  onPick: (scan: number) => void;
 }) {
   return (
     <div class={styles.field}>
@@ -38,7 +38,7 @@ function ScanField(props: {
             return (
               <Show when={scan()}>
                 {(entry) => (
-                  <option value={entry().snapshot} selected={entry().snapshot === props.value}>
+                  <option value={entry().scan} selected={entry().scan === props.value}>
                     {optionText(entry(), index === 0)}
                   </option>
                 )}
@@ -55,8 +55,8 @@ function ScanField(props: {
  * than the base). */
 function offers(): { base: number[]; target: number[] } {
   const scans = changeScans()?.scans ?? [];
-  const at = (snapshot: number | null, fallback: number) => {
-    const found = scans.findIndex((scan) => scan.snapshot === snapshot);
+  const at = (id: number | null, fallback: number) => {
+    const found = scans.findIndex((scan) => scan.scan === id);
     return found === NOT_FOUND ? fallback : found;
   };
   const target = at(changePicked().target, 0);
@@ -168,7 +168,15 @@ export function CompareTab(props: { project: number; answer: ChangeAnswer | null
             <Figures answer={answer()} />
             <Show
               when={compareRows(answer()).length > 0}
-              fallback={<p class={parts.plain}>{t(I18N_KEYS.CHANGE_VIEW_NONE)}</p>}
+              fallback={
+                <p class={parts.plain}>
+                  {t(
+                    answer().base.snapshot === answer().target.snapshot
+                      ? I18N_KEYS.CHANGE_VIEW_SAME
+                      : I18N_KEYS.CHANGE_VIEW_NONE,
+                  )}
+                </p>
+              }
             >
               <div class={parts.card}>
                 <table class={parts.table} aria-label={t(I18N_KEYS.CHANGE_VIEW_LIST_LABEL)}>

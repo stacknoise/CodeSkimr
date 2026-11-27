@@ -8,25 +8,26 @@ use codeskimr_codes::i18n::{
     CLI_ARG_ASSESSMENT, CLI_ARG_BUDGET, CLI_ARG_COMPARE_BASE, CLI_ARG_COMPARE_PROJECT,
     CLI_ARG_COMPARE_TARGET, CLI_ARG_DEPTH, CLI_ARG_DIRECTION, CLI_ARG_HOLD, CLI_ARG_INCLUDE_TESTS,
     CLI_ARG_JSON, CLI_ARG_KIND_FILTER, CLI_ARG_LANGUAGE_FILTER, CLI_ARG_LIMIT, CLI_ARG_MARKDOWN,
-    CLI_ARG_QUERY_NEW_NAME, CLI_ARG_QUERY_PROJECT, CLI_ARG_QUERY_SYMBOL, CLI_ARG_QUERY_TEXT,
-    CLI_ARG_UNUSED_KIND, CLI_CMD_CHANGE, CLI_CMD_COMPARE, CLI_CMD_CONTEXT, CLI_CMD_IMPACT,
-    CLI_CMD_PREVIEW_RENAME, CLI_CMD_RULES, CLI_CMD_SCANS, CLI_CMD_SYMBOLS, CLI_CMD_UNUSED,
-    CLI_CMD_USAGES,
+    CLI_ARG_MODULES_DEPTH, CLI_ARG_QUERY_NEW_NAME, CLI_ARG_QUERY_PROJECT, CLI_ARG_QUERY_SYMBOL,
+    CLI_ARG_QUERY_TEXT, CLI_ARG_REASON, CLI_ARG_UNUSED_KIND, CLI_CMD_CHANGE, CLI_CMD_COMPARE,
+    CLI_CMD_CONTEXT, CLI_CMD_IMPACT, CLI_CMD_MODULES, CLI_CMD_PREVIEW_RENAME, CLI_CMD_RULES,
+    CLI_CMD_SCANS, CLI_CMD_SYMBOLS, CLI_CMD_UNUSED, CLI_CMD_USAGES,
 };
 
 use crate::args::{
-    CompareQuery, ContextQuery, ImpactQuery, QueryAction, QueryTarget, RenameQuery, RulesQuery,
-    ScansQuery, SymbolsQuery, UnusedQuery, UsagesQuery,
+    CompareQuery, ContextQuery, ImpactQuery, ModulesQuery, QueryAction, QueryTarget, RenameQuery,
+    RulesQuery, ScansQuery, SymbolsQuery, UnusedQuery, UsagesQuery,
 };
 use crate::consts::{
     ARG_ASSESSMENT, ARG_BASE, ARG_BUDGET, ARG_DEPTH, ARG_DIRECTION, ARG_HOLD, ARG_INCLUDE_TESTS,
     ARG_JSON, ARG_KIND, ARG_LANGUAGE, ARG_MARKDOWN, ARG_PROJECT, ARG_QUERY_NEW_NAME,
-    ARG_QUERY_PROJECT, ARG_QUERY_SYMBOL, ARG_QUERY_TEXT, ARG_ROWS, ARG_SCAN_TARGET, ASSESSMENTS,
-    BUDGETS, COMMAND_CHANGE, COMMAND_COMPARE, COMMAND_CONTEXT, COMMAND_IMPACT,
-    COMMAND_PREVIEW_RENAME, COMMAND_RULES, COMMAND_SCANS, COMMAND_SYMBOLS, COMMAND_UNUSED,
-    COMMAND_USAGES, DIRECTIONS, UNUSED_KINDS, VALUE_ASSESSMENT, VALUE_BUDGET, VALUE_DIRECTION,
-    VALUE_KIND, VALUE_LANGUAGE, VALUE_QUERY_NEW_NAME, VALUE_QUERY_PROJECT, VALUE_QUERY_SYMBOL,
-    VALUE_QUERY_TEXT, VALUE_ROWS, VALUE_SNAPSHOT,
+    ARG_QUERY_PROJECT, ARG_QUERY_SYMBOL, ARG_QUERY_TEXT, ARG_REASON, ARG_ROWS, ARG_SCAN_TARGET,
+    ASSESSMENTS, BUDGETS, COMMAND_CHANGE, COMMAND_COMPARE, COMMAND_CONTEXT, COMMAND_IMPACT,
+    COMMAND_MODULES, COMMAND_PREVIEW_RENAME, COMMAND_RULES, COMMAND_SCANS, COMMAND_SYMBOLS,
+    COMMAND_UNUSED, COMMAND_USAGES, DIRECTIONS, REASONS, UNUSED_KINDS, VALUE_ASSESSMENT,
+    VALUE_BUDGET, VALUE_DIRECTION, VALUE_KIND, VALUE_LANGUAGE, VALUE_QUERY_NEW_NAME,
+    VALUE_QUERY_PROJECT, VALUE_QUERY_SYMBOL, VALUE_QUERY_TEXT, VALUE_REASON, VALUE_ROWS,
+    VALUE_SNAPSHOT,
 };
 use crate::error::CliError;
 
@@ -157,6 +158,13 @@ fn unused_command(say: Say<'_>) -> Result<Command, CliError> {
                 .value_parser(ASSESSMENTS)
                 .help(say(CLI_ARG_ASSESSMENT)?),
         )
+        .arg(
+            Arg::new(ARG_REASON)
+                .long(ARG_REASON)
+                .value_name(VALUE_REASON)
+                .value_parser(REASONS)
+                .help(say(CLI_ARG_REASON)?),
+        )
         .arg(include_tests(say)?)
         .arg(limit(say)?);
     project_and_json(command, say)
@@ -172,6 +180,20 @@ fn rules_command(say: Say<'_>) -> Result<Command, CliError> {
                 .action(ArgAction::SetTrue)
                 .help(say(CLI_ARG_HOLD)?),
         );
+    project_and_json(command, say)
+}
+
+fn modules_command(say: Say<'_>) -> Result<Command, CliError> {
+    let command = Command::new(COMMAND_MODULES)
+        .about(say(CLI_CMD_MODULES)?)
+        .arg(
+            Arg::new(ARG_DEPTH)
+                .long(ARG_DEPTH)
+                .value_name(VALUE_ROWS)
+                .value_parser(clap::value_parser!(u32))
+                .help(say(CLI_ARG_MODULES_DEPTH)?),
+        )
+        .arg(limit(say)?);
     project_and_json(command, say)
 }
 
@@ -250,7 +272,7 @@ fn change_command(say: Say<'_>) -> Result<Command, CliError> {
     project_and_output(command, say, true)
 }
 
-/// The ten query commands.
+/// The eleven query commands.
 ///
 /// # Errors
 /// `I18N-201` if a help text is missing.
@@ -263,6 +285,7 @@ pub fn commands(say: Say<'_>) -> Result<Vec<Command>, CliError> {
         unused_command(say)?,
         rules_command(say)?,
         rename_command(say)?,
+        modules_command(say)?,
         scans_command(say)?,
         compare_command(say)?,
         change_command(say)?,
@@ -279,6 +302,7 @@ pub fn is_query(name: &str) -> bool {
         COMMAND_UNUSED,
         COMMAND_RULES,
         COMMAND_PREVIEW_RENAME,
+        COMMAND_MODULES,
         COMMAND_SCANS,
         COMMAND_COMPARE,
         COMMAND_CHANGE,
@@ -302,7 +326,16 @@ fn unused_action(matches: &ArgMatches) -> QueryAction {
         kind: matches.get_one::<String>(ARG_KIND).cloned(),
         language: matches.get_one::<String>(ARG_LANGUAGE).cloned(),
         assessment: matches.get_one::<String>(ARG_ASSESSMENT).cloned(),
+        reason: matches.get_one::<String>(ARG_REASON).cloned(),
         include_tests: matches.get_flag(ARG_INCLUDE_TESTS),
+        limit: matches.get_one::<u32>(ARG_ROWS).copied(),
+        target: target(matches),
+    })
+}
+
+fn modules_action(matches: &ArgMatches) -> QueryAction {
+    QueryAction::Modules(ModulesQuery {
+        depth: matches.get_one::<u32>(ARG_DEPTH).copied(),
         limit: matches.get_one::<u32>(ARG_ROWS).copied(),
         target: target(matches),
     })
@@ -361,6 +394,7 @@ pub fn action(name: &str, matches: &ArgMatches) -> QueryAction {
             target: target(matches),
         }),
         COMMAND_PREVIEW_RENAME => rename_action(matches),
+        COMMAND_MODULES => modules_action(matches),
         COMMAND_SCANS => QueryAction::Scans(ScansQuery {
             target: target(matches),
         }),

@@ -41,6 +41,7 @@ const SCANS = {
   scans: [
     {
       snapshot: 9,
+      scan: 9,
       created: 1_800_000_000,
       commit: "a41c9e2ffff",
       mode: "full",
@@ -51,6 +52,7 @@ const SCANS = {
     },
     {
       snapshot: 8,
+      scan: 8,
       created: 1_799_990_000,
       commit: null,
       mode: "incremental",
@@ -61,6 +63,7 @@ const SCANS = {
     },
     {
       snapshot: 7,
+      scan: 7,
       created: 1_799_900_000,
       commit: null,
       mode: "full",
@@ -351,6 +354,54 @@ describe("ChangeScreen, view Comparison", () => {
     ).toBeInTheDocument();
     await vi.waitFor(() => expect(bodiesOf("scans.impact")).toHaveLength(1));
     expect(bodiesOf("scans.impact")[0]).toEqual({ project: 1, base: 7 });
+  });
+});
+
+describe("ChangeScreen, scans without a change", () => {
+  /** Three scans in a row: the first wrote snapshot 9, the two after it found nothing changed. */
+  const REPEATED = {
+    ...SCANS,
+    scans: [30, 29, 28].map((scan) => ({
+      ...SCANS.scans[0],
+      scan,
+      files_changed: scan === 28 ? 2 : 0,
+    })),
+  };
+  const SAME = {
+    ...ANSWER,
+    base: REPEATED.scans[1] as ChangeAnswer["base"],
+    target: REPEATED.scans[0] as ChangeAnswer["target"],
+    added: { total: 0, is_cut: false, items: [] },
+    removed: { total: 0, is_cut: false, items: [] },
+    changed: { total: 0, is_cut: false, items: [] },
+    moved: { total: 0, is_cut: false, items: [] },
+    impact: { total: 0, is_cut: false, items: [] },
+    layers: { new_violations: [], new_cycles: [] },
+    critical: [],
+  };
+
+  it("compares the two newest scans and says that nothing changed", async () => {
+    serveChange({ "scans.list": () => answer(REPEATED), "scans.impact": () => answer(SAME) });
+    render(() => <ChangeScreen />);
+    expect(
+      await screen.findByText(/Nothing changed: both scans have the same state/),
+    ).toBeInTheDocument();
+    expect(bodiesOf("scans.impact")[0]).toEqual({ project: 1 });
+  });
+
+  it("names the scans by their snapshot and keeps the pick of the scan the user made", async () => {
+    showChangeTab(TAB.compare);
+    serveChange({ "scans.list": () => answer(REPEATED), "scans.impact": () => answer(SAME) });
+    render(() => <ChangeScreen />);
+    const base = await screen.findByLabelText("Base (before)");
+    expect(base).toHaveValue("29");
+    const run = screen.getByRole("button", { name: "Compare" });
+    await vi.waitFor(() => expect(run).toBeEnabled());
+    fireEvent.change(base, { target: { value: "28" } });
+    fireEvent.click(run);
+    await vi.waitFor(() => expect(bodiesOf("scans.impact")).toHaveLength(2));
+    expect(bodiesOf("scans.impact")[1]).toEqual({ project: 1, base: 9, target: 9 });
+    expect(screen.getByLabelText("Base (before)")).toHaveValue("28");
   });
 });
 

@@ -27,7 +27,11 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0023_level2_failed_workspaces.sql"),
     include_str!("../migrations/0024_project_scope.sql"),
     include_str!("../migrations/0025_scan_history.sql"),
+    include_str!("../migrations/0026_scan_log.sql"),
 ];
+
+/// Files changed by a scan that found nothing changed (ADR 0093).
+pub const UNCHANGED_FILES: u32 = 0;
 
 /// Name of the pragma that holds the schema version.
 pub const PRAGMA_USER_VERSION: &str = "user_version";
@@ -239,5 +243,8 @@ pub const LARGE_LOAD_REFERENCES_MIN: usize = 500_000;
 /// the write from 96 s to 56 s and 59 s, so the larger one buys nothing; the cache counts against
 /// the memory ceiling of the scan.
 pub const LOAD_CACHE_SIZE_KIB: i64 = -1_048_576;
+/// Page cache of 2 MiB (the `SQLite` default) while an index is built from a finished table: the
+/// sort of its keys is faster in runs that stay small (see `with_sort_cache`).
+pub const SORT_CACHE_SIZE_KIB: i64 = -2_000;
 /// Log event: the cache size of the write connection could not be set back.
 pub const LOG_CACHE_NOT_RESTORED: &str = "cache_size_not_restored";

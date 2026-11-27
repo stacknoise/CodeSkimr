@@ -308,9 +308,18 @@ describe("StatsScreen: rankings", () => {
     expect(
       within(table).getByText("public: users outside the project are possible"),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "very likely unused" }));
+    const filter = screen.getByRole("combobox", { name: "Assessment" });
+    fireEvent.change(filter, { target: { value: "likely" } });
     await waitFor(() =>
-      expect(inputs("stats.ranking").at(-1)).toMatchObject({ assessment: "likely" }),
+      expect(inputs("stats.ranking").at(-1)).toMatchObject({ assessment: "likely", reason: null }),
+    );
+    fireEvent.change(filter, { target: { value: "private" } });
+    await waitFor(() =>
+      expect(inputs("stats.ranking").at(-1)).toMatchObject({ assessment: null, reason: "private" }),
+    );
+    fireEvent.change(filter, { target: { value: "" } });
+    await waitFor(() =>
+      expect(inputs("stats.ranking").at(-1)).toMatchObject({ assessment: null, reason: null }),
     );
   });
 

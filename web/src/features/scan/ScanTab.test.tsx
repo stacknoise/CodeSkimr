@@ -88,6 +88,7 @@ const HISTORY = {
   scans: [
     {
       snapshot: 5,
+      scan: 5,
       created: 1_800_000_000,
       commit: null,
       mode: "full",
@@ -98,6 +99,7 @@ const HISTORY = {
     },
     {
       snapshot: 4,
+      scan: 4,
       created: 1_799_990_000,
       commit: null,
       mode: "incremental",
@@ -108,6 +110,7 @@ const HISTORY = {
     },
     {
       snapshot: 3,
+      scan: 3,
       created: 1_799_900_000,
       commit: null,
       mode: "full",
@@ -179,7 +182,7 @@ describe("the tab Scan", () => {
   it("lists the last scans with the duration of each and a dash where it was not stored", async () => {
     const stop = await shown();
     const history = within(await screen.findByRole("region", { name: "Recent scans" }));
-    expect(await history.findByText("5 are kept")).toBeInTheDocument();
+    expect(await history.findByText("5 states are kept")).toBeInTheDocument();
     expect(history.getAllByText("2.4 s").length).toBeGreaterThan(0);
     expect(history.getByText("0.6 s")).toBeInTheDocument();
     expect(history.getByText("current")).toBeInTheDocument();
