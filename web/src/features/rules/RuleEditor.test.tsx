@@ -151,16 +151,3 @@ describe("the rule editor", () => {
     expect(screen.queryByRole("button", { name: /Change rule/ })).not.toBeInTheDocument();
   });
 });
-
-describe("the tab Layers", () => {
-  it("shows the layer editor in a second tab", async () => {
-    serveAll();
-    render(() => <RulesScreen />);
-    await screen.findByText("Api → Domain");
-    fireEvent.click(screen.getByRole("tab", { name: "Layers" }));
-    expect(screen.getByRole("tab", { name: "Layers", selected: true })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Add rule" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: "Rules" }));
-    expect(await screen.findByRole("button", { name: "Add rule" })).toBeInTheDocument();
-  });
-});

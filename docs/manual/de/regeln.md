@@ -1,6 +1,6 @@
 # Regeln
 
-Die Seite **Regeln** (linke Leiste) prüft die Architekturregeln Ihrer Projektdatei `.codeskimr.toml` gegen den letzten Scan und listet ihre Verstöße auf. Sie hat zwei Reiter: **Regeln** und **Schichten** (der Editor der Schichten, siehe [Projekte und Scan](projekte-und-scan.md)).
+Die Seite **Regeln** (linke Leiste) prüft die Architekturregeln Ihrer Projektdatei `.codeskimr.toml` gegen den letzten Scan und listet ihre Verstöße auf. Die Schichten haben eine eigene Seite **Schichten** in der linken Leiste (der Editor der Schichten, siehe [Projekte und Scan](projekte-und-scan.md)).
 
 ## Was eine Regel ist
 

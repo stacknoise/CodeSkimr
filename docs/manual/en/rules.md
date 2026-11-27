@@ -1,6 +1,6 @@
 # Rules
 
-The screen **Rules** (left bar) checks the architecture rules of your project file `.codeskimr.toml` against the last scan and lists their violations. It has two tabs: **Rules** and **Layers** (the editor of the layers, see [Projects and scan](projects-and-scan.md)).
+The screen **Rules** (left bar) checks the architecture rules of your project file `.codeskimr.toml` against the last scan and lists their violations. The layers have a screen of their own, **Layers**, in the left bar (the editor of the layers, see [Projects and scan](projects-and-scan.md)).
 
 ## What a rule is
 

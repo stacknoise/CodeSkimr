@@ -1,5 +1,5 @@
 // The editor of the rules on the screen "Rules" (ADR 0112, mock 41): add a ban in the dialog with
-// its preview, save it into the project file, and reach the layers in their tab.
+// its preview, save it into the project file, and reach the layers on their own screen.
 // `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/rules-editor/ (`ui-*.png`).
 import path from "node:path";
 import type { Page } from "@playwright/test";
@@ -44,7 +44,7 @@ async function openRules(
 }
 
 for (const theme of THEMES) {
-  test(`adds a ban with a preview and shows the layers tab (${theme})`, async ({
+  test(`adds a ban with a preview and shows the layers screen (${theme})`, async ({
     page,
     harness,
   }, info) => {
@@ -57,9 +57,9 @@ for (const theme of THEMES) {
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(page.getByText("Ban: Shop.Reports must not use Shop.Checkout")).toBeVisible();
     await shot(page, SHOTS, `ui-rules-${theme}`, info);
-    await page.getByRole("tab", { name: "Layers" }).click();
-    await expect(page.getByRole("tab", { name: "Layers", selected: true })).toBeVisible();
-    await shot(page, SHOTS, `ui-layers-tab-${theme}`, info);
+    await page.getByRole("link", { name: "Layers", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Layers", exact: true })).toBeVisible();
+    await shot(page, SHOTS, `ui-layers-screen-${theme}`, info);
   });
 }
 
