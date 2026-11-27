@@ -1,4 +1,4 @@
-import { For, Show } from "solid-js";
+import { For } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
@@ -23,12 +23,20 @@ export function countText(count: FilterCount): string {
 }
 
 /** A button that is pressed or not, for a yes-or-no filter. */
-function Toggle(props: { label: string; on: boolean; onToggle: (on: boolean) => void }) {
+function Toggle(props: {
+  label: string;
+  on: boolean;
+  onToggle: (on: boolean) => void;
+  /** Why the button cannot be used; set means it is greyed out and the tooltip says why. */
+  unavailable?: string | undefined;
+}) {
   return (
     <button
       type="button"
       class={cx(styles.toggle, props.on && styles.on)}
       aria-pressed={props.on}
+      disabled={props.unavailable !== undefined}
+      title={props.unavailable}
       onClick={() => props.onToggle(!props.on)}
     >
       {props.label}
@@ -83,17 +91,21 @@ function Toggles(props: { withOpen: boolean }) {
         on={changeFilter().onlyPublic}
         onToggle={(onlyPublic) => patchFilter({ onlyPublic })}
       />
-      <Show when={props.withOpen}>
-        <Toggle
-          label={t(I18N_KEYS.CHANGE_VIEW_FILTER_ONLY_OPEN)}
-          on={changeFilter().onlyOpen}
-          onToggle={(onlyOpen) => patchFilter({ onlyOpen })}
-        />
-      </Show>
+      <Toggle
+        label={t(I18N_KEYS.CHANGE_VIEW_FILTER_ONLY_OPEN)}
+        on={props.withOpen && changeFilter().onlyOpen}
+        onToggle={(onlyOpen) => patchFilter({ onlyOpen })}
+        unavailable={props.withOpen ? undefined : t(I18N_KEYS.CHANGE_VIEW_FILTER_ONLY_OPEN_OFF)}
+      />
       <button
         type="button"
         class={styles.toggle}
         disabled={!isFiltering(changeFilter(), props.withOpen)}
+        title={
+          isFiltering(changeFilter(), props.withOpen)
+            ? undefined
+            : t(I18N_KEYS.CHANGE_VIEW_FILTER_RESET_OFF)
+        }
         onClick={resetFilter}
       >
         {t(I18N_KEYS.CHANGE_VIEW_FILTER_RESET)}

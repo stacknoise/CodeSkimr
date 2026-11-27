@@ -32,7 +32,7 @@ Only direct usages are known. Calls by reflection, in strings or from other repo
 
 The two selectors choose the scans; "Compare" reads the comparison again. The four figures count the new, changed, removed and moved symbols. The list shows each symbol with the reason (signature, visibility or content; a moved symbol shows its old and new file). A symbol is the same symbol when kind, qualified name and parameter types are equal; a renamed symbol therefore shows as removed and new.
 
-The list has the same filter row, without "Only with open places" (the comparison has no checklist), and the same scrollbar. A name or signature that is wider than the list is cut with an ellipsis; the tooltip shows the full text.
+The list has the same filter row, with "Only with open places" greyed out and explained by a tooltip (the comparison has no checklist), and the same scrollbar. A name or signature that is wider than the list is cut with an ellipsis; the tooltip shows the full text.
 
 ## On the command line
 

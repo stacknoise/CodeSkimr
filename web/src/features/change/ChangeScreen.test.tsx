@@ -298,12 +298,14 @@ describe("ChangeScreen, filter of the symbols", () => {
     expect(await screen.findByText("4 of 4 listed (2,308 in all)")).toBeInTheDocument();
   });
 
-  it("filters the list of the view Comparison too, without the filter for open places", async () => {
+  it("filters the list of the view Comparison too, with the filter for open places greyed out", async () => {
     showChangeTab(TAB.compare);
     serveChange();
     render(() => <ChangeScreen />);
     const search = await screen.findByRole("searchbox", { name: SEARCH });
-    expect(screen.queryByRole("button", { name: "Only with open places" })).not.toBeInTheDocument();
+    const open = screen.getByRole("button", { name: "Only with open places" });
+    expect(open).toBeDisabled();
+    expect(open).toHaveAttribute("title", expect.stringContaining("no checklist"));
     fireEvent.input(search, { target: { value: "money" } });
     const list = within(screen.getByRole("table", { name: "The symbols of the difference" }));
     expect(list.getByText("Money.Format")).toBeInTheDocument();

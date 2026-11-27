@@ -32,7 +32,7 @@ Bekannt sind nur direkte Verwendungen. Aufrufe über Reflection, in Zeichenkette
 
 Die beiden Auswahlfelder wählen die Scans; „Vergleichen“ liest den Vergleich neu. Die vier Zahlen zählen die neuen, geänderten, entfernten und verschobenen Symbole. Die Liste zeigt jedes Symbol mit dem Grund (Signatur, Sichtbarkeit oder Inhalt; ein verschobenes Symbol zeigt seine alte und neue Datei). Zwei Symbole sind dasselbe Symbol, wenn Art, qualifizierter Name und Parametertypen gleich sind; ein umbenanntes Symbol erscheint deshalb als entfernt und neu.
 
-Die Liste hat dieselbe Filterzeile, ohne „Nur mit offenen Stellen“ (der Vergleich hat keine Prüfliste), und dieselbe Bildlaufleiste. Ein Name oder eine Signatur, die breiter ist als die Liste, wird mit Auslassungspunkten gekürzt; der Tooltip zeigt den ganzen Text.
+Die Liste hat dieselbe Filterzeile, mit ausgegrautem „Nur mit offenen Stellen“, das ein Tooltip erklärt (der Vergleich hat keine Prüfliste), und dieselbe Bildlaufleiste. Ein Name oder eine Signatur, die breiter ist als die Liste, wird mit Auslassungspunkten gekürzt; der Tooltip zeigt den ganzen Text.
 
 ## Auf der Kommandozeile
 

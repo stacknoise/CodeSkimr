@@ -6,7 +6,7 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import type { Page } from "@playwright/test";
+import type { Page, TestInfo } from "@playwright/test";
 import {
   expect,
   keepLaunchFile,
@@ -62,13 +62,23 @@ async function addTwiceScanned(
   });
 }
 
-for (const theme of THEMES) {
-  test(`compares the last two scans and lists what the change hits (${theme})`, async ({
-    page,
-    harness,
-  }, info) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.addInitScript((name) => localStorage.setItem("codeskimr.theme", name), theme);
+/** Runs a test once in each theme, on a window of 1440 x 900. */
+function inEachTheme(
+  title: string,
+  body: (page: Page, harness: Harness, info: TestInfo, theme: string) => Promise<void>,
+): void {
+  for (const theme of THEMES) {
+    test(`${title} (${theme})`, async ({ page, harness }, info) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.addInitScript((name) => localStorage.setItem("codeskimr.theme", name), theme);
+      await body(page, harness, info, theme);
+    });
+  }
+}
+
+inEachTheme(
+  "compares the last two scans and lists what the change hits",
+  async (page, harness, info, theme) => {
     await addTwiceScanned(page, harness, `change${theme}`);
     await page.getByRole("region", { name: "Recent scans" }).scrollIntoViewIfNeeded();
     await shot(page, HISTORY_SHOTS, `history-${theme}`, info);
@@ -102,8 +112,8 @@ for (const theme of THEMES) {
     await expect(page.getByRole("tab", { name: "Comparison", selected: true })).toBeVisible();
     await expect(page.getByLabel("Base (before)")).toBeVisible();
     await shot(page, SHOTS, `compare-${theme}`, info);
-  });
-}
+  },
+);
 
 test("'Compare with current' of the tab Scan opens the view Comparison with that scan as base", async ({
   page,
@@ -177,13 +187,9 @@ function scroller(page: Page, role: "grid" | "table", name: string) {
   return page.getByRole(role, { name }).locator("xpath=..");
 }
 
-for (const theme of THEMES) {
-  test(`a long list scrolls in its own box, the page keeps its height, and the filter narrows it (${theme})`, async ({
-    page,
-    harness,
-  }, info) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.addInitScript((name) => localStorage.setItem("codeskimr.theme", name), theme);
+inEachTheme(
+  "a long list scrolls in its own box, the page keeps its height, and the filter narrows it",
+  async (page, harness, info, theme) => {
     await addTwiceScanned(page, harness, `changemany${theme}`, {
       before: manyClasses(false),
       after: manyClasses(true),
@@ -248,9 +254,9 @@ for (const theme of THEMES) {
       expect((rect?.x ?? 0) + (rect?.width ?? 0)).toBeLessThanOrEqual(right + 1);
     }
     expect(await compare.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
-    await expect(page.getByRole("button", { name: "Only with open places" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Only with open places" })).toBeDisabled();
     await search.fill("Item00");
     await expect.poll(async () => (await counts(page)).shown).toBe(named);
     await shot(page, SHOTS, `compare-many-${theme}`, info);
-  });
-}
+  },
+);

@@ -260,6 +260,8 @@ export const I18N_KEYS = {
   CHANGE_VIEW_FILTER_PUBLIC: "change-view-filter-public",
   CHANGE_VIEW_FILTER_ONLY_OPEN: "change-view-filter-only-open",
   CHANGE_VIEW_FILTER_RESET: "change-view-filter-reset",
+  CHANGE_VIEW_FILTER_RESET_OFF: "change-view-filter-reset-off",
+  CHANGE_VIEW_FILTER_ONLY_OPEN_OFF: "change-view-filter-only-open-off",
   CHANGE_VIEW_FILTER_COUNT: "change-view-filter-count",
   CHANGE_VIEW_FILTER_COUNT_CUT: "change-view-filter-count-cut",
   CHANGE_VIEW_FILTER_EMPTY: "change-view-filter-empty",
