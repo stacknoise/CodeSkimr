@@ -44,6 +44,7 @@ const ANSWER: RulesOut = {
   holdable: true,
   cycles: false,
   held_on: null,
+  file_version: "77",
   resolved: 0,
   old: 0,
   new: 0,
@@ -95,6 +96,7 @@ describe("the rule editor", () => {
     expect(sent["rules.set"]?.[0]).toMatchObject({
       project: 1,
       cycles: false,
+      file_version: "77",
       forbid: [
         { from: "Shop.Reports", to: "Shop.Checkout", reason: "reports read only" },
         { from: "Shop.Orders", to: "Shop.Api" },

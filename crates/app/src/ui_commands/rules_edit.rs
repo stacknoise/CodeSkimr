@@ -21,7 +21,7 @@ use super::explorer::ExplorerPorts;
 use super::layers::update_project_file;
 use super::rules::{Candidate, RulesOut, judged};
 use super::unused_keep::project_file;
-use crate::project_file::read_project_file;
+use crate::project_file::{read_project_file, require_version};
 use crate::rules_check::files_of;
 
 /// What one layer may use: no list is no limit, an empty list is nothing.
@@ -46,6 +46,9 @@ pub struct EditInput {
     pub public_api: Vec<PublicApiRule>,
     /// What the layers may use; a layer without an entry keeps what it has.
     pub limits: Vec<LimitInput>,
+    /// The version of the file that `rules.show` answered; `rules.set` refuses a file that
+    /// changed since with `CFG-106`. Left out, the rules are written without that check.
+    pub file_version: Option<String>,
 }
 
 /// The answer of `rules.set`.
@@ -103,6 +106,7 @@ impl Command for RulesSet {
     /// - `PRJ-201` for an unknown project, `PRJ-101` for a Git project (it has no project file).
     /// - `CFG-101` if a rule is not valid, `CFG-102` if the file cannot be read or is not TOML.
     /// - `CFG-104` if the file cannot be written.
+    /// - `CFG-106` if the file changed since `rules.show` answered.
     fn execute(&self, request: Request<'_, Self>) -> Result<RulesSaved, CodedError> {
         access::require(request.principal, Permission::Manage)?;
         let input = &request.input;
@@ -110,7 +114,10 @@ impl Command for RulesSet {
         let saved = RulesSaved {
             rules: input.forbid.len() + input.public_api.len() + usize::from(input.cycles),
         };
-        update_project_file(&path, |old| Ok((wanted_text(input, old)?, saved)))
+        update_project_file(&path, |old| {
+            require_version(old, input.file_version.as_deref())?;
+            Ok((wanted_text(input, old)?, saved))
+        })
     }
 }
 

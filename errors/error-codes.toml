@@ -199,6 +199,14 @@ description = "Level 2 is not enabled in the user configuration; the program doe
 since = "0.9.0"
 
 [[codes]]
+id = "CFG-106"
+name = "project_file_changed"
+severity = "error"
+retryable = false
+description = "The project file `.codeskimr.toml` changed after the screen read it, so saving would overwrite that change."
+since = "1.1.0"
+
+[[codes]]
 id = "PRJ-101"
 name = "project_source_invalid"
 severity = "error"

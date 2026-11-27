@@ -48,6 +48,8 @@ export interface RulesOut {
   holdable: boolean;
   cycles: boolean;
   held_on: string | null;
+  /** The version of the project file as it was read; sent back with a change (CFG-106). */
+  file_version: string;
   rules: RuleOut[];
   resolved: number;
   old: number;
@@ -92,6 +94,8 @@ export interface RulesInput {
   forbid: ForbidInput[];
   public_api: PublicApiInput[];
   limits: LimitInput[];
+  /** The version `rules.show` answered; a file that changed since is refused (CFG-106). */
+  file_version: string;
 }
 
 /** The answer of `rules.set`. */

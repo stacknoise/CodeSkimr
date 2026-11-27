@@ -14,6 +14,7 @@ error-CFG-102 = Eine Konfigurationsdatei ist kein gültiges TOML.
 error-CFG-103 = Eine Konfigurationsdatei oder ein Parameter setzt eine Einstellung, die es nicht gibt.
 error-CFG-104 = Die Datei `.codeskimr.toml` im Projektordner konnte nicht geschrieben werden. Prüfe, ob der Ordner beschreibbar ist.
 error-CFG-105 = Stufe 2 ist in deiner Konfigurationsdatei nicht eingeschaltet. CodeSkimr ändert diesen Schalter nie selbst.
+error-CFG-106 = Die Datei `.codeskimr.toml` wurde geändert, während du sie bearbeitet hast, deshalb wurde nichts gespeichert. Lade die Seite neu und mache deine Änderung noch einmal.
 error-PRJ-101 = Die Quelle ist weder ein vorhandener Ordner noch eine gültige Git-Adresse.
 error-PRJ-102 = Der Anzeigename ist leer, enthält Steuer- oder unsichtbare Zeichen oder ist zu lang.
 error-PRJ-103 = Der Umfang nennt einen Ordner, der nicht im Projekt liegt, eine Sprache mit ungültigem Namen oder mehr Einträge, als `scan.max_scope_entries` erlaubt.

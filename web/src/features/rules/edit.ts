@@ -34,6 +34,7 @@ export function inputOf(project: number, data: RulesOut): RulesInput {
     forbid: forbidOf(data),
     public_api: publicApiOf(data),
     limits: [],
+    file_version: data.file_version,
   };
 }
 
