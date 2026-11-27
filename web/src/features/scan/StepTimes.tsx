@@ -35,7 +35,7 @@ export function StepTimes(props: { steps: readonly StepTime[] }) {
                 <span class={styles.track}>
                   <span
                     class={styles.fill}
-                    style={{ width: share(time.duration_ms) + PERCENT_SIGN, display: "block" }}
+                    style={{ width: share(time.duration_ms) + PERCENT_SIGN }}
                   />
                 </span>
                 <span class={styles.time}>{took(time.duration_ms)}</span>
