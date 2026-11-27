@@ -87,5 +87,19 @@ graph-modules-violation = { $from } ({ $fromLayer }) → { $to } ({ $toLayer }):
    *[other] { $count } places
 }
 graph-modules-risks-title = Stands out
-graph-modules-risk = { $module } (stability { $stability }) is used in { $incoming } places and itself depends on { $other } (stability { $otherStability }), which changes more often.
+graph-modules-risk = { $module } (stability { $stability }) is used in { $incoming ->
+    [one] 1 place
+   *[other] { $incoming } places
+} and itself depends on { $other } (stability { $otherStability }), which changes more often.
+graph-modules-places-show = { $count ->
+    [one] Show the place
+   *[other] Show the { $count } places
+}
+graph-modules-places-hide = Hide the places
+graph-modules-place-uses = { $from } → { $to }
+graph-modules-places-more = { $count ->
+    [one] 1 more place is not shown.
+   *[other] { $count } more places are not shown.
+}
+graph-modules-places-failed = The places could not be loaded.
 graph-modules-legend-cycle = in a cycle

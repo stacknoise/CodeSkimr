@@ -473,7 +473,7 @@ codeskimr mcp                     MCP over stdio
 codeskimr export <project> --html <file>
 codeskimr scope <project>         show or change the languages and folders a project leaves out (ADR 0102)
 codeskimr check <path>            run the convention checks (for CI)
-codeskimr symbols|usages|impact|context <query|symbol>, codeskimr unused, codeskimr rules, codeskimr preview-rename <symbol> <new-name>   the questions of the MCP tools `search_symbols`, `find_usages`, `impact_of_change`, `get_context`, `find_unused`, `check_rules`, `preview_rename` for scripts and CI (`--json` with `schema` and `stale`, ADR 0099); `rules` exits with 1 only for new violations (ADR 0104)
+codeskimr symbols|usages|impact|context <query|symbol>, codeskimr unused, codeskimr rules, codeskimr modules, codeskimr preview-rename <symbol> <new-name>   the questions of the MCP tools `search_symbols`, `find_usages`, `impact_of_change`, `get_context`, `find_unused`, `check_rules`, `get_dependencies` with `level` `module`, `preview_rename` for scripts and CI (`--json` with `schema` and `stale`, ADR 0099); `rules` exits with 1 only for new violations (ADR 0104)
 codeskimr codes [<code>]          list error codes / explain one code
 codeskimr scans <project>         list the retained scans with duration (ADR 0097, from 1.1)
 codeskimr compare <project>       compare two scans: added, removed, changed, moved (ADR 0097, from 1.1)

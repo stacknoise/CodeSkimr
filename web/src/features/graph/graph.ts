@@ -1,8 +1,8 @@
 import { createSignal } from "solid-js";
 import { ApiError } from "../../shared/api/client";
 import { runCommand } from "../../shared/api/commands";
-import { DEPTH_ALL, GRAPH_COMMAND, LEVEL, MODULES_COMMAND } from "./consts";
-import type { GraphData, Level, ModulesData, ModulesInfo } from "./types";
+import { DEPTH_ALL, GRAPH_COMMAND, LEVEL, MODULES_COMMAND, PLACES_COMMAND } from "./consts";
+import type { GraphData, Level, ModuleEdge, ModulesData, ModulesInfo, PlacesData } from "./types";
 
 const [data, setData] = createSignal<GraphData | null>(null);
 const [failed, setFailed] = createSignal(false);
@@ -63,6 +63,16 @@ async function loadLevel(project: number) {
 async function loadModules(project: number) {
   const answer = await runCommand<ModulesData>(MODULES_COMMAND, { project, depth: depth() });
   return { map: { ...answer, focus: null }, modules: answer };
+}
+
+/** The places of a dependency between two modules, merged to the depth of the map. */
+export function loadPlaces(project: number, edge: ModuleEdge): Promise<PlacesData> {
+  return runCommand<PlacesData>(PLACES_COMMAND, {
+    project,
+    from: edge.from,
+    to: edge.to,
+    depth: depth(),
+  });
 }
 
 /** Loads the map of a project. A failure is kept for the screen; the old map stays. */
