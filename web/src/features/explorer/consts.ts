@@ -342,9 +342,13 @@ export const MEMBER_COLUMNS_WITH_NOTES = [
   SORT_COLUMN.lines,
 ];
 
-/** The directions of a sort, as `aria-sort` names them. */
-export const SORT_DIRECTION = { ascending: "ascending", descending: "descending" } as const;
-export type SortDirection = (typeof SORT_DIRECTION)[keyof typeof SORT_DIRECTION];
+import { SORT_DIRECTION } from "../../shared/table/consts";
+export {
+  SORT_DIRECTION,
+  SORT_MARK,
+  SORT_SIGN,
+  type SortDirection,
+} from "../../shared/table/consts";
 
 /** The member table is sorted by name until a column head is pressed. */
 export const DEFAULT_SORT = {
@@ -359,14 +363,8 @@ export const NUMBER_COLUMNS: readonly SortColumn[] = [
   SORT_COLUMN.lines,
 ];
 
-/** The marks next to the name of the column that sorts the table. */
-export const SORT_MARK = { ascending: "▲", descending: "▼" } as const;
-
 /** Compares names without regard to case and accents. */
 export const NAME_COLLATION: Intl.CollatorOptions = { sensitivity: "base", numeric: true };
-
-/** The sign that turns the order of a comparison for the direction of a sort. */
-export const SORT_SIGN = { ascending: 1, descending: -1 } as const;
 
 /** The separator between a namespace and a name in the qualified name of a type
  * (crates/app/src/ui_commands/consts.rs). */

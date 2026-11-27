@@ -13,6 +13,7 @@ import {
   type SortColumn,
   type SortDirection,
 } from "./consts";
+import { pressSort } from "../../shared/table/sort";
 import type { MemberRow } from "./types";
 
 /** How the member table is sorted. */
@@ -67,24 +68,7 @@ export function sortMembers(rows: readonly MemberRow[], sort: MemberSort | null)
  * direction (numbers largest first); the same column turns around once and the next press
  * removes the sort (`null`, the rows keep to the order of the code). */
 export function pressColumn(current: MemberSort | null, column: SortColumn): MemberSort | null {
-  if (current?.column !== column) {
-    return {
-      column,
-      direction: NUMBER_COLUMNS.includes(column)
-        ? SORT_DIRECTION.descending
-        : SORT_DIRECTION.ascending,
-    };
-  }
-  const first = NUMBER_COLUMNS.includes(column)
-    ? SORT_DIRECTION.descending
-    : SORT_DIRECTION.ascending;
-  return current.direction === first ? { column, direction: turned(first) } : null;
-}
-
-function turned(direction: SortDirection): SortDirection {
-  return direction === SORT_DIRECTION.ascending
-    ? SORT_DIRECTION.descending
-    : SORT_DIRECTION.ascending;
+  return pressSort(current, column, NUMBER_COLUMNS.includes(column)) as MemberSort | null;
 }
 
 export const INITIAL_SORT: MemberSort = { ...DEFAULT_SORT };

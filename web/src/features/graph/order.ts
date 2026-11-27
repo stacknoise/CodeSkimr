@@ -1,4 +1,5 @@
-import { CYCLE_JOIN, NAME_ORDER } from "./consts";
+import { compareValues, type SortState } from "../../shared/table/sort";
+import { CYCLE_JOIN, MODULE_COLUMN, NAME_ORDER } from "./consts";
 import type {
   LayerLink,
   ModuleCycle,
@@ -56,9 +57,38 @@ export function sortEdges(edges: readonly ModuleEdge[], language: string): Modul
   );
 }
 
-/** The rows of the table of modules by name. */
-export function sortRows(rows: readonly ModuleRow[], language: string): ModuleRow[] {
-  return sortedBy(rows, language, (row) => row.name);
+/** The value of a row in a column, `null` where the row has none. */
+function valueOf(row: ModuleRow, column: string): string | number | null {
+  switch (column) {
+    case MODULE_COLUMN.incoming:
+      return row.incoming;
+    case MODULE_COLUMN.outgoing:
+      return row.outgoing;
+    case MODULE_COLUMN.stability:
+      return row.stability;
+    case MODULE_COLUMN.types:
+      return row.types;
+    default:
+      return row.name;
+  }
+}
+
+/** The rows of the table of modules by the sort of the table, by name while it has none; rows that
+ * are equal in the column go by name. */
+export function sortRows(
+  rows: readonly ModuleRow[],
+  language: string,
+  sort: SortState | null,
+): ModuleRow[] {
+  const byName = (a: ModuleRow, b: ModuleRow) => compareText(a.name, b.name, language);
+  if (sort === null) {
+    return [...rows].sort(byName);
+  }
+  return [...rows].sort(
+    (a, b) =>
+      compareValues(valueOf(a, sort.column), valueOf(b, sort.column), sort.direction, language) ||
+      byName(a, b),
+  );
 }
 
 /** Violations against the layering by their two modules. */

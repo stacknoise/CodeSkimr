@@ -155,3 +155,23 @@ export const NOTE_ROLE = "note";
 
 /** Compares names without regard to case and accents, and digits by their value. */
 export const NAME_ORDER: Intl.CollatorOptions = { sensitivity: "base", numeric: true };
+
+/** The columns of the table of modules, by the id that the sort and the width handles use. */
+export const MODULE_COLUMN = {
+  name: "name",
+  incoming: "in",
+  outgoing: "out",
+  stability: "stability",
+  types: "types",
+} as const;
+export type ModuleColumn = (typeof MODULE_COLUMN)[keyof typeof MODULE_COLUMN];
+export const MODULE_COLUMNS: readonly ModuleColumn[] = Object.values(MODULE_COLUMN);
+/** The columns of numbers sort the largest first when they are chosen. */
+export const MODULE_NUMBER_COLUMNS: readonly ModuleColumn[] = [
+  MODULE_COLUMN.incoming,
+  MODULE_COLUMN.outgoing,
+  MODULE_COLUMN.stability,
+  MODULE_COLUMN.types,
+];
+/** The name under which the widths of the columns of that table are kept. */
+export const MODULES_TABLE_KEY = "modules";

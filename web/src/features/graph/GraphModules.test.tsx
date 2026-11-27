@@ -116,10 +116,13 @@ describe("the level Modules", () => {
     serve({ "projects.list": () => answer([ROW]), "graph.modules": () => answer(MODULES) });
     render(() => <GraphScreen />);
     const panel = await screen.findByRole("complementary", { name: "Modules" });
-    const head = (name: string) => within(panel).getByRole("columnheader", { name });
-    expect(head("in")).toHaveAttribute("title", expect.stringContaining("use this module"));
-    expect(head("out")).toHaveAttribute("title", expect.stringContaining("use other modules"));
-    expect(head("Stability")).toHaveAttribute("title", expect.stringContaining("out ÷ (in + out)"));
+    const head = (name: RegExp) => within(panel).getByRole("columnheader", { name });
+    expect(head(/^in/)).toHaveAttribute("title", expect.stringContaining("use this module"));
+    expect(head(/^out/)).toHaveAttribute("title", expect.stringContaining("use other modules"));
+    expect(head(/^Stability/)).toHaveAttribute(
+      "title",
+      expect.stringContaining("out ÷ (in + out)"),
+    );
   });
 
   it("opens the places of the edge that ends a cycle, with file, line and both symbols", async () => {

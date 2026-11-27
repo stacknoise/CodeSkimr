@@ -27,7 +27,19 @@ describe("the order of the lists in the panels", () => {
 
   it("sorts the table by name", () => {
     const row = (name: string) => ({ name }) as ModuleRow;
-    expect(sortRows([row("b"), row("a")], "en").map((item) => item.name)).toEqual(["a", "b"]);
+    expect(sortRows([row("b"), row("a")], "en", null).map((item) => item.name)).toEqual(["a", "b"]);
+  });
+
+  it("sorts the table by the pressed column and puts a module without stability last", () => {
+    const row = (name: string, outgoing: number, stability: number | null) =>
+      ({ name, outgoing, stability }) as ModuleRow;
+    const rows = [row("a", 1, null), row("b", 9, 300), row("c", 5, 800)];
+    const by = (column: string, direction: "ascending" | "descending") =>
+      sortRows(rows, "en", { column, direction }).map((item) => item.name);
+    expect(by("out", "descending")).toEqual(["b", "c", "a"]);
+    expect(by("stability", "ascending")).toEqual(["b", "c", "a"]);
+    expect(by("stability", "descending")).toEqual(["c", "b", "a"]);
+    expect(by("name", "descending")).toEqual(["c", "b", "a"]);
   });
 
   it("sorts cycles and their edges but keeps the way round one ring", () => {

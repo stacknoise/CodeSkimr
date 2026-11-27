@@ -1,5 +1,9 @@
-import { For, Show } from "solid-js";
-import { currentLanguage, t } from "../../shared/i18n/i18n";
+import { createSignal, For, Show } from "solid-js";
+import { currentLanguage, t, type MessageKey } from "../../shared/i18n/i18n";
+import { createTableColumns } from "../../shared/table/columns";
+import { ColumnWidths, RestHead } from "../../shared/table/ResizableHead";
+import { pressSort, type SortState } from "../../shared/table/sort";
+import { SortableTh } from "../../shared/table/SortableTh";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
 import { Pill } from "../../shared/ui/Pill";
@@ -9,11 +13,16 @@ import { panelStyle } from "../../shared/layout/panelStyle";
 import { modulesPanelWidth } from "./layout";
 import {
   CYCLE_JOIN,
+  MODULE_COLUMN,
+  MODULE_COLUMNS,
+  MODULE_NUMBER_COLUMNS,
+  MODULES_TABLE_KEY,
   NOTE_ROLE,
   NO_STABILITY,
   PERCENT,
   STABILITY_DIGITS,
   STABILITY_ONE,
+  type ModuleColumn,
 } from "./consts";
 import { EdgePlaces } from "./ModulePlaces";
 import type { ModuleCycle, ModuleRow, ModulesInfo } from "./types";
@@ -86,6 +95,54 @@ function Row(props: { row: ModuleRow; selected: boolean; onSelect: (name: string
   );
 }
 
+const columns = createTableColumns(MODULES_TABLE_KEY, MODULE_COLUMNS);
+const [sort, setSort] = createSignal<SortState | null>(null);
+
+/** The head of a column of the table: it sorts when pressed and has the handle for its width. */
+function Head(props: { column: ModuleColumn; label: MessageKey; tip?: MessageKey }) {
+  const direction = () => (sort()?.column === props.column ? sort()?.direction : undefined);
+  const numeric = () => MODULE_NUMBER_COLUMNS.includes(props.column);
+  return (
+    <SortableTh
+      columns={columns}
+      id={props.column}
+      label={t(props.label)}
+      class={numeric() ? styles.num : undefined}
+      title={props.tip ? t(props.tip) : undefined}
+      direction={direction()}
+      onPress={() => setSort(pressSort(sort(), props.column, numeric()))}
+    />
+  );
+}
+
+/** The head row of the table of modules. */
+function Heads() {
+  return (
+    <thead>
+      <tr>
+        <Head column={MODULE_COLUMN.name} label={I18N_KEYS.GRAPH_MODULES_COL_MODULE} />
+        <Head
+          column={MODULE_COLUMN.incoming}
+          label={I18N_KEYS.GRAPH_MODULES_COL_IN}
+          tip={I18N_KEYS.GRAPH_MODULES_COL_IN_HINT}
+        />
+        <Head
+          column={MODULE_COLUMN.outgoing}
+          label={I18N_KEYS.GRAPH_MODULES_COL_OUT}
+          tip={I18N_KEYS.GRAPH_MODULES_COL_OUT_HINT}
+        />
+        <Head
+          column={MODULE_COLUMN.stability}
+          label={I18N_KEYS.GRAPH_MODULES_COL_STABILITY}
+          tip={I18N_KEYS.GRAPH_MODULES_COL_STABILITY_HINT}
+        />
+        <Head column={MODULE_COLUMN.types} label={I18N_KEYS.GRAPH_MODULES_COL_TYPES} />
+        <RestHead columns={columns} />
+      </tr>
+    </thead>
+  );
+}
+
 function Table(props: {
   rows: readonly ModuleRow[];
   selected: string | null;
@@ -93,24 +150,11 @@ function Table(props: {
 }) {
   const language = () => currentLanguage();
   return (
-    <table class={styles.table}>
-      <thead>
-        <tr>
-          <th>{t(I18N_KEYS.GRAPH_MODULES_COL_MODULE)}</th>
-          <th class={styles.num} title={t(I18N_KEYS.GRAPH_MODULES_COL_IN_HINT)}>
-            {t(I18N_KEYS.GRAPH_MODULES_COL_IN)}
-          </th>
-          <th class={styles.num} title={t(I18N_KEYS.GRAPH_MODULES_COL_OUT_HINT)}>
-            {t(I18N_KEYS.GRAPH_MODULES_COL_OUT)}
-          </th>
-          <th title={t(I18N_KEYS.GRAPH_MODULES_COL_STABILITY_HINT)}>
-            {t(I18N_KEYS.GRAPH_MODULES_COL_STABILITY)}
-          </th>
-          <th class={styles.num}>{t(I18N_KEYS.GRAPH_MODULES_COL_TYPES)}</th>
-        </tr>
-      </thead>
+    <table class={styles.table} style={columns.style()}>
+      <ColumnWidths columns={columns} />
+      <Heads />
       <tbody>
-        <For each={sortRows(props.rows, language())}>
+        <For each={sortRows(props.rows, language(), sort())}>
           {(row) => (
             <Row row={row} selected={row.name === props.selected} onSelect={props.onSelect} />
           )}
