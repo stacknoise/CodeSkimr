@@ -1,9 +1,10 @@
 //! The query commands: their arguments, and the JSON and text they print.
 
 use codeskimr_cli::{
-    Action, CompareQuery, ContextQuery, ImpactQuery, ModulesQuery, Parsed, QueryAction, QueryKind,
-    QueryTarget, RenameQuery, ScansQuery, SymbolsQuery, UnusedQuery, UsagesQuery, change_markdown,
-    parse, query_code_report, query_error_json, query_json, query_text,
+    Action, CompareQuery, ContextQuery, ImpactQuery, MetricsSide, ModulesQuery, Parsed,
+    QueryAction, QueryKind, QueryTarget, RenameQuery, ScansQuery, SymbolsQuery, UnusedQuery,
+    UsagesQuery, change_markdown, parse, query_code_report, query_error_json, query_json,
+    query_text,
 };
 use codeskimr_i18n::Messages;
 use serde_json::{Value, json};
@@ -297,6 +298,7 @@ fn compare_and_change_read_the_two_scans() {
         base: Some(4),
         newer: Some(9),
         markdown: false,
+        metrics: None,
         target: scans_target(Some("shop"), false),
     };
     let arguments = ["shop", "--base", "4", "--target", "9"];
@@ -334,6 +336,7 @@ fn change_without_options_takes_the_newest_scan_and_the_one_before() {
             base: None,
             newer: None,
             markdown: false,
+            metrics: None,
             target: scans_target(None, false),
         })
     );
@@ -563,4 +566,76 @@ fn the_scan_list_names_how_long_each_step_of_saving_took() {
         "{text}"
     );
     assert_eq!(text.matches("Saving took").count(), 1, "{text}");
+}
+
+#[test]
+fn compare_metrics_reads_the_side_the_level_and_the_metrics() {
+    let QueryAction::Compare(query) = action(&[
+        "codeskimr",
+        "compare",
+        "--metrics",
+        "--worse",
+        "--level",
+        "type",
+        "--metric",
+        "cc",
+        "--metric",
+        "mi",
+    ]) else {
+        panic!("not a compare");
+    };
+    let options = query.metrics.unwrap();
+    assert_eq!(options.side, MetricsSide::Worse);
+    assert_eq!(options.level.as_deref(), Some("type"));
+    assert_eq!(options.only, vec!["cc".to_owned(), "mi".to_owned()]);
+    let QueryAction::Compare(plain) = action(&["codeskimr", "compare"]) else {
+        panic!("not a compare");
+    };
+    assert!(plain.metrics.is_none());
+}
+
+fn metrics_answer() -> Value {
+    json!({
+        "level": "member", "looked_at": 12, "is_cut": false,
+        "base": {"snapshot": 1, "created": 1_700_000_000},
+        "target": {"snapshot": 2, "created": 1_700_000_100},
+        "worse": {"total": 1, "is_cut": false, "items": [{
+            "name": "Demo.Big.Run", "kind": "method", "path": "Big.cs", "verdict": "worse",
+            "crosses": true,
+            "moves": [{"metric": "cc", "from": 6.0, "to": 14.5, "direction": "worse",
+                       "crossing": "into_poor"}]
+        }]},
+        "better": {"total": 0, "is_cut": false, "items": []},
+    })
+}
+
+#[test]
+fn the_text_of_compare_metrics_lists_the_moves_and_the_crossing() {
+    let messages = Messages::load().unwrap();
+    let kind = QueryKind::Metrics {
+        worse: true,
+        better: true,
+    };
+    let text = query_text(&messages, "en", kind, (&metrics_answer(), None)).unwrap();
+    assert!(text.contains("1 worse, 0 better"), "{text}");
+    assert!(text.contains("Demo.Big.Run"), "{text}");
+    assert!(
+        text.contains("complexity 6 -> 14.5 (now rated poor)"),
+        "{text}"
+    );
+    let german = query_text(&messages, "de", kind, (&metrics_answer(), None)).unwrap();
+    assert!(german.contains("Demo.Big.Run"), "{german}");
+}
+
+#[test]
+fn compare_metrics_says_when_nothing_moved_by_its_threshold() {
+    let messages = Messages::load().unwrap();
+    let mut answer = metrics_answer();
+    answer["worse"] = json!({"total": 0, "is_cut": false, "items": []});
+    let kind = QueryKind::Metrics {
+        worse: true,
+        better: true,
+    };
+    let text = query_text(&messages, "en", kind, (&answer, None)).unwrap();
+    assert!(text.contains("No object moved"), "{text}");
 }

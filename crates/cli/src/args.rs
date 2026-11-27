@@ -494,6 +494,30 @@ pub struct ScansQuery {
     pub target: QueryTarget,
 }
 
+/// Which side of the metric changes `codeskimr compare --metrics` prints.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MetricsSide {
+    /// Both lists.
+    Both,
+    /// Only what got worse.
+    Worse,
+    /// Only what got better.
+    Better,
+}
+
+/// What `codeskimr compare --metrics` is asked for (ADR 0114).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MetricsOptions {
+    /// Which list is printed; the JSON always holds both.
+    pub side: MetricsSide,
+    /// Only objects in which one of these metrics moved; every judged metric if empty.
+    pub only: Vec<String>,
+    /// `module`, `type` or `member`; `member` if left out.
+    pub level: Option<String>,
+    /// Whether test code is looked at too.
+    pub include_tests: bool,
+}
+
 /// Arguments of `codeskimr compare` and `codeskimr change`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompareQuery {
@@ -503,6 +527,8 @@ pub struct CompareQuery {
     pub newer: Option<u64>,
     /// Print Markdown for a comment on a pull request (`change` only); never with `--json`.
     pub markdown: bool,
+    /// The metric changes instead of the changed symbols (`compare --metrics` only).
+    pub metrics: Option<MetricsOptions>,
     /// Project and output.
     pub target: QueryTarget,
 }
