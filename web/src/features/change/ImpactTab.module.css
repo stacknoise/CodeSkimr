@@ -1,0 +1,30 @@
+.columns {
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-12);
+    min-width: 0;
+}
+
+.columns > * {
+    min-width: 0;
+}
+
+.columns > :last-child {
+    flex: 1;
+}
+
+.list {
+    flex: none;
+    width: 640px;
+    max-width: 100%;
+}
+
+@media (max-width: 1000px) {
+    .columns {
+        flex-direction: column;
+    }
+
+    .list {
+        width: auto;
+    }
+}

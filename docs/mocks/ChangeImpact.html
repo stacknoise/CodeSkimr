@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>Mock 39: Change, tab Impact (erw-auswirkung)</title>
+<style>
+.hell{--bg:#F6F7F9;--surface:#FFFFFF;--line:#E3E6EB;--soft:#EEF0F3;--ink:#14171C;--ink2:#3A414C;--muted:#5B6370;--accent:#2457D6;--accentbg:#EAF0FD;--fg:#fff;--good:#15803D;--goodbg:#EAF7EF;--warn:#B45309;--warnbg:#FFF4E5;--bad:#B91C1C;--badbg:#FDF2F2;--hl:#FFF7D6;--k1:#2457D6;--k2:#7C3AED;--k3:#0F766E;--k5:#BE185D;--l1:#2457D6;--l2:#0F766E;--l3:#7C3AED;--shade:rgba(20,23,28,.32)}
+.petrol{--bg:#F4F6F8;--surface:#FFFFFF;--line:#DDE3EA;--soft:#E8EDF2;--ink:#1B2430;--ink2:#3A4656;--muted:#5D6B7C;--accent:#0C727B;--accentbg:#DFF1F2;--fg:#fff;--good:#1F7A45;--goodbg:#DDF3E5;--warn:#8A5A00;--warnbg:#FBECCB;--bad:#A82D2D;--badbg:#F9DCDC;--hl:#FFF7D6;--k1:#2457D6;--k2:#7C3AED;--k3:#0F766E;--k5:#BE185D;--l1:#2457D6;--l2:#0F766E;--l3:#7C3AED;--shade:rgba(27,36,48,.32)}
+.dunkel{--bg:#12171D;--surface:#1A212A;--line:#2C3643;--soft:#232C37;--ink:#E6EBF1;--ink2:#C5CED9;--muted:#97A4B4;--accent:#3BB6C1;--accentbg:#16363B;--fg:#06222A;--good:#5FD18B;--goodbg:#173826;--warn:#F0BD5A;--warnbg:#3A2D10;--bad:#FF8C8C;--badbg:#401B1B;--hl:#3A3413;--k1:#6E9BFF;--k2:#A78BFA;--k3:#2DD4BF;--k5:#F472B6;--l1:#6E9BFF;--l2:#2DD4BF;--l3:#A78BFA;--shade:rgba(0,0,0,.5)}
+*{box-sizing:border-box}html,body{margin:0;background:#888}
+.board{position:relative;width:1440px;height:900px;overflow:hidden;background:var(--bg);color:var(--ink);font:13px Inter,system-ui,sans-serif;display:flex;flex-direction:column;margin-bottom:24px}
+.mono{font-family:'JetBrains Mono','DejaVu Sans Mono',ui-monospace,monospace;font-size:12px}
+header{height:48px;flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.logo{width:24px;height:24px;border-radius:6px;background:var(--ink);color:var(--surface);display:grid;place-items:center;font-weight:700}
+.search{flex:1;max-width:440px;border:1px solid var(--line);border-radius:8px;padding:6px 12px;color:var(--muted);display:flex;justify-content:space-between;background:var(--bg)}
+.chip{font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:4px 9px;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.main{display:flex;flex:1;min-height:0}
+.rail{width:56px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:6px}
+.rb{width:40px;height:40px;border-radius:8px;display:grid;place-items:center;color:var(--ink2);position:relative}
+.rb svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.rb.on{background:var(--accentbg);color:var(--accent)}
+.rb.neu::after{content:"neu";position:absolute;right:-3px;top:-3px;font:700 8px Inter,sans-serif;background:var(--accent);color:var(--fg);border-radius:6px;padding:1px 3px}
+.spacer{flex:1}
+.content{flex:1;min-width:0;display:flex;flex-direction:column}
+.status{height:28px;flex:none;border-top:1px solid var(--line);background:var(--surface);display:flex;align-items:center;gap:18px;padding:0 16px;font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;color:var(--muted);white-space:nowrap}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--good);margin-right:6px}
+.btn{font:12px Inter,sans-serif;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:5px 10px;white-space:nowrap;display:inline-block}
+.btn.pri{background:var(--accent);color:var(--fg);border-color:var(--accent);font-weight:600}
+.btn.on{background:var(--accentbg);border-color:var(--accent);color:var(--accent);font-weight:600}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:0}
+.k{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.pill{display:inline-block;font-size:11px;font-weight:700;border-radius:9px;padding:2px 9px;white-space:nowrap}
+.pill.good{background:var(--goodbg);color:var(--good)}.pill.warn{background:var(--warnbg);color:var(--warn)}.pill.bad{background:var(--badbg);color:var(--bad)}.pill.n{background:var(--soft);color:var(--ink2)}.pill.acc{background:var(--accentbg);color:var(--accent)}
+.m{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:4px;font:700 12px 'JetBrains Mono','DejaVu Sans Mono',monospace;flex:none}
+.m.add{background:var(--goodbg);color:var(--good)}.m.chg{background:var(--warnbg);color:var(--warn)}.m.del{background:var(--badbg);color:var(--bad)}
+.kb{width:16px;height:16px;border-radius:4px;color:#fff;font:700 10px Inter,sans-serif;display:grid;place-items:center;flex:none}
+.page{padding:18px 26px;flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
+.head{display:flex;align-items:center;gap:10px}
+h1{margin:0;font:600 22px Inter,sans-serif}
+.sub{color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(5,1fr)}
+.tile{padding:10px 14px;border-right:1px solid var(--soft)}.tile:last-child{border:0}
+.tile .v{font:600 19px 'JetBrains Mono','DejaVu Sans Mono',monospace;display:flex;align-items:baseline;gap:6px}
+.tile .l{font-size:12px;color:var(--muted);margin-top:2px}
+.tile small{font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;color:var(--muted);font-weight:400}
+.cols{flex:1;min-height:0;display:flex;gap:12px}
+.th{display:flex;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:11px;font-weight:600;color:var(--muted);align-items:center}
+.row{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--soft);white-space:nowrap}
+.row:last-child{border:0}.row.sel{background:var(--accentbg);box-shadow:inset 3px 0 0 var(--accent)}.row.hl{background:var(--hl)}
+.name{font:500 13px 'JetBrains Mono','DejaVu Sans Mono',monospace}
+.gone{text-decoration:line-through;color:var(--muted)}
+.sig{color:var(--muted);font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;overflow:hidden;text-overflow:ellipsis}
+.num{font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;text-align:right}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line)}
+.tab{padding:9px 12px;border-bottom:2px solid transparent;color:var(--ink2);display:flex;gap:6px;align-items:center}
+.tab.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+.note{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--warn);background:var(--warnbg);color:var(--ink);border-radius:10px;padding:9px 14px;line-height:1.45}
+.note.info{border-color:var(--accent);background:var(--accentbg)}
+.pad{padding:12px 14px}
+.code{font:12px/1.6 'JetBrains Mono','DejaVu Sans Mono',monospace;white-space:pre;color:var(--ink2)}
+.code b{color:var(--accent);font-weight:500}.code i{color:var(--muted);font-style:normal}.code u{color:var(--k2);text-decoration:none}.code s{color:var(--good);text-decoration:none}
+.shade{position:absolute;inset:0;background:var(--shade)}
+.dlg{position:absolute;left:50%;top:70px;transform:translateX(-50%);width:900px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.3);line-height:1.5}
+.cap{position:absolute;right:16px;bottom:38px;max-width:560px;background:var(--ink);color:var(--surface);border-radius:8px;padding:8px 12px;font-size:12px;line-height:1.45}
+.grp{padding:6px 12px;background:var(--bg);border-bottom:1px solid var(--soft);font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;color:var(--ink2);display:flex;gap:8px;align-items:center}
+.bar{height:6px;border-radius:3px;background:var(--soft);overflow:hidden;flex:none}.bar i{display:block;height:100%;background:var(--accent)}
+.lens{color:var(--muted);font:11px Inter,sans-serif}
+.ln{display:inline-block;width:34px;color:var(--muted);opacity:.7;text-align:right;margin-right:14px}
+svg text{font:11px Inter,sans-serif;fill:var(--ink2)}
+</style></head><body><div id="root"></div>
+<script>
+const I={
+ folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+ list:'<path d="M5 5h14M5 10h8M5 15h14M5 20h8"/>',
+ graph:'<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8 7l8 1M7 8l4 8M17 10l-4 6"/>',
+ stats:'<path d="M5 20V10M12 20V4M19 20v-7"/>',
+ diff:'<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 9v9M18 15V9a3 3 0 0 0-3-3h-3l2-2m-2 2l2 2"/>',
+ rules:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+ trend:'<path d="M3 17l6-6 4 4 8-9M15 6h6v6"/>',
+ adr:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>'
+};
+const ic=n=>`<svg viewBox="0 0 24 24">${I[n]}</svg>`;
+const M={add:'<span class="m add" title="neu">+</span>',chg:'<span class="m chg" title="geändert">~</span>',del:'<span class="m del" title="entfernt">−</span>'};
+const kb=(l,c)=>`<span class="kb" style="background:var(--${c})">${l}</span>`;
+const pill=(c,t)=>`<span class="pill ${c}">${t}</span>`;
+const P='shop-backend';
+function frame(theme,o){
+  const rb=(n,neu)=>`<div class="rb ${o.rail===n?'on':''} ${neu?'neu':''}">${ic(n)}</div>`;
+  return `<div class="board ${theme}" data-name="${o.name}">
+  <header><div class="logo">C</div><b>CodeSkimr</b><span style="color:var(--muted)">/</span><b>${P}</b>${o.chip??''}
+   <div class="search"><span>Typ, Member oder Befehl …</span><span class="mono">Strg K</span></div><span class="spacer"></span>${o.right??''}</header>
+  <div class="main"><nav class="rail">${rb('folder')}${rb('list')}${rb('graph')}${rb('stats')}${rb('diff',1)}${rb('rules',1)}${rb('trend',1)}${rb('adr',1)}<div class="spacer"></div>${rb('gear')}</nav>
+   <div class="content">${o.body}<div class="status"><span><span class="dot"></span>Scan aktuell</span><span>${o.status??'412 Dateien · 6.180 Symbole · Stufe 2 (C#)'}</span><span style="margin-left:auto">DE | EN</span></div></div></div>
+  ${o.over??''}${o.cap?`<div class="cap">${o.cap}</div>`:''}</div>`;
+}
+const tile=(v,l,s='')=>`<div class="tile"><div class="v">${v} <small>${s}</small></div><div class="l">${l}</div></div>`;
+
+/* 1 Änderungs-Auswirkung */
+function auswirkung(t){
+  const sym=(m,k,c,n,what,vis,u,open,cls='')=>`<div class="row ${cls}">${M[m]}${kb(k,c)}<span class="name ${m==='del'?'gone':''}" style="width:230px">${n}</span><span style="width:86px">${pill(m==='del'?'bad':what==='Signatur'?'warn':'n',what)}</span><span style="width:70px;color:var(--muted)">${vis}</span><span class="num" style="width:40px">${u}</span><span style="width:104px;text-align:right">${open?pill('bad',open+' offen'):pill('good','angepasst')}</span></div>`;
+  const use=(f,l,txt,ok,conf='sicher')=>`<div class="row"><span class="mono" style="width:44px;color:var(--muted)">${l}</span><span class="sig" style="flex:1;color:var(--ink2)">${txt}</span>${pill(conf==='sicher'?'n':'warn',conf)}${ok?pill('good','im PR angepasst'):pill('bad','nicht angefasst')}</div>`;
+  return frame(t,{name:'erw-auswirkung',rail:'diff',chip:'<span class="chip">main ← feature/rounding-mode</span>',
+  body:`<div class="page"><div class="head"><h1>Änderung</h1><span class="sub">Was trifft diese Änderung?</span><span class="spacer"></span><span class="sub">Vergleich</span><span class="chip">main · a41c9e2</span><span>→</span><span class="chip">feature/rounding-mode · 7be02d1</span><span class="btn">Als Markdown kopieren</span></div>
+  <div class="card tiles">${tile('7','geänderte Symbole','+1 ~5 −1')}${tile('3','davon öffentlich')}${tile('41','betroffene Verwendungen','35 sicher')}${tile('6','nicht angepasste Stellen')}${tile('3','betroffene Schichten','14 Dateien')}</div>
+  <div class="cols"><div class="card" style="width:640px;flex:none;display:flex;flex-direction:column">
+   <div class="th"><span style="width:262px;padding-left:42px">Symbol</span><span style="width:86px">Änderung</span><span style="width:70px">Sichtbar</span><span style="width:40px;text-align:right">Verw.</span><span style="width:104px;text-align:right">Zustand</span></div>
+   ${sym('del','M','k2','LegacyPricing.Calculate','entfernt','öffentlich',6,2)}
+   ${sym('chg','M','k2','Price.Round','Signatur','öffentlich',23,4,'sel')}
+   ${sym('chg','M','k2','OrderService.PlaceOrder','Signatur','öffentlich',12,0)}
+   ${sym('chg','M','k2','OrderValidator.Validate','Inhalt','intern',4,0)}
+   ${sym('chg','M','k2','CheckoutFlow.Confirm','Inhalt','intern',6,0)}
+   ${sym('chg','M','k2','OrderRepository.Save','Inhalt','intern',5,0)}
+   ${sym('add','C','k1','DiscountPolicy','neu','intern',3,0)}
+   <div class="pad" style="margin-top:auto;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px">
+    <div class="note"><b>1 neuer Schichtverstoß</b><span>Shop.Api.OrdersController nutzt Shop.Data.OrderRepository direkt (CHK-103).</span></div>
+    <div class="note info"><b>Systemkritisch</b><span>Price.Round ist als systemkritisch markiert. Für Shop.Domain gilt ADR 0007 „Geldbeträge runden“.</span></div></div></div>
+  <div class="card" style="flex:1;display:flex;flex-direction:column">
+   <div class="pad" style="border-bottom:1px solid var(--line)"><div class="k">Geänderte Signatur</div>
+    <div class="code" style="margin-top:6px"><span style="color:var(--bad)">− public decimal Round(decimal value)</span>\n<span style="color:var(--good)">+ public decimal Round(decimal value, RoundingMode mode)</span></div>
+    <div style="margin-top:8px;display:flex;gap:8px;align-items:center"><b>23 Verwendungen</b>${pill('n','19 sicher')}${pill('warn','4 wahrscheinlich')}<span class="spacer"></span><span class="btn on">Nur offene · 4</span><span class="btn">Alle · 23</span></div></div>
+   <div class="grp">Shop.Checkout / CheckoutFlow.cs ${pill('bad','2 offen')}</div>
+   ${use('',  '118','var total = price.Round(sum);',0)}
+   ${use('',  '164','return Price.Round(net * rate);',0)}
+   <div class="grp">Shop.Reports / MonthlyReport.cs ${pill('bad','1 offen')}</div>
+   ${use('',  '57','rows.Select(r =&gt; r.Price.Round(r.Net))',0)}
+   <div class="grp">Shop.Api / PriceFormatter.cs ${pill('bad','1 offen')}</div>
+   ${use('',  '31','formatter.Round(value)',0,'wahrscheinlich')}
+   <div class="grp">Shop.Orders / OrderService.cs ${pill('good','angepasst')}</div>
+   ${use('',  '88','price.Round(gross, RoundingMode.Commercial)',1)}
+   ${use('',  '203','price.Round(tax, mode)',1)}
+   <div class="pad sub" style="margin-top:auto;border-top:1px solid var(--line);font-size:12px;line-height:1.5"><b>„Nicht angefasst“ ist die Prüfliste:</b> Stellen, die das geänderte Symbol verwenden, aber im PR nicht geändert wurden.<br>Nur direkte Verwendungen. Aufrufe über Reflection, Zeichenketten oder aus anderen Repositories sieht CodeSkimr nicht.</div></div></div></div>`});
+}
+
+const only=new URLSearchParams(location.search).get('t');
+document.getElementById('root').innerHTML=(only?[only]:['petrol','hell','dunkel']).map(t=>auswirkung(t)).join('');
+</script></body></html>

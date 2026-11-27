@@ -1,0 +1,176 @@
+/* The parts both views share: the row of figures, the table and the notes under it. */
+
+.figures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+}
+
+.figure {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-10) 14px;
+    border-right: 1px solid var(--line-soft);
+}
+
+.figure:last-child {
+    border-right: 0;
+}
+
+.figureLabel {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.figureValue {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-6);
+    font: 600 19px var(--font-mono);
+}
+
+.figureValue small {
+    color: var(--muted);
+    font: 400 12px var(--font-mono);
+}
+
+.figureHint {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+}
+
+.wrap {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    padding: var(--space-8) var(--space-12);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+}
+
+.table td {
+    padding: var(--space-6) var(--space-12);
+    border-bottom: 1px solid var(--line-soft);
+    white-space: nowrap;
+}
+
+.table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.number {
+    text-align: right;
+    font: 12px var(--font-mono);
+}
+
+.table th.number {
+    font: 600 11px var(--font-sans);
+}
+
+.name {
+    font: 500 13px var(--font-mono);
+}
+
+.gone {
+    color: var(--muted);
+    text-decoration: line-through;
+}
+
+.sig {
+    color: var(--muted);
+    font: 12px var(--font-mono);
+}
+
+.mark {
+    display: inline-grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    margin-right: var(--space-6);
+    border-radius: var(--radius-badge);
+    font: 700 12px var(--font-mono);
+}
+
+.markAdded {
+    background: var(--good-bg);
+    color: var(--good);
+}
+
+.markChanged {
+    background: var(--warn-bg);
+    color: var(--warn);
+}
+
+.markRemoved {
+    background: var(--bad-bg);
+    color: var(--bad);
+}
+
+.notes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    margin-top: auto;
+    padding: var(--space-12) 14px;
+    border-top: 1px solid var(--line);
+}
+
+.note {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-10);
+    padding: var(--space-8) 14px;
+    border: 1px solid var(--warn);
+    border-radius: var(--radius-panel);
+    background: var(--warn-bg);
+    color: var(--ink);
+    line-height: 1.45;
+}
+
+.note ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.noteInfo {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+}
+
+.plain {
+    margin: 0;
+    padding: var(--space-8) var(--space-12);
+    border-radius: var(--radius-panel);
+    background: var(--accent-bg);
+    color: var(--ink);
+    line-height: 1.45;
+}
+
+.spacer {
+    flex: 1;
+}
