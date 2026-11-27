@@ -1,4 +1,4 @@
-import { For, onCleanup, onMount, Show } from "solid-js";
+import { createMemo, For, onCleanup, onMount, Show } from "solid-js";
 import { onEnter } from "../../shared/keys/keydown";
 import { cx } from "../../shared/ui/cx";
 import { SHIELD } from "../annotations/consts";
@@ -14,7 +14,7 @@ import {
   URL_CLOSE,
   URL_OPEN,
 } from "./consts";
-import { edgeKind, edgePath, rankColor, relatedTo, shown, styleOf } from "./geometry";
+import { edgeKind, edgePath, rankColor, isDimmed, relatedTo, shown, styleOf } from "./geometry";
 import type { GraphData, LayerBox, LayerLink, Size, View } from "./types";
 import { useNavigation } from "./useNavigation";
 import { transformOf } from "./viewport";
@@ -173,8 +173,11 @@ function Boxes(props: {
   onSelect: (name: string) => void;
   onOpen: (name: string) => void;
   critical: (box: LayerBox) => boolean;
+  violationsOnly: boolean;
 }) {
-  const related = () => relatedTo(props.selected, props.data.links);
+  const related = createMemo(() =>
+    relatedTo(props.selected, props.data.links, props.violationsOnly),
+  );
   return (
     <For each={props.data.boxes}>
       {(box) => (
@@ -184,7 +187,7 @@ function Boxes(props: {
           onSelect={props.onSelect}
           onOpen={props.onOpen}
           critical={props.critical(box)}
-          dimmed={related() !== null && !related()!.has(box.name)}
+          dimmed={isDimmed(related(), box.name)}
         />
       )}
     </For>
@@ -240,6 +243,7 @@ function Stage(props: {
         onSelect={props.onSelect}
         onOpen={props.onOpen}
         critical={props.critical}
+        violationsOnly={props.violationsOnly}
       />
     </div>
   );

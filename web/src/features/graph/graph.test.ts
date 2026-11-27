@@ -117,11 +117,16 @@ describe("resetGraph", () => {
 
 describe("relatedTo", () => {
   it("is empty of meaning while nothing is selected", () => {
-    expect(relatedTo(null, [link("a", "b")])).toBeNull();
+    expect(relatedTo(null, [link("a", "b")], false)).toBeNull();
   });
 
   it("holds the selection and its direct neighbours, and no other box", () => {
     const links = [link("a", "b"), link("c", "a"), link("d", "e"), link("a", "a")];
-    expect([...relatedTo("a", links)!].sort()).toEqual(["a", "b", "c"]);
+    expect([...relatedTo("a", links, false)!].sort()).toEqual(["a", "b", "c"]);
+  });
+
+  it("counts only the edges that are drawn", () => {
+    const links = [link("a", "b", 1, true), link("a", "c")];
+    expect([...relatedTo("a", links, true)!].sort()).toEqual(["a", "b"]);
   });
 });
