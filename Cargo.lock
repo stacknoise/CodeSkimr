@@ -446,6 +446,7 @@ dependencies = [
  "codeskimr_cli",
  "codeskimr_codes",
  "codeskimr_domain",
+ "codeskimr_fsguard",
  "codeskimr_i18n",
  "codeskimr_indexer",
  "codeskimr_mcp",

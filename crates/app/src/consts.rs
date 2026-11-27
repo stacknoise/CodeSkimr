@@ -581,6 +581,14 @@ pub mod scope_arg {
     pub const FILES: &str = "files";
     /// `{ $count }`: number of folders that are not listed.
     pub const COUNT: &str = "count";
+    /// `{ $folder }`: the starting folder of an abapGit project.
+    pub const FOLDER: &str = "folder";
+    /// `{ $logic }`: the folder logic of an abapGit project.
+    pub const LOGIC: &str = "logic";
+    /// `{ $objects }`: number of objects of an abapGit project.
+    pub const OBJECTS: &str = "objects";
+    /// `{ $packages }`: number of packages of an abapGit project.
+    pub const PACKAGES: &str = "packages";
 }
 
 /// Largest project file that is read; a bigger one is refused.
@@ -598,3 +606,6 @@ pub const UI_LAYER_NEWLINE: &str = "\n";
 
 /// The field of the answer of `rules` that counts the violations the held state does not have.
 pub const NEW_VIOLATIONS: &str = "new";
+
+/// Most bytes read from `.abapgit.xml`; the file is a few hundred bytes long.
+pub const ABAPGIT_CONFIG_MAX_BYTES: u64 = 65_536;

@@ -19,6 +19,7 @@ codeskimr_parsing = { path = "../adapters/parsing" }
 codeskimr_storage = { path = "../adapters/storage" }
 codeskimr_indexer = { path = "../adapters/indexer" }
 codeskimr_scip = { path = "../adapters/scip" }
+codeskimr_fsguard = { path = "../adapters/fsguard" }
 codeskimr_source = { path = "../adapters/source" }
 codeskimr_secrets = { path = "../adapters/secrets" }
 codeskimr_i18n = { path = "../adapters/i18n" }
