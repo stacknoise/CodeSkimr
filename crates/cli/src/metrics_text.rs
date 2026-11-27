@@ -51,10 +51,14 @@ fn move_text(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
         (ARG_TO, text(shown(found, TO))),
     ];
     let said = speak.say(METRICS_MOVE, &numbers)?;
-    let crossing = match field(found, CROSSING).as_str() {
-        "" => return Ok(said),
-        label if label == CROSSING_INTO_POOR => speak.say(METRICS_INTO_POOR, &[])?,
-        _ => speak.say(METRICS_OUT_OF_POOR, &[])?,
+    let label = field(found, CROSSING);
+    if label.is_empty() {
+        return Ok(said);
+    }
+    let crossing = if label == CROSSING_INTO_POOR {
+        speak.say(METRICS_INTO_POOR, &[])?
+    } else {
+        speak.say(METRICS_OUT_OF_POOR, &[])?
     };
     speak.say(
         METRICS_MOVE_CROSSING,
