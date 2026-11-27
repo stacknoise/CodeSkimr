@@ -43,7 +43,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 25));
+    assert_eq!((mode.as_str(), version), ("wal", 26));
 }
 
 #[test]
@@ -578,8 +578,10 @@ fn connections_opening_a_new_database_at_once_all_succeed() {
     }
 }
 
-/// Takes back the newest schema changes: the scope (version 24) and the scan history (version 25).
-const NEWEST_CHANGES_DROPPED: &str = "DROP TABLE scope_folders; DROP TABLE scope_languages;
+/// Takes back the newest schema changes: the scope (version 24), the scan history (version 25) and
+/// the scan log (version 26).
+const NEWEST_CHANGES_DROPPED: &str =
+    "DROP TABLE scan_log; DROP TABLE scope_folders; DROP TABLE scope_languages;
      ALTER TABLE snapshots DROP COLUMN duration_ms;
      ALTER TABLE snapshots DROP COLUMN files_changed;";
 

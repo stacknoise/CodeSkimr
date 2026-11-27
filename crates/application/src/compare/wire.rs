@@ -28,7 +28,9 @@ const LINE_OFFSET: u32 = 1;
 pub struct ScanOut {
     /// Id of the snapshot the scan wrote; two of them can be compared.
     pub snapshot: u64,
-    /// When the last scan that wrote or confirmed the snapshot ran, in seconds since the epoch.
+    /// Identifies the scan itself; several scans that found nothing changed share one snapshot.
+    pub scan: u64,
+    /// When the scan ended, in seconds since the epoch.
     pub created: i64,
     /// Commit, if the source is a Git repository.
     pub commit: Option<String>,
@@ -50,6 +52,7 @@ impl From<&ScanEntry> for ScanOut {
     fn from(entry: &ScanEntry) -> Self {
         Self {
             snapshot: entry.snapshot.get(),
+            scan: entry.scan,
             created: entry.created.0,
             commit: entry.commit.as_ref().map(CommitHash::to_string),
             mode: entry.mode.label(),

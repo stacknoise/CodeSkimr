@@ -143,6 +143,8 @@ fn unused_reads_its_options_and_refuses_values_outside_its_lists() {
             "csharp",
             "--assessment",
             "likely",
+            "--reason",
+            "private",
             "--include-tests",
             "--limit",
             "3",
@@ -151,6 +153,7 @@ fn unused_reads_its_options_and_refuses_values_outside_its_lists() {
             kind: Some("functions".to_owned()),
             language: Some("csharp".to_owned()),
             assessment: Some("likely".to_owned()),
+            reason: Some("private".to_owned()),
             include_tests: true,
             limit: Some(3),
             target: QueryTarget::default(),
@@ -159,6 +162,7 @@ fn unused_reads_its_options_and_refuses_values_outside_its_lists() {
     let messages = Messages::load().unwrap();
     for arguments in [
         ["codeskimr", "unused", "--assessment", "dead"],
+        ["codeskimr", "unused", "--reason", "dead"],
         ["codeskimr", "unused", "--kind", "everything"],
     ] {
         assert!(parse(arguments.iter().copied(), &messages, "en").is_err());

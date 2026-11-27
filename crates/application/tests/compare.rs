@@ -32,6 +32,7 @@ mod tests {
 
     fn entry(id: SnapshotId) -> ScanEntry {
         ScanEntry {
+            scan: id.get(),
             snapshot: id,
             created: Timestamp(id.get().try_into().unwrap()),
             commit: None,
@@ -381,11 +382,53 @@ mod tests {
 
     #[test]
     fn a_base_that_is_not_older_than_the_target_gives_cmp_101() {
-        for (base, target) in [(NEW, MID), (MID, MID)] {
-            let request = ask(Some(base), Some(target), false);
-            let error = comparer(&world(), LIMITS).compare(&request).unwrap_err();
-            assert_eq!(error.code(), ErrorCode::ComparisonOrderInvalid);
-        }
+        let request = ask(Some(NEW), Some(MID), false);
+        let error = comparer(&world(), LIMITS).compare(&request).unwrap_err();
+        assert_eq!(error.code(), ErrorCode::ComparisonOrderInvalid);
+    }
+
+    /// The history of three scans of `NEW` (the first wrote it, two found nothing changed), `MID`
+    /// before them: every scan is an entry of its own (ADR 0093).
+    fn world_with_repeated_scans() -> World {
+        let mut world = world();
+        let again = |scan: u64| ScanEntry {
+            scan,
+            files_changed: Some(0),
+            ..entry(NEW)
+        };
+        world.index.history = vec![again(103), again(102), entry(NEW), entry(MID), entry(OLD)];
+        world
+    }
+
+    #[test]
+    fn the_default_of_two_scans_in_a_row_without_changes_is_an_empty_comparison() {
+        let answer = comparer(&world_with_repeated_scans(), LIMITS)
+            .compare(&ask(None, None, true))
+            .unwrap();
+        assert_eq!((answer.base.scan, answer.target.scan), (102, 103));
+        assert_eq!((answer.base.snapshot, answer.target.snapshot), (NEW, NEW));
+        assert_eq!(
+            answer.added.total + answer.removed.total + answer.changed.total,
+            0
+        );
+        assert_eq!(answer.layers.new_violations.len(), 0);
+    }
+
+    #[test]
+    fn a_snapshot_named_twice_is_compared_with_itself_from_its_first_to_its_last_scan() {
+        let answer = comparer(&world_with_repeated_scans(), LIMITS)
+            .compare(&ask(Some(NEW), Some(NEW), false))
+            .unwrap();
+        assert_eq!((answer.base.scan, answer.target.scan), (30, 103));
+        assert_eq!(answer.changed.total, 0);
+    }
+
+    #[test]
+    fn a_named_snapshot_stands_for_its_newest_scan() {
+        let answer = comparer(&world_with_repeated_scans(), LIMITS)
+            .compare(&ask(Some(MID), None, false))
+            .unwrap();
+        assert_eq!((answer.base.snapshot, answer.target.scan), (MID, 103));
     }
 
     #[test]

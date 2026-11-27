@@ -6,7 +6,7 @@ Die Ansicht „Änderung“ vergleicht zwei Scans des geöffneten Projekts und z
 
 ## Welche Scans verglichen werden
 
-CodeSkimr bewahrt die letzten Scans eines Projekts auf (standardmäßig fünf). Ein Scan ohne Änderung schreibt keinen Eintrag, jeder aufbewahrte Scan hat also etwas geändert. Die Ansicht vergleicht den neuesten Scan mit dem davor. Im Reiter „Vergleich“ lassen sich zwei beliebige aufbewahrte Scans wählen: Die Basis ist der ältere, das Ziel der neuere. Das Projekt braucht mindestens zwei Scans.
+CodeSkimr bewahrt die letzten Scans eines Projekts auf (standardmäßig fünf). Jeder Scan ist ein eigener Eintrag; ein Scan ohne Änderung steht mit „0 geändert“ da. Die Ansicht vergleicht den neuesten Scan mit dem davor; hat sich dazwischen nichts geändert, sagt sie das. Im Reiter „Vergleich“ lassen sich zwei beliebige aufbewahrte Scans wählen: Die Basis ist der ältere, das Ziel der neuere. Das Projekt braucht mindestens zwei Scans.
 
 Der Reiter „Scan“ der Projektseite listet die aufbewahrten Scans. Der Knopf „Mit aktuellem vergleichen“ in einer Zeile öffnet diese Ansicht mit diesem Scan als Basis und dem neuesten als Ziel.
 

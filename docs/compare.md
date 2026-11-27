@@ -17,12 +17,12 @@ One use case, `codeskimr_application::compare::ScanComparer`, compares two retai
 
 ## Choosing the scans
 
-`ComparisonRequest { project, base, target, with_impact }`. Without `target` the newest scan is the target, without `base` the scan before the target is the base. The base must be older than the target.
+`ComparisonRequest { project, base, target, with_impact }`. Without `target` the newest scan is the target, without `base` the scan before the target is the base. Every scan is an entry of the history, also one that found nothing changed (ADR 0093, addendum of 2026-11-27); such entries share the snapshot they confirmed, so the two newest entries can name the same snapshot, and the comparison is then empty ("nothing changed"). A named snapshot stands for its newest entry; a base equal to the target stands for its oldest entry. The base snapshot must not be newer than the target snapshot.
 
 | Code | When |
 | --- | --- |
 | `CMP-201` | a named scan is not retained, the project has fewer than two scans, or retention removed a scan while the comparison read it |
-| `CMP-101` | the base is not older than the target |
+| `CMP-101` | the base snapshot is newer than the target snapshot |
 | `CMP-301` | the two scans used other naming rules (retryable: a full scan makes them comparable); a scan without a record (written before ADR 0036) only matches another one without |
 
 A comparison that was cut (see below) is not an error: the answer says it.

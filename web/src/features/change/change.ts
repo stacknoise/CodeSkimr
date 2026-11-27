@@ -63,12 +63,31 @@ function keepRow(read: ChangeAnswer | null): void {
   );
 }
 
-/** The input of the comparison: only the scans that were picked, so the registry decides the rest. */
-function inputOf(project: number, wanted: Selection) {
+/** The snapshot of the scan with the id `scan` in `list`, `null` if the list does not have it. */
+function snapshotOf(list: ScanHistoryAnswer, scan: number | null): number | null {
+  return list.scans.find((entry) => entry.scan === scan)?.snapshot ?? null;
+}
+
+/** The input of the comparison: only the scans that were picked, so the registry decides the rest.
+ * The scans are named by their snapshot, which scans without a change share. */
+function inputOf(project: number, list: ScanHistoryAnswer, wanted: Selection) {
+  const base = snapshotOf(list, wanted.base);
+  const target = snapshotOf(list, wanted.target);
   return {
     project,
-    ...(wanted.base === null ? {} : { base: wanted.base }),
-    ...(wanted.target === null ? {} : { target: wanted.target }),
+    ...(base === null ? {} : { base }),
+    ...(target === null ? {} : { target }),
+  };
+}
+
+/** The scans the selectors show after a read: those the user picked, if the list still has them,
+ * and the ones the registry chose for the rest. Scans without a change share a snapshot, so the
+ * answer cannot tell which of them was meant. */
+function shown(list: ScanHistoryAnswer, wanted: Selection, read: ChangeAnswer): Selection {
+  const kept = (scan: number | null) => (snapshotOf(list, scan) === null ? null : scan);
+  return {
+    base: kept(wanted.base) ?? read.base.scan,
+    target: kept(wanted.target) ?? read.target.scan,
   };
 }
 
@@ -88,12 +107,10 @@ export async function loadChange(project: number, wanted: Selection = picked()):
     const read =
       list.scans.length < MIN_SCANS
         ? null
-        : await runCommand<ChangeAnswer>(COMMAND.impact, inputOf(project, wanted));
+        : await runCommand<ChangeAnswer>(COMMAND.impact, inputOf(project, list, wanted));
     if (mine === latest) {
       setAnswer(read);
-      setPicked(
-        read === null ? NO_SELECTION : { base: read.base.snapshot, target: read.target.snapshot },
-      );
+      setPicked(read === null ? NO_SELECTION : shown(list, wanted, read));
       keepRow(read);
     }
   } catch (error) {
@@ -108,8 +125,8 @@ export async function loadChange(project: number, wanted: Selection = picked()):
   }
 }
 
-/** Asks the screen "Change" to compare a scan of the list with the current one: the view
- * "Comparison" opens with that scan as the base. */
+/** Asks the screen "Change" to compare a scan of the list (`base` is its `scan` id) with the
+ * current one: the view "Comparison" opens with that scan as the base. */
 export function compareWithCurrent(project: number, base: number): void {
   requestedBase = base;
   setTab(TAB.compare);

@@ -159,6 +159,8 @@ pub struct Confirmation {
     pub at: Timestamp,
     /// The commit the scan saw, if the source has one.
     pub commit: Option<CommitHash>,
+    /// When the discover stage of the scan began, for the duration the history shows (ADR 0097).
+    pub began: Option<Instant>,
 }
 
 /// A snapshot as a scan confirmed it.

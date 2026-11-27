@@ -29,6 +29,8 @@ The real run saw no moved symbol, no change of visibility, no critical symbol, n
 
 ## Open points
 
+- Resolved 2026-11-27 (decision of Anton): every scan is a row of the history, also a scan without changes, which shows "0 changed" and compares as "nothing changed" (ADR 0093 addendum, schema version 26). Earlier runs of this acceptance saw one row for three scans in a row.
+
 - The button "Copy as Markdown" of the mock is missing in the screen until #799 is done (ADR 0092 lists `--markdown` as an exception meanwhile).
 - The comparison does not see a renamed symbol as the same symbol. A pure rename therefore shows as one removed and one added symbol, and the usages of the old name appear in the impact of the removed one. This is a stated limit (ADR 0097), not a defect.
 - Not measured here: comparison time on a very large project (the budget `[compare] max_symbols = 200`, `max_usages = 50` cuts the answer; the answer says so with `is_cut` and `total`).

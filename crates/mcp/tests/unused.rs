@@ -19,6 +19,7 @@ fn args() -> UnusedArgs {
         kind: None,
         language: None,
         assessment: None,
+        reason: None,
         include_tests: None,
         project: None,
         limit: None,
@@ -103,6 +104,24 @@ fn an_unknown_label_is_an_invalid_argument_and_a_caller_without_read_is_refused(
     assert_eq!(error.code(), ErrorCode::PermissionDenied);
     let reader = Principal::limited(PermissionSet::none().with(Permission::Read));
     assert!(tools().find_unused(&reader, &args()).is_ok());
+}
+
+#[test]
+fn the_reason_cuts_the_list_like_the_assessment_and_is_checked() {
+    let private = UnusedArgs {
+        reason: Some("private".to_owned()),
+        ..args()
+    };
+    let answer = tools().find_unused(&owner(), &private).unwrap();
+    assert_eq!(answer["total"], 1);
+    assert_eq!(answer["unused"][0]["reason"], "private");
+    assert_eq!(answer["counts"]["public"], 1);
+    let unknown = UnusedArgs {
+        reason: Some("dead".to_owned()),
+        ..args()
+    };
+    let error = tools().find_unused(&owner(), &unknown).unwrap_err();
+    assert_eq!(error.code(), ErrorCode::ToolArgumentsInvalid);
 }
 
 #[test]
