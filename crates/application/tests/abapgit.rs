@@ -115,7 +115,7 @@ mod tests {
         assert_eq!(summarize(&files(&["src/main.rs", "README.md"]), None), None);
         assert_eq!(summarize(&files(&["lib/zcl_a.clas.abap"]), None), None);
         let empty = summarize(&files(&[".abapgit.xml"]), Some(&AbapGitConfig::default())).unwrap();
-        assert!(empty.objects.is_empty());
+        assert_eq!(empty.objects.len(), 0);
     }
 
     #[test]
