@@ -57,3 +57,7 @@ Decisions made while building work package 3 (#756); they correct decisions 3, 4
 - **`content` stands alone.** It is a reason only if signature and visibility are equal and both hashes exist and differ; a signature change alters the hash too and would only repeat itself.
 - **Only symbols of origin syntax (level 1) are compared.** What only level 2 delivers is left out, so a scan with level 2 against one without reports no false signature change.
 
+## Addendum 2026-11-27 (package 4)
+
+- **Decision 1 corrected.** The REST interface has no type `ScanSummary`. Duration and changed files reach the surfaces through the registry command `scans.list` (one row per kept scan) and through the scan header of `scans.compare` and `scans.impact` (`duration_ms`, `files_changed`); the command line and the screen "Scan" read the same fields.
+
