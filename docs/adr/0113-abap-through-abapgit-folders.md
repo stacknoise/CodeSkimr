@@ -1,0 +1,39 @@
+# 0113 – ABAP: a basic-tier pack, read from abapGit folders
+
+Status: proposed. Labelled `blueprint-change` (R-08 gets one more place for `unsafe`) and `new-dependency`.
+
+## Context
+
+The product owner moved the SAP step forward on 2026-11-27: ABAP code is read through abapGit first, the ADT source stays a later step (decision card of 2026-11-25; concept `entscheidungen/sap-adt-anbindung.md`, analysis `abap-v1-entscheidungsvorlage.md`). An abapGit repository is an ordinary folder or Git repository with `.abapgit.xml` and the objects as files, so the sources `folder` and `git` already deliver it. What is missing is the language pack and the knowledge of the layout.
+
+The grammar spike of 2026-11-13 measured three grammars on 1,474 `.abap` files of four MIT projects (abapGit, open-abap-core, ajson, SAP/abap-file-formats): `zooloo303/tree-sitter-abap` (MIT, 0.2 % of the files with a syntax error) was the only usable one. Its limits: the tree is flat (a `statement` holds a keyword and its words as `identifier`, there is no nesting of statements and no section of visibility), it has one author, and it has no Rust binding and is not on crates.io.
+
+## Options
+
+1. Depend on `tree-sitter-abap-sqry` from crates.io. It is another grammar that the spike did not measure.
+2. Vendor the C source of `zooloo303/tree-sitter-abap` in a small crate and compile it with `cc`. It needs one `unsafe` call, which rule R-08 forbids outside `codeskimr_secrets::memory`.
+3. A dynamic grammar loader (ADR 0020): more `unsafe`, a new trust boundary; not now.
+
+## Decision
+
+Option 2.
+
+- **Crate `codeskimr_grammar_abap`** (`crates/adapters/grammar_abap`). It holds `parser.c`, `scanner.c`, the Tree-sitter headers and the licence of the grammar, unchanged, at commit `14db66a2f6c45b1992d5e252148a7d5a05724d86`. `build.rs` compiles them with `cc`; `lib.rs` has the one `unsafe` call that every Tree-sitter grammar crate has (`LanguageFn::from_raw`), with a `// SAFETY:` comment and a test that parses a class. **R-08 is changed:** `unsafe` is allowed in `codeskimr_secrets::memory` and in `codeskimr_grammar_abap` and nowhere else. The crate depends on no workspace crate (`tools/ci/architecture.toml`); `codeskimr_parsing` uses it behind the feature `basic-grammars`, like the other basic grammars (ADR 0020).
+- **New dependencies:** `cc` (build dependency) and `tree-sitter-language` (the type `LanguageFn`; every grammar crate already pulls it in). Licences: MIT or Apache-2.0.
+- **Updating the grammar** is a package of its own: copy the three files, change the commit above, run the golden tests and the corpus of ABAP (below). Because of the one author the source is vendored and pinned, never fetched.
+- **Basic tier.** Pack `languages/abap` (`tier = "basic"`, extension `abap`, grammar `abap`), no new symbol kind: `class`, `interface`, `method`, `function` (`FORM`, `FUNCTION`, `MODULE`). A method is a symbol where it is implemented (`METHOD` in `CLASS ... IMPLEMENTATION`, which is a container, ADR 0039); the declaration in the class definition is not, so no method is found twice. The methods of an interface are symbols of their declaration. `METHOD zif~name` is named `name`. Qualified names are `zcl_box=>run` (separator `=>`), without the file (`file_in_names = false`, ABAP names are global).
+- **No visibility.** The grammar has no section node; every symbol has none, as in the other basic packs.
+- **Names are folded to lower case.** ABAP does not tell cases apart (`PERFORM Do_It` calls `FORM do_it`), the resolver compares names exactly. A new key `name_case = "lower"` of `language.toml` folds the names of declarations and the targets of references in the parsing adapter. Without the key nothing changes (`keep`). The explorer shows names in lower case, as abapGit writes the file names.
+- **Complexity** counts decision keywords, found by the first word of a statement (`IF`, `ELSEIF`, `LOOP`, `DO`, `WHILE`, `CATCH`, `CHECK`, every `WHEN` except `WHEN OTHERS`) and the words `AND`, `OR`, `EQUIV` (also in `BETWEEN a AND b`, so the value is a little high). No cognitive complexity and no Halstead counts (no `MI`), like every basic pack. The spike measured 461 against 437 by a regex count.
+- **References by name only:** `PERFORM name`, `CALL METHOD x=>name`, `name( ... )`. Not found yet: `CALL FUNCTION 'NAME'` (the target would carry the quotes), `SUBMIT`, `INCLUDE`, and nothing is resolved through types. ABAP is therefore a *basic* language, below 99 % (decision of 2026-11-20 for such languages).
+- **Pack format.** A capture whose name starts with `_` is a helper that only a predicate uses (`(#match? @_keyword ...)`); the adapter ignores it in `symbols.scm`, `references.scm` and `metrics.scm`. A declaration that several patterns match with different names is named after the one that starts last (`METHOD zif~name`; for all other packs the patterns capture the same node, so nothing changes).
+- **abapGit layout** (the next steps, no new source type): a folder or Git project that has `.abapgit.xml` in its root is an abapGit project. `STARTING_FOLDER` (default `/src/`) is the scan folder, `FOLDER_LOGIC` (`PREFIX` or `FULL`) tells how the package is read from the path. A file name is `<object>.<type>.<part>.abap` or `.xml` (`zcl_a.clas.abap`, `zcl_a.clas.testclasses.abap`, `zcl_a.clas.xml`, `zif_a.intf.abap`, `zlog.fugr.saplzlog.abap`, `#ns#name.…` for a namespace). The `.abap` files are code; the XML files are metadata and are listed as text, not as a language. Objects are counted by type for the project page (classes, interfaces, programs, function groups; tables, data elements and CDS views as text only, as `DDLS` has its own grammar, a later step). The files of one class belong to one object. Packages come from the folders; `package.devc.xml` gives the description. Tests of the layout use files written for this repository.
+- **Test files:** `*.testclasses.abap` (the local test classes of abapGit) count as test files (reference kind `test`).
+- **Corpus:** a public abapGit repository under MIT (the project `abapGit` itself) in `corpus/abap/`, pinned like the other corpora, with counts checked against an independent count. Nothing from SAP systems or private projects enters this repository (ADR 0017).
+
+## Consequences
+
+- Blueprint 3.3 (R-08) and 8.2 (basic tier: ABAP) are reworded; `docs/language-packs.md` gets a section for the ABAP pack.
+- A new pack means one full scan after the update, as every new pack does (the scan records the installed packs).
+- The binary grows by the parser tables of the grammar (the source is 300 KB); the slim build (`basic-grammars` off) does not contain them.
+- Steps: 1 grammar crate, pack, tests, this ADR; 2 detection of the abapGit layout and objects in the core, the CLI and the REST API; 3 the screens (mock 27); 4 corpus and acceptance. The ADT source (ADR still to write) is not part of this.

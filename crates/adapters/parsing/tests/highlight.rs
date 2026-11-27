@@ -176,6 +176,28 @@ fn ruby_is_coloured_by_its_own_pack() {
 }
 
 #[test]
+fn abap_is_coloured_by_its_own_pack() {
+    let code = [
+        "* note",
+        "CLASS zcl_a IMPLEMENTATION.",
+        "  METHOD run.",
+        "    IF a > 1.",
+        "      x = 'q'.",
+        "    ENDIF.",
+        "  ENDMETHOD.",
+        "ENDCLASS.",
+    ];
+    let spans = run("a.abap", &code);
+    assert_eq!(texts(&code, &spans, TokenClass::Comment), ["* note"]);
+    assert_eq!(texts(&code, &spans, TokenClass::String), ["'q'"]);
+    assert_eq!(texts(&code, &spans, TokenClass::Number), ["1"]);
+    let keywords = texts(&code, &spans, TokenClass::Keyword);
+    assert!(keywords.contains(&"CLASS".to_owned()), "{keywords:?}");
+    assert!(keywords.contains(&"IF".to_owned()), "{keywords:?}");
+    assert_eq!(texts(&code, &spans, TokenClass::Function), ["run"]);
+}
+
+#[test]
 fn php_is_coloured_by_its_own_pack() {
     let code = [
         "<?php",

@@ -1,5 +1,6 @@
 //! A loaded language pack: grammar, rules and compiled queries.
 
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -19,7 +20,7 @@ use crate::consts::{
 };
 use crate::error::ParsingError;
 use crate::grammar;
-use crate::manifest::{DocBlock, DocSummary, PackManifest, QueriesFrom, Tier};
+use crate::manifest::{DocBlock, DocSummary, NameCase, PackManifest, QueriesFrom, Tier};
 use crate::visibility::Visibilities;
 
 /// Everything the analyzer needs to understand one language.
@@ -34,6 +35,8 @@ pub struct LanguagePack {
     pub(crate) separator: String,
     /// Whether the name of the file starts every qualified name (ADR 0036).
     pub(crate) file_in_names: bool,
+    /// How names are compared (ADR 0113).
+    pub(crate) name_case: NameCase,
     /// Whether a name without receiver inside a function can mean a member of its type (ADR 0053).
     pub(crate) bare_names_reach_members: bool,
     /// Whether the question mark of a null-conditional assignment is blanked before parsing (ADR 0094).
@@ -59,6 +62,15 @@ pub struct LanguagePack {
 }
 
 impl LanguagePack {
+    /// The name as the pack compares it: folded to lower case if the language does not tell the
+    /// cases apart (ADR 0113).
+    pub(crate) fn fold_name<'a>(&self, name: &'a str) -> Cow<'a, str> {
+        match self.name_case {
+            NameCase::Keep => Cow::Borrowed(name),
+            NameCase::Lower => Cow::Owned(name.to_lowercase()),
+        }
+    }
+
     /// Loads the pack in `dir`: `language.toml`, `symbols.scm` and the optional `references.scm` and
     /// `metrics.scm`.
     ///
@@ -123,6 +135,7 @@ impl LanguagePack {
             language,
             separator: manifest.separator,
             file_in_names: manifest.file_in_names,
+            name_case: manifest.name_case,
             bare_names_reach_members: manifest.bare_names_reach_members,
             blank_null_conditional_assignment: manifest.blank_null_conditional_assignment,
             comment_nodes: manifest.comment_nodes.into_iter().collect(),

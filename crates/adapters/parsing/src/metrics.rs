@@ -137,7 +137,8 @@ fn record<'t>(found: &mut Found<'t>, owner: SymbolId, role: Role, node: Node<'t>
         }
         Role::Parameter => entry.parameters += 1,
         Role::Literal => drop(entry.literals.insert(node.id())),
-        Role::Comment | Role::Nesting | Role::Continuation | Role::LiteralExempt => {}
+        Role::Comment | Role::Nesting | Role::Continuation | Role::LiteralExempt | Role::Helper => {
+        }
     }
 }
 

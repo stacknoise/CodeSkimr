@@ -177,7 +177,8 @@ impl<'t> Parts<'t> {
             | Capture::Local
             | Capture::Field
             | Capture::DeclaredType
-            | Capture::Scope => {}
+            | Capture::Scope
+            | Capture::Helper => {}
         }
     }
 
@@ -281,6 +282,11 @@ fn comments_before<'t>(
 impl<'t> Declaration<'t> {
     /// Adds the repeated captures of another match of the same declaration.
     fn absorb(&mut self, other: &mut Declaration<'t>) {
+        // A declaration with several names (`METHOD zif_a~name` in ABAP) is named after the last
+        // one, which a pattern of its own captures (ADR 0113).
+        if other.name.start_byte() > self.name.start_byte() {
+            self.name = other.name;
+        }
         self.is_static |= other.is_static;
         self.scope_end = self.scope_end.or(other.scope_end);
         self.owner = self.owner.or(other.owner);
@@ -409,8 +415,8 @@ impl Builder<'_, '_> {
             return Ok(());
         }
         if let Some(owner) = declaration.owner {
-            let owner = text_of(owner, ctx.source);
-            self.enter_owner(owner, declaration.node.end_byte(), true);
+            let owner = ctx.pack.fold_name(text_of(owner, ctx.source));
+            self.enter_owner(&owner, declaration.node.end_byte(), true);
         }
         if declaration.lift && self.stack.len() >= LIFT_MIN_FRAMES {
             return self.add_lifted(declaration);
@@ -439,7 +445,10 @@ impl Builder<'_, '_> {
     /// Adds the symbol of `declaration` as a child of the innermost open frame.
     fn add_member(&mut self, declaration: &Declaration<'_>) -> Result<(), ParsingError> {
         let ctx = self.ctx;
-        let name = text_of(declaration.name, ctx.source).to_owned();
+        let name = ctx
+            .pack
+            .fold_name(text_of(declaration.name, ctx.source))
+            .into_owned();
         let prefix = self
             .stack
             .last()
@@ -459,9 +468,12 @@ impl Builder<'_, '_> {
     /// stays the parent and only the qualified names carry the type, so the names are the same
     /// wherever the block stands.
     fn add_container(&mut self, declaration: &Declaration<'_>) {
-        let name = text_of(declaration.name, self.ctx.source);
+        let name = self
+            .ctx
+            .pack
+            .fold_name(text_of(declaration.name, self.ctx.source));
         let range = declaration.node.byte_range();
-        if let Some(owner) = self.enter_owner(name, range.end, false) {
+        if let Some(owner) = self.enter_owner(&name, range.end, false) {
             self.containers.push((range, owner));
         }
     }

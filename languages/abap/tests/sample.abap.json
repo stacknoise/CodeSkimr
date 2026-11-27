@@ -1,0 +1,247 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 46,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample.abap"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "zif_shape"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "zif_shape=>area"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "zif_shape=>name"
+    },
+    {
+      "decisions": null,
+      "loc": 8,
+      "operands": null,
+      "operators": null,
+      "symbol": "zcl_order"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "zcl_order=>constructor"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "zcl_order=>area"
+    },
+    {
+      "decisions": 4,
+      "loc": 12,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "zcl_order=>calculate"
+    },
+    {
+      "decisions": null,
+      "loc": 2,
+      "operands": null,
+      "operators": null,
+      "symbol": "zcl_order=>helper"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "add_item"
+    },
+    {
+      "decisions": 1,
+      "loc": 8,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "z_send_document"
+    }
+  ],
+  "loc": 46,
+  "references": [
+    {
+      "at": "19:4",
+      "from": "zcl_order=>constructor",
+      "kind": "call",
+      "receiver": null,
+      "target": "helper"
+    },
+    {
+      "at": "34:16",
+      "from": "zcl_order=>calculate",
+      "kind": "call",
+      "receiver": null,
+      "target": "add_item"
+    },
+    {
+      "at": "35:19",
+      "from": "zcl_order=>calculate",
+      "kind": "call",
+      "receiver": null,
+      "target": "run"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "sample.abap",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-56:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "zif_shape",
+      "parent": "sample.abap",
+      "signature": null,
+      "span": "3:0-6:13",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "zif_shape=>area",
+      "parent": "zif_shape",
+      "signature": "area RETURNING VALUE(rv_area) TYPE i",
+      "span": "4:10-4:46",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "zif_shape=>name",
+      "parent": "zif_shape",
+      "signature": "name RETURNING VALUE(rv_name) TYPE string",
+      "span": "5:10-5:51",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "zcl_order",
+      "parent": "sample.abap",
+      "signature": null,
+      "span": "8:0-15:9",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "zcl_order=>constructor",
+      "parent": "zcl_order",
+      "signature": "METHOD constructor.",
+      "span": "18:2-20:12",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "zcl_order=>area",
+      "parent": "zcl_order",
+      "signature": "METHOD zif_shape~area.",
+      "span": "22:2-24:12",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "zcl_order=>calculate",
+      "parent": "zcl_order",
+      "signature": "METHOD calculate.",
+      "span": "26:2-38:12",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "zcl_order=>helper",
+      "parent": "zcl_order",
+      "signature": "METHOD helper. ENDMETHOD.",
+      "span": "40:2-41:12",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "add_item",
+      "parent": "sample.abap",
+      "signature": "FORM add_item USING is_item TYPE ty_item.",
+      "span": "44:0-46:8",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "z_send_document",
+      "parent": "sample.abap",
+      "signature": "FUNCTION z_send_document.",
+      "span": "48:0-55:12",
+      "static": false,
+      "visibility": null
+    }
+  ]
+}

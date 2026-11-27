@@ -8,9 +8,9 @@ use tree_sitter::Query;
 use crate::consts::{
     COGNITIVE_CAPTURE, COGNITIVE_FLAT_CAPTURE, COGNITIVE_SEQUENCE_CAPTURE, COMMENT_CAPTURE,
     CONTAINER_CAPTURE, CONTINUATION_CAPTURE, DECISION_CAPTURE, DECLARED_TYPE_CAPTURE, DOC_CAPTURE,
-    FIELD_CAPTURE, LIFT_CAPTURE, LITERAL_CAPTURE, LITERAL_EXEMPT_CAPTURE, LOCAL_CAPTURE,
-    MODIFIER_CAPTURE, NAME_CAPTURE, NESTING_CAPTURE, OPERAND_CAPTURE, OPERATOR_CAPTURE,
-    OWNER_CAPTURE, PARAMETER_CAPTURE, RECEIVER_BASE_CAPTURE, RECEIVER_CAPTURE,
+    FIELD_CAPTURE, HELPER_CAPTURE_PREFIX, LIFT_CAPTURE, LITERAL_CAPTURE, LITERAL_EXEMPT_CAPTURE,
+    LOCAL_CAPTURE, MODIFIER_CAPTURE, NAME_CAPTURE, NESTING_CAPTURE, OPERAND_CAPTURE,
+    OPERATOR_CAPTURE, OWNER_CAPTURE, PARAMETER_CAPTURE, RECEIVER_BASE_CAPTURE, RECEIVER_CAPTURE,
     RECEIVER_MEMBER_CAPTURE, RECEIVER_OTHER_CAPTURE, RECEIVER_OWN_CAPTURE, RECEIVER_TYPE_CAPTURE,
     REFERENCE_CAPTURE_PREFIX, SCOPE_CAPTURE, SCOPE_END_CAPTURE, SIGNATURE_CAPTURE, STATIC_CAPTURE,
     SYMBOL_CAPTURE_PREFIX, VISIBILITY_CAPTURE,
@@ -70,12 +70,18 @@ pub enum Capture {
     Owner,
     /// Marker: the declaration belongs to the parent of the symbol it is written in.
     Lift,
+    /// A node that only a predicate looks at (`_keyword` in `(#match? @_keyword ...)`); it has no
+    /// meaning for the adapter (ADR 0113).
+    Helper,
 }
 
 impl Capture {
     /// Interprets a capture name; `None` if it is not part of the vocabulary.
     #[must_use]
     pub fn parse(name: &str) -> Option<Self> {
+        if name.starts_with(HELPER_CAPTURE_PREFIX) {
+            return Some(Self::Helper);
+        }
         if let Some(label) = name.strip_prefix(SYMBOL_CAPTURE_PREFIX) {
             return SymbolKind::from_str(label).ok().map(Self::Symbol);
         }
@@ -163,6 +169,8 @@ pub enum MetricRole {
     Literal,
     /// A node whose literal is an exception: it is not reported although `@literal` matches it.
     LiteralExempt,
+    /// A node that only a predicate looks at (`_word`); it counts for nothing (ADR 0113).
+    Helper,
 }
 
 /// The compiled `metrics.scm` of a pack.
@@ -208,6 +216,9 @@ impl MetricsQuery {
 }
 
 fn role_of(name: &str) -> Option<MetricRole> {
+    if name.starts_with(HELPER_CAPTURE_PREFIX) {
+        return Some(MetricRole::Helper);
+    }
     match name {
         COMMENT_CAPTURE => Some(MetricRole::Comment),
         DECISION_CAPTURE => Some(MetricRole::Decision),
