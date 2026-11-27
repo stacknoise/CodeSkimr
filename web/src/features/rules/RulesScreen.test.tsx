@@ -105,7 +105,7 @@ describe("RulesScreen", () => {
   it("shows the layer rule first, says what each layer may use and gives it no new-kind badge", async () => {
     serve();
     render(() => <RulesScreen />);
-    expect(await screen.findByText("Layers")).toBeInTheDocument();
+    expect(await screen.findByText("Api → Domain; Data → nothing")).toBeInTheDocument();
     expect(screen.getByText("Api → Domain; Data → nothing")).toBeInTheDocument();
     expect(screen.getAllByText("new rule kind")).toHaveLength(2);
   });
@@ -129,7 +129,7 @@ describe("RulesScreen", () => {
   it("switches the button off for a Git project and for a project without a scan", async () => {
     serve({ holdable: false });
     const first = render(() => <RulesScreen />);
-    await screen.findByText("Layers");
+    await screen.findByText("Api → Domain; Data → nothing");
     const button = screen.getByRole("button", { name: "Hold state" });
     expect(button).toBeDisabled();
     expect(button.getAttribute("title")).toMatch(/Folder projects only/);
@@ -148,7 +148,7 @@ describe("RulesScreen", () => {
       ),
     );
     render(() => <RulesScreen />);
-    await screen.findByText("Layers");
+    await screen.findByText("Api → Domain; Data → nothing");
     fireEvent.click(screen.getByRole("button", { name: "Hold state" }));
     expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
@@ -159,7 +159,7 @@ describe("RulesScreen", () => {
       Promise.resolve(path.endsWith("project_file.open") ? reply : answer(ANSWER)),
     );
     render(() => <RulesScreen />);
-    await screen.findByText("Layers");
+    await screen.findByText("Api → Domain; Data → nothing");
     fireEvent.click(screen.getByRole("button", { name: "Open .codeskimr.toml" }));
   }
 
@@ -176,7 +176,7 @@ describe("RulesScreen", () => {
   it("switches the open button off for a Git project", async () => {
     serve({ holdable: false });
     render(() => <RulesScreen />);
-    await screen.findByText("Layers");
+    await screen.findByText("Api → Domain; Data → nothing");
     expect(screen.getByRole("button", { name: "Open .codeskimr.toml" })).toBeDisabled();
   });
 

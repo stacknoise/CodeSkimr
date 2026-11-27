@@ -145,6 +145,13 @@ function b1(t){
  <div class="card"><div class="pad" style="display:flex;align-items:center;gap:10px"><b>Schichten</b><span class="sub">Api → Domain · Data → nichts</span><span class="spacer"></span><span class="btn">Schicht-Editor öffnen</span></div></div></div>`,
  cap:'Variante B: eine Bearbeiten-Seite wie der Schicht-Editor, alles zusammen mit einem Speichern. Vorschau der Verstöße erst nach dem Speichern.'});}
 
-const V={a1,a2,a3,b1},THEMES=['petrol','hell','dunkel'],q=new URLSearchParams(location.search),asked=q.get('t'),only=THEMES.find(x=>x===asked),vs=V[q.get('v')]?[q.get('v')]:Object.keys(V);
+/* a4: Reiter Schichten */
+function a4(t){
+ const lay=(n,ns,u)=>`<div class="rc"><div class="h"><b>${n}</b><span class="mono" style="color:var(--muted)">${ns}</span><span class="spacer"></span>${pill('n',u)}<span class="ib">${ic('pen')}</span><span class="ib">${ic('bin')}</span></div></div>`;
+ return frame(t,{name:'erw-regeln-bearbeiten-a4',rail:'rules',body:`<div class="page"><div class="tabs"><span class="tab">Regeln</span><span class="tab on">Schichten</span></div>
+ <div class="head"><h1>Schichten</h1><span class="sub">Namensräume den Schichten zuordnen; die Reihenfolge gilt von außen nach innen</span><span class="spacer"></span><span class="btn">Darf nutzen …</span><span class="btn pri">+ Schicht</span></div>
+ ${lay('Api','Shop.Api, Shop.Orders','darf: Domain')}${lay('Domain','Shop.Domain, Shop.Pricing','kein Limit')}${lay('Data','Shop.Data','darf: nichts')}</div>`,
+ cap:'Die Schichten sind ein Reiter der Seite Regeln. „Schichten bearbeiten“ in den Einstellungen entfällt.'});}
+const V={a1,a2,a3,a4,b1},THEMES=['petrol','hell','dunkel'],q=new URLSearchParams(location.search),asked=q.get('t'),only=THEMES.find(x=>x===asked),vs=V[q.get('v')]?[q.get('v')]:Object.keys(V);
 document.getElementById('root').innerHTML=vs.map(v=>(only?[only]:THEMES).map(t=>V[v](t)).join('')).join('');
 </script></body></html>

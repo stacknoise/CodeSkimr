@@ -16,6 +16,9 @@ import {
   rulesData,
   rulesFailure,
 } from "./rules";
+import { LayersScreen } from "../layers/LayersScreen";
+import { RULES_TAB, RULES_TABS } from "./consts";
+import { rulesTab, showRulesTab } from "./tab";
 import { closeDialog, dialogTarget } from "./editor";
 import { RuleCard } from "./RuleCard";
 import { RuleActions } from "./RuleActions";
@@ -249,8 +252,50 @@ function Header() {
   );
 }
 
-/** The screen "Rules": every architecture rule of the project with its violations (ADR 0104), and
- * the dialogs that create, change and delete them (ADR 0112). */
+/** The tabs "Rules" and "Layers" (ADR 0112): the layers are rules of the project too. */
+function Tabs() {
+  return (
+    <div class={styles.tabs} role="tablist" aria-label={t(I18N_KEYS.RULES_TABS_LABEL)}>
+      <For each={RULES_TABS}>
+        {(tab) => (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={rulesTab() === tab.id}
+            class={rulesTab() === tab.id ? styles.tabOn : styles.tab}
+            onClick={() => showRulesTab(tab.id)}
+          >
+            {t(tab.label)}
+          </button>
+        )}
+      </For>
+    </div>
+  );
+}
+
+/** The tab "Rules": the head, the messages and the rules with their dialogs. */
+function RulesTabPanel() {
+  return (
+    <>
+      <Header />
+      <Show
+        when={activeProject()}
+        fallback={<p class={styles.note}>{t(I18N_KEYS.RULES_NO_PROJECT)}</p>}
+      >
+        <Failure />
+        <HoldResult />
+        <OpenResult />
+        <Show when={rulesData()}>
+          {(data) => <Answer data={data()} project={activeProject()} />}
+        </Show>
+        <Dialog />
+      </Show>
+    </>
+  );
+}
+
+/** The screen "Rules": every architecture rule of the project with its violations (ADR 0104), the
+ * dialogs that create, change and delete them (ADR 0112) and, in the second tab, the layers. */
 export function RulesScreen() {
   createEffect(
     on(activeProject, (id) => {
@@ -266,18 +311,9 @@ export function RulesScreen() {
   });
   return (
     <>
-      <Header />
-      <Show
-        when={activeProject()}
-        fallback={<p class={styles.note}>{t(I18N_KEYS.RULES_NO_PROJECT)}</p>}
-      >
-        <Failure />
-        <HoldResult />
-        <OpenResult />
-        <Show when={rulesData()}>
-          {(data) => <Answer data={data()} project={activeProject()} />}
-        </Show>
-        <Dialog />
+      <Tabs />
+      <Show when={rulesTab() === RULES_TAB.rules} fallback={<LayersScreen />}>
+        <RulesTabPanel />
       </Show>
     </>
   );

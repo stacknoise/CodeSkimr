@@ -28,3 +28,4 @@ Option 1.
 - No behaviour changes for projects that do not use the editor.
 - A rule written by hand and a rule written by the editor look the same in the file.
 - Steps: 1 the writers in the core and the two commands; 2 the menu "Add rule", pen and bin on the cards and the dialogs.
+- **The layer editor moves onto this screen.** The product owner decided on 2026-11-27 that layers belong to the project and are rules too: the screen Rules has two tabs, "Rules" and "Layers", and the layer editor (ADR 0065) is the second one. The entry "Edit layers" in the settings and the route `/layers` are gone; the hints that said "Set layers" open the tab.

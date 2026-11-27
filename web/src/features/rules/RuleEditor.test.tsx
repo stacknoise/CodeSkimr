@@ -76,7 +76,7 @@ describe("the rule editor", () => {
   it("adds a ban through the menu and the dialog and writes the whole rule set", async () => {
     const sent = serveAll();
     render(() => <RulesScreen />);
-    await screen.findByText("Layers");
+    await screen.findByText("Api → Domain");
     fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
     fireEvent.click(screen.getByRole("menuitem", { name: /Ban/ }));
     const dialog = await screen.findByRole("dialog");
@@ -101,7 +101,7 @@ describe("the rule editor", () => {
   it("deletes a ban only after the dialog asks", async () => {
     const sent = serveAll();
     render(() => <RulesScreen />);
-    await screen.findByText("Layers");
+    await screen.findByText("Api → Domain");
     fireEvent.click(screen.getByRole("button", { name: `Delete rule ${RULE.id}` }));
     expect(await screen.findByRole("dialog")).toHaveTextContent("Delete rule?");
     expect(sent["rules.set"]).toBeUndefined();
@@ -112,8 +112,8 @@ describe("the rule editor", () => {
   it("sets what a layer may use with the matrix", async () => {
     const sent = serveAll();
     render(() => <RulesScreen />);
-    await screen.findByText("Layers");
-    fireEvent.click(screen.getByRole("button", { name: `Change rule layers` }));
+    await screen.findByText("Api → Domain");
+    fireEvent.click(screen.getByRole("button", { name: "Change rule layers" }));
     expect(await screen.findByRole("dialog")).toHaveTextContent("who may use whom");
     fireEvent.click(screen.getByLabelText("Domain Limit"));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -129,7 +129,7 @@ describe("the rule editor", () => {
   it("switches the cycle rule on with the menu and closes the dialog with Esc", async () => {
     const sent = serveAll();
     render(() => <RulesScreen />);
-    await screen.findByText("Layers");
+    await screen.findByText("Api → Domain");
     fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
     fireEvent.click(screen.getByRole("menuitem", { name: /Forbid cycles/ }));
     await waitFor(() => expect(sent["rules.set"]?.[0]).toMatchObject({ cycles: true }));
@@ -142,8 +142,21 @@ describe("the rule editor", () => {
   it("offers no editing for a Git project", async () => {
     serveAll({ holdable: false });
     render(() => <RulesScreen />);
-    await screen.findByText("Layers");
+    await screen.findByText("Api → Domain");
     expect(screen.getByRole("button", { name: "Add rule" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: /Change rule/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("the tab Layers", () => {
+  it("shows the layer editor in a second tab", async () => {
+    serveAll();
+    render(() => <RulesScreen />);
+    await screen.findByText("Api → Domain");
+    fireEvent.click(screen.getByRole("tab", { name: "Layers" }));
+    expect(screen.getByRole("tab", { name: "Layers", selected: true })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add rule" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Rules" }));
+    expect(await screen.findByRole("button", { name: "Add rule" })).toBeInTheDocument();
   });
 });

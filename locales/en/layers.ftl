@@ -41,6 +41,3 @@ layers-file-note = Saving only replaces the [[layers]] blocks of the file; the "
 layers-hint-title = No layers set yet
 layers-hint-text = Without layers everything stays ungrouped and the dependency map is empty.
 layers-hint-action = Set layers
-settings-layers-title = Layers
-settings-layers-note = Decide which namespaces belong to which layer. The explorer and the dependency map group by them.
-settings-layers-action = Edit layers
