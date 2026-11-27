@@ -36,9 +36,23 @@ The two selectors choose the scans; "Compare" reads the comparison again. The fo
 
 The list has the same filter row, with "Only with open places" greyed out and explained by a tooltip (the comparison has no checklist), and the same scrollbar. A name or signature that is wider than the list is cut with an ellipsis; the tooltip shows the full text.
 
+## Metrics
+
+![What got worse and what got better](../../screenshots/change/metrics-petrol.png)
+
+The tab "Metrics" answers a second question with the same two scans: which objects got worse by their metrics and which got better. It looks at objects that exist in both scans (the same key as in the comparison); new and removed objects stay in the tab "Comparison". The four figures count the objects that got worse, the ones that got better, the ones that did not move and the ones that cannot be compared (new and removed).
+
+A metric counts as moved only from a threshold, so that a change of one line is not a decline: complexity from 2, maintainability index from 5 points, coupling out from 2, stability from 100 per mille, and lines only when the object grew by 20 or more (settings `compare.metric_*`). A move that crosses the bound of the rating (for example complexity from "ok" to "poor") is marked "past the limit" or "back under the limit" and ranks first. An object can be on both sides, when one of its metrics got worse and another got better.
+
+The chips narrow both lists to one metric. The level chooses what is compared: members (lines, complexity, maintainability), types (and coupling out and stability) or modules (coupling and stability). Coupling and stability do not exist for members; their chips are greyed out with a tooltip, and a metric that was chosen is reset to "All" when you change the level.
+
+Each list is a table with the columns Object, File, Metric, From → to and Change, one row per moved metric. It is sorted the way the answer is (the strongest move first) until you press a column head; the sort and the handles for the widths work as in the tab "Impact". The head of a list says how many of the objects are listed ("12 of 12", or "30 of 30 listed (212 in all)" if the answer was cut).
+
+The button "Copy as Markdown" copies the lists as text for a comment on a pull request, for the chosen level and metric. Without an answer it is greyed out and says why. It is the text `codeskimr compare --metrics --markdown` prints.
+
 ## On the command line
 
-The same answer is available as `codeskimr scans`, `codeskimr compare` and `codeskimr change` (with `--markdown` for a comment on a pull request; the screen has the button "Copy as Markdown" for the same text), and to agents as the MCP tool `impact_of_diff`. The filter of the screen works on the answer the screen holds, so the console equivalent is `--json` and a filter on it, for example `codeskimr change --json | jq '.impact.items[] | select(.symbol.visibility == "public" and .not_touched > 0) | .symbol.qualified_name'` (see the [command line](../../cli.md)). See the [command line](../../cli.md) and [comparison](../../compare.md) references.
+The same answer is available as `codeskimr scans`, `codeskimr compare` (with `--metrics` for the tab "Metrics"), `codeskimr compare --metrics --markdown` and `codeskimr change` (with `--markdown` for a comment on a pull request; the screen has the button "Copy as Markdown" for the same text), and to agents as the MCP tool `impact_of_diff`. The filter of the screen works on the answer the screen holds, so the console equivalent is `--json` and a filter on it, for example `codeskimr change --json | jq '.impact.items[] | select(.symbol.visibility == "public" and .not_touched > 0) | .symbol.qualified_name'` (see the [command line](../../cli.md)). See the [command line](../../cli.md) and [comparison](../../compare.md) references.
 
 ## Keys
 
