@@ -14,6 +14,7 @@ vi.mock("../../shared/editor/editor", async (original) => ({
 
 import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
+import { pendingFocus } from "../../shared/navigation/navigation";
 import { answer, fetchMock, useServerSession } from "../../tests/commands";
 import { ConventionsScreen } from "./ConventionsScreen";
 import { resetConventions } from "./conventions";
@@ -41,6 +42,7 @@ function finding(over: Partial<Finding>): Finding {
     literals: null,
     duplicate_of: null,
     similarity_percent: null,
+    symbol_ref: null,
     ...over,
   };
 }
@@ -141,6 +143,23 @@ describe("the screen Conventions", () => {
     await check();
     fireEvent.click(screen.getAllByRole("button", { name: "Open" })[0] as HTMLElement);
     expect(open).toHaveBeenCalledWith("vscode://file/work/app/src/a.rs:10");
+  });
+
+  it("shows the function of a finding in the explorer and switches the button off without a symbol", async () => {
+    serveCheck({
+      ...ANSWER,
+      findings: [
+        finding({ symbol_ref: { id: 42, kind: "class" } }),
+        finding({ path: "src/b.rs", symbol: "b::run" }),
+      ],
+    });
+    render(() => <ConventionsScreen />);
+    await check();
+    const [on, off] = screen.getAllByRole("button", { name: "Explorer" }) as HTMLElement[];
+    expect(off).toBeDisabled();
+    expect(off?.getAttribute("title")).toMatch(/Scan again/);
+    fireEvent.click(on as HTMLElement);
+    expect(pendingFocus()).toEqual({ type: 42, member: null, kind: null });
   });
 
   it("switches the open button off without an editor and says why", async () => {

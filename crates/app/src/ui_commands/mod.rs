@@ -378,6 +378,7 @@ fn register_views(
         ConventionsCheck {
             ports: Arc::new(ConventionsPorts {
                 projects: catalog.clone(),
+                index: catalog.clone(),
                 global: global.clone(),
                 locations: locations.clone(),
                 running: Runs::default(),

@@ -12,7 +12,11 @@ use super::rules::{RuleOut, SymbolRef};
 /// Looks one name up in the snapshot. A name that no symbol carries (a namespace that only the
 /// layers know, a symbol the scan did not see) or a failed read gives `None`: the name is then
 /// shown as plain text.
-fn resolve(index: &dyn CodeIndex, snapshot: SnapshotId, name: &str) -> Option<SymbolRef> {
+pub(super) fn resolve(
+    index: &dyn CodeIndex,
+    snapshot: SnapshotId,
+    name: &str,
+) -> Option<SymbolRef> {
     let key = SymbolKey::Qualified(QualifiedName::new(name).ok()?);
     let found = index
         .symbol(snapshot, &key)
