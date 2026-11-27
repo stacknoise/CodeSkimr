@@ -95,8 +95,8 @@ rules-layers-none = The project has no layers yet. Set them up in the layer edit
 rules-preview-checking = Checking against the last scan …
 rules-preview-none = With the last scan there would be no violation.
 rules-preview-some = { $count ->
-    [one] With the last scan this would be 1 violation ({ $old } of it already held).
-   *[other] With the last scan this would be { $count } violations ({ $old } of them already held).
+    [one] With the last scan this would be 1 violation ({ $old } already held).
+   *[other] With the last scan this would be { $count } violations ({ $old } already held).
 }
 rules-preview-unscanned = The project has no scan yet, so there is no preview.
 rules-preview-invalid = This is not a rule yet: check the names.
