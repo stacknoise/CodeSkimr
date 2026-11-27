@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { beforeEach, describe, expect, it } from "vitest";
-import { setLanguage } from "../../shared/i18n/i18n";
-import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, useServerSession } from "../../tests/commands";
+import { openProject } from "../../shared/project/active";
+import { setLanguage } from "../../shared/i18n/i18n";
 import { closeDialog } from "./editor";
 import { resetRules } from "./rules";
 import { RulesScreen } from "./RulesScreen";
@@ -50,6 +50,14 @@ const ANSWER: RulesOut = {
   rules: [LAYERS, RULE],
 };
 
+/** Shows the screen and picks an entry of the menu "Add rule". */
+async function pickFromMenu(item: RegExp) {
+  render(() => <RulesScreen />);
+  await screen.findByText("Api → Domain");
+  fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: item }));
+}
+
 /** The bodies of the commands the screen sent, by command id. */
 function serveAll(data: Partial<RulesOut> = {}) {
   const sent: Record<string, unknown[]> = {};
@@ -75,10 +83,7 @@ function serveAll(data: Partial<RulesOut> = {}) {
 describe("the rule editor", () => {
   it("adds a ban through the menu and the dialog and writes the whole rule set", async () => {
     const sent = serveAll();
-    render(() => <RulesScreen />);
-    await screen.findByText("Api → Domain");
-    fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: /Ban/ }));
+    await pickFromMenu(/Ban/);
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent("Add ban");
     fireEvent.input(screen.getByLabelText(/This module/), { target: { value: "Shop.Orders" } });
@@ -128,10 +133,7 @@ describe("the rule editor", () => {
 
   it("switches the cycle rule on with the menu and closes the dialog with Esc", async () => {
     const sent = serveAll();
-    render(() => <RulesScreen />);
-    await screen.findByText("Api → Domain");
-    fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: /Forbid cycles/ }));
+    await pickFromMenu(/Forbid cycles/);
     await waitFor(() => expect(sent["rules.set"]?.[0]).toMatchObject({ cycles: true }));
     fireEvent.click(screen.getByRole("button", { name: `Change rule ${RULE.id}` }));
     await screen.findByRole("dialog");

@@ -1,18 +1,17 @@
 //! The commands that change the rules of a folder project: `rules.set` writes them into the
 //! project file, `rules.preview` judges them first without writing anything (ADR 0112).
 
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use codeskimr_application::access;
 use codeskimr_application::config::{
-    Config, ConfigLayer, CycleRule, ForbidRule, LayerLimit, LayerSource, PROJECT_CONFIG_FILE,
-    PublicApiRule, Rules, with_layer_limits, with_rules,
+    Config, ConfigLayer, CycleRule, ForbidRule, LayerLimit, LayerSource, PublicApiRule, Rules,
+    with_layer_limits, with_rules,
 };
 use codeskimr_application::error::CodedError;
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Permission, ProjectId, ProjectSource};
+use codeskimr_domain::Permission;
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
@@ -22,6 +21,7 @@ use super::consts::{
 use super::explorer::ExplorerPorts;
 use super::layers::update_project_file;
 use super::rules::{Candidate, RulesOut, judged};
+use super::unused_keep::project_file;
 use crate::project_file::read_project_file;
 use crate::rules_check::files_of;
 
@@ -54,16 +54,6 @@ pub struct EditInput {
 pub struct RulesSaved {
     /// Number of rules of the project file now: forbid and public interface entries and cycles.
     pub rules: usize,
-}
-
-/// The path of the project file of a folder project.
-fn path_of(ports: &ExplorerPorts, project: u64) -> Result<(PathBuf, ProjectSource), CodedError> {
-    let project = ports.projects.project(ProjectId::new(project))?;
-    let ProjectSource::Folder(folder) = &project.source else {
-        return Err(CodedError::new(ErrorCode::ProjectSourceInvalid));
-    };
-    let path = std::path::Path::new(folder.as_str()).join(PROJECT_CONFIG_FILE);
-    Ok((path, project.source))
 }
 
 /// The text of the project file `old` with the wanted rules in it. At most `MAX_RULES_PER_CALL`
@@ -115,7 +105,7 @@ impl Command for RulesSet {
     fn execute(&self, request: Request<'_, Self>) -> Result<RulesSaved, CodedError> {
         access::require(request.principal, Permission::Manage)?;
         let input = &request.input;
-        let (path, _) = path_of(&self.ports, input.project)?;
+        let path = project_file(&self.ports, input.project)?;
         let saved = RulesSaved {
             rules: input.forbid.len() + input.public_api.len() + usize::from(input.cycles),
         };
@@ -147,13 +137,13 @@ impl Command for RulesPreview {
     fn execute(&self, request: Request<'_, Self>) -> Result<RulesOut, CodedError> {
         access::require(request.principal, Permission::Read)?;
         let input = &request.input;
-        let (path, source) = path_of(&self.ports, input.project)?;
+        let path = project_file(&self.ports, input.project)?;
+        let (project, snapshot) = self.ports.project_and_newest(input.project)?;
         let text = wanted_text(input, &read_project_file(&path)?)?;
         let layer =
             ConfigLayer::parse(LayerSource::Project, &text).map_err(CodedError::caused_by)?;
         let config = Config::resolve(&[layer]).map_err(CodedError::caused_by)?;
-        let (_, baseline) = files_of(&source)?;
-        let (_, snapshot) = self.ports.project_and_newest(input.project)?;
+        let (_, baseline) = files_of(&project.source)?;
         judged(
             self.ports.references.as_ref(),
             &Candidate {

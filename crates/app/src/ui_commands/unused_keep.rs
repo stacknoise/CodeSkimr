@@ -55,7 +55,10 @@ pub struct Listed {
 }
 
 /// The project file of a folder project.
-fn project_file(ports: &ExplorerPorts, project: u64) -> Result<std::path::PathBuf, CodedError> {
+pub(super) fn project_file(
+    ports: &ExplorerPorts,
+    project: u64,
+) -> Result<std::path::PathBuf, CodedError> {
     let project = ports.projects.project(ProjectId::new(project))?;
     let ProjectSource::Folder(folder) = &project.source else {
         return Err(CodedError::new(ErrorCode::ProjectSourceInvalid));
