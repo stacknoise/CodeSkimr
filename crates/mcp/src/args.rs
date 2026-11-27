@@ -179,6 +179,16 @@ pub struct DiffArgs {
     pub base: Option<u64>,
     /// Snapshot id of the newer scan; the newest scan if left out.
     pub target: Option<u64>,
+    /// Whether to add the metric changes (ADR 0114) under `metrics`: the objects that got worse
+    /// and those that got better by complexity, maintainability, lines and coupling; `false` if
+    /// left out.
+    pub metrics: Option<bool>,
+    /// The level of the metric changes: `module`, `type` or `member`; `member` if left out. Counts
+    /// only with `metrics: true`.
+    pub metrics_level: Option<String>,
+    /// Whether test code counts in the metric changes; `false` if left out. Counts only with
+    /// `metrics: true`.
+    pub include_tests: Option<bool>,
 }
 
 /// Arguments of `check_rules`.

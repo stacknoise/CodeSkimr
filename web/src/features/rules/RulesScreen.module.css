@@ -163,6 +163,27 @@
     overflow-wrap: anywhere;
 }
 
+.link {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-align: left;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+
+.link:hover:not(:disabled) {
+    text-decoration: underline;
+}
+
+.link:disabled {
+    color: var(--muted);
+    cursor: not-allowed;
+}
+
 .arrow,
 .count,
 .places {

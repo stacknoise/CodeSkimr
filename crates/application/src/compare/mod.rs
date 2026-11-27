@@ -10,6 +10,7 @@ mod critical;
 mod impact;
 mod layers;
 pub mod metrics;
+mod metrics_wire;
 pub mod report;
 mod select;
 mod wire;
@@ -20,11 +21,13 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{AnnotationKind, Comparison, ProjectId, SnapshotId, compare_symbols};
 
 use crate::config::Compare;
+pub use crate::consts::CROSSING_INTO_POOR;
 use crate::error::CodedError;
 use crate::ports::{
     AnnotationFilter, AnnotationStore, CodeIndex, ComparisonSource, ScanEntry, UsageIndex,
 };
 pub use metrics::{MetricComparison, MetricRules, MetricsRequest};
+pub use metrics_wire::{MetricChangeOut, MetricsAnswer, MetricsWanted, MoveOut, metrics_request};
 pub use report::{
     ComparisonRequest, CriticalChange, CriticalOutcome, Impact, ImpactUsage, LayerChange,
     LayerChanges, Listed, ScanComparison, SymbolImpact, UsageStatus,
@@ -73,11 +76,21 @@ pub trait ScanDiffs: Send + Sync {
     /// # Errors
     /// `CMP-201`, `CMP-101`, `CMP-301` or a failure of the `STO` group.
     fn compare(&self, request: &ComparisonRequest) -> Result<ScanComparison, CodedError>;
+
+    /// Compares the metrics of the objects of two scans; see [`ScanComparer::compare_metrics`].
+    ///
+    /// # Errors
+    /// `CMP-201`, `CMP-101`, `CMP-301` or a failure of the `STO` group.
+    fn compare_metrics(&self, request: &MetricsRequest) -> Result<MetricComparison, CodedError>;
 }
 
 impl ScanDiffs for ScanComparer {
     fn compare(&self, request: &ComparisonRequest) -> Result<ScanComparison, CodedError> {
         Self::compare(self, request)
+    }
+
+    fn compare_metrics(&self, request: &MetricsRequest) -> Result<MetricComparison, CodedError> {
+        Self::compare_metrics(self, request)
     }
 }
 

@@ -102,7 +102,7 @@ fn civil_from_days(days: i64) -> (i64, i64, i64) {
     (year, month, day)
 }
 
-fn created(value: &Value) -> String {
+pub(crate) fn created(value: &Value) -> String {
     time_text(
         value
             .get(field_name::CREATED)
@@ -316,7 +316,7 @@ pub(crate) fn compare_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<S
     Ok(lines)
 }
 
-fn is_cut(answer: &Value) -> bool {
+pub(crate) fn is_cut(answer: &Value) -> bool {
     answer.get(field_name::IS_CUT).and_then(Value::as_bool) == Some(true)
 }
 

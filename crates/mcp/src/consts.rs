@@ -160,3 +160,6 @@ pub const RULE_CYCLES: &str = "cycles";
 pub const RULE_FORBID: &str = "forbid";
 /// Value of `kind` of a rule that closes the inside of a module.
 pub const RULE_PUBLIC_API: &str = "public_api";
+
+/// Key under which `impact_of_diff` adds the metric changes when it is asked for them (ADR 0114).
+pub const METRICS_KEY: &str = "metrics";

@@ -14,6 +14,9 @@ fn args(base: Option<u64>, target: Option<u64>) -> DiffArgs {
         project: None,
         base,
         target,
+        metrics: None,
+        metrics_level: None,
+        include_tests: None,
     }
 }
 
@@ -72,4 +75,42 @@ fn without_the_right_to_read_nothing_is_answered() {
         .impact_of_diff(&nobody, &args(None, None))
         .unwrap_err();
     assert_eq!(failure.code(), ErrorCode::PermissionDenied);
+}
+
+#[test]
+fn the_metric_changes_come_only_when_they_are_asked_for() {
+    let plain = tools()
+        .impact_of_diff(&Principal::local_owner(), &args(None, None))
+        .unwrap();
+    assert!(plain.get("metrics").is_none());
+    let asked = DiffArgs {
+        metrics: Some(true),
+        ..args(Some(5), Some(6))
+    };
+    let answer = tools()
+        .impact_of_diff(&Principal::local_owner(), &asked)
+        .unwrap();
+    let metrics = &answer["metrics"];
+    assert_eq!(metrics["level"], "member");
+    assert_eq!(metrics["target"]["snapshot"], 6);
+    assert_eq!(
+        metrics["worse"]["items"][0]["name"],
+        "Shop.Checkout.Cart.Pay"
+    );
+    assert_eq!(metrics["worse"]["items"][0]["moves"][0]["metric"], "cc");
+    assert_eq!(metrics["worse"]["items"][0]["crosses"], true);
+    assert_eq!(metrics["better"]["total"], 0);
+}
+
+#[test]
+fn an_unknown_level_of_the_metric_changes_is_refused() {
+    let asked = DiffArgs {
+        metrics: Some(true),
+        metrics_level: Some("galaxy".to_owned()),
+        ..args(None, None)
+    };
+    let error = tools()
+        .impact_of_diff(&Principal::local_owner(), &asked)
+        .unwrap_err();
+    assert_eq!(error.code(), ErrorCode::RequestInvalid);
 }

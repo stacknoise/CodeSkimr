@@ -329,3 +329,26 @@ pub const ABAPGIT_PACKAGE_FILE: &str = "package.devc.xml";
 pub const ABAPGIT_LOGIC_PREFIX_LABEL: &str = "prefix";
 /// Label of the full folder logic in answers.
 pub const ABAPGIT_LOGIC_FULL_LABEL: &str = "full";
+
+/// Label of the level `module` in the metric changes of a comparison (ADR 0114).
+pub const LEVEL_MODULE: &str = "module";
+/// Label of the level `type`.
+pub const LEVEL_TYPE: &str = "type";
+/// Label of the level `member`.
+pub const LEVEL_MEMBER: &str = "member";
+/// Verdict of an object whose metrics only got worse.
+pub const VERDICT_WORSE: &str = "worse";
+/// Verdict of an object whose metrics only got better.
+pub const VERDICT_BETTER: &str = "better";
+/// Verdict of an object whose metrics moved to both sides.
+pub const VERDICT_MIXED: &str = "mixed";
+/// A move of a metric to the worse.
+pub const DIRECTION_WORSE: &str = "worse";
+/// A move of a metric to the better.
+pub const DIRECTION_BETTER: &str = "better";
+/// Lines that grew by at least the growth limit.
+pub const DIRECTION_GREW: &str = "grew";
+/// A value that was not rated poor and is now.
+pub const CROSSING_INTO_POOR: &str = "into_poor";
+/// A value that was rated poor and is not any more.
+pub const CROSSING_OUT_OF_POOR: &str = "out_of_poor";

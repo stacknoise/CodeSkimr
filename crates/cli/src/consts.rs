@@ -678,7 +678,71 @@ pub const ARG_SCAN_TARGET: &str = "target";
 pub const VALUE_SNAPSHOT: &str = "SNAPSHOT";
 /// Flag of `change`: the answer as Markdown.
 pub const ARG_MARKDOWN: &str = "markdown";
+/// Flag of `compare`: the metric changes instead of the changed symbols (ADR 0114).
+pub const ARG_METRICS: &str = "metrics";
+/// Flag of `compare --metrics`: only what got worse.
+pub const ARG_WORSE: &str = "worse";
+/// Flag of `compare --metrics`: only what got better.
+pub const ARG_BETTER: &str = "better";
+/// Option of `compare --metrics`: only objects in which one of these metrics moved.
+pub const ARG_METRIC: &str = "metric";
+/// Option of `compare --metrics`: the level to list.
+pub const ARG_LEVEL: &str = "level";
+/// Placeholder shown for the list of metrics.
+pub const VALUE_METRICS: &str = "METRICS";
+/// Placeholder shown for the level.
+pub const VALUE_LEVEL: &str = "LEVEL";
 
+/// The names the text of `compare --metrics` reads from the JSON of the answer and passes to the
+/// texts (ADR 0114).
+pub mod metrics {
+    /// The field of the answer that lists what got worse (a key of the JSON, not a verdict).
+    pub const WORSE: &str = "worse";
+    /// The field of the answer that lists what got better.
+    pub const BETTER: &str = "better";
+    /// The level of the answer.
+    pub const LEVEL: &str = "level";
+    /// How many objects the newer scan has on the level.
+    pub const LOOKED_AT: &str = "looked_at";
+    /// The moves of one object.
+    pub const MOVES: &str = "moves";
+    /// The metric of a move.
+    pub const METRIC: &str = "metric";
+    /// The value before a move.
+    pub const FROM: &str = "from";
+    /// The value after a move.
+    pub const TO: &str = "to";
+    /// Whether a move crossed the bound of the rating, and which way.
+    pub const CROSSING: &str = "crossing";
+    /// `{ $metric }` and the other arguments of the texts of a move.
+    pub const ARG_METRIC: &str = "metric";
+    /// `{ $from }`.
+    pub const ARG_FROM: &str = "from";
+    /// `{ $to }`.
+    pub const ARG_TO: &str = "to";
+    /// `{ $move }`.
+    pub const ARG_MOVE: &str = "move";
+    /// `{ $crossing }`.
+    pub const ARG_CROSSING: &str = "crossing";
+    /// `{ $moves }`.
+    pub const ARG_MOVES: &str = "moves";
+    /// `{ $level }`.
+    pub const ARG_LEVEL: &str = "level";
+    /// `{ $worse }`.
+    pub const ARG_WORSE: &str = "worse";
+    /// `{ $better }`.
+    pub const ARG_BETTER: &str = "better";
+    /// `{ $looked }`.
+    pub const ARG_LOOKED: &str = "looked";
+    /// Separates the moves of one object.
+    pub const MOVE_JOIN: &str = ", ";
+    /// Values are shown with this many hundredths of precision: the value is multiplied by it,
+    /// rounded and divided again.
+    pub const ROUNDING: f64 = 100.0;
+}
+
+/// Separates the names after `--metric`, so that `--metric cc,mi` names two metrics.
+pub const METRIC_LIST_DELIMITER: char = ',';
 /// What a missing `layer` or `signature` is in the JSON.
 pub const JSON_NULL_TEXT: &str = "null";
 /// What a control character in a text of the project becomes.
