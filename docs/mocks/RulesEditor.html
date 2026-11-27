@@ -152,6 +152,7 @@ function a4(t){
  <div class="head"><h1>Schichten</h1><span class="sub">Namensräume den Schichten zuordnen; die Reihenfolge gilt von außen nach innen</span><span class="spacer"></span><span class="btn">Darf nutzen …</span><span class="btn pri">+ Schicht</span></div>
  ${lay('Api','Shop.Api, Shop.Orders','darf: Domain')}${lay('Domain','Shop.Domain, Shop.Pricing','kein Limit')}${lay('Data','Shop.Data','darf: nichts')}</div>`,
  cap:'Die Schichten sind ein Reiter der Seite Regeln. „Schichten bearbeiten“ in den Einstellungen entfällt.'});}
-const V={a1,a2,a3,a4,b1},THEMES=['petrol','hell','dunkel'],q=new URLSearchParams(location.search),asked=q.get('t'),only=THEMES.find(x=>x===asked),vs=V[q.get('v')]?[q.get('v')]:Object.keys(V);
-document.getElementById('root').innerHTML=vs.map(v=>(only?[only]:THEMES).map(t=>V[v](t)).join('')).join('');
+const V={a1,a2,a3,a4,b1},THEMES=['petrol','hell','dunkel'],q=new URLSearchParams(location.search),asked=q.get('t'),only=THEMES.find(x=>x===asked),want=q.get('v');
+const boards=Object.entries(V).filter(([k])=>want===null||k===want).map(([,f])=>f);
+document.getElementById('root').innerHTML=(boards.length?boards:Object.values(V)).map(f=>(only?[only]:THEMES).map(t=>f(t)).join('')).join('');
 </script></body></html>
