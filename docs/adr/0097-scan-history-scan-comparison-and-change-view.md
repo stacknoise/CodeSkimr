@@ -61,3 +61,7 @@ Decisions made while building work package 3 (#756); they correct decisions 3, 4
 
 - **Decision 1 corrected.** The REST interface has no type `ScanSummary`. Duration and changed files reach the surfaces through the registry command `scans.list` (one row per kept scan) and through the scan header of `scans.compare` and `scans.impact` (`duration_ms`, `files_changed`); the command line and the screen "Scan" read the same fields.
 
+## Addendum 2026-11-27 (button "Copy as Markdown")
+
+- **Registry command `scans.impact_markdown`** (permission `read`) belongs to decision 6. It builds the answer like `scans.impact` and renders it with the same function as `codeskimr change --markdown`; its answer is `{ "markdown" }`. It is the counterpart of `--markdown` in the UI (ADR 0092), so `--markdown` is no longer an exception there.
+

@@ -114,3 +114,5 @@ command-scans-compare-title = Compare two scans
 command-scans-compare-description = Compares two scans of a project that are kept (by default the newest and the one before it) and lists the symbols that were added, removed, changed or moved, the new layer violations and cycles, and the critical symbols the difference touches.
 command-scans-impact-title = Show what a change hits
 command-scans-impact-description = Compares two scans of a project that are kept and lists, for every removed symbol and every symbol whose signature or visibility changed, its direct usages in the older scan, split into adapted and not touched. Only direct usages are known.
+command-scans-impact-markdown-title = Show the impact as Markdown
+command-scans-impact-markdown-description = Makes the impact of a change (the same answer as the one of showing what a change hits) as the Markdown text that `codeskimr change --markdown` prints and a comment on a pull request holds: the numbers, the checklist of the places not touched and the new layer violations and cycles. The text is in the language given, or in the saved language of the user.

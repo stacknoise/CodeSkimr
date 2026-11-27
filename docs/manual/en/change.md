@@ -18,6 +18,8 @@ A usage is "adapted" when the symbol that holds it is itself changed, moved or r
 
 Under the table the screen names new layer violations and new layer cycles (dependencies between layers that the target scan has and the base scan did not have) and the critical symbols the difference touches.
 
+The button "Copy as Markdown" at the top right copies the impact as text for a comment on a pull request: the numbers, the checklist of the places not touched, new layer violations and cycles. It is the text `codeskimr change --markdown` prints, in the language of the screen. The button says "Copied", or "Not copied" if the browser refuses the clipboard.
+
 Only direct usages are known. Calls by reflection, in strings or from other repositories are not seen; the screen says so. If a list was cut to its limit (`compare.max_symbols`, `compare.max_usages` in the configuration), a line says so.
 
 ## Comparison
@@ -28,7 +30,7 @@ The two selectors choose the scans; "Compare" reads the comparison again. The fo
 
 ## On the command line
 
-The same answer is available as `codeskimr scans`, `codeskimr compare` and `codeskimr change` (with `--markdown` for a comment on a pull request), and to agents as the MCP tool `impact_of_diff`. See the [command line](../../cli.md) and [comparison](../../compare.md) references.
+The same answer is available as `codeskimr scans`, `codeskimr compare` and `codeskimr change` (with `--markdown` for a comment on a pull request; the screen has the button "Copy as Markdown" for the same text), and to agents as the MCP tool `impact_of_diff`. See the [command line](../../cli.md) and [comparison](../../compare.md) references.
 
 ## Keys
 
