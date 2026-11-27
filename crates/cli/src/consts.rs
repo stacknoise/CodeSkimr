@@ -435,6 +435,12 @@ pub const ARG_ASSESSMENT: &str = "assessment";
 pub const VALUE_ASSESSMENT: &str = "ASSESSMENT";
 /// The assessments the command line accepts.
 pub const ASSESSMENTS: [&str; 3] = ["likely", "public", "approximate"];
+/// Option of `unused`: only symbols with this reason.
+pub const ARG_REASON: &str = "reason";
+/// Placeholder shown for the reason.
+pub const VALUE_REASON: &str = "REASON";
+/// The reasons the command line accepts.
+pub const REASONS: [&str; 4] = ["private", "internal", "public", "approximate"];
 /// The groups of kinds `unused` accepts.
 pub const UNUSED_KINDS: [&str; 3] = ["all", "types", "functions"];
 /// Argument id of the search text of `symbols`.

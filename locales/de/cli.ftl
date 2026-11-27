@@ -260,6 +260,7 @@ cli-arg-budget = Wie viel die Antwort enthält: short, medium (Standard) oder lo
 cli-arg-unused-kind = Nur diese Symbole: all (Standard), types oder functions
 cli-arg-language-filter = Nur Symbole dieser Sprache, etwa csharp oder python
 cli-arg-assessment = Nur Symbole mit dieser Einschätzung: likely, public oder approximate
+cli-arg-reason = Nur Symbole mit dieser Begründung: private, internal, public oder approximate
 cli-cmd-preview-rename = Zeigen, was ein neuer Name für ein Symbol träfe: Stellen im Code, Namenskonflikte und Text-Treffer; ändert nichts (die Antwort von preview_rename)
 cli-arg-query-new-name = Der neue Name: Buchstaben, Ziffern und Unterstriche, nicht mit einer Ziffer beginnend
 cli-rename-head = Umbenennen prüfen: { $name } -> { $new }. CodeSkimr ändert nichts.

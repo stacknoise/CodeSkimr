@@ -3,9 +3,16 @@ import { ApiError } from "../../shared/api/client";
 import { runCommand } from "../../shared/api/commands";
 import { showUsages } from "../../shared/navigation/navigation";
 import { openHit } from "../search/search";
-import { COMMAND, KINDS_ALL, ORDER_CERTAIN, ROW_LIMIT, TAB } from "./consts";
+import {
+  COMMAND,
+  FILTER_FIELD,
+  KINDS_ALL,
+  ORDER_CERTAIN,
+  ROW_LIMIT,
+  TAB,
+  UNUSED_FILTERS,
+} from "./consts";
 import type {
-  Assessment,
   Kinds,
   Order,
   Overview,
@@ -13,6 +20,7 @@ import type {
   RankingName,
   Row,
   Tab,
+  UnusedFilter,
 } from "./types";
 
 const [tab, setTab] = createSignal<Tab>(TAB.overview);
@@ -20,7 +28,7 @@ const [tests, setTests] = createSignal(false);
 const [kinds, setKinds] = createSignal<Kinds>(KINDS_ALL);
 const [language, setLanguage] = createSignal<string | null>(null);
 const [order, setOrder] = createSignal<Order>(ORDER_CERTAIN);
-const [assessment, setAssessment] = createSignal<Assessment | null>(null);
+const [assessment, setAssessment] = createSignal<UnusedFilter | null>(null);
 const [overview, setOverview] = createSignal<Overview | null>(null);
 const [ranking, setRanking] = createSignal<RankingAnswer | null>(null);
 const [selected, setSelected] = createSignal<number | null>(null);
@@ -53,7 +61,7 @@ export const setStatsLanguage = setLanguage;
 /** Which count the most used symbols are sorted by. */
 export const statsOrder = order;
 export const setStatsOrder = setOrder;
-/** The assessment the unused symbols are cut to, `null` for all. */
+/** The assessment or reason the unused symbols are cut to, `null` for all. */
 export const statsAssessment = assessment;
 export const setStatsAssessment = setAssessment;
 /** The overview that was loaded last, `null` until the first answer. */
@@ -86,6 +94,13 @@ export function currentRow(): Row | null {
   return ranking()?.rows.find((row) => row.id === selected()) ?? null;
 }
 
+/** The value of the filter of the unused symbols for one field of the request. */
+function filterFor(field: keyof typeof FILTER_FIELD, name: RankingName): UnusedFilter | null {
+  const chosen = assessment();
+  const entry = UNUSED_FILTERS.find((candidate) => candidate.id === chosen);
+  return name === TAB.unused && entry?.field === field ? entry.id : null;
+}
+
 function rankingInput(project: number, name: RankingName) {
   return {
     project,
@@ -95,7 +110,8 @@ function rankingInput(project: number, name: RankingName) {
     language: language(),
     include_tests: tests(),
     order: order(),
-    assessment: name === TAB.unused ? assessment() : null,
+    assessment: filterFor(FILTER_FIELD.assessment, name),
+    reason: filterFor(FILTER_FIELD.reason, name),
     limit: ROW_LIMIT,
   };
 }

@@ -438,6 +438,8 @@ pub struct UnusedQuery {
     pub language: Option<String>,
     /// `likely`, `public` or `approximate`.
     pub assessment: Option<String>,
+    /// `private`, `internal`, `public` or `approximate`.
+    pub reason: Option<String>,
     /// Test code counts.
     pub include_tests: bool,
     /// Number of symbols.
