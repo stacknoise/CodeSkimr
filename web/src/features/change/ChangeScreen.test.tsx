@@ -425,18 +425,6 @@ describe("ChangeScreen, button Copy as Markdown", () => {
     expect(bodiesOf("scans.metrics_markdown").at(-1)).toMatchObject({ metrics: ["mi"] });
   });
 
-  it("greys out the button of the metrics with the reason while there is nothing to copy", async () => {
-    serveChange({
-      "scans.metrics": () => answer({ code: "CMP-201", message: "x", retryable: false }, 400),
-    });
-    render(() => <ChangeScreen />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Metrics" }));
-    await screen.findByRole("alert");
-    const button = screen.getByRole("button", { name: "Copy as Markdown" });
-    expect(button).toBeDisabled();
-    expect(button).toHaveAttribute("title", expect.stringContaining("could not be read"));
-  });
-
   it("says so when the browser has no clipboard", async () => {
     setClipboard(undefined);
     serveChange({ "scans.impact_markdown": () => answer(TEXT) });
@@ -762,5 +750,8 @@ describe("ChangeScreen, view Metrics", () => {
     render(() => <ChangeScreen />);
     fireEvent.click(await screen.findByRole("tab", { name: "Metrics" }));
     expect(await screen.findByRole("alert")).toBeInTheDocument();
+    const copy = screen.getByRole("button", { name: "Copy as Markdown" });
+    expect(copy).toBeDisabled();
+    expect(copy).toHaveAttribute("title", expect.stringContaining("could not be read"));
   });
 });
