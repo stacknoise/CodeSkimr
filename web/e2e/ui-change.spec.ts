@@ -231,6 +231,15 @@ inEachTheme(
     await page.getByRole("button", { name: "Only public" }).focus();
     await page.keyboard.press("Enter");
     await expect.poll(async () => (await counts(page)).shown).toBeLessThan(named);
+    // A press on a head sorts what the filter left; the selected row stays selected.
+    const selectedBefore = await grid.locator("tr[aria-selected='true']").textContent();
+    await grid.getByRole("button", { name: "Symbol" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(grid.getByRole("columnheader", { name: /Symbol/ })).toHaveAttribute(
+      "aria-sort",
+      "ascending",
+    );
+    expect(await grid.locator("tr[aria-selected='true']").textContent()).toBe(selectedBefore);
     await search.fill("no such symbol");
     await expect(page.getByText("No symbol matches the filter.")).toBeVisible();
     await page.getByRole("button", { name: "Reset filter" }).click();
@@ -257,6 +266,12 @@ inEachTheme(
     await expect(page.getByRole("button", { name: "Only with open places" })).toBeDisabled();
     await search.fill("Item00");
     await expect.poll(async () => (await counts(page)).shown).toBe(named);
+    const compareTable = page.getByRole("table", { name: "The symbols of the difference" });
+    await compareTable.getByRole("button", { name: "File" }).click();
+    await expect(compareTable.getByRole("columnheader", { name: /File/ })).toHaveAttribute(
+      "aria-sort",
+      "ascending",
+    );
     await shot(page, SHOTS, `compare-many-${theme}`, info);
   },
 );

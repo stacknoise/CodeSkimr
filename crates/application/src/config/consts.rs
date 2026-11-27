@@ -130,6 +130,16 @@ pub mod keys {
     pub const COMPARE_MAX_SYMBOLS: &str = "compare.max_symbols";
     /// `compare.max_usages`
     pub const COMPARE_MAX_USAGES: &str = "compare.max_usages";
+    /// `compare.metric_min_cc`
+    pub const COMPARE_METRIC_MIN_CC: &str = "compare.metric_min_cc";
+    /// `compare.metric_min_mi`
+    pub const COMPARE_METRIC_MIN_MI: &str = "compare.metric_min_mi";
+    /// `compare.metric_min_ce`
+    pub const COMPARE_METRIC_MIN_CE: &str = "compare.metric_min_ce";
+    /// `compare.metric_min_instability`
+    pub const COMPARE_METRIC_MIN_INSTABILITY: &str = "compare.metric_min_instability";
+    /// `compare.metric_loc_growth`
+    pub const COMPARE_METRIC_LOC_GROWTH: &str = "compare.metric_loc_growth";
     /// `similarity.ngram_size`
     pub const NGRAM_SIZE: &str = "similarity.ngram_size";
     /// `similarity.window_size`

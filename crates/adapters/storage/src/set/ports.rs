@@ -21,9 +21,9 @@ use codeskimr_application::ports::{
 use codeskimr_application::stage::PersistStep;
 use codeskimr_domain::{
     Alert, AlertId, Annotation, AnnotationId, ContentHash, FileId, Fingerprints, LayerEdge,
-    NamespaceGraph, Project, ProjectId, QualifiedName, RankingQuery, Reference, RelativePath,
-    Scope, Snapshot, SnapshotId, SourceFile, Symbol, SymbolBaseline, SymbolFact, SymbolFacts,
-    SymbolId, SymbolName, SymbolPair, ToolReport, UsageQuery,
+    MetricFact, NamespaceGraph, Project, ProjectId, QualifiedName, RankingQuery, Reference,
+    RelativePath, Scope, Snapshot, SnapshotId, SourceFile, Symbol, SymbolBaseline, SymbolFact,
+    SymbolFacts, SymbolId, SymbolName, SymbolPair, ToolReport, UsageQuery,
 };
 
 use super::SqliteStore;
@@ -184,6 +184,7 @@ impl SymbolStates for SqliteStore {
 impl ComparisonSource for SqliteStore {
     forward! { ComparisonSource via of_snapshot:
         fn comparison_facts(&self, snapshot: SnapshotId) -> Result<Vec<SymbolFact>, CodedError>;
+        fn metric_facts(&self, snapshot: SnapshotId) -> Result<Vec<MetricFact>, CodedError>;
         fn snapshot_naming_rules(&self, snapshot: SnapshotId) -> Result<Option<String>, CodedError>;
     }
 }

@@ -9,6 +9,7 @@
 mod critical;
 mod impact;
 mod layers;
+pub mod metrics;
 pub mod report;
 mod select;
 mod wire;
@@ -23,6 +24,7 @@ use crate::error::CodedError;
 use crate::ports::{
     AnnotationFilter, AnnotationStore, CodeIndex, ComparisonSource, ScanEntry, UsageIndex,
 };
+pub use metrics::{MetricComparison, MetricRules, MetricsRequest};
 pub use report::{
     ComparisonRequest, CriticalChange, CriticalOutcome, Impact, ImpactUsage, LayerChange,
     LayerChanges, Listed, ScanComparison, SymbolImpact, UsageStatus,
@@ -83,13 +85,18 @@ impl ScanDiffs for ScanComparer {
 pub struct ScanComparer {
     ports: ComparePorts,
     limits: CompareLimits,
+    rules: MetricRules,
 }
 
 impl ScanComparer {
     /// A use case over the ports and the limits of `compare.*`.
     #[must_use]
-    pub const fn new(ports: ComparePorts, limits: CompareLimits) -> Self {
-        Self { ports, limits }
+    pub const fn new(ports: ComparePorts, limits: CompareLimits, rules: MetricRules) -> Self {
+        Self {
+            ports,
+            limits,
+            rules,
+        }
     }
 
     /// Compares the two scans the request names (or the newest and the one before it) and, if

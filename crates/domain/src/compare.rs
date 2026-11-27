@@ -59,19 +59,23 @@ pub struct SymbolIdentity {
     pub parameters: Vec<String>,
 }
 
+impl SymbolIdentity {
+    /// The key of a symbol of `kind` named `name` with the signature as written, if it has one.
+    #[must_use]
+    pub fn of(kind: SymbolKind, name: &QualifiedName, signature: Option<&str>) -> Self {
+        Self {
+            kind,
+            name: name.clone(),
+            parameters: signature.map(signature_parameters).unwrap_or_default(),
+        }
+    }
+}
+
 impl SymbolFact {
     /// The key of the symbol.
     #[must_use]
     pub fn identity(&self) -> SymbolIdentity {
-        SymbolIdentity {
-            kind: self.kind,
-            name: self.qualified_name.clone(),
-            parameters: self
-                .signature
-                .as_deref()
-                .map(signature_parameters)
-                .unwrap_or_default(),
-        }
+        SymbolIdentity::of(self.kind, &self.qualified_name, self.signature.as_deref())
     }
 
     /// Whether the symbol takes part in a comparison: a type, a callable, a property, a field, a

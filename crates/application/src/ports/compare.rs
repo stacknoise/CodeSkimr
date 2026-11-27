@@ -1,6 +1,6 @@
 //! The reads that the comparison of two scans needs (ADR 0097; adapter: `codeskimr_storage`).
 
-use codeskimr_domain::{SnapshotId, SymbolFact};
+use codeskimr_domain::{MetricFact, SnapshotId, SymbolFact};
 
 use crate::error::CodedError;
 
@@ -14,6 +14,14 @@ pub trait ComparisonSource: Send + Sync {
     /// # Errors
     /// A coded failure of the `STO` group.
     fn comparison_facts(&self, snapshot: SnapshotId) -> Result<Vec<SymbolFact>, CodedError>;
+
+    /// The comparable objects of `snapshot` with their measured values (ADR 0114): the symbols of
+    /// `SymbolFact::takes_part` and the namespaces and modules, of origin level 1 only, ordered by
+    /// id. Empty for a snapshot that does not exist or that retention has removed.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn metric_facts(&self, snapshot: SnapshotId) -> Result<Vec<MetricFact>, CodedError>;
 
     /// The naming rules `snapshot` was scanned with, `None` for a snapshot that has no record
     /// (written before ADR 0036) or that does not exist.

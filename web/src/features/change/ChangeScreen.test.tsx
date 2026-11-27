@@ -314,6 +314,60 @@ describe("ChangeScreen, filter of the symbols", () => {
   });
 });
 
+/** The names in the first column of the rows of a table, in the order shown. */
+function firstColumn(table: HTMLElement): string[] {
+  return within(table)
+    .getAllByRole("row")
+    .slice(1)
+    .map((row) => row.querySelector("td")?.textContent ?? "");
+}
+
+describe("ChangeScreen, order of the lists", () => {
+  it("sorts the table of the impact by a column head, after the filter, and keeps the selection", async () => {
+    serveChange();
+    render(() => <ChangeScreen />);
+    const grid = await screen.findByRole("grid", { name: "Symbols the change touches" });
+    const selected = () => grid.querySelector("tr[aria-selected='true']")?.textContent ?? "";
+    expect(selected()).toContain("Price.Round");
+    fireEvent.click(within(grid).getByRole("button", { name: "Symbol" }));
+    expect(firstColumn(grid).map((text) => text.replace(/^\W*\w\s?/, ""))).toEqual([
+      expect.stringContaining("DiscountPolicy"),
+      expect.stringContaining("LegacyPricing"),
+      expect.stringContaining("Money.Format"),
+      expect.stringContaining("Price.Round"),
+    ]);
+    expect(within(grid).getByRole("columnheader", { name: /Symbol/ })).toHaveAttribute(
+      "aria-sort",
+      "ascending",
+    );
+    expect(selected()).toContain("Price.Round");
+    fireEvent.click(within(grid).getByRole("button", { name: "Symbol" }));
+    expect(firstColumn(grid)[0]).toContain("Price.Round");
+    fireEvent.click(within(grid).getByRole("button", { name: "Symbol" }));
+    expect(firstColumn(grid)[0]).toContain("LegacyPricing");
+    fireEvent.click(within(grid).getByRole("button", { name: "Symbol" }));
+    fireEvent.input(screen.getByRole("searchbox", { name: SEARCH }), { target: { value: "o" } });
+    expect(screen.getByText("3 of 4")).toBeInTheDocument();
+  });
+
+  it("sorts the list of the comparison by a column head and filters first", async () => {
+    showChangeTab(TAB.compare);
+    serveChange();
+    render(() => <ChangeScreen />);
+    const list = await screen.findByRole("table", { name: "The symbols of the difference" });
+    fireEvent.click(within(list).getByRole("button", { name: "File" }));
+    const files = within(list)
+      .getAllByRole("row")
+      .slice(1)
+      .map((row) => row.querySelectorAll("td")[2]?.textContent);
+    expect(files).toEqual([...files].sort((a, b) => (a ?? "").localeCompare(b ?? "")));
+    fireEvent.input(screen.getByRole("searchbox", { name: SEARCH }), {
+      target: { value: "money" },
+    });
+    expect(within(list).getAllByRole("row")).toHaveLength(2);
+  });
+});
+
 describe("ChangeScreen, button Copy as Markdown", () => {
   const setClipboard = useClipboard();
   const TEXT = { markdown: "<!-- codeskimr-change -->\n## Impact" };

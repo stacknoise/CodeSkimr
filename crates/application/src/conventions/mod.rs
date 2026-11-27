@@ -6,7 +6,7 @@
 //! see unscanned edits. The report lists what it does not check in `not_checked`.
 
 mod allowed;
-mod checker;
+pub(crate) mod checker;
 mod duplicates;
 mod layering;
 mod length;

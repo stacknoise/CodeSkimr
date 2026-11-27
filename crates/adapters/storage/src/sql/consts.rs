@@ -594,6 +594,14 @@ pub const COMPARISON_FACTS: &str = "SELECT s.id, s.kind, s.qualified_name, s.sig
     s.visibility, f.path, s.content_hash \
     FROM symbol_rows s CROSS JOIN files f ON f.snapshot_id = ?1 AND f.id = s.file_id \
     WHERE s.origin = ?3 AND +s.kind IN (SELECT value FROM json_each(?2)) ORDER BY s.id";
+/// The measured values of the comparable objects of a snapshot, one row per object and metric, in
+/// the order of the object (ADR 0114): snapshot, kinds as a JSON list, origin.
+pub const METRIC_FACTS: &str = "SELECT s.id, s.kind, s.qualified_name, s.signature, f.path, \
+    m.kind, m.value \
+    FROM metrics m CROSS JOIN symbol_rows s ON s.id = m.symbol_id \
+    CROSS JOIN files f ON f.snapshot_id = ?1 AND f.id = s.file_id \
+    WHERE m.snapshot_id = ?1 AND s.origin = ?3 AND +s.kind IN (SELECT value FROM json_each(?2)) \
+    ORDER BY s.id, m.kind";
 /// The naming rules of the newest snapshot of a project; no row without a snapshot, `NULL` for one
 /// from before the record existed.
 pub const SNAPSHOT_NAMING_LATEST: &str = "SELECT naming_rules FROM snapshots WHERE project_id = ?1 AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1) ORDER BY id DESC LIMIT 1";

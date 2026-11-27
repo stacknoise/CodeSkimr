@@ -1,5 +1,5 @@
 import { createEffect, createMemo, Show } from "solid-js";
-import { t } from "../../shared/i18n/i18n";
+import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { cx } from "../../shared/ui/cx";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { changeRowKey, selectChangeRow } from "./change";
@@ -8,6 +8,7 @@ import { MARK } from "./consts";
 import { Figure } from "./Figure";
 import { Notes } from "./Notes";
 import { changeFilter, kindsOf, passes } from "./filter";
+import { impactOrder, impactValue, sortedBy } from "./order";
 import {
   affectedFiles,
   answerTotal,
@@ -62,12 +63,18 @@ function Figures(props: { answer: ChangeAnswer }) {
   );
 }
 
-/** The rows of the table that pass the filter. If the selected row is held back, the selection
+/** The rows of the table that pass the filter, in the order of the sort (the sort works on what the
+ * filter left). If the selected row is held back, the selection
  * moves to the first row that is left (or to none), so the panel never shows a hidden symbol. */
 function visibleRows(answer: () => ChangeAnswer) {
   const rows = createMemo(() => impactRows(answer()));
   const visible = createMemo(() =>
-    rows().filter((row) => passes(factsOf(row), changeFilter(), true)),
+    sortedBy(
+      rows().filter((row) => passes(factsOf(row), changeFilter(), true)),
+      impactOrder(),
+      impactValue,
+      currentLanguage(),
+    ),
   );
   createEffect(() => {
     const key = changeRowKey();

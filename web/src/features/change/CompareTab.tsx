@@ -1,10 +1,14 @@
 import { createMemo, For, Show } from "solid-js";
-import { t } from "../../shared/i18n/i18n";
+import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { createTableColumns } from "../../shared/table/columns";
+import { ColumnWidths } from "../../shared/table/ResizableHead";
 import { cx } from "../../shared/ui/cx";
 import { Pill } from "../../shared/ui/Pill";
 import { changePicked, changeReading, changeScans, loadChange, pickScans } from "./change";
 import {
+  COMPARE_COLUMNS,
+  COMPARE_TABLE_KEY,
   NOT_FOUND,
   BASE_FIELD_ID,
   REASON,
@@ -16,6 +20,8 @@ import { ChangeFilterBar, FilterEmpty } from "./ChangeFilter";
 import { changeFilter, kindsOf, passes } from "./filter";
 import { Figure } from "./Figure";
 import { Notes } from "./Notes";
+import { compareOrder, compareValue, sortCompareBy, sortedBy } from "./order";
+import { SortHeads } from "./SortHeads";
 import { answerTotal, compareRows, reasonCount, type CompareRow } from "./rows";
 import { optionText } from "./scans";
 import type { ChangeAnswer } from "./types";
@@ -154,6 +160,11 @@ function titleOf(row: CompareRow): string {
   return [row.name, row.signature].filter((part) => part !== null).join(TITLE_JOIN);
 }
 
+const columns = createTableColumns(
+  COMPARE_TABLE_KEY,
+  COMPARE_COLUMNS.map((column) => column.id),
+);
+
 /** One row of the list: the pills, the symbol with its signature, and the file. */
 function Row(props: { row: CompareRow }) {
   return (
@@ -174,11 +185,42 @@ function Row(props: { row: CompareRow }) {
   );
 }
 
+/** The table of the rows, in a box that scrolls: the heads sort it and have the handles for the widths. */
+function RowsTable(props: { rows: readonly CompareRow[] }) {
+  return (
+    <div class={styles.scroll}>
+      <table
+        class={parts.table}
+        style={columns.style()}
+        aria-label={t(I18N_KEYS.CHANGE_VIEW_LIST_LABEL)}
+      >
+        <ColumnWidths columns={columns} />
+        <thead>
+          <SortHeads
+            columns={columns}
+            heads={COMPARE_COLUMNS}
+            sort={compareOrder()}
+            onSort={sortCompareBy}
+          />
+        </thead>
+        <tbody>
+          <For each={props.rows}>{(row) => <Row row={row} />}</For>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /** The filter row and the rows that pass it, in a box that scrolls on its own. */
 function SymbolList(props: { answer: ChangeAnswer }) {
   const rows = createMemo(() => compareRows(props.answer));
   const visible = createMemo(() =>
-    rows().filter((row) => passes(row.facts, changeFilter(), false)),
+    sortedBy(
+      rows().filter((row) => passes(row.facts, changeFilter(), false)),
+      compareOrder(),
+      compareValue,
+      currentLanguage(),
+    ),
   );
   return (
     <div class={cx(parts.card, styles.list)}>
@@ -192,13 +234,7 @@ function SymbolList(props: { answer: ChangeAnswer }) {
         }}
       />
       <Show when={visible().length > 0} fallback={<FilterEmpty />}>
-        <div class={styles.scroll}>
-          <table class={parts.table} aria-label={t(I18N_KEYS.CHANGE_VIEW_LIST_LABEL)}>
-            <tbody>
-              <For each={visible()}>{(row) => <Row row={row} />}</For>
-            </tbody>
-          </table>
-        </div>
+        <RowsTable rows={visible()} />
       </Show>
       <Notes answer={props.answer} />
     </div>
