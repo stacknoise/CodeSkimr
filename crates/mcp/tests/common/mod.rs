@@ -1393,4 +1393,53 @@ impl codeskimr_application::compare::ScanDiffs for FakeDiffs {
         }
         Ok(sample_comparison(request))
     }
+
+    fn compare_metrics(
+        &self,
+        request: &codeskimr_application::compare::MetricsRequest,
+    ) -> Result<codeskimr_application::compare::MetricComparison, CodedError> {
+        Ok(sample_metrics(request))
+    }
+}
+
+/// One object that got worse between the two scans the request names.
+fn sample_metrics(
+    request: &codeskimr_application::compare::MetricsRequest,
+) -> codeskimr_application::compare::MetricComparison {
+    use codeskimr_application::compare::{Listed, MetricComparison};
+    use codeskimr_domain::{
+        Crossing, MetricChange, MetricFact, MetricKind, MetricMove, MetricValues, MoveDirection,
+        QualifiedName, RelativePath, SymbolKind, Verdict,
+    };
+    let fact = |cc| MetricFact {
+        kind: SymbolKind::Method,
+        qualified_name: QualifiedName::new("Shop.Checkout.Cart.Pay").unwrap(),
+        signature: None,
+        path: RelativePath::new("src/cart.cs").unwrap(),
+        values: MetricValues {
+            cc: Some(cc),
+            ..MetricValues::default()
+        },
+    };
+    let worse = MetricChange {
+        base: fact(6.0),
+        target: fact(14.0),
+        moves: vec![MetricMove {
+            kind: MetricKind::CyclomaticComplexity,
+            from: 6.0,
+            to: 14.0,
+            direction: MoveDirection::Worse,
+            crossing: Some(Crossing::IntoPoor),
+        }],
+        verdict: Verdict::Worse,
+    };
+    MetricComparison {
+        project: PROJECT,
+        base: scan_entry(request.base.map_or(1, SnapshotId::get)),
+        target: scan_entry(request.target.map_or(2, SnapshotId::get)),
+        level: request.level,
+        looked_at: 40,
+        worse: Listed::cut(vec![worse], 10),
+        better: Listed::cut(Vec::new(), 10),
+    }
 }

@@ -122,7 +122,7 @@ impl MetricChangeOut {
             kind: change.target.kind.label(),
             path: change.target.path.as_str().to_owned(),
             verdict: verdict_label(change.verdict),
-            crosses: change.crosses(),
+            crosses: change.crosses_on(side),
             moves: change.moves_of(side).iter().map(MoveOut::from).collect(),
         }
     }

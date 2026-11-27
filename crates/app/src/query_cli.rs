@@ -10,17 +10,20 @@ use std::sync::Arc;
 
 use codeskimr_application::access;
 use codeskimr_application::cancel::CancelToken;
-use codeskimr_application::compare::{ComparisonAnswer, ComparisonRequest, ScanListAnswer};
+use codeskimr_application::compare::{
+    ComparisonAnswer, ComparisonRequest, MetricsAnswer, MetricsRequest, ScanListAnswer,
+    parse_judged_metric, parse_level,
+};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{Clock, CodeIndex, FileDiscovery, ProjectRepository};
 use codeskimr_cli::{
-    CompareQuery, ContextQuery, ImpactQuery, ModulesQuery, QueryAction, QueryKind, RenameQuery,
-    RulesQuery, SymbolsQuery, UnusedQuery, UsagesQuery, change_markdown, query_code_report,
-    query_error_json, query_json, query_text,
+    CompareQuery, ContextQuery, ImpactQuery, MetricsOptions, MetricsSide, ModulesQuery,
+    QueryAction, QueryKind, RenameQuery, RulesQuery, SymbolsQuery, UnusedQuery, UsagesQuery,
+    change_markdown, query_code_report, query_error_json, query_json, query_text,
 };
 use codeskimr_codes::i18n::COMPARE_DIRECT_ONLY_NOTE;
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::{Permission, Principal, ProjectId, ProjectSource, SnapshotId};
+use codeskimr_domain::{MetricLevel, Permission, Principal, ProjectId, ProjectSource, SnapshotId};
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::{
     ContextArgs, DependenciesArgs, ImpactArgs, LEVEL_MODULE, McpError, RenameArgs, RulesArgs,
@@ -133,6 +136,9 @@ fn compare_answer(
     (project, query): (ProjectId, &CompareQuery),
     with_impact: bool,
 ) -> Result<Value, QueryFailure> {
+    if let Some(options) = &query.metrics {
+        return metrics_answer(session, (project, query, options));
+    }
     let comparison =
         scan_compare::comparer(&session.store, &session.config).compare(&ComparisonRequest {
             project,
@@ -145,6 +151,36 @@ fn compare_answer(
         .format(around.language, COMPARE_DIRECT_ONLY_NOTE, None)
         .map_err(|error| QueryFailure::from(CodedError::caused_by(error)))?;
     as_json(&ComparisonAnswer::new(&comparison, Some(note)))
+}
+
+/// `compare --metrics`: the objects that got worse and those that got better (ADR 0114).
+fn metrics_answer(
+    session: &Session,
+    (project, query, options): (ProjectId, &CompareQuery, &MetricsOptions),
+) -> Result<Value, QueryFailure> {
+    let invalid = || CodedError::new(ErrorCode::RequestInvalid);
+    let level = options
+        .level
+        .as_deref()
+        .map_or(Ok(MetricLevel::Member), |text| {
+            parse_level(text).ok_or_else(invalid)
+        })?;
+    let only = options
+        .only
+        .iter()
+        .map(|text| parse_judged_metric(text).ok_or_else(invalid))
+        .collect::<Result<Vec<_>, _>>()?;
+    let found = scan_compare::comparer(&session.store, &session.config).compare_metrics(
+        &MetricsRequest {
+            project,
+            base: query.base.map(SnapshotId::new),
+            target: query.newer.map(SnapshotId::new),
+            level,
+            include_tests: options.include_tests,
+            only,
+        },
+    )?;
+    as_json(&MetricsAnswer::new(&found))
 }
 
 /// An answer as JSON; serialising these plain types does not fail.
@@ -272,6 +308,13 @@ fn stale(session: &Session, around: &Surroundings<'_>) -> Option<bool> {
 
 const fn kind_of(action: &QueryAction) -> QueryKind {
     match action {
+        QueryAction::Compare(CompareQuery {
+            metrics: Some(options),
+            ..
+        }) => QueryKind::Metrics {
+            worse: !matches!(options.side, MetricsSide::Better),
+            better: !matches!(options.side, MetricsSide::Worse),
+        },
         QueryAction::Symbols(_) => QueryKind::Symbols,
         QueryAction::Usages(_) => QueryKind::Usages,
         QueryAction::Impact(_) => QueryKind::Impact,

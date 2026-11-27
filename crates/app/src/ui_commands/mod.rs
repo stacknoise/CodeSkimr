@@ -598,6 +598,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<StatsRanking>()?;
     api.expose::<ScansList>()?;
     api.expose::<ScansCompare>()?;
+    api.expose::<ScansMetrics>()?;
     api.expose::<ScansImpact>()?;
     api.expose::<ScansImpactMarkdown>()?;
     api.expose::<GetPreferences>()?;

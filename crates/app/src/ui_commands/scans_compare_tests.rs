@@ -133,3 +133,43 @@ fn the_markdown_of_an_unknown_project_is_refused() {
     let fixture = Fixture::installed(None);
     assert!(ask(&fixture, "scans.impact_markdown", json!({ "project": 999 })).is_err());
 }
+
+#[test]
+fn the_metrics_answer_names_the_level_and_has_both_lists() {
+    let fixture = Fixture::installed(None);
+    let id = two_scans(&fixture);
+    let answer = ask(
+        &fixture,
+        "scans.metrics",
+        json!({ "project": id, "level": "type", "metrics": ["cc"] }),
+    )
+    .unwrap();
+    assert_eq!(answer["schema"], 1);
+    assert_eq!(answer["level"], "type");
+    assert!(answer["worse"]["items"].is_array());
+    assert!(answer["better"]["items"].is_array());
+}
+
+#[test]
+fn a_level_or_metric_that_is_not_known_is_refused() {
+    let fixture = Fixture::installed(None);
+    let id = two_scans(&fixture);
+    let level = json!({ "project": id, "level": "galaxy" });
+    assert_eq!(
+        ask(&fixture, "scans.metrics", level).unwrap_err(),
+        "API-101"
+    );
+    let metric = json!({ "project": id, "metrics": ["cc_max"] });
+    assert_eq!(
+        ask(&fixture, "scans.metrics", metric).unwrap_err(),
+        "API-101"
+    );
+}
+
+#[test]
+fn a_project_with_one_scan_has_no_metrics_to_compare() {
+    let fixture = Fixture::installed(None);
+    let id = fixture.scanned();
+    let refused = ask(&fixture, "scans.metrics", json!({ "project": id }));
+    assert_eq!(refused.unwrap_err(), "CMP-201");
+}
