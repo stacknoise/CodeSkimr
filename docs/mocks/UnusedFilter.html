@@ -207,11 +207,6 @@ function unused(th,v){
   return frame(th,body,{name:'ohne-verwendung-'+(v||'alle'),rail:'stat'});
 }
 
-const q=new URLSearchParams(location.search);
-const ALL_THEMES=['hell','petrol','dunkel'],ALL_VIEWS=['zu','offen','privat'];
-const wantedThemes=(q.get('themes')||'petrol').split(',');
-const themes=ALL_THEMES.filter(x=>wantedThemes.includes(x));
-const v=q.get('v');
-const views=ALL_VIEWS.filter(x=>x===v||!ALL_VIEWS.includes(v));
-document.getElementById('root').innerHTML=themes.map(t=>views.map(x=>unused(t,x)).join('')).join('');
+const THEMES=['hell','petrol','dunkel'],VIEWS=['zu','offen','privat'];
+document.getElementById('root').innerHTML=THEMES.map(t=>VIEWS.map(x=>unused(t,x)).join('')).join('');
 </script></body></html>
