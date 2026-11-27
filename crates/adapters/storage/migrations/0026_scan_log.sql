@@ -6,7 +6,7 @@
 -- every scan has a row here: a scan that wrote a snapshot names that snapshot, a scan that found
 -- nothing changed names the snapshot it confirmed (so several rows can share one snapshot).
 -- Rows go with their snapshot (`ON DELETE CASCADE`), and the writer keeps at most
--- `snapshots.retention_count` rows per snapshot.
+-- `snapshots.retention_count` confirmations per snapshot besides the row of the scan that wrote it.
 CREATE TABLE scan_log (
     id            INTEGER PRIMARY KEY,
     snapshot_id   INTEGER NOT NULL REFERENCES snapshots (id) ON DELETE CASCADE,

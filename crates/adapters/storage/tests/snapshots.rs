@@ -4,8 +4,8 @@
 mod common;
 
 use codeskimr_application::ports::{
-    Confirmation, PreviousIndex, ProjectRepository, ScanWarning, SkippedFile, SnapshotData,
-    SnapshotStore, SymbolKey,
+    Confirmation, PreviousIndex, ProjectRepository, ScanEntry, ScanWarning, SkippedFile,
+    SnapshotData, SnapshotStore, SymbolKey,
 };
 use codeskimr_application::stage::PersistStep;
 use codeskimr_codes::ErrorCode;
@@ -547,15 +547,22 @@ fn confirmed_at(snapshot: u64, at: i64) -> Confirmation {
     }
 }
 
-#[test]
-fn every_confirmed_scan_is_a_row_of_the_history_with_no_changed_files() {
-    let store = common::store(5);
+/// The history of a project with `retention`, after the scan of snapshot 10 and one confirming
+/// scan at each of `times`.
+#[cfg(test)]
+fn history_after_confirming(retention: u32, times: &[i64]) -> Vec<ScanEntry> {
+    let store = common::store(retention);
     store.save_project(&project(1, "/work/app", &[])).unwrap();
     store.persist(first_scan(10)).unwrap();
-    for at in [2_000, 3_000, 4_000] {
-        store.confirm(&confirmed_at(10, at)).unwrap().unwrap();
+    for at in times {
+        store.confirm(&confirmed_at(10, *at)).unwrap().unwrap();
     }
-    let history = store.scan_history(PROJECT).unwrap();
+    store.scan_history(PROJECT).unwrap()
+}
+
+#[test]
+fn every_confirmed_scan_is_a_row_of_the_history_with_no_changed_files() {
+    let history = history_after_confirming(5, &[2_000, 3_000, 4_000]);
     let times: Vec<i64> = history.iter().map(|entry| entry.created.0).collect();
     assert_eq!(
         times,
@@ -571,20 +578,12 @@ fn every_confirmed_scan_is_a_row_of_the_history_with_no_changed_files() {
 }
 
 #[test]
-fn a_snapshot_keeps_only_the_newest_rows_up_to_the_retention() {
-    let store = common::store(2);
-    store.save_project(&project(1, "/work/app", &[])).unwrap();
-    store.persist(first_scan(10)).unwrap();
-    for at in [2_000, 3_000, 4_000] {
-        store.confirm(&confirmed_at(10, at)).unwrap().unwrap();
-    }
-    let times: Vec<i64> = store
-        .scan_history(PROJECT)
-        .unwrap()
+fn a_snapshot_keeps_the_row_of_its_scan_and_the_newest_confirmations_up_to_the_retention() {
+    let times: Vec<i64> = history_after_confirming(2, &[2_000, 3_000, 4_000])
         .iter()
         .map(|entry| entry.created.0)
         .collect();
-    assert_eq!(times, vec![4_000, 3_000]);
+    assert_eq!(times, vec![4_000, 3_000, 1_000], "the writing scan stays");
 }
 
 #[test]

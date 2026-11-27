@@ -2,7 +2,7 @@
 //! (ADR 0093, ADR 0097). A scan that writes a snapshot logs it as its own; a scan that confirms the
 //! newest snapshot logs the snapshot it confirmed, so several rows can share one snapshot. The rows
 //! go with their snapshot (`ON DELETE CASCADE`), and a snapshot keeps at most the newest
-//! `snapshots.retention_count` rows.
+//! `snapshots.retention_count` rows besides the one of the scan that wrote it.
 
 use codeskimr_application::ports::{Confirmation, ScanEntry, SnapshotData};
 use codeskimr_domain::{CommitHash, ProjectId, ScanMode, SnapshotId, Timestamp};
@@ -10,6 +10,7 @@ use rusqlite::{Connection, params};
 use std::time::Instant;
 
 use crate::codec::{Cols, column_int, id_from, label_from, small_from};
+use crate::consts::UNCHANGED_FILES;
 use crate::error::StorageResult;
 use crate::sql;
 
@@ -57,7 +58,8 @@ pub(crate) fn record_written(conn: &Connection, data: &SnapshotData) -> StorageR
 }
 
 /// Logs a scan that found nothing changed against the snapshot it confirmed (no file changed),
-/// then drops the oldest rows of that snapshot beyond `keep`.
+/// then drops the rows of that snapshot except the one of the scan that wrote it and the newest
+/// `keep`.
 pub(crate) fn record_confirmed(
     conn: &Connection,
     scan: &Confirmation,
@@ -71,7 +73,7 @@ pub(crate) fn record_confirmed(
             commit: scan.commit.as_ref(),
             mode: ScanMode::Incremental,
             began: scan.began,
-            files_changed: Some(0),
+            files_changed: Some(UNCHANGED_FILES),
         },
     )?;
     conn.prepare_cached(sql::SCAN_LOG_TRIM)?

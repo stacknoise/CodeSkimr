@@ -30,6 +30,9 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0026_scan_log.sql"),
 ];
 
+/// Files changed by a scan that found nothing changed (ADR 0093).
+pub const UNCHANGED_FILES: u32 = 0;
+
 /// Name of the pragma that holds the schema version.
 pub const PRAGMA_USER_VERSION: &str = "user_version";
 /// Name of the pragma that selects the journal mode.

@@ -98,8 +98,8 @@ scan-left-out-unnamed = { $count ->
 scan-files-unchanged = No file changed · { $checked } checked
 
 scan-history-keep = { $count ->
-    [one] { NUMBER($count) } is kept
-   *[other] { NUMBER($count) } are kept
+    [one] { NUMBER($count) } state is kept
+   *[other] { NUMBER($count) } states are kept
 }
 scan-history-column-time = Time
 scan-history-column-mode = Kind

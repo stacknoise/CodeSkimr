@@ -182,7 +182,7 @@ describe("the tab Scan", () => {
   it("lists the last scans with the duration of each and a dash where it was not stored", async () => {
     const stop = await shown();
     const history = within(await screen.findByRole("region", { name: "Recent scans" }));
-    expect(await history.findByText("5 are kept")).toBeInTheDocument();
+    expect(await history.findByText("5 states are kept")).toBeInTheDocument();
     expect(history.getAllByText("2.4 s").length).toBeGreaterThan(0);
     expect(history.getByText("0.6 s")).toBeInTheDocument();
     expect(history.getByText("current")).toBeInTheDocument();

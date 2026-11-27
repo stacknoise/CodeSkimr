@@ -80,9 +80,11 @@ pub const SCAN_HISTORY: &str = "SELECT l.id, l.snapshot_id, l.commit_hash, l.cre
 /// Records a scan: snapshot id, time, commit, mode, duration in milliseconds, changed files.
 pub const SCAN_LOG_INSERT: &str = "INSERT INTO scan_log (snapshot_id, created, commit_hash, mode, \
     duration_ms, files_changed) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
-/// Deletes the rows of a snapshot but its newest ones: snapshot id, number to keep.
-pub const SCAN_LOG_TRIM: &str = "DELETE FROM scan_log WHERE snapshot_id = ?1 AND id NOT IN \
-    (SELECT id FROM scan_log WHERE snapshot_id = ?1 ORDER BY id DESC LIMIT ?2)";
+/// Deletes the rows of a snapshot but the one of the scan that wrote it (the oldest, with the real
+/// duration and changed files) and its newest ones: snapshot id, number of newest rows to keep.
+pub const SCAN_LOG_TRIM: &str = "DELETE FROM scan_log WHERE snapshot_id = ?1 \
+    AND id <> (SELECT MIN(id) FROM scan_log WHERE snapshot_id = ?1) \
+    AND id NOT IN (SELECT id FROM scan_log WHERE snapshot_id = ?1 ORDER BY id DESC LIMIT ?2)";
 
 /// Confirms a snapshot after a scan that found nothing changed: creation time, commit, mode (the
 /// label of an incremental scan), snapshot id.
