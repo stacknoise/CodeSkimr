@@ -29,6 +29,13 @@ pub fn filter_for(level: LevelFilter) -> Targets {
         .with_default(level.min(DEFAULT_LOG_LEVEL))
 }
 
+/// The filter of the start: the level of `CODESKIMR_LOG` (or the default) counts for every target,
+/// as it always did. Whoever sets the variable asked for it.
+#[must_use]
+pub fn startup_filter(level: LevelFilter) -> Targets {
+    Targets::new().with_default(level)
+}
+
 /// The handle of the installed subscriber and the level that counts when nothing was chosen.
 struct Control {
     handle: Handle<Targets, Registry>,
@@ -81,7 +88,12 @@ pub fn set_level(next: LevelFilter) -> bool {
     let Some(control) = CONTROL.get() else {
         return false;
     };
-    if control.handle.reload(filter_for(next)).is_err() {
+    let filter = if next == control.default {
+        startup_filter(next)
+    } else {
+        filter_for(next)
+    };
+    if control.handle.reload(filter).is_err() {
         return false;
     }
     *locked(&CURRENT) = Some(next);
@@ -131,7 +143,7 @@ fn run_timer() {
 /// Puts the default level back.
 fn reset() {
     if let Some(control) = CONTROL.get() {
-        let _ = control.handle.reload(filter_for(control.default));
+        let _ = control.handle.reload(startup_filter(control.default));
         *locked(&CURRENT) = Some(control.default);
     }
     *locked(&DEADLINE) = None;

@@ -52,4 +52,4 @@ Wenn etwas schiefgeht, zeigt das Protokoll, was das Programm getan hat. Dafür b
 - **Datei.** Das Protokoll wird zusätzlich in `logs/codeskimr.log` im Datenordner geschrieben (siehe [Installation](installation.md#wo-die-daten-liegen)). Bei 10 MB wird die Datei umbenannt und eine neue beginnt; es bleiben höchstens fünf Dateien, also höchstens 50 MB. Zugangsdaten, Tokens und Quelltext stehen nicht darin: Sie werden vor dem Schreiben entfernt.
 - **Knöpfe.** „Protokoll kopieren“ kopiert die letzten 2000 Zeilen (für eine Fehlermeldung), „Ordner öffnen“ öffnet den Ordner mit dem Programm Ihres Systems (nur auf dem Rechner der App), „Datei leeren“ leert die Datei und entfernt die alten. Darunter sehen Sie die letzten Zeilen.
 
-Die Stufe entspricht der Umgebungsvariable `CODESKIMR_LOG` und gilt wie im Reiter nur für das Programm selbst (Bibliotheken bleiben bei Warnungen); der Reiter ersetzt dafür den Start aus einem Terminal.
+Die Stufe entspricht der Umgebungsvariable `CODESKIMR_LOG` während eine im Reiter gewählte Stufe nur für das Programm selbst gilt (Bibliotheken bleiben bei Warnungen); der Reiter ersetzt dafür den Start aus einem Terminal.

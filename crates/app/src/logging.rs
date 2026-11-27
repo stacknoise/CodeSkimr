@@ -57,7 +57,7 @@ fn layered<W>(
 where
     W: Write + 'static,
 {
-    let (filter, handle) = reload::Layer::new(log_control::filter_for(level));
+    let (filter, handle) = reload::Layer::new(log_control::startup_filter(level));
     let lines = fmt::layer()
         .with_ansi(false)
         .with_writer(move || RedactingWriter::new(sink()));
