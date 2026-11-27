@@ -152,3 +152,6 @@ export const MODULES_PANE_BOUNDS = { initial: 540, min: 360, max: 900 } as const
 export const NO_STABILITY = "–";
 /** The ARIA role of a hint in the panel of the modules. */
 export const NOTE_ROLE = "note";
+
+/** Compares names without regard to case and accents, and digits by their value. */
+export const NAME_ORDER: Intl.CollatorOptions = { sensitivity: "base", numeric: true };

@@ -17,6 +17,7 @@ import {
 } from "./consts";
 import { EdgePlaces } from "./ModulePlaces";
 import type { ModuleCycle, ModuleRow, ModulesInfo } from "./types";
+import { sortCycles, sortEdges, sortRisks, sortRows, sortViolations } from "./order";
 import styles from "./ModulesPanel.module.css";
 
 /** A stability in thousandths as a number with two digits in the language (`0,63`). */
@@ -90,6 +91,7 @@ function Table(props: {
   selected: string | null;
   onSelect: (name: string) => void;
 }) {
+  const language = () => currentLanguage();
   return (
     <table class={styles.table}>
       <thead>
@@ -102,7 +104,7 @@ function Table(props: {
         </tr>
       </thead>
       <tbody>
-        <For each={props.rows}>
+        <For each={sortRows(props.rows, language())}>
           {(row) => (
             <Row row={row} selected={row.name === props.selected} onSelect={props.onSelect} />
           )}
@@ -116,7 +118,7 @@ function Cycle(props: { project: number; cycle: ModuleCycle }) {
   return (
     <div class={styles.item}>
       <div class={styles.mono}>{props.cycle.modules.join(CYCLE_JOIN)}</div>
-      <For each={props.cycle.edges}>
+      <For each={sortEdges(props.cycle.edges, currentLanguage())}>
         {(edge) => (
           <div class={styles.detail}>
             {t(I18N_KEYS.GRAPH_MODULES_CYCLE_EDGE, {
@@ -127,7 +129,7 @@ function Cycle(props: { project: number; cycle: ModuleCycle }) {
           </div>
         )}
       </For>
-      <For each={props.cycle.resolution}>
+      <For each={sortEdges(props.cycle.resolution, currentLanguage())}>
         {(edge) => (
           <div class={styles.resolve}>
             {t(I18N_KEYS.GRAPH_MODULES_CYCLE_RESOLVE, {
@@ -151,7 +153,7 @@ function Cycles(props: { project: number; info: ModulesInfo }) {
         when={props.info.cycles.length > 0}
         fallback={<p class={styles.detail}>{t(I18N_KEYS.GRAPH_MODULES_CYCLES_NONE)}</p>}
       >
-        <For each={props.info.cycles}>
+        <For each={sortCycles(props.info.cycles, currentLanguage())}>
           {(cycle) => <Cycle project={props.project} cycle={cycle} />}
         </For>
       </Show>
@@ -164,7 +166,7 @@ function Violations(props: { project: number; info: ModulesInfo }) {
     <Show when={props.info.violations.length > 0}>
       <section class={styles.group}>
         <h3>{t(I18N_KEYS.GRAPH_MODULES_VIOLATIONS_TITLE)}</h3>
-        <For each={props.info.violations}>
+        <For each={sortViolations(props.info.violations, currentLanguage())}>
           {(found) => (
             <div class={styles.item}>
               {t(I18N_KEYS.GRAPH_MODULES_VIOLATION, {
@@ -189,7 +191,7 @@ function Risks(props: { info: ModulesInfo }) {
     <Show when={props.info.risks.length > 0}>
       <section class={styles.group}>
         <h3>{t(I18N_KEYS.GRAPH_MODULES_RISKS_TITLE)}</h3>
-        <For each={props.info.risks}>
+        <For each={sortRisks(props.info.risks, language())}>
           {(risk) => (
             <div class={styles.risk} role={NOTE_ROLE}>
               {t(I18N_KEYS.GRAPH_MODULES_RISK, {

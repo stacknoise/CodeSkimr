@@ -4,6 +4,7 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
 import { count } from "../projects/format";
 import type { Neighbours } from "./neighbours";
+import { sortLinkPairs, sortLinks } from "./order";
 import type { LayerLink } from "./types";
 import { panelStyle } from "../../shared/layout/panelStyle";
 import { panelWidth } from "./layout";
@@ -29,7 +30,7 @@ function LinkList(props: {
     <Show when={props.links.length > 0}>
       <section class={styles.group}>
         <h3 class={cx(styles.groupTitle, props.tone)}>{props.title}</h3>
-        <For each={props.links}>
+        <For each={sortLinks(props.links, props.pick, currentLanguage())}>
           {(link) => (
             <div class={styles.link}>
               <button
@@ -55,7 +56,7 @@ function Violations(props: { links: readonly LayerLink[]; onSelect: (name: strin
     <Show when={props.links.length > 0}>
       <div class={styles.violation} role="note">
         <strong>{t(I18N_KEYS.GRAPH_VIOLATION_TITLE, { count: props.links.length })}</strong>
-        <For each={props.links}>
+        <For each={sortLinkPairs(props.links, currentLanguage())}>
           {(link) => (
             <div>
               {t(I18N_KEYS.GRAPH_VIOLATION_PAIR, {
