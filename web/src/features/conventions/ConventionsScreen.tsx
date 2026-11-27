@@ -12,6 +12,7 @@ import { ErrorDetails } from "../../shared/ui/ErrorDetails";
 import { Pill } from "../../shared/ui/Pill";
 import { TONE } from "../../shared/ui/consts";
 import { openPlaceInEditor } from "../explorer/editor";
+import { showInExplorer } from "../rules/jump";
 import { SOURCE_KIND } from "../projects/consts";
 import { count } from "../projects/format";
 import { projects } from "../projects/projects";
@@ -102,6 +103,30 @@ function OpenButton(props: { project: number; finding: Finding }) {
   );
 }
 
+/** The button that shows the function of a finding in the explorer. It is off if the last scan
+ * does not know the function, and says why. */
+function ExplorerButton(props: { project: number; finding: Finding }) {
+  const symbol = () => props.finding.symbol_ref;
+  return (
+    <button
+      type="button"
+      class={styles.small}
+      disabled={symbol() === null}
+      title={t(
+        symbol() === null ? I18N_KEYS.RULES_SYMBOL_GONE : I18N_KEYS.CONVENTIONS_EXPLORER_HINT,
+      )}
+      onClick={() => {
+        const found = symbol();
+        if (found !== null) {
+          void showInExplorer(props.project, props.finding.symbol, found);
+        }
+      }}
+    >
+      {t(I18N_KEYS.CONVENTIONS_EXPLORER)}
+    </button>
+  );
+}
+
 function Row(props: { project: number; finding: Finding }) {
   return (
     <tr>
@@ -116,6 +141,7 @@ function Row(props: { project: number; finding: Finding }) {
       <td class={styles.num}>{measureText(props.finding, PLACE_SEPARATOR)}</td>
       <td>
         <OpenButton project={props.project} finding={props.finding} />
+        <ExplorerButton project={props.project} finding={props.finding} />
       </td>
     </tr>
   );

@@ -11,19 +11,27 @@ use std::sync::{Arc, Mutex, PoisonError};
 use codeskimr_application::{
     access,
     error::CodedError,
-    ports::ProjectRepository,
+    ports::{CodeIndex, ProjectRepository},
     registry::{Command, CommandDescriptor, CommandId, Request},
 };
 use codeskimr_cli::GlobalOptions;
 use codeskimr_codes::ErrorCode;
+use codeskimr_domain::SnapshotId;
 use codeskimr_domain::{Permission, ProjectId, ProjectSource};
 use codeskimr_mcp::conventions_answer;
 use serde::Deserialize;
-use serde_json::Value;
+use serde_json::{Value, json};
 
 use super::consts::{CONVENTIONS_CHECK, CONVENTIONS_CHECK_DESCRIPTION, CONVENTIONS_CHECK_TITLE};
+use super::rules_symbols::resolve;
 use crate::check::check_folder;
 use crate::locations::Locations;
+
+/// The members of the answer that carry the findings and their qualified names.
+const FINDINGS: &str = "findings";
+const SYMBOL: &str = "symbol";
+/// The member that the symbol of the newest scan is added as.
+const SYMBOL_REF: &str = "symbol_ref";
 
 /// The input of `conventions.check`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -37,6 +45,8 @@ pub struct CheckInput {
 pub struct ConventionsPorts {
     /// The registered projects.
     pub(super) projects: Arc<dyn ProjectRepository>,
+    /// The index, which names the symbol of the newest scan that a finding stands in.
+    pub(super) index: Arc<dyn CodeIndex>,
     /// The options of the command line, which the configuration is resolved with.
     pub(super) global: GlobalOptions,
     /// Where the language packs and the settings are.
@@ -129,6 +139,27 @@ impl Command for ConventionsCheck {
             *request.principal,
             (&self.ports.global, &self.ports.locations),
         )?;
-        conventions_answer(checked.report, checked.max_limit).map_err(CodedError::caused_by)
+        let mut answer =
+            conventions_answer(checked.report, checked.max_limit).map_err(CodedError::caused_by)?;
+        if let Some(snapshot) = self.ports.index.latest_snapshot(project.id)? {
+            attach_symbols(self.ports.index.as_ref(), snapshot.id, &mut answer);
+        }
+        Ok(answer)
+    }
+}
+
+/// Names, for every finding, the symbol of the newest scan with the same qualified name as
+/// `symbol_ref` (`null` if the scan has none, for instance for a file written after it), so the
+/// screen can show the function in the explorer.
+fn attach_symbols(index: &dyn CodeIndex, snapshot: SnapshotId, answer: &mut Value) {
+    let Some(findings) = answer.get_mut(FINDINGS).and_then(Value::as_array_mut) else {
+        return;
+    };
+    for finding in findings {
+        let found = finding
+            .get(SYMBOL)
+            .and_then(Value::as_str)
+            .and_then(|name| resolve(index, snapshot, name));
+        finding[SYMBOL_REF] = found.map_or(Value::Null, |found| json!(found));
     }
 }

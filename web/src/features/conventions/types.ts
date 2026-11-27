@@ -1,3 +1,5 @@
+import type { SymbolRef } from "../rules/types";
+
 /** A place of a function: file below the project, name, first and last line (counted from 1). */
 export interface Place {
   path: string;
@@ -18,6 +20,9 @@ export interface Finding extends Place {
   literals: number | null;
   duplicate_of: Place | null;
   similarity_percent: number | null;
+  /** The symbol of the newest scan with this qualified name, `null` if the scan has none (a file
+   * written after it). */
+  symbol_ref: SymbolRef | null;
 }
 
 /** A file that could not be analysed, with the code of the reason. */

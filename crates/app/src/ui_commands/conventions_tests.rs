@@ -93,3 +93,39 @@ fn a_project_is_checked_by_one_run_at_a_time() {
     drop(first);
     assert!(runs.begin(7).is_ok(), "the project is free again");
 }
+
+#[test]
+fn a_finding_names_the_symbol_of_the_scan_and_has_none_for_a_file_the_scan_has_not_seen() {
+    let fixture = Fixture::new();
+    let project = fixture.scanned();
+    let app = fixture.root.path().join("app");
+    fs::write(app.join("Long.cs"), long_method(60)).unwrap();
+    let before = check(&fixture, project);
+    let found = before["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|finding| finding["code"] == "CHK-104")
+        .unwrap();
+    assert!(found["symbol_ref"].is_null(), "not scanned yet: {found}");
+}
+
+#[test]
+fn a_finding_in_a_scanned_file_names_its_symbol() {
+    let fixture = Fixture::new();
+    fs::write(
+        fixture.root.path().join("app").join("Long.cs"),
+        long_method(60),
+    )
+    .unwrap();
+    let project = fixture.scanned();
+    let answer = check(&fixture, project);
+    let found = answer["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|finding| finding["code"] == "CHK-104")
+        .unwrap();
+    assert!(found["symbol_ref"]["id"].is_u64(), "{found}");
+    assert_eq!(found["symbol_ref"]["kind"], "method", "{found}");
+}

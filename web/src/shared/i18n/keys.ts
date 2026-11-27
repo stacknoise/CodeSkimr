@@ -817,6 +817,8 @@ export const I18N_KEYS = {
   CONVENTIONS_COL_MEASURE_HINT: "conventions-col-measure-hint",
   CONVENTIONS_OPEN: "conventions-open",
   CONVENTIONS_OPEN_HINT: "conventions-open-hint",
+  CONVENTIONS_EXPLORER: "conventions-explorer",
+  CONVENTIONS_EXPLORER_HINT: "conventions-explorer-hint",
   CONVENTIONS_OPEN_UNAVAILABLE: "conventions-open-unavailable",
   CONVENTIONS_MEASURE_LINES: "conventions-measure-lines",
   CONVENTIONS_MEASURE_COMPLEXITY: "conventions-measure-complexity",
