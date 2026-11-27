@@ -274,38 +274,66 @@ impl Command for RulesShow {
     fn execute(&self, request: Request<'_, Self>) -> Result<RulesOut, CodedError> {
         let (project, snapshot) = self.ports.project_and_newest(request.input.project)?;
         let (rules, baseline) = files_of(&project.source)?;
-        let cycles = rules.cycles == CycleRule::Deny;
         let holdable = matches!(project.source, ProjectSource::Folder(_));
-        let Some(snapshot) = snapshot else {
-            return Ok(RulesOut {
-                scanned: false,
-                holdable,
-                cycles,
-                held_on: None,
-                rules: Vec::new(),
-                resolved: 0,
-                old: 0,
-                new: 0,
-            });
-        };
-        let answer = report(
-            &rules,
-            &project.layers,
-            baseline.as_ref(),
+        judged(
             self.ports.references.as_ref(),
-            snapshot.id,
-        )?;
-        Ok(RulesOut {
-            scanned: true,
+            &Candidate {
+                rules: &rules,
+                layers: &project.layers,
+                baseline: baseline.as_ref(),
+                holdable,
+            },
+            snapshot.map(|snapshot| snapshot.id),
+        )
+    }
+}
+
+/// The rules to judge, the layers they are judged with and the held state they are held against.
+pub(super) struct Candidate<'a> {
+    pub(super) rules: &'a Rules,
+    pub(super) layers: &'a [Layer],
+    pub(super) baseline: Option<&'a Baseline>,
+    pub(super) holdable: bool,
+}
+
+/// The answer of `rules.show` for `candidate` over the references of `snapshot`; without a scan
+/// there is nothing to judge.
+pub(super) fn judged(
+    references: &dyn ReferencePlaces,
+    candidate: &Candidate<'_>,
+    snapshot: Option<SnapshotId>,
+) -> Result<RulesOut, CodedError> {
+    let cycles = candidate.rules.cycles == CycleRule::Deny;
+    let holdable = candidate.holdable;
+    let Some(snapshot) = snapshot else {
+        return Ok(RulesOut {
+            scanned: false,
             holdable,
             cycles,
-            held_on: answer.held_on.clone(),
-            old: answer.old_burdens(),
-            new: answer.new_violations(),
-            resolved: answer.resolved.len(),
-            rules: rules_out(&answer.outcomes, &rules, &project.layers),
-        })
-    }
+            held_on: None,
+            rules: Vec::new(),
+            resolved: 0,
+            old: 0,
+            new: 0,
+        });
+    };
+    let answer = report(
+        candidate.rules,
+        candidate.layers,
+        candidate.baseline,
+        references,
+        snapshot,
+    )?;
+    Ok(RulesOut {
+        scanned: true,
+        holdable,
+        cycles,
+        held_on: answer.held_on.clone(),
+        old: answer.old_burdens(),
+        new: answer.new_violations(),
+        resolved: answer.resolved.len(),
+        rules: rules_out(&answer.outcomes, candidate.rules, candidate.layers),
+    })
 }
 
 /// What holding the state wrote.

@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from "solid-js";
+import { createSignal, For, type JSX, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { showModuleInGraph } from "../graph/show";
@@ -186,7 +186,7 @@ function Violations(props: { rule: RuleOut }) {
 }
 
 /** One rule: its state mark, heading, badges and violations. */
-export function RuleCard(props: { rule: RuleOut }) {
+export function RuleCard(props: { rule: RuleOut; actions?: JSX.Element }) {
   const broken = () => props.rule.violations.length > 0;
   return (
     <section class={styles.card} aria-label={props.rule.id}>
@@ -196,6 +196,7 @@ export function RuleCard(props: { rule: RuleOut }) {
         </span>
         <Heading rule={props.rule} />
         <Badges rule={props.rule} />
+        {props.actions}
       </div>
       <Show when={broken()}>
         <Violations rule={props.rule} />

@@ -67,11 +67,33 @@ fn with_known_limits(text: &str, mut wanted: Vec<LayerRule>) -> Vec<LayerRule> {
 /// - `CFG-101` if the layers are not valid: a name or namespace is not valid, a name is used
 ///   twice, or a layer has no namespace.
 pub fn with_layers(text: &str, wanted: Vec<LayerRule>) -> Result<String, ConfigError> {
-    let rules = with_known_limits(text, wanted);
+    write_layers(text, &with_known_limits(text, wanted))
+}
+
+/// What one layer may use as the editor of the rules sets it: `None` is no limit.
+pub type LayerLimit = (String, Option<Vec<String>>);
+
+/// The text of a project file whose layers keep their names, namespaces and order but get the
+/// `may_use` of `limits` (a layer without an entry keeps its own).
+///
+/// # Errors
+/// - `CFG-102` if `text` is not valid TOML (the file is then left alone).
+/// - `CFG-101` if the result is not valid: a limit names a layer that does not exist.
+pub fn with_layer_limits(text: &str, limits: &[LayerLimit]) -> Result<String, ConfigError> {
+    let mut layers = existing_rules(text);
+    for layer in &mut layers {
+        if let Some((_, may_use)) = limits.iter().find(|(name, _)| name == &layer.name) {
+            layer.may_use.clone_from(may_use);
+        }
+    }
+    write_layers(text, &layers)
+}
+
+fn write_layers(text: &str, rules: &[LayerRule]) -> Result<String, ConfigError> {
     let block = if rules.is_empty() {
         String::new()
     } else {
-        toml::to_string(&Written { layers: &rules }).map_err(|_| ConfigError::OutOfRange {
+        toml::to_string(&Written { layers: rules }).map_err(|_| ConfigError::OutOfRange {
             key: super::consts::keys::LAYERS,
             violation: Violation::MustBeLayerRule,
         })?
@@ -87,8 +109,14 @@ pub fn with_layers(text: &str, wanted: Vec<LayerRule>) -> Result<String, ConfigE
 /// - `CFG-102` if `text` is not valid TOML (the file is then left alone).
 /// - `CFG-101` if the result is not a valid configuration.
 pub(super) fn rewrite(text: &str, header: &str, block: &str) -> Result<String, ConfigError> {
+    rewrite_with(text, &without_tables(text, header), block)
+}
+
+/// Like `rewrite`, for a caller that has taken the old tables out of `text` itself: `kept` is
+/// what stays, `text` is the file as it was (it is checked and gives the line ends).
+pub(super) fn rewrite_with(text: &str, kept: &str, block: &str) -> Result<String, ConfigError> {
     ConfigLayer::parse(LayerSource::Project, text)?;
-    let mut result = without_tables(text, header).trim_end().to_owned();
+    let mut result = kept.trim_end().to_owned();
     if !block.is_empty() {
         if !result.is_empty() {
             result.push_str(BLOCK_SEPARATOR);

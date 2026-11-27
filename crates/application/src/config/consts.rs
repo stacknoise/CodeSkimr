@@ -263,6 +263,10 @@ pub const LOWER_ONLY_SCAN_KEYS: [&str; 4] = [
 pub const LAYER_TABLE_HEADER: &str = "[[layers]]";
 /// Header of an entry of the exception list of the unused symbols.
 pub const UNUSED_TABLE_HEADER: &str = "[[unused.ignore]]";
+/// Start of the header of the table `rules` and of its sub-tables, such as `[rules]`.
+pub const RULES_TABLE_HEADER: &str = "[rules";
+/// Start of the header of an array of tables below `rules`, such as `[[rules.forbid]]`.
+pub const RULES_ARRAY_HEADER: &str = "[[rules";
 /// First character of every table header line.
 pub const TABLE_HEADER_START: char = '[';
 /// Separates the kept part of the project file from the written layers.

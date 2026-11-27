@@ -11,6 +11,7 @@ mod error;
 mod layer;
 mod layer_file;
 mod model;
+mod rules_file;
 mod unused_file;
 mod validate;
 
@@ -18,12 +19,13 @@ pub use consts::{MAX_INDEXER_MEMORY_MB, PROJECT_CONFIG_FILE};
 pub use effective::EffectiveSetting;
 pub use error::{ConfigError, LayerSource, Violation};
 pub use layer::ConfigLayer;
-pub use layer_file::with_layers;
+pub use layer_file::{LayerLimit, with_layer_limits, with_layers};
 pub use model::{
     Annotations, Budgets, Compare, Config, Conventions, CycleRule, Editor, Export, ForbidRule,
     Graph, KeySources, LayerRule, Level2, McpLimits, MetricThresholds, PublicApiRule, Rules, Scan,
     Similarity, SnapshotRetention, Ui, Unused, UnusedIgnore, Watcher,
 };
+pub use rules_file::with_rules;
 pub use unused_file::{unused_ignore_in, with_unused_ignore};
 
 use consts::NO_PREFIX;

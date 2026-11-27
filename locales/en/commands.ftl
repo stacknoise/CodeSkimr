@@ -114,3 +114,7 @@ command-scans-compare-title = Compare two scans
 command-scans-compare-description = Compares two scans of a project that are kept (by default the newest and the one before it) and lists the symbols that were added, removed, changed or moved, the new layer violations and cycles, and the critical symbols the difference touches.
 command-scans-impact-title = Show what a change hits
 command-scans-impact-description = Compares two scans of a project that are kept and lists, for every removed symbol and every symbol whose signature or visibility changed, its direct usages in the older scan, split into adapted and not touched. Only direct usages are known.
+command-rules-set-title = Change the rules
+command-rules-set-description = Writes the rules (cycles, bans, public interface and what layers may use) into the `.codeskimr.toml` of a folder project; comments and the other tables stay.
+command-rules-preview-title = Check rules in advance
+command-rules-preview-description = Shows which violations the last scan would find for wanted rules, without writing anything.
