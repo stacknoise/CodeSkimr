@@ -19,9 +19,9 @@ use crate::codec::column_int;
 use crate::consts::{
     BULK_FINGERPRINTS_MIN, BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR,
     LARGE_LOAD_REFERENCES_MIN, LOAD_CACHE_SIZE_KIB, LOG_CACHE_NOT_RESTORED, LOG_PERSIST_STEP,
-    PRAGMA_CACHE_SIZE, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON, STEP_COMMIT, STEP_DETAILS, STEP_FACTS,
-    STEP_FINGERPRINTS, STEP_HEADER, STEP_INTEGRITY, STEP_PRUNE, STEP_PRUNE_BEFORE,
-    STEP_READ_MODELS, STEP_REFERENCE_INDEXES, STEP_REFERENCES,
+    PRAGMA_CACHE_SIZE, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON, SORT_CACHE_SIZE_KIB, STEP_COMMIT,
+    STEP_DETAILS, STEP_FACTS, STEP_FINGERPRINTS, STEP_HEADER, STEP_INTEGRITY, STEP_PRUNE,
+    STEP_PRUNE_BEFORE, STEP_READ_MODELS, STEP_REFERENCE_INDEXES, STEP_REFERENCES,
 };
 use crate::error::{StorageError, StorageResult};
 use crate::headers::{
@@ -163,6 +163,23 @@ impl Drop for LoadCache<'_> {
     }
 }
 
+/// Runs the build of an index with the small page cache that sorts fastest. `SQLite` sorts the keys
+/// of a new index in runs as large as the page cache; with the large cache of a big load the runs
+/// no longer fit the CPU caches and the build takes twice as long (6 million rows: 3 s with 2 MiB,
+/// 7 s with 1 GiB), and the gap grows with the table. The size it had comes back afterwards.
+pub(crate) fn with_sort_cache<T>(
+    conn: &Connection,
+    run: impl FnOnce() -> StorageResult<T>,
+) -> StorageResult<T> {
+    let before: i64 = conn.pragma_query_value(None, PRAGMA_CACHE_SIZE, |row| row.get(0))?;
+    conn.pragma_update(None, PRAGMA_CACHE_SIZE, SORT_CACHE_SIZE_KIB)?;
+    let result = run();
+    if let Err(cause) = conn.pragma_update(None, PRAGMA_CACHE_SIZE, before) {
+        tracing::warn!(event = LOG_CACHE_NOT_RESTORED, %cause);
+    }
+    result
+}
+
 /// Writes what belongs to the snapshot besides the facts: the naming rules, parse times,
 /// warnings, left-out and skipped files, and for an incremental scan the carried-over rows.
 fn insert_details(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
@@ -301,7 +318,9 @@ fn insert_facts(
     let bulk = indexes_dropped || bulk_load_starts(conn, data.references.len())?;
     timed(STEP_REFERENCES, || insert_references(conn, data, snapshot))?;
     if bulk {
-        timed(STEP_REFERENCE_INDEXES, || create_reference_indexes(conn))?;
+        timed(STEP_REFERENCE_INDEXES, || {
+            with_sort_cache(conn, || create_reference_indexes(conn))
+        })?;
     }
     for metric in &data.metrics {
         insert_metric(conn, snapshot, metric)?;
@@ -381,7 +400,10 @@ fn insert_fingerprints(conn: &Connection, found: &[SymbolFingerprints]) -> Stora
     let bulk = bulk_fingerprints_start(conn, found)?;
     similarity::insert_all(conn, found)?;
     if bulk {
-        conn.execute(sql::FINGERPRINT_INDEX_CREATE, [])?;
+        with_sort_cache(conn, || {
+            conn.execute(sql::FINGERPRINT_INDEX_CREATE, [])?;
+            Ok(())
+        })?;
     }
     Ok(())
 }

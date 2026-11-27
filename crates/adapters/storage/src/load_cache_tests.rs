@@ -3,9 +3,11 @@
 
 use rusqlite::Connection;
 
-use crate::consts::{LARGE_LOAD_REFERENCES_MIN, LOAD_CACHE_SIZE_KIB, PRAGMA_CACHE_SIZE};
+use crate::consts::{
+    LARGE_LOAD_REFERENCES_MIN, LOAD_CACHE_SIZE_KIB, PRAGMA_CACHE_SIZE, SORT_CACHE_SIZE_KIB,
+};
 use crate::error::StorageResult;
-use crate::snapshots::LoadCache;
+use crate::snapshots::{LoadCache, with_sort_cache};
 
 const SMALL_LOAD: usize = 10;
 /// A size that is neither the load size nor the default, so that a restore to a constant shows.
@@ -64,5 +66,17 @@ fn a_write_that_fails_does_not_leave_the_cache_raised() {
         Ok(())
     })();
     assert!(result.is_err());
+    assert_eq!(cache_size(&conn), USUAL_KIB);
+}
+
+#[test]
+fn building_an_index_uses_the_small_cache_and_gives_the_size_back() {
+    let conn = connection();
+    let inside = with_sort_cache(&conn, || Ok(cache_size(&conn))).unwrap();
+    assert_eq!(inside, SORT_CACHE_SIZE_KIB);
+    assert_eq!(cache_size(&conn), USUAL_KIB);
+    let failed: Result<(), _> =
+        with_sort_cache(&conn, || Err(crate::error::StorageError::ProjectNotFound));
+    assert!(failed.is_err());
     assert_eq!(cache_size(&conn), USUAL_KIB);
 }
