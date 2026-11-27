@@ -1,5 +1,4 @@
-import { navigate } from "../../app/router";
-import { LAYERS_ROUTE } from "../../app/consts";
+import { showLayers } from "../rules/tab";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import styles from "./LayersScreen.module.css";
@@ -11,7 +10,7 @@ export function LayersHint() {
     <div class={styles.hint}>
       <strong>{t(I18N_KEYS.LAYERS_HINT_TITLE)}</strong>
       <span>{t(I18N_KEYS.LAYERS_HINT_TEXT)}</span>
-      <button type="button" class={styles.primary} onClick={() => navigate(LAYERS_ROUTE.path)}>
+      <button type="button" class={styles.primary} onClick={showLayers}>
         {t(I18N_KEYS.LAYERS_HINT_ACTION)}
       </button>
     </div>

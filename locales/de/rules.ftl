@@ -63,3 +63,50 @@ rules-ring-advice = Auflösbar über { $edges ->
    *[other] { $places } Stellen
 }
 rules-ring-show = Im Graphen zeigen
+rules-add = Regel hinzufügen
+rules-add-git = Nur für Ordnerprojekte: Ein Git-Projekt hat keine Projektdatei, in die die Regeln kämen.
+rules-add-forbid = Verbot
+rules-add-forbid-hint = Modul A darf Modul B nicht nutzen
+rules-add-public-api = Nur über die öffentliche Schnittstelle
+rules-add-public-api-hint = Das Innere eines Moduls bleibt geschlossen
+rules-add-cycles = Zyklen verbieten
+rules-add-cycles-hint = Ein Schalter, keine neue Karte
+rules-add-layers = Schichten
+rules-add-layers-hint = Was jede Schicht nutzen darf
+rules-edit = Regel ändern
+rules-delete = Regel löschen
+rules-dialog-forbid-new = Verbot hinzufügen
+rules-dialog-forbid-edit = Verbot ändern
+rules-dialog-api-new = Regel hinzufügen: nur über die öffentliche Schnittstelle
+rules-dialog-api-edit = Regel ändern: nur über die öffentliche Schnittstelle
+rules-dialog-layers = Schichten: wer darf wen nutzen
+rules-dialog-delete = Regel löschen?
+rules-dialog-delete-body = Die Regel „{ $rule }“ wird aus der .codeskimr.toml entfernt. Ihre Verstöße werden nicht mehr gemeldet.
+rules-field-from = Dieses Modul …
+rules-field-to = … darf dieses Modul nicht nutzen
+rules-field-reason = Grund (optional, wird auf der Seite gezeigt)
+rules-field-module = Modul
+rules-field-internal = Inneres (ein Präfix pro Zeile, jeweils unterhalb des Moduls)
+rules-field-hint = Aus den Namensräumen des Scans ({ $count }); ein eigenes Präfix kann getippt werden.
+rules-layers-help = Die Zeile nutzt die Spalten. Ohne „Limit“ darf eine Schicht alles nutzen; mit Limit nur die angehakten Schichten (keine, wenn nichts angehakt ist). Namen und Namensräume der Schichten bleiben im Schicht-Editor.
+rules-layers-limit = Limit
+rules-layers-uses = darf nutzen →
+rules-layers-none = Das Projekt hat noch keine Schichten. Lege sie zuerst im Schicht-Editor an.
+rules-preview-checking = Prüfe gegen den letzten Scan …
+rules-preview-none = Mit dem letzten Scan gäbe es keinen Verstoß.
+rules-preview-some = { $count ->
+    [one] Mit dem letzten Scan wäre das 1 Verstoß ({ $old } davon schon festgehalten).
+   *[other] Mit dem letzten Scan wären das { $count } Verstöße ({ $old } davon schon festgehalten).
+}
+rules-preview-unscanned = Das Projekt hat noch keinen Scan, darum gibt es keine Vorschau.
+rules-preview-invalid = Das ist noch keine Regel: Prüfe die Namen.
+rules-promise = Schreibt in die .codeskimr.toml. Übrige Tabellen und Kommentare bleiben; Kommentare innerhalb der Regel-Tabellen werden neu geschrieben.
+rules-cancel = Abbrechen
+rules-save = Speichern
+rules-saving = Speichere …
+rules-delete-confirm = Löschen
+rules-save-failed = Die Regeln konnten nicht gespeichert werden.
+rules-toml-label = Text, der in die Datei geschrieben wird
+rules-tab-rules = Regeln
+rules-tab-layers = Schichten
+rules-tabs-label = Regeln und Schichten

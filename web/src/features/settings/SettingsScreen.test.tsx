@@ -52,13 +52,6 @@ describe("SettingsScreen", () => {
     expect(screen.getByText("Einstellungen")).toBeInTheDocument();
     expect(localStorage.getItem("codeskimr.language")).toBe("de");
   });
-
-  it("leads to the layer editor", () => {
-    render(() => <SettingsScreen />);
-    fireEvent.click(screen.getByRole("tab", { name: "Analysis" }));
-    fireEvent.click(screen.getByRole("button", { name: "Edit layers" }));
-    expect(currentPath()).toBe("/layers");
-  });
 });
 
 describe("the tabs of the settings screen", () => {

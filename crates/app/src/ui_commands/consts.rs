@@ -370,6 +370,21 @@ pub const RULES_HOLD: &str = "rules.hold";
 pub const RULES_HOLD_TITLE: &str = i18n::COMMAND_RULES_HOLD_TITLE;
 /// Description key of `rules.hold`.
 pub const RULES_HOLD_DESCRIPTION: &str = i18n::COMMAND_RULES_HOLD_DESCRIPTION;
+/// Most rules (bans and public interfaces together) that one call of `rules.set` or
+/// `rules.preview` takes.
+pub const MAX_RULES_PER_CALL: usize = 500;
+/// Id of the command that writes the architecture rules into the project file.
+pub const RULES_SET: &str = "rules.set";
+/// Title key of `rules.set`.
+pub const RULES_SET_TITLE: &str = i18n::COMMAND_RULES_SET_TITLE;
+/// Description key of `rules.set`.
+pub const RULES_SET_DESCRIPTION: &str = i18n::COMMAND_RULES_SET_DESCRIPTION;
+/// Id of the command that judges wanted rules over the newest scan without writing them.
+pub const RULES_PREVIEW: &str = "rules.preview";
+/// Title key of `rules.preview`.
+pub const RULES_PREVIEW_TITLE: &str = i18n::COMMAND_RULES_PREVIEW_TITLE;
+/// Description key of `rules.preview`.
+pub const RULES_PREVIEW_DESCRIPTION: &str = i18n::COMMAND_RULES_PREVIEW_DESCRIPTION;
 /// Id of the command that keeps a symbol on purpose (an entry of `[[unused.ignore]]`).
 pub const UNUSED_KEEP: &str = "unused.keep";
 /// Title key of `unused.keep`.
