@@ -119,6 +119,16 @@ function Edges(props: {
   );
 }
 
+/** The classes of a box: selected, critical and faded are told apart by the look. */
+function boxClass(state: { selected: boolean; critical: boolean; dimmed: boolean }): string {
+  return cx(
+    styles.box,
+    state.selected && styles.selected,
+    state.critical && styles.critical,
+    state.dimmed && styles.dimmed,
+  );
+}
+
 /** One box: a button for a layer, a namespace or a type. A critical one carries the label "K". */
 function BoxButton(props: {
   box: LayerBox;
@@ -132,12 +142,7 @@ function BoxButton(props: {
   return (
     <button
       type="button"
-      class={cx(
-        styles.box,
-        props.selected && styles.selected,
-        props.critical && styles.critical,
-        props.dimmed && styles.dimmed,
-      )}
+      class={boxClass(props)}
       style={{
         left: box().x + PX,
         top: box().y + PX,
