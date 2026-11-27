@@ -1,5 +1,6 @@
 import { compareValues, type SortState } from "../../shared/table/sort";
-import { CYCLE_JOIN, MODULE_COLUMN, NAME_ORDER } from "./consts";
+import { SORT_DIRECTION } from "../../shared/table/consts";
+import { CYCLE_JOIN, MODULE_COLUMN } from "./consts";
 import type {
   LayerLink,
   ModuleCycle,
@@ -12,7 +13,7 @@ import type {
 /** Compares two texts the way the language sorts them: umlauts with their letter, no regard to
  * case, digits by value. */
 export function compareText(a: string, b: string, language: string): number {
-  return a.localeCompare(b, language, NAME_ORDER);
+  return compareValues(a, b, SORT_DIRECTION.ascending, language);
 }
 
 /** The items by one text each, then by the next one where two are equal. */

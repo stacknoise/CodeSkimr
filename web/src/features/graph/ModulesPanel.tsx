@@ -13,6 +13,7 @@ import { panelStyle } from "../../shared/layout/panelStyle";
 import { modulesPanelWidth } from "./layout";
 import {
   CYCLE_JOIN,
+  DEFAULT_MODULE_SORT,
   MODULE_COLUMN,
   MODULE_COLUMNS,
   MODULE_NUMBER_COLUMNS,
@@ -96,7 +97,7 @@ function Row(props: { row: ModuleRow; selected: boolean; onSelect: (name: string
 }
 
 const columns = createTableColumns(MODULES_TABLE_KEY, MODULE_COLUMNS);
-const [sort, setSort] = createSignal<SortState | null>(null);
+const [sort, setSort] = createSignal<SortState | null>(DEFAULT_MODULE_SORT);
 
 /** The head of a column of the table: it sorts when pressed and has the handle for its width. */
 function Head(props: { column: ModuleColumn; label: MessageKey; tip?: MessageKey }) {

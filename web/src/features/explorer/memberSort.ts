@@ -1,7 +1,6 @@
 import {
   CHIP,
   DEFAULT_SORT,
-  NAME_COLLATION,
   METHOD_KINDS,
   NUMBER_COLUMNS,
   PROPERTY_KINDS,
@@ -13,6 +12,7 @@ import {
   type SortColumn,
   type SortDirection,
 } from "./consts";
+import { TEXT_COLLATION } from "../../shared/table/consts";
 import { pressSort } from "../../shared/table/sort";
 import type { MemberRow } from "./types";
 
@@ -43,7 +43,7 @@ function valueOf(row: MemberRow, column: SortColumn): string | number | null {
 function compare(a: string | number, b: string | number): number {
   return typeof a === "number" && typeof b === "number"
     ? a - b
-    : String(a).localeCompare(String(b), undefined, NAME_COLLATION);
+    : String(a).localeCompare(String(b), undefined, TEXT_COLLATION);
 }
 
 /** The rows in the order of `sort`. A row without a value in the column comes last in either

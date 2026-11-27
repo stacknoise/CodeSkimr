@@ -1,4 +1,5 @@
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { SORT_DIRECTION } from "../../shared/table/consts";
 
 /** Ids of the commands of the explorer (crates/app/src/ui_commands/consts.rs). */
 export const COMMAND = {
@@ -342,7 +343,6 @@ export const MEMBER_COLUMNS_WITH_NOTES = [
   SORT_COLUMN.lines,
 ];
 
-import { SORT_DIRECTION } from "../../shared/table/consts";
 export {
   SORT_DIRECTION,
   SORT_MARK,
@@ -362,9 +362,6 @@ export const NUMBER_COLUMNS: readonly SortColumn[] = [
   SORT_COLUMN.usages,
   SORT_COLUMN.lines,
 ];
-
-/** Compares names without regard to case and accents. */
-export const NAME_COLLATION: Intl.CollatorOptions = { sensitivity: "base", numeric: true };
 
 /** The separator between a namespace and a name in the qualified name of a type
  * (crates/app/src/ui_commands/consts.rs). */

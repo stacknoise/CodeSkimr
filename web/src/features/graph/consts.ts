@@ -153,9 +153,6 @@ export const NO_STABILITY = "–";
 /** The ARIA role of a hint in the panel of the modules. */
 export const NOTE_ROLE = "note";
 
-/** Compares names without regard to case and accents, and digits by their value. */
-export const NAME_ORDER: Intl.CollatorOptions = { sensitivity: "base", numeric: true };
-
 /** The columns of the table of modules, by the id that the sort and the width handles use. */
 export const MODULE_COLUMN = {
   name: "name",
@@ -175,3 +172,6 @@ export const MODULE_NUMBER_COLUMNS: readonly ModuleColumn[] = [
 ];
 /** The name under which the widths of the columns of that table are kept. */
 export const MODULES_TABLE_KEY = "modules";
+
+/** The table of modules is sorted by name until a column head is pressed. */
+export const DEFAULT_MODULE_SORT = { column: MODULE_COLUMN.name, direction: "ascending" } as const;
