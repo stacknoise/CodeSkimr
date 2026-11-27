@@ -664,6 +664,8 @@ pub mod key {
 /// The first line of `change --markdown`: a script that updates one comment on a pull request
 /// finds its own comment by it.
 pub const MARKDOWN_MARKER: &str = "<!-- codeskimr-change -->";
+/// The first line of `compare --metrics --markdown`, so that a bot can find its own comment.
+pub const METRICS_MARKDOWN_MARKER: &str = "<!-- codeskimr-metrics -->";
 /// Sub-command that lists the retained scans of a project.
 pub const COMMAND_SCANS: &str = "scans";
 /// Sub-command that compares two scans of a project.

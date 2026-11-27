@@ -9,6 +9,7 @@ import { cx } from "../../shared/ui/cx";
 import {
   changeAnswer,
   changeFailure,
+  changeMetrics,
   changeReading,
   changeScans,
   changeTab,
@@ -20,6 +21,7 @@ import {
 import { CompareTab } from "./CompareTab";
 import { CopyMarkdown } from "./CopyMarkdown";
 import {
+  COMMAND,
   MIN_SCANS,
   PANEL_ID,
   ROLE,
@@ -151,6 +153,47 @@ function Content(props: { project: number }) {
   );
 }
 
+/** The button "Copy as Markdown" of the view that is shown: the impact or the metrics. */
+function CopyButtons() {
+  return (
+    <>
+      <Show when={changeTab() === TAB.impact ? changeAnswer() : null}>
+        {(answer) => (
+          <Show when={activeProject()}>
+            {(project) => (
+              <CopyMarkdown
+                command={COMMAND.markdown}
+                input={() => ({
+                  project: project(),
+                  base: answer().base.snapshot,
+                  target: answer().target.snapshot,
+                })}
+              />
+            )}
+          </Show>
+        )}
+      </Show>
+      <Show when={changeTab() === TAB.metrics ? changeMetrics() : null}>
+        {(metrics) => (
+          <Show when={activeProject()}>
+            {(project) => (
+              <CopyMarkdown
+                command={COMMAND.metricsMarkdown}
+                input={() => ({
+                  project: project(),
+                  base: metrics().base.snapshot,
+                  target: metrics().target.snapshot,
+                  level: metrics().level,
+                })}
+              />
+            )}
+          </Show>
+        )}
+      </Show>
+    </>
+  );
+}
+
 /** The screen "Change": what the difference between two scans of the project hits (ADR 0097,
  * mocks 29 and erw-auswirkung). One call, `scans.impact`, serves both views. */
 export function ChangeScreen() {
@@ -172,13 +215,7 @@ export function ChangeScreen() {
         <Show when={changeTab() === TAB.impact ? changeAnswer() : null}>
           {(answer) => <Compared answer={answer()} />}
         </Show>
-        <Show when={changeTab() === TAB.impact ? changeAnswer() : null}>
-          {(answer) => (
-            <Show when={activeProject()}>
-              {(project) => <CopyMarkdown project={project()} answer={answer()} />}
-            </Show>
-          )}
-        </Show>
+        <CopyButtons />
       </header>
       <Show
         when={activeProject()}

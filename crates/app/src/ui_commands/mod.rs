@@ -149,7 +149,7 @@ use rules::{RulesHold, RulesShow};
 use rules_edit::{RulesPreview, RulesSet};
 use scans::{
     ComparePorts, MarkdownPorts, ScanListPorts, ScansCompare, ScansImpact, ScansImpactMarkdown,
-    ScansList, ScansMetrics,
+    ScansList, ScansMetrics, ScansMetricsMarkdown,
 };
 pub(crate) use scope::{
     GetInput as ScopeGetInput, ScopeAnswer, ScopeGet, ScopeSet, SetInput as ScopeSetInput,
@@ -401,16 +401,18 @@ fn register_compare(
             ports: Arc::clone(&ports),
         },
     )?;
+    let markdown = Arc::new(MarkdownPorts {
+        compare: ports,
+        messages: Messages::load().map_err(CodedError::caused_by)?,
+        preferences: PreferencesFile::in_dir(&locations.data_dir),
+    });
     add(
         registry,
         ScansImpactMarkdown {
-            ports: Arc::new(MarkdownPorts {
-                compare: ports,
-                messages: Messages::load().map_err(CodedError::caused_by)?,
-                preferences: PreferencesFile::in_dir(&locations.data_dir),
-            }),
+            ports: Arc::clone(&markdown),
         },
-    )
+    )?;
+    add(registry, ScansMetricsMarkdown { ports: markdown })
 }
 
 /// Registers the two commands of the level 2 switch (ADR 0071). Neither is an MCP tool.
@@ -601,6 +603,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ScansMetrics>()?;
     api.expose::<ScansImpact>()?;
     api.expose::<ScansImpactMarkdown>()?;
+    api.expose::<ScansMetricsMarkdown>()?;
     api.expose::<GetPreferences>()?;
     api.expose::<SetPreferences>()?;
     api.expose::<GetUiSettings>()?;

@@ -9,6 +9,7 @@ export const COMMAND = {
   impact: "scans.impact",
   markdown: "scans.impact_markdown",
   metrics: "scans.metrics",
+  metricsMarkdown: "scans.metrics_markdown",
 } as const;
 
 /** The two views of the screen (ADR 0097). */

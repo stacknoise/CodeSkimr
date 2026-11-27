@@ -505,6 +505,14 @@ pub enum MetricsSide {
     Better,
 }
 
+impl MetricsSide {
+    /// Which lists are printed: the worse ones, the better ones.
+    #[must_use]
+    pub const fn lists(self) -> (bool, bool) {
+        (!matches!(self, Self::Better), !matches!(self, Self::Worse))
+    }
+}
+
 /// What `codeskimr compare --metrics` is asked for (ADR 0114).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MetricsOptions {

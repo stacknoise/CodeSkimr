@@ -173,3 +173,42 @@ fn a_project_with_one_scan_has_no_metrics_to_compare() {
     let refused = ask(&fixture, "scans.metrics", json!({ "project": id }));
     assert_eq!(refused.unwrap_err(), "CMP-201");
 }
+
+#[test]
+fn the_metrics_markdown_is_the_text_of_the_command_line_in_the_chosen_language() {
+    let fixture = Fixture::installed(None);
+    let id = two_scans(&fixture);
+    let english = ask(
+        &fixture,
+        "scans.metrics_markdown",
+        json!({ "project": id, "language": "en" }),
+    )
+    .unwrap();
+    let text = english["markdown"].as_str().unwrap();
+    assert!(text.starts_with("<!-- codeskimr-metrics -->"), "{text}");
+    assert!(text.contains("metric changes from scan"), "{text}");
+    let german = ask(
+        &fixture,
+        "scans.metrics_markdown",
+        json!({ "project": id, "language": "de", "level": "type" }),
+    )
+    .unwrap();
+    assert!(
+        german["markdown"]
+            .as_str()
+            .unwrap()
+            .contains("Kennzahlen von Scan")
+    );
+}
+
+#[test]
+fn the_metrics_markdown_refuses_a_level_that_is_not_known() {
+    let fixture = Fixture::installed(None);
+    let id = two_scans(&fixture);
+    let refused = ask(
+        &fixture,
+        "scans.metrics_markdown",
+        json!({ "project": id, "level": "galaxy" }),
+    );
+    assert_eq!(refused.unwrap_err(), "API-101");
+}

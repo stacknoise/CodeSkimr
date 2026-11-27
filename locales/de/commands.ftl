@@ -134,3 +134,5 @@ command-log-clear-title = Protokoll leeren
 command-log-clear-description = Leert die Protokolldatei und entfernt die alten. Der Pfad wird aus dem Datenordner gebaut, nie vom Aufrufer genommen.
 command-log-open-folder-title = Protokollordner öffnen
 command-log-open-folder-description = Öffnet den Ordner der Protokolldateien mit dem Programm, das das Betriebssystem dafür nennt, auf dem Rechner der App.
+command-scans-metrics-markdown-title = Kennzahlen-Änderungen als Markdown zeigen
+command-scans-metrics-markdown-description = Erzeugt die Kennzahlen-Änderungen zwischen zwei aufbewahrten Scans (dieselbe Antwort wie beim Zeigen, welche Objekte schlechter oder besser wurden) als Markdown-Text, den `codeskimr compare --metrics --markdown` ausgibt: die Zahlen und die beiden Listen mit den Bewegungen jedes Objekts. Der Text steht in der angegebenen oder in der gespeicherten Sprache des Nutzers.

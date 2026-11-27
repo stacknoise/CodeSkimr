@@ -66,3 +66,10 @@ metrics-name-instability = Instabilität
 metrics-into-poor = jetzt als schlecht bewertet
 metrics-out-of-poor = nicht mehr als schlecht bewertet
 metrics-none = Kein Objekt hat sich um seine Schwelle bewegt.
+
+metrics-md-title = ## CodeSkimr: Kennzahlen von Scan { $base } zu Scan { $target }, Ebene { $level }
+metrics-md-counts = - Verschlechtert: { $worse }, verbessert: { $better }, betrachtete Objekte: { $looked }
+metrics-md-worse = ### Verschlechtert ({ $shown } von { $total })
+metrics-md-better = ### Verbessert ({ $shown } von { $total })
+metrics-md-line = - { $kind } `{ $name }` (`{ $path }`): { $moves }
+metrics-md-none = Kein Objekt hat sich über seine Schwelle hinaus bewegt.
