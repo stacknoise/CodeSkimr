@@ -27,7 +27,7 @@ CODESKIMR_LANG="$CS_LANG" "$cs" change . --markdown > "$body"
 
 # Only comments of a bot count: anyone can write the marker into a comment in a public repository.
 comment_id=$(gh api "repos/${CS_REPO}/issues/${CS_PR}/comments" --paginate \
-  --jq ".[] | select(.user.type == \"Bot\" and (.body | startswith(\"${marker}\"))) | .id" | head -n1)
+  --jq ".[] | select(.user.type == \"Bot\" and (.body | startswith(\"${marker}\"))) | .id" | sed -n 1p)
 # A deleted fork has no head repository; then the token cannot write either.
 if [ "${CS_HEAD_REPO:-}" != "$CS_REPO" ]; then
   echo "Fork: the comment is written to the job summary only."
