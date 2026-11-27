@@ -1,6 +1,6 @@
 # 0113 – ABAP: a basic-tier pack, read from abapGit folders
 
-Status: proposed. Labelled `blueprint-change` (R-08 gets one more place for `unsafe`) and `new-dependency`.
+Status: accepted with the merge of this pull request (the order abapGit first, ADT later was decided by the product owner on 2026-11-25, moved forward on 2026-11-27). Labelled `blueprint-change` (R-08 gets one more place for `unsafe`) and `new-dependency`.
 
 ## Context
 
