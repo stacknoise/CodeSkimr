@@ -1,4 +1,4 @@
-import { type Accessor, createEffect, createSignal } from "solid-js";
+import { type Accessor, createEffect, createSignal, onCleanup } from "solid-js";
 import { runCommand } from "../api/commands";
 import {
   CACHE_LIMIT,
@@ -60,9 +60,10 @@ async function flush(): Promise<void> {
     } catch {
       answer = null;
     }
+    const pieces = Array.isArray(answer?.pieces) ? answer.pieces : null;
     chunk.forEach(([key, piece], index) => {
-      const tokens = answer?.pieces[index]?.tokens ?? [];
-      if (answer !== null) {
+      const tokens = pieces?.[index]?.tokens ?? [];
+      if (pieces !== null) {
         remember(key, tokens);
       }
       piece.listeners.forEach((listener) => listener(tokens));
@@ -93,11 +94,19 @@ export function createHighlight(
   text: Accessor<string>,
 ): Accessor<CodeToken[]> {
   const [tokens, setTokens] = createSignal<CodeToken[]>([]);
+  let shown: string | null = null;
+  onCleanup(() => {
+    shown = null;
+  });
   createEffect(() => {
     const [now, code] = [path(), text()];
-    setTokens(cache.get(keyOf(now, code)) ?? []);
+    const key = keyOf(now, code);
+    shown = key;
+    setTokens(cache.get(key) ?? []);
+    // An answer that comes after the code changed or went away is dropped; it never reads the
+    // props of a component that is gone.
     request(now, code, (found) => {
-      if (path() === now && text() === code) {
+      if (shown === key) {
         setTokens(found);
       }
     });

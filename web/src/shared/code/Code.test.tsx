@@ -85,4 +85,12 @@ describe("Code", () => {
     render(() => <For each={texts}>{(text) => <Code path="a.rs" text={text} />}</For>);
     await waitFor(() => expect(cacheSize()).toBe(CACHE_LIMIT));
   });
+
+  it("stays plain, and keeps nothing, when the answer has no pieces", async () => {
+    run.mockResolvedValue({});
+    render(() => <Code path="a.rs" text="fn run()" />);
+    await waitFor(() => expect(run).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("fn run()")).toBeInTheDocument();
+    expect(cacheSize()).toBe(0);
+  });
 });
