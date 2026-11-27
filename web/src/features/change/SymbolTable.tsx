@@ -9,6 +9,7 @@ import { ColumnWidths, HeadRow } from "../../shared/table/ResizableHead";
 import { KindBadge } from "../explorer/KindBadge";
 import {
   CAUSE,
+  CAUSE_MOVED,
   MARK,
   ROLE,
   ROW_ID_PREFIX,
@@ -33,6 +34,7 @@ const MARK_STYLE: Record<string, string | undefined> = {
   [CAUSE.added]: parts.markAdded,
   [CAUSE.changed]: parts.markChanged,
   [CAUSE.removed]: parts.markRemoved,
+  [CAUSE_MOVED]: parts.markChanged,
 };
 
 /** The text of the visibility of a symbol, or a dash if the language has none. */

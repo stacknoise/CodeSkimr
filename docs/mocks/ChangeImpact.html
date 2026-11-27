@@ -129,6 +129,6 @@ function auswirkung(t){
    <div class="pad sub" style="margin-top:auto;border-top:1px solid var(--line);font-size:12px;line-height:1.5"><b>„Nicht angefasst“ ist die Prüfliste:</b> Stellen, die das geänderte Symbol verwenden, aber im PR nicht geändert wurden.<br>Nur direkte Verwendungen. Aufrufe über Reflection, Zeichenketten oder aus anderen Repositories sieht CodeSkimr nicht.</div></div></div></div>`});
 }
 
-const only=new URLSearchParams(location.search).get('t');
-document.getElementById('root').innerHTML=(only?[only]:['petrol','hell','dunkel']).map(t=>auswirkung(t)).join('');
+const THEMES=['petrol','hell','dunkel'],asked=new URLSearchParams(location.search).get('t'),only=THEMES.find(x=>x===asked);
+document.getElementById('root').innerHTML=(only?[only]:THEMES).map(t=>auswirkung(t)).join('');
 </script></body></html>

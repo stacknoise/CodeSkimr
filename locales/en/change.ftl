@@ -100,6 +100,7 @@ change-view-card-added = New
 change-view-card-added-hint = symbols
 change-view-card-changed = Changed
 change-view-card-changed-hint = Signature { $signature } · Visibility { $visibility } · Content { $content }
+change-view-card-changed-hint-cut = Of the { $shown } listed: Signature { $signature } · Visibility { $visibility } · Content { $content }
 change-view-card-removed = Removed
 change-view-card-removed-hint = check the callers
 change-view-card-moved = Moved

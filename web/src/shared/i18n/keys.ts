@@ -235,6 +235,7 @@ export const I18N_KEYS = {
   CHANGE_VIEW_CARD_ADDED_HINT: "change-view-card-added-hint",
   CHANGE_VIEW_CARD_CHANGED: "change-view-card-changed",
   CHANGE_VIEW_CARD_CHANGED_HINT: "change-view-card-changed-hint",
+  CHANGE_VIEW_CARD_CHANGED_HINT_CUT: "change-view-card-changed-hint-cut",
   CHANGE_VIEW_CARD_REMOVED: "change-view-card-removed",
   CHANGE_VIEW_CARD_REMOVED_HINT: "change-view-card-removed-hint",
   CHANGE_VIEW_CARD_MOVED: "change-view-card-moved",

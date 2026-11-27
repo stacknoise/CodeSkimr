@@ -50,6 +50,18 @@ function changedRow(answer: ChangeAnswer, matched: MatchedOut): ImpactRow {
   };
 }
 
+function movedRow(answer: ChangeAnswer, matched: MatchedOut): ImpactRow {
+  return {
+    key: `${CAUSE_MOVED}:${matched.target.id}`,
+    cause: CAUSE_MOVED,
+    symbol: matched.target,
+    reasons: matched.reasons,
+    narrowed: matched.narrowed,
+    before: matched.base,
+    impact: impactOf(answer, CAUSE.changed, matched.base),
+  };
+}
+
 function addedRow(symbol: SymbolOut): ImpactRow {
   return {
     key: `${CAUSE.added}:${symbol.id}`,
@@ -62,10 +74,14 @@ function addedRow(symbol: SymbolOut): ImpactRow {
   };
 }
 
-/** The rows of the table of the impact: the removed symbols first, then the changed ones (those
- * with a checklist before those without), then the new ones. */
+/** The rows of the table of the impact: the removed symbols first, then the changed and the moved
+ * ones (those with a checklist before those without; a moved symbol that also changed in its
+ * signature or visibility has a checklist), then the new ones. */
 export function impactRows(answer: ChangeAnswer): ImpactRow[] {
-  const changed = answer.changed.items.map((matched) => changedRow(answer, matched));
+  const changed = [
+    ...answer.changed.items.map((matched) => changedRow(answer, matched)),
+    ...answer.moved.items.map((matched) => movedRow(answer, matched)),
+  ];
   const withChecklist = changed.filter((row) => row.impact !== null);
   const without = changed.filter((row) => row.impact === null);
   return [
@@ -191,7 +207,9 @@ function causePill(cause: string): PillSpec[] {
 
 /** The pills that name a row of the impact: the reasons of a change, or what else happened. */
 export function pillsOf(row: ImpactRow): PillSpec[] {
-  return row.cause === CAUSE.changed ? reasonPills(row.reasons) : causePill(row.cause);
+  return row.cause === CAUSE.changed
+    ? reasonPills(row.reasons)
+    : [...causePill(row.cause), ...reasonPills(row.reasons)];
 }
 
 type PlainCause = typeof CAUSE.removed | typeof CAUSE.added;

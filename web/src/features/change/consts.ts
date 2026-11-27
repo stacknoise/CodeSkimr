@@ -69,7 +69,7 @@ export const CAUSE_PILL: Record<string, PillSpec> = {
 };
 
 /** The mark in front of a row of the table, as in the mock: plus, tilde, minus. */
-export const MARK: Record<string, string> = { added: "+", changed: "~", removed: "−" };
+export const MARK: Record<string, string> = { added: "+", changed: "~", removed: "−", moved: "→" };
 /** The sign in front of a line of a changed signature. */
 export const SIGN = { before: "−", after: "+" } as const;
 /** Joins the parts of a short line, such as the numbers under a figure. */

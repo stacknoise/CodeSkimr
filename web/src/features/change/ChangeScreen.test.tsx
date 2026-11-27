@@ -175,7 +175,7 @@ describe("ChangeScreen, view Impact", () => {
     expect(table.getByText("LegacyPricing.Calculate")).toBeInTheDocument();
     expect(table.getByText("adapted")).toBeInTheDocument();
     expect(table.getByText("2 open")).toBeInTheDocument();
-    expect(table.getByText("no checklist")).toBeInTheDocument();
+    expect(table.getAllByText("no checklist").length).toBeGreaterThan(0);
     expect(screen.getByText("1 new layer violation")).toBeInTheDocument();
     expect(screen.getByText("Api uses Data (2 references)")).toBeInTheDocument();
     expect(
@@ -223,6 +223,55 @@ describe("ChangeScreen, view Impact", () => {
         'Two states of the same project. "Impact" shows the places that are hit.',
       ),
     ).toBeInTheDocument();
+  });
+});
+
+describe("ChangeScreen, moved and cut", () => {
+  it("lists a moved symbol that changed its signature with its checklist", async () => {
+    const moved = {
+      base: { ...symbol(6, "Money.Format", "string Format(int a)"), path: "utils/money.ts" },
+      target: { ...symbol(6, "Money.Format", "string Format(long a)"), path: "shared/money.ts" },
+      reasons: ["signature"],
+      narrowed: false,
+    };
+    const impact = {
+      symbol: moved.base,
+      cause: "changed",
+      reasons: ["signature"],
+      narrowed: false,
+      not_touched: 1,
+      usages: { total: 1, is_cut: false, items: [usage("Web/Cart.cs", 17, "not_touched")] },
+    };
+    serveChange({
+      "scans.impact": () =>
+        answer({
+          ...ANSWER,
+          changed: { total: 0, is_cut: false, items: [] },
+          removed: { total: 0, is_cut: false, items: [] },
+          added: { total: 0, is_cut: false, items: [] },
+          moved: { total: 1, is_cut: false, items: [moved] },
+          impact: { total: 1, is_cut: false, items: [impact] },
+        }),
+    });
+    render(() => <ChangeScreen />);
+    const table = within(await screen.findByRole("grid", { name: "Symbols the change touches" }));
+    expect(table.getByText("Money.Format")).toBeInTheDocument();
+    expect(table.getByText("moved")).toBeInTheDocument();
+    expect(table.getByText("1 open")).toBeInTheDocument();
+    expect(screen.getByText("Shop.Checkout.Flow17")).toBeInTheDocument();
+  });
+
+  it("says that the counts of the reasons cover only the listed symbols when the list was cut", async () => {
+    showChangeTab(TAB.compare);
+    serveChange({
+      "scans.impact": () =>
+        answer({ ...ANSWER, is_cut: true, changed: { ...ANSWER.changed, total: 9, is_cut: true } }),
+    });
+    render(() => <ChangeScreen />);
+    expect(
+      await screen.findByText("Of the 1 listed: Signature 1 · Visibility 0 · Content 0"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("9")).toBeInTheDocument();
   });
 });
 

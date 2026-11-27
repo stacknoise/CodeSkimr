@@ -49,7 +49,7 @@ table{width:100%;border-collapse:collapse}th{text-align:left;font-size:12px;font
 .code{font:600 26px 'JetBrains Mono','DejaVu Sans Mono',monospace;letter-spacing:.12em;text-align:center;padding:14px;background:var(--bg);border:1px dashed var(--accent);border-radius:8px}
 .new{background:var(--goodbg);color:var(--good)}
 </style></head><body><div class="board" id="b"></div><script>
-const q=new URLSearchParams(location.search),v=q.get('v')||'m28a',th=q.get('t')||'petrol';
+const q=new URLSearchParams(location.search),pick=(k,list)=>list.find(x=>x===q.get(k))||list[0],v=pick('v',['m28a','m29']),th=pick('t',['petrol','hell','dunkel']);
 const P=window.P=(c,t)=>`<span class="pill ${c}">${t}</span>`;
 const cb=s=>`<span class="cb ${s}">${s==='on'?'✓':s==='part'?'–':''}</span>`;
 const kpi=(k,x,s)=>`<div class="card" style="padding:12px 14px;flex:1"><div class="k">${k}</div><div style="font:600 20px 'JetBrains Mono','DejaVu Sans Mono',monospace;margin-top:6px">${x}</div>${s?`<div class="muted" style="margin-top:3px">${s}</div>`:''}</div>`;
@@ -72,5 +72,5 @@ V.m29=()=>page({title:'Änderung',sub:'kundenportal',rail:1,tabs:['Auswirkung','
 <div style="display:flex;gap:12px">${kpi('Neu','14','Symbole')}${kpi('Geändert','9','Signatur 4 · Inhalt 5')}${kpi('Entfernt','3','Aufrufer prüfen')}${kpi('Verschoben','2','umbenannt oder in andere Datei')}</div>
 <div class="tree">${[['bad','entfernt','OrderService.cancelLegacy()','src/orders/service.ts'],['warn','Signatur','PriceCalc.total(items, tax)','src/pricing/calc.ts'],['warn','Signatur','Mailer.send(to, body)','src/mail/mailer.ts'],['n','verschoben','formatMoney()','utils/money.ts → shared/money.ts'],['new','neu','RefundPolicy','src/orders/refund.ts']].map(r=>`<div class="tr"><span class="pill ${r[0]}" style="width:86px;text-align:center">${r[1]}</span><span class="mono" style="font-size:12.5px">${r[2]}</span><span class="num">${r[3]}</span></div>`).join('')}</div>
 <div class="note i">Zwei Stände desselben Projekts. Grundlage für Auswirkung, Trends und Live-Ansicht. Weiter zu „Auswirkung“ zeigt die betroffenen Stellen (Mock <span class="mono">erw-auswirkung</span>).</div>`});
-const b=document.getElementById('b');b.classList.add(th);b.innerHTML=(V[v]||V.m28a)()+`<span class="mark">${v}</span>`;
+const b=document.getElementById('b');b.classList.add(th);b.innerHTML=(v==='m29'?V.m29:V.m28a)()+`<span class="mark">${v}</span>`;
 </script></body></html>

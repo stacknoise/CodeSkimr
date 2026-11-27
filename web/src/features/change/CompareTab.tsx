@@ -113,11 +113,17 @@ function Figures(props: { answer: ChangeAnswer }) {
       <Figure
         label={t(I18N_KEYS.CHANGE_VIEW_CARD_CHANGED)}
         value={String(props.answer.changed.total)}
-        hint={t(I18N_KEYS.CHANGE_VIEW_CARD_CHANGED_HINT, {
-          signature: reasonCount(props.answer, REASON.signature),
-          visibility: reasonCount(props.answer, REASON.visibility),
-          content: reasonCount(props.answer, REASON.content),
-        })}
+        hint={t(
+          props.answer.changed.is_cut
+            ? I18N_KEYS.CHANGE_VIEW_CARD_CHANGED_HINT_CUT
+            : I18N_KEYS.CHANGE_VIEW_CARD_CHANGED_HINT,
+          {
+            signature: reasonCount(props.answer, REASON.signature),
+            visibility: reasonCount(props.answer, REASON.visibility),
+            content: reasonCount(props.answer, REASON.content),
+            shown: props.answer.changed.items.length,
+          },
+        )}
       />
       <Figure
         label={t(I18N_KEYS.CHANGE_VIEW_CARD_REMOVED)}

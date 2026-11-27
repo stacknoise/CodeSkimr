@@ -4,7 +4,7 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import { TONE } from "../../shared/ui/consts";
 import { cx } from "../../shared/ui/cx";
 import { Pill } from "../../shared/ui/Pill";
-import { CAUSE, CONFIDENCE, LINE_SEPARATOR, REASON, SIGN, STATUS } from "./consts";
+import { CAUSE, CAUSE_MOVED, CONFIDENCE, LINE_SEPARATOR, REASON, SIGN, STATUS } from "./consts";
 import { changeOnlyOpen, showOnlyOpen } from "./change";
 import { diffLines, groupUsages, type DiffLine } from "./rows";
 import type { ImpactRow, SymbolImpactOut, UsageOut } from "./types";
@@ -22,8 +22,11 @@ function headingOf(row: ImpactRow) {
   if (row.reasons.includes(REASON.signature)) {
     return I18N_KEYS.CHANGE_VIEW_DETAIL_SIGNATURE;
   }
-  return row.reasons.includes(REASON.visibility)
-    ? I18N_KEYS.CHANGE_VIEW_DETAIL_VISIBILITY
+  if (row.reasons.includes(REASON.visibility)) {
+    return I18N_KEYS.CHANGE_VIEW_DETAIL_VISIBILITY;
+  }
+  return row.cause === CAUSE_MOVED
+    ? I18N_KEYS.CHANGE_VIEW_DETAIL_MOVED
     : I18N_KEYS.CHANGE_VIEW_DETAIL_CONTENT;
 }
 
