@@ -873,3 +873,25 @@ fn the_reverse_index_of_a_file_database_is_loaded_on_its_own_connection() {
         .unwrap();
     assert_eq!(page.total, 1);
 }
+
+#[test]
+fn a_scan_is_stored_even_when_the_time_of_its_commit_cannot_be_stored() {
+    use codeskimr_application::ports::{ProjectRepository, SnapshotStore};
+    let db = TempDb::new();
+    let store = ProjectDb::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    // The commit comes last and is stored in a write of its own: refuse exactly that row.
+    Connection::open(&db.0)
+        .unwrap()
+        .execute_batch(
+            "CREATE TRIGGER no_commit_time BEFORE INSERT ON scan_steps WHEN NEW.step = 'commit'
+             BEGIN SELECT RAISE(ABORT, 'refused'); END;",
+        )
+        .unwrap();
+    let stored = store.persist(data(header(10, codeskimr_domain::ScanMode::Full)));
+    assert!(stored.is_ok(), "{stored:?}");
+    let history = store.scan_history(PROJECT).unwrap();
+    let steps: Vec<_> = history[0].steps.iter().map(|time| time.step).collect();
+    assert!(!steps.contains(&codeskimr_application::stage::PersistStep::Commit));
+    assert!(!steps.is_empty());
+}

@@ -21,8 +21,9 @@ use crate::catalog::{left_out, warnings};
 use crate::codec::column_int;
 use crate::consts::{
     BULK_FINGERPRINTS_MIN, BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR,
-    LARGE_LOAD_REFERENCES_MIN, LOAD_CACHE_SIZE_KIB, LOG_CACHE_NOT_RESTORED, LOG_PERSIST_STEP,
-    PRAGMA_CACHE_SIZE, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON, SORT_CACHE_SIZE_KIB,
+    LARGE_LOAD_REFERENCES_MIN, LOAD_CACHE_SIZE_KIB, LOG_CACHE_NOT_RESTORED,
+    LOG_COMMIT_TIME_NOT_STORED, LOG_PERSIST_STEP, PRAGMA_CACHE_SIZE, PRAGMA_DEFER_FOREIGN_KEYS,
+    PRAGMA_ON, SORT_CACHE_SIZE_KIB,
 };
 use crate::error::{StorageError, StorageResult};
 use crate::headers::{
@@ -67,9 +68,13 @@ impl SnapshotStore for ProjectDb {
             step = PersistStep::Commit.label(),
             elapsed_ms
         );
-        // The commit is over only now, so its time is stored with the scan afterwards.
-        self.write(|tx| crate::scan_log::record_commit(tx, stored.id, elapsed_ms))
-            .map_err(CodedError::from)?;
+        // The commit is over only now, so its time is stored with the scan afterwards. The snapshot
+        // is stored for good by then, so a failure here costs the time and not the scan.
+        if let Err(cause) =
+            self.write(|tx| crate::scan_log::record_commit(tx, stored.id, elapsed_ms))
+        {
+            tracing::warn!(event = LOG_COMMIT_TIME_NOT_STORED, %cause);
+        }
         Ok(stored)
     }
 
