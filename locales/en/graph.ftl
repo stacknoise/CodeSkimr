@@ -70,7 +70,9 @@ graph-modules-badge-violations = { $count ->
     [one] 1 violation
    *[other] { $count } violations
 }
-graph-modules-explain = in: how many places in other modules use this one. out: how many places in it use other modules. Stability = out ÷ (in + out). 0 means many depend on it and it depends on little, so it changes better rarely; 1 means the opposite.
+graph-modules-col-in-hint = How many places in other modules use this module.
+graph-modules-col-out-hint = How many places in this module use other modules.
+graph-modules-col-stability-hint = Stability = out ÷ (in + out). 0 means many depend on it and it depends on little, so it changes better rarely. 1 means the opposite.
 graph-modules-cycles-title = Cycles
 graph-modules-cycles-none = No cycles between modules.
 graph-modules-cycle-edge = { $from } → { $to }: { $count ->

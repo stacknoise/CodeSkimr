@@ -97,9 +97,15 @@ function Table(props: {
       <thead>
         <tr>
           <th>{t(I18N_KEYS.GRAPH_MODULES_COL_MODULE)}</th>
-          <th class={styles.num}>{t(I18N_KEYS.GRAPH_MODULES_COL_IN)}</th>
-          <th class={styles.num}>{t(I18N_KEYS.GRAPH_MODULES_COL_OUT)}</th>
-          <th>{t(I18N_KEYS.GRAPH_MODULES_COL_STABILITY)}</th>
+          <th class={styles.num} title={t(I18N_KEYS.GRAPH_MODULES_COL_IN_HINT)}>
+            {t(I18N_KEYS.GRAPH_MODULES_COL_IN)}
+          </th>
+          <th class={styles.num} title={t(I18N_KEYS.GRAPH_MODULES_COL_OUT_HINT)}>
+            {t(I18N_KEYS.GRAPH_MODULES_COL_OUT)}
+          </th>
+          <th title={t(I18N_KEYS.GRAPH_MODULES_COL_STABILITY_HINT)}>
+            {t(I18N_KEYS.GRAPH_MODULES_COL_STABILITY)}
+          </th>
           <th class={styles.num}>{t(I18N_KEYS.GRAPH_MODULES_COL_TYPES)}</th>
         </tr>
       </thead>
@@ -225,7 +231,6 @@ export function ModulesPanel(props: {
       aria-label={t(I18N_KEYS.GRAPH_MODULES_TABLE_TITLE)}
     >
       <Table rows={props.info.modules} selected={props.selected} onSelect={props.onSelect} />
-      <p class={styles.explain}>{t(I18N_KEYS.GRAPH_MODULES_EXPLAIN)}</p>
       <Show when={props.info.modules_more > 0}>
         <p class={styles.explain}>
           {t(I18N_KEYS.GRAPH_MODULES_MORE, { count: props.info.modules_more })}
