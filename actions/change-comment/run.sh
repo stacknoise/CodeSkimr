@@ -10,8 +10,10 @@ export CODESKIMR_DATA_DIR="$work/data"
 asset="codeskimr-${CS_VERSION}-linux-x86_64"
 gh release download "v${CS_VERSION}" --repo stacknoise/CodeSkimr --dir "$work" --pattern "${asset}*"
 (cd "$work" && sha256sum --check "${asset}.sha256")
-chmod +x "$work/$asset"
 cs="$work/$asset"
+# Proves that GitHub built this file from this repository (as release.yml verifies it).
+gh attestation verify "$cs" --repo stacknoise/CodeSkimr
+chmod +x "$cs"
 
 git fetch --no-tags --depth=1 origin "$CS_BASE_SHA" "$CS_HEAD_SHA"
 git checkout --quiet "$CS_BASE_SHA"
@@ -23,9 +25,12 @@ body="$work/comment.md"
 CODESKIMR_LANG="$CS_LANG" "$cs" change . --markdown > "$body"
 
 
+# Only comments of a bot count: anyone can write the marker into a comment in a public repository.
 comment_id=$(gh api "repos/${CS_REPO}/issues/${CS_PR}/comments" --paginate \
-  --jq "map(select(.body | startswith(\"${marker}\"))) | first | .id // empty")
-if gh api "repos/${CS_REPO}/pulls/${CS_PR}" --jq '.head.repo.fork' | grep -q true; then
+  --jq ".[] | select(.user.type == \"Bot\" and (.body | startswith(\"${marker}\"))) | .id" | head -n1)
+# A deleted fork has no head repository; then the token cannot write either.
+if [ "${CS_HEAD_REPO:-}" != "$CS_REPO" ]; then
+  echo "Fork: the comment is written to the job summary only."
   cat "$body" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 elif [ -n "$comment_id" ]; then
   gh api -X PATCH "repos/${CS_REPO}/issues/comments/${comment_id}" -F "body=@${body}" > /dev/null

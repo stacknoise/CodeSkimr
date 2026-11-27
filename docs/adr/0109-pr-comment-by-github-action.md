@@ -1,6 +1,6 @@
 # 0109 – Comment with the impact of a change in the pull request, by a GitHub Action
 
-Status: proposed (way A of concept E2 decided by the product owner on 2026-11-23; builds on ADR 0097)
+Status: accepted (way A of concept E2 decided by the product owner on 2026-11-23; builds on ADR 0097)
 
 ## Context
 
@@ -18,8 +18,8 @@ ADR 0097 compares two retained snapshots of one project and leaves a Git branch 
 Option 2.
 
 1. **Markdown output.** `codeskimr change <project> [--base <id>] [--target <id>] --markdown` prints the answer of ADR 0097 as Markdown (same use case, same data as `--json`; delivered with the CLI package of ADR 0097). The first line is the fixed marker `<!-- codeskimr-change -->`. The text says that only direct usages are known and says when the answer was cut. Texts in German and English (Fluent); the language follows `CODESKIMR_LANG` (input `language` of the Action).
-2. **Action.** A composite Action in `actions/change-comment/` of this repository. Steps: download the release program for the runner and verify its checksum; check out the base commit of the pull request and scan it; check out the head commit and scan again; run `change --markdown`; write the comment. The data folder lives in the runner's temporary directory.
-3. **Comment.** The script finds an earlier comment by the marker and updates it, otherwise creates one (GitHub REST API through `gh api`, token from the `github-token` input, default `github.token`). An empty change (no changed symbols) updates the comment to say so. Needs `pull-requests: write`.
+2. **Action.** A composite Action in `actions/change-comment/` of this repository. Steps: download the release program for the runner and verify its checksum and its build attestation (`gh attestation verify`); check out the base commit of the pull request and scan it; check out the head commit and scan again; run `change --markdown`; write the comment. The data folder lives in the runner's temporary directory.
+3. **Comment.** The script finds an earlier comment of a bot by the marker (comments of users are ignored) and updates it, otherwise creates one (GitHub REST API through `gh api`, token from the `github-token` input, default `github.token`). An empty change (no changed symbols) updates the comment to say so. Needs `pull-requests: write`.
 4. **Forks.** For pull requests from forks the token is read-only; the Action then writes the Markdown to the job summary and does not fail. Using `pull_request_target` is not recommended and the documentation says why.
 5. **Check (way C).** Input `fail-on` (default `none`): `new-layer-violation` or `new-cycle` fails the step when the comparison reports one. Never on by default.
 6. **Other CI systems** use the Markdown from `codeskimr change --markdown` the same way; the Action is only the GitHub glue.

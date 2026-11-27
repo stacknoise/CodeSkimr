@@ -25,6 +25,7 @@ runs:
         CS_FAIL_ON: ${{ inputs.fail-on }}
         CS_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         CS_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        CS_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
         CS_PR: ${{ github.event.pull_request.number }}
         CS_REPO: ${{ github.repository }}
       run: bash "${{ github.action_path }}/run.sh"
