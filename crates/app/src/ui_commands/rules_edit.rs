@@ -10,7 +10,6 @@ use codeskimr_application::config::{
 };
 use codeskimr_application::error::CodedError;
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
-use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Permission;
 use serde::{Deserialize, Serialize};
 
@@ -60,7 +59,9 @@ pub struct RulesSaved {
 /// rules are judged or written in one call.
 fn wanted_text(input: &EditInput, old: &str) -> Result<String, CodedError> {
     if input.forbid.len() + input.public_api.len() > MAX_RULES_PER_CALL {
-        return Err(CodedError::new(ErrorCode::ConfigInvalidValue));
+        return Err(CodedError::new(
+            codeskimr_codes::ErrorCode::ConfigInvalidValue,
+        ));
     }
     let wanted = Rules {
         cycles: if input.cycles {
