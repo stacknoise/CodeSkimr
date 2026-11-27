@@ -212,6 +212,7 @@ cli-scope-folder = { $state ->
    *[left_out] Ausgelassen
 }: Ordner { $path } ({ $files } Dateien)
 cli-scope-more = { $count } weitere Ordner sind nicht aufgeführt. Mit --json kommt die ganze Antwort.
+cli-scope-abapgit = abapGit-Projekt: Startordner "{ $folder }", Ordnerlogik { $logic }, { $objects } Objekte in { $packages } Paketen, { $files } Quelldateien.
 cli-scope-saved = Der Umfang ist gespeichert. Er gilt ab dem nächsten Scan; der Code bleibt ein Projekt.
 cli-scope-unchanged = Der Umfang bleibt, wie er war.
 # Die Abfragebefehle symbols, usages, impact und context.
