@@ -86,6 +86,3 @@ export const RULES_TABS = [
   { id: RULES_TAB.rules, label: I18N_KEYS.RULES_TAB_RULES },
   { id: RULES_TAB.layers, label: I18N_KEYS.RULES_TAB_LAYERS },
 ] as const;
-
-/** The kinds of symbol that are a row of the explorer tree, not a type with members. */
-export const NAMESPACE_KINDS: readonly string[] = ["namespace", "module"];

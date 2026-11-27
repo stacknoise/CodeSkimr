@@ -71,24 +71,36 @@ function GoneName(props: { name: string }) {
   );
 }
 
+/** The button of a ring that shows the end of its weakest edge in the explorer. Without a symbol
+ * of the last scan it is off, with the reason. */
+function ExplorerButton(props: { name: string; symbol: SymbolRef | null }) {
+  const project = () => activeProject();
+  const ready = () => (props.symbol !== null && project() !== null ? props.symbol : null);
+  return (
+    <button
+      type="button"
+      class={styles.show}
+      disabled={ready() === null}
+      title={ready() === null ? t(I18N_KEYS.RULES_SYMBOL_GONE) : undefined}
+      onClick={() => {
+        const symbol = ready();
+        const id = project();
+        if (symbol !== null && id !== null) {
+          void showInExplorer(id, props.name, symbol);
+        }
+      }}
+    >
+      {t(I18N_KEYS.RULES_RING_EXPLORER)}
+    </button>
+  );
+}
+
 /** One cycle: the way round the ring, its size, the weakest edge and where to cut it. */
 function CycleRow(props: { violation: ViolationOut; ring: RingOut }) {
   return (
     <li class={styles.violation}>
       <span class={styles.symbol}>{props.ring.chain.join(` ${ARROW} `)}</span>
-      <Show when={props.violation.from_symbol}>
-        {(symbol) => (
-          <button
-            type="button"
-            class={styles.show}
-            onClick={() =>
-              void showInExplorer(activeProject() as number, props.violation.from, symbol())
-            }
-          >
-            {t(I18N_KEYS.RULES_RING_EXPLORER)}
-          </button>
-        )}
-      </Show>
+      <ExplorerButton name={props.violation.from} symbol={props.violation.from_symbol} />
       <span class={styles.advice}>
         {t(I18N_KEYS.RULES_RING_ADVICE, {
           edges: props.ring.resolution_edges,

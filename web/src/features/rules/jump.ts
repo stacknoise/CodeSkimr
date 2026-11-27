@@ -2,7 +2,7 @@ import { EXPLORER_ROUTE } from "../../app/consts";
 import { navigate } from "../../app/router";
 import { requestFocus } from "../../shared/navigation/navigation";
 import { openInExplorer } from "../usages/usages";
-import { NAMESPACE_KINDS } from "./consts";
+import { MODULE_KIND, NAMESPACE_KIND } from "../annotations/consts";
 import type { SymbolRef } from "./types";
 
 /** Shows the symbol of a violation in the explorer: a namespace or module as its row of the tree,
@@ -12,7 +12,7 @@ export async function showInExplorer(
   name: string,
   symbol: SymbolRef,
 ): Promise<void> {
-  if (NAMESPACE_KINDS.includes(symbol.kind)) {
+  if (symbol.kind === NAMESPACE_KIND || symbol.kind === MODULE_KIND) {
     requestFocus({ namespace: name });
     navigate(EXPLORER_ROUTE.path);
     return;

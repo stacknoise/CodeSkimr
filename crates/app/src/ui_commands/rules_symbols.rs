@@ -4,6 +4,7 @@
 use std::collections::HashMap;
 
 use codeskimr_application::ports::{CodeIndex, SymbolKey};
+use codeskimr_codes::Coded;
 use codeskimr_domain::{QualifiedName, SnapshotId};
 
 use super::rules::{RuleOut, SymbolRef};
@@ -13,7 +14,11 @@ use super::rules::{RuleOut, SymbolRef};
 /// shown as plain text.
 fn resolve(index: &dyn CodeIndex, snapshot: SnapshotId, name: &str) -> Option<SymbolRef> {
     let key = SymbolKey::Qualified(QualifiedName::new(name).ok()?);
-    let found = index.symbol(snapshot, &key).ok().flatten()?;
+    let found = index
+        .symbol(snapshot, &key)
+        .inspect_err(|error| tracing::warn!(code = error.code().id()))
+        .ok()
+        .flatten()?;
     Some(SymbolRef {
         id: found.symbol.id.get(),
         kind: found.symbol.kind.label(),
