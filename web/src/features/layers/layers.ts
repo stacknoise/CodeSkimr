@@ -79,7 +79,7 @@ export async function saveLayers(project: number): Promise<void> {
   setSaved(false);
   const layers = draft().map((layer) => ({ ...layer, name: layer.name.trim() }));
   try {
-    await runCommand(COMMAND.set, { project, layers });
+    await runCommand(COMMAND.set, { project, layers, file_version: data()?.file_version });
     await rescanProject(project);
     resetGraph();
     void loadOutline(project);

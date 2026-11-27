@@ -35,6 +35,7 @@ const ANSWER: RulesOut = {
   holdable: true,
   cycles: false,
   held_on: "2026-11-26",
+  file_version: "5",
   resolved: 1,
   old: 4,
   new: 1,

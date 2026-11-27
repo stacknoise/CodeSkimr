@@ -22,7 +22,7 @@ use super::consts::{
 };
 use super::explorer::{ExplorerPorts, namespace_of};
 use crate::consts::PROJECT_FILE_MAX_BYTES;
-use crate::project_file::read_project_file;
+use crate::project_file::{read_project_file, require_version, version_of_source};
 
 /// The input of `layers.get`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -62,6 +62,9 @@ pub struct LayersOut {
     pub layers: Vec<LayerEntry>,
     /// The namespaces of the newest scan, ordered by name.
     pub namespaces: Vec<NamespaceEntry>,
+    /// The version of the project file as the layers were read, to send back with `layers.set`.
+    /// Empty for a Git project.
+    pub file_version: String,
 }
 
 /// The type counts of the namespaces of an outline, each with the layer that owns it.
@@ -125,6 +128,7 @@ impl Command for LayersGet {
             scanned: snapshot.is_some(),
             layers: layer_entries(&project),
             namespaces,
+            file_version: version_of_source(&project.source)?,
         })
     }
 }
@@ -136,6 +140,9 @@ pub struct SetInput {
     pub project: u64,
     /// The layers the project file gets, outermost first; they replace the ones it has.
     pub layers: Vec<LayerEntry>,
+    /// The version `layers.get` answered; a file that changed since is refused with `CFG-106`.
+    /// Left out, the layers are written without that check.
+    pub file_version: Option<String>,
 }
 
 /// The answer of `layers.set`.
@@ -222,6 +229,7 @@ impl Command for LayersSet {
     /// - `PRJ-201` for an unknown project, `PRJ-101` for a Git project (it has no project file).
     /// - `CFG-101` if a layer is not valid, `CFG-102` if the file cannot be read or is not TOML.
     /// - `CFG-104` if the file cannot be written.
+    /// - `CFG-106` if the file changed since `layers.get` answered.
     fn execute(&self, request: Request<'_, Self>) -> Result<Saved, CodedError> {
         access::require(request.principal, Permission::Manage)?;
         let project = self
@@ -236,7 +244,9 @@ impl Command for LayersSet {
         let saved = Saved {
             layers: wanted.len(),
         };
+        let version = request.input.file_version.as_deref();
         update_project_file(&path, |text| {
+            require_version(text, version)?;
             let text = with_layers(text, wanted).map_err(CodedError::caused_by)?;
             Ok((text, saved))
         })

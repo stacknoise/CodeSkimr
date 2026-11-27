@@ -112,3 +112,30 @@ fn too_many_rules_in_one_call_are_refused() {
         Err("CFG-101")
     );
 }
+
+#[test]
+fn a_file_changed_since_it_was_shown_is_not_overwritten() {
+    let (fixture, id) = fixture_with(OLD);
+    let shown = fixture
+        .call("rules.show", json!({ "project": id }))
+        .unwrap();
+    let version = shown["file_version"].clone();
+    assert!(version.as_str().is_some_and(|text| !text.is_empty()));
+    let changed = format!("{OLD}# added by hand\n");
+    fs::write(file(&fixture), &changed).unwrap();
+    let mut input = edit(id, &json!([]), &json!([]));
+    input["file_version"] = version;
+    assert_eq!(fixture.call("rules.set", input), Err("CFG-106"));
+    assert_eq!(fs::read_to_string(file(&fixture)).unwrap(), changed);
+}
+
+#[test]
+fn the_version_that_was_shown_lets_the_save_through() {
+    let (fixture, id) = fixture_with(OLD);
+    let shown = fixture
+        .call("rules.show", json!({ "project": id }))
+        .unwrap();
+    let mut input = edit(id, &json!([]), &json!([]));
+    input["file_version"] = shown["file_version"].clone();
+    assert_eq!(fixture.call("rules.set", input).unwrap()["rules"], 1);
+}

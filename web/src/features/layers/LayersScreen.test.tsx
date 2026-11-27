@@ -37,6 +37,7 @@ function server(first: Partial<LayersData> = {}) {
     scanned: true,
     layers: [],
     namespaces: NAMESPACES,
+    file_version: "5",
     ...first,
   };
   fetchMock.mockImplementation((path: string, init?: RequestInit) => {
@@ -72,6 +73,8 @@ describe("LayersScreen", () => {
     expect(await screen.findByText("Saved. The new scan is done.")).toBeInTheDocument();
     const calls = fetchMock.mock.calls.map(([path]) => String(path));
     expect(calls.some((path) => path.endsWith("layers.set"))).toBe(true);
+    const sent = fetchMock.mock.calls.find(([path]) => String(path).endsWith("layers.set"));
+    expect(JSON.parse((sent?.[1] as { body: string }).body)).toMatchObject({ file_version: "5" });
     expect(calls.some((path) => path.endsWith("projects.rescan"))).toBe(true);
   });
 

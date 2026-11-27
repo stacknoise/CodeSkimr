@@ -16,6 +16,7 @@ export type ErrorCode =
   | "CFG-103"
   | "CFG-104"
   | "CFG-105"
+  | "CFG-106"
   | "PRJ-101"
   | "PRJ-102"
   | "PRJ-103"
@@ -143,6 +144,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "CFG-103": { id: "CFG-103", name: "config_unknown_key", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file or flag sets a key that does not exist.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-103" },
   "CFG-104": { id: "CFG-104", name: "project_file_not_writable", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "The project file `.codeskimr.toml` could not be written.", since: "0.9.0", deprecated: false, messageKey: "error-CFG-104" },
   "CFG-105": { id: "CFG-105", name: "level2_switch_off", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "Level 2 is not enabled in the user configuration; the program does not enable it itself.", since: "0.9.0", deprecated: false, messageKey: "error-CFG-105" },
+  "CFG-106": { id: "CFG-106", name: "project_file_changed", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "The project file `.codeskimr.toml` changed after the screen read it, so saving would overwrite that change.", since: "1.1.0", deprecated: false, messageKey: "error-CFG-106" },
   "PRJ-101": { id: "PRJ-101", name: "project_source_invalid", group: "PRJ", class: "invalid_input", severity: "error", retryable: false, description: "The given source is neither an existing folder nor a valid Git URL.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-101" },
   "PRJ-102": { id: "PRJ-102", name: "project_name_invalid", group: "PRJ", class: "invalid_input", severity: "error", retryable: false, description: "The display name of a project is empty, has control or invisible characters or is too long.", since: "1.0.0", deprecated: false, messageKey: "error-PRJ-102" },
   "PRJ-103": { id: "PRJ-103", name: "project_scope_invalid", group: "PRJ", class: "invalid_input", severity: "error", retryable: false, description: "The scope of a project names a folder that is not a folder inside the project (empty, absolute, with a drive, or leaving the project through ..), a language with an invalid name, or more entries than scan.max_scope_entries allows.", since: "1.1.0", deprecated: false, messageKey: "error-PRJ-103" },

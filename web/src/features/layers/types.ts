@@ -17,6 +17,8 @@ export interface LayersData {
   scanned: boolean;
   layers: LayerEntry[];
   namespaces: NamespaceEntry[];
+  /** The version of the project file as it was read; sent back with a change (CFG-106). */
+  file_version: string;
 }
 
 /** One row of the namespace tree: a prefix of the names and everything below it. */

@@ -187,3 +187,21 @@ fn edits_of_the_project_file_at_the_same_time_do_not_lose_each_other() {
     let text = std::fs::read_to_string(&path).unwrap();
     assert_eq!(text.lines().count(), 8, "{text}");
 }
+
+#[test]
+fn layers_of_a_file_that_changed_since_they_were_shown_are_refused() {
+    let fixture = Fixture::installed(None);
+    let project = fixture.scanned();
+    let shown = fixture
+        .call("layers.get", json!({ "project": project }))
+        .unwrap();
+    let path = fixture.root.path().join("app").join(PROJECT_FILE);
+    fs::write(&path, "# by hand\n").unwrap();
+    let input = json!({
+        "project": project,
+        "layers": demo_layer(),
+        "file_version": shown["file_version"],
+    });
+    assert_eq!(fixture.call("layers.set", input), Err("CFG-106"));
+    assert_eq!(fs::read_to_string(&path).unwrap(), "# by hand\n");
+}

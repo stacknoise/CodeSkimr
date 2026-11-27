@@ -31,6 +31,7 @@ Owner: `codeskimr_application`
 | CFG-103 | `config_unknown_key` | error | no | 0.1.0 | A configuration file or flag sets a key that does not exist. |
 | CFG-104 | `project_file_not_writable` | error | no | 0.9.0 | The project file `.codeskimr.toml` could not be written. |
 | CFG-105 | `level2_switch_off` | error | no | 0.9.0 | Level 2 is not enabled in the user configuration; the program does not enable it itself. |
+| CFG-106 | `project_file_changed` | error | no | 1.1.0 | The project file `.codeskimr.toml` changed after the screen read it, so saving would overwrite that change. |
 
 ## PRJ – Projects and snapshots
 

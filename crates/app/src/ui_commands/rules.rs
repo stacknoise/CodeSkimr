@@ -23,6 +23,7 @@ use super::consts::{
 use super::explorer::ExplorerPorts;
 use super::layers::write_project_file;
 use crate::clock::SystemClock;
+use crate::project_file::version_of_source;
 use crate::rules_check::{files_of, rules_of};
 
 /// The input of `rules.show`.
@@ -114,6 +115,9 @@ pub struct RulesOut {
     pub cycles: bool,
     /// The day the state was held, `None` if it never was.
     pub held_on: Option<String>,
+    /// The version of the project file as the rules were read; a client sends it back with a
+    /// change, and a file that changed meanwhile is not overwritten. Empty for a Git project.
+    pub file_version: String,
     /// The rules, in the order of the project file.
     pub rules: Vec<RuleOut>,
     /// Held violations that are gone.
@@ -275,7 +279,7 @@ impl Command for RulesShow {
         let (project, snapshot) = self.ports.project_and_newest(request.input.project)?;
         let (rules, baseline) = files_of(&project.source)?;
         let holdable = matches!(project.source, ProjectSource::Folder(_));
-        judged(
+        let shown = judged(
             self.ports.references.as_ref(),
             &Candidate {
                 rules: &rules,
@@ -284,7 +288,11 @@ impl Command for RulesShow {
                 holdable,
             },
             snapshot.map(|snapshot| snapshot.id),
-        )
+        )?;
+        Ok(RulesOut {
+            file_version: version_of_source(&project.source)?,
+            ..shown
+        })
     }
 }
 
@@ -311,6 +319,7 @@ pub(super) fn judged(
             holdable,
             cycles,
             held_on: None,
+            file_version: String::new(),
             rules: Vec::new(),
             resolved: 0,
             old: 0,
@@ -329,6 +338,7 @@ pub(super) fn judged(
         holdable,
         cycles,
         held_on: answer.held_on.clone(),
+        file_version: String::new(),
         old: answer.old_burdens(),
         new: answer.new_violations(),
         resolved: answer.resolved.len(),
