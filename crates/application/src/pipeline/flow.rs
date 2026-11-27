@@ -12,7 +12,7 @@ use codeskimr_domain::ProjectId;
 use crate::cancel::CancelToken;
 use crate::error::CodedError;
 use crate::events::{Event, EventBus, ScanProgressed};
-use crate::stage::StageKind;
+use crate::stage::{PersistStep, StageKind};
 
 /// Why a stage stopped before producing its output.
 #[derive(Debug)]
@@ -105,14 +105,19 @@ impl<'a> StageContext<'a> {
         }
     }
 
-    /// Publishes the last report of the stage again, now with the time the whole stage took.
-    fn finished(&self) {
-        let (done, total) = self.last.map_or((0, 0), |last| {
+    /// The counts of the last report of the stage, zero before it reported.
+    fn last_counts(&self) -> (u32, u32) {
+        self.last.map_or((0, 0), |last| {
             (
                 last.done.load(Ordering::Relaxed),
                 last.total.load(Ordering::Relaxed),
             )
-        });
+        })
+    }
+
+    /// Publishes the last report of the stage again, now with the time the whole stage took.
+    fn finished(&self) {
+        let (done, total) = self.last_counts();
         self.progress(done, total);
     }
 
@@ -130,6 +135,17 @@ impl<'a> StageContext<'a> {
 
     /// Publishes `ScanProgressed`; pass `total` zero while the amount of work is unknown.
     pub fn progress(&self, done: u32, total: u32) {
+        self.report(done, total, None);
+    }
+
+    /// Tells which step of writing the snapshot the stage `Persist` has begun. The count of
+    /// units stays as it was: the steps differ too much in size to be a share of the work.
+    pub fn step(&self, step: PersistStep) {
+        let (done, total) = self.last_counts();
+        self.report(done, total, Some(step));
+    }
+
+    fn report(&self, done: u32, total: u32, step: Option<PersistStep>) {
         if let Some(last) = self.last {
             last.done.store(done, Ordering::Relaxed);
             last.total.store(total, Ordering::Relaxed);
@@ -140,6 +156,7 @@ impl<'a> StageContext<'a> {
             done,
             total,
             elapsed_ms: elapsed_ms(self.started),
+            step,
         }));
     }
 }

@@ -13,6 +13,12 @@ export type WireEvent =
       total: number;
       /** Milliseconds since the stage started, as the server measured them. */
       elapsed_ms?: number;
+      /** Label of the step of writing the snapshot, while the stage `persist` is in one. */
+      step?: string;
+      /** Place of that step in the write, counted from one. */
+      step_number?: number;
+      /** How many steps a write has at most. */
+      steps?: number;
     }
   | {
       type: typeof EVENT.created;
@@ -31,6 +37,15 @@ export type WireEvent =
       code: string | null;
     };
 
+/** The step of writing the snapshot that the stage `persist` reported last. */
+export interface StepRun {
+  name: string;
+  number: number;
+  of: number;
+  /** When the step began, in milliseconds of the clock of the browser. */
+  startedAt: number;
+}
+
 /** What one stage of a run has reported. Times are in milliseconds of the clock of the browser. */
 export interface StageRun {
   done: number;
@@ -39,6 +54,8 @@ export interface StageRun {
   endedAt: number | null;
   /** What the server measured for the stage; `null` while it has told nothing. */
   tookMs: number | null;
+  /** The step of the write the stage is in; `null` outside a step. */
+  step: StepRun | null;
 }
 
 /** How a run stands. */

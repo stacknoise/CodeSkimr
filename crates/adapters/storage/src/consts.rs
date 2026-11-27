@@ -233,28 +233,6 @@ pub const WHOLE_TABLE_SHARE: i64 = 2;
 
 /// Log event of one step of writing a snapshot.
 pub const LOG_PERSIST_STEP: &str = "persist_step";
-/// Step: insert the snapshot header.
-pub const STEP_HEADER: &str = "header";
-/// Step: drop the indexes and delete expired snapshots before a large full scan is loaded.
-pub const STEP_PRUNE_BEFORE: &str = "prune_before_load";
-/// Step: insert files, symbols, references, metrics, fingerprints and pending items.
-pub const STEP_FACTS: &str = "facts";
-/// Step: insert naming rules, parse times, warnings, left-out files and carried-over rows.
-pub const STEP_DETAILS: &str = "details";
-/// Step: check the integrity of the written facts.
-pub const STEP_INTEGRITY: &str = "integrity";
-/// Step: build the read models and set the totals.
-pub const STEP_READ_MODELS: &str = "read_models";
-/// Step: delete the snapshots beyond the retention.
-pub const STEP_PRUNE: &str = "prune";
-/// Step: commit the transaction of a snapshot write.
-pub const STEP_COMMIT: &str = "commit";
-/// Step: build the reference indexes after a bulk load.
-pub const STEP_REFERENCE_INDEXES: &str = "reference_indexes";
-/// Step: insert the references of a snapshot.
-pub const STEP_REFERENCES: &str = "references";
-/// Step: insert the fingerprints, with the index by hash.
-pub const STEP_FINGERPRINTS: &str = "fingerprints";
 /// From this many references a scan is a large load, for which the write gets a larger page cache.
 pub const LARGE_LOAD_REFERENCES_MIN: usize = 500_000;
 /// Page cache of 1 GiB (a negative value is a size in KiB) while a large scan is written. On a

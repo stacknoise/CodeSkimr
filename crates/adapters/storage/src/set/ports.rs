@@ -18,6 +18,7 @@ use codeskimr_application::ports::{
     SymbolDetail, SymbolKey, SymbolState, SymbolStates, ToolReportStore, TypeFocus, UnusedCounts,
     UsageIndex, UsagePage,
 };
+use codeskimr_application::stage::PersistStep;
 use codeskimr_domain::{
     Alert, AlertId, Annotation, AnnotationId, ContentHash, FileId, Fingerprints, LayerEdge,
     NamespaceGraph, Project, ProjectId, QualifiedName, RankingQuery, Reference, RelativePath,
@@ -93,6 +94,15 @@ impl SnapshotStore for SqliteStore {
     fn persist(&self, data: SnapshotData) -> Result<Snapshot, CodedError> {
         let db = self.of_project(data.snapshot.project)?;
         SnapshotStore::persist(&*db, data)
+    }
+
+    fn persist_with_steps(
+        &self,
+        data: SnapshotData,
+        step: &dyn Fn(PersistStep),
+    ) -> Result<Snapshot, CodedError> {
+        let db = self.of_project(data.snapshot.project)?;
+        SnapshotStore::persist_with_steps(&*db, data, step)
     }
 
     fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError> {
