@@ -205,10 +205,10 @@ projects-report-todo-no-project-file = Legen Sie die Projektdatei in den Projekt
 projects-report-todo-stale = Neu scannen.
 projects-report-todo-retry = Erneut prüfen.
 projects-report-todo-later = Später erneut scannen.
-projects-report-todo-RES-504 = Speichergrenze erhöhen (level2.max_memory_mb, oder level2.indexer_memory_mb nur für diesen Indexer, in der Konfiguration), dann erneut prüfen.
+projects-report-todo-RES-504 = Speichergrenze dieses Indexers erhöhen: Einstellungen, Reiter Analyse, „Speicher je Indexer“ (oder level2.max_memory_mb für alle Indexer in der Konfiguration), dann erneut prüfen. Ein Node.js-Indexer bekommt drei Viertel der Grenze als Heap; ein sehr großes TypeScript-Projekt kann 16.000 MB oder mehr brauchen.
 projects-report-todo-RES-502 = Zeitgrenze erhöhen (level2.timeout_seconds in der Konfiguration), dann erneut prüfen.
 projects-report-todo-RES-503 = Ausgabegrenze erhöhen (level2.max_output_bytes in der Konfiguration), dann erneut prüfen.
-projects-report-todo-RES-601 = Protokoll ansehen (Umgebungsvariable CODESKIMR_LOG=info beim Scan), dann erneut prüfen.
+projects-report-todo-RES-601 = Protokoll ansehen (Umgebungsvariable CODESKIMR_LOG=info beim Scan). Steht dort, dass eine Rust-Toolchain fehlt, installieren Sie sie wie im Protokoll genannt (`rustup toolchain install` im Projektordner), dann erneut prüfen.
 projects-report-failed-note = Der letzte Lauf ist fehlgeschlagen. Für Dateien, die sich nicht geändert haben, können Ergebnisse eines früheren Laufs bleiben.
 projects-report-reason-not-permitted = dieser Scan-Weg darf keine Indexer starten
 projects-report-reason-not-confirmed = Stufe 2 ist für dieses Projekt nicht bestätigt

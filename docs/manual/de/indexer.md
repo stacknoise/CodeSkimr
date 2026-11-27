@@ -91,7 +91,7 @@ Ein großes TypeScript-Projekt braucht viel mehr Speicher als die anderen Indexe
 scip-typescript = 12288
 ```
 
-Bei Node.js (`scip-typescript`) bestimmt die Grenze auch den Heap des Prozesses. Ein Name, der nicht in der Liste steht, wird beim Lesen der Konfiguration abgelehnt, ein Tippfehler fällt also auf. Die Grenze lässt sich auch in der App setzen: **Einstellungen → Analyse → Speicher je Indexer**. Ein dort gespeicherter Wert gilt ab dem nächsten Scan (ein laufender Scan behält seinen Wert), hat Vorrang vor der Benutzerkonfiguration und weicht einem `--set`-Flag; die Tabelle der wirksamen Einstellungen nennt ihn mit der Herkunft „In der App gespeichert“. Die Grenze darf 1.048.576 MB nicht überschreiten.
+Bei Node.js (`scip-typescript`) bestimmt die Grenze auch den Heap des Prozesses (drei Viertel davon: bei 8.192 MB sind es 6.144 MB). Ein Name, der nicht in der Liste steht, wird beim Lesen der Konfiguration abgelehnt, ein Tippfehler fällt also auf. Die Grenze lässt sich auch in der App setzen: **Einstellungen → Analyse → Speicher je Indexer**. Ein dort gespeicherter Wert gilt ab dem nächsten Scan (ein laufender Scan behält seinen Wert), hat Vorrang vor der Benutzerkonfiguration und weicht einem `--set`-Flag; die Tabelle der wirksamen Einstellungen nennt ihn mit der Herkunft „In der App gespeichert“. Die Grenze darf 1.048.576 MB nicht überschreiten.
 
 Der Indexer bekommt eine geleerte Umgebung mit Positivliste (kein Token und kein Geheimnis von CodeSkimr erreicht ihn), läuft in einer eigenen Prozessgruppe, und seine Ausgabe wird geschwärzt, bevor sie protokolliert wird. **Das Netzwerk ist nicht gesperrt**, weil die Paketwiederherstellung es braucht; das ist das wichtigste Restrisiko und der Grund für die Bestätigung.
 
