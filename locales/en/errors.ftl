@@ -24,6 +24,7 @@ error-PRJ-201 = The project is not registered. Scan its folder first with `codes
 error-PRJ-301 = A project with the same source is already registered.
 error-PRJ-302 = A scan for this project is already running.
 error-PRJ-303 = The scan was cancelled. No snapshot was written.
+error-PRJ-304 = A convention check for this project is already running.
 error-EXP-501 = An export of this project is already running. Wait until it has ended and try again.
 error-EXP-502 = The project has more references than `export.max_references` allows for the HTML export. The page would be so large that no browser opens it in a useful way. Raise `export.max_references` in your own config file at your own risk (about 250 bytes per reference) or export a smaller project.
 error-PRJ-501 = Too many scans are running at the moment. Try again when one has ended.

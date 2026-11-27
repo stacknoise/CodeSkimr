@@ -43,6 +43,7 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `PRJ-201` | no such project | add and scan it first |
 | `PRJ-302` | a scan of this project is already running (also when removing the project) | wait for it or cancel it |
 | `PRJ-303` | the scan was cancelled, no new snapshot exists | start it again if needed |
+| `PRJ-304` | a convention check of this project is already running (screen Conventions) | wait until it has ended |
 | `PRJ-501` | as many scans run at the same time as allowed (4) | wait until one has ended |
 | `PRJ-502` | the report of a scan (its level) could not be stored; the scan itself is stored | scan again; check the free space of the data folder |
 | `SRC-201` | a source folder, a source file or a language pack folder does not exist or cannot be read | check the path and rights |

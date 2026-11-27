@@ -26,6 +26,7 @@ export type ErrorCode =
   | "PRJ-301"
   | "PRJ-302"
   | "PRJ-303"
+  | "PRJ-304"
   | "PRJ-501"
   | "PRJ-502"
   | "PRJ-503"
@@ -156,6 +157,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "PRJ-301": { id: "PRJ-301", name: "project_already_registered", group: "PRJ", class: "conflict", severity: "error", retryable: false, description: "A project with the same source is already registered.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-301" },
   "PRJ-302": { id: "PRJ-302", name: "snapshot_in_progress", group: "PRJ", class: "conflict", severity: "error", retryable: false, description: "A scan for this project is already running.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-302" },
   "PRJ-303": { id: "PRJ-303", name: "scan_cancelled", group: "PRJ", class: "conflict", severity: "info", retryable: true, description: "The scan was cancelled by the user; no snapshot was written.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-303" },
+  "PRJ-304": { id: "PRJ-304", name: "check_in_progress", group: "PRJ", class: "conflict", severity: "error", retryable: true, description: "A convention check for this project is already running.", since: "1.2.0", deprecated: false, messageKey: "error-PRJ-304" },
   "PRJ-501": { id: "PRJ-501", name: "too_many_scans", group: "PRJ", class: "limit", severity: "error", retryable: true, description: "As many scans run at the same time as the server allows; try again when one has ended.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-501" },
   "PRJ-502": { id: "PRJ-502", name: "scan_report_not_stored", group: "PRJ", class: "limit", severity: "warning", retryable: false, description: "The report of the scan (its level and what level 2 did per language) could not be stored; the scan and its snapshot are stored.", since: "0.9.0", deprecated: false, messageKey: "error-PRJ-502" },
   "PRJ-503": { id: "PRJ-503", name: "scan_memory_limit", group: "PRJ", class: "limit", severity: "error", retryable: false, description: "The scan added more memory than scan.max_memory_mb allows, or the program passed 70 % of the installed memory, and the scan was stopped before the machine ran out of memory; no snapshot was written (ADR 0087).", since: "1.0.0", deprecated: false, messageKey: "error-PRJ-503" },

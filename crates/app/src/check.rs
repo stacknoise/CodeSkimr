@@ -8,7 +8,7 @@ use codeskimr_application::conventions::{CheckReport, CheckRequest, ConventionCh
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{CheckArgs, GlobalOptions};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::FolderPath;
+use codeskimr_domain::{FolderPath, Principal};
 use codeskimr_source::FolderText;
 
 use crate::config_files;
@@ -34,6 +34,37 @@ pub fn run(
         .ok()
         .and_then(|path| FolderPath::new(path.to_str()?).ok())
         .ok_or_else(|| CodedError::new(ErrorCode::ProjectSourceInvalid))?;
+    let paths: Vec<String> = args
+        .paths
+        .iter()
+        .map(|path| below_root(path, &root))
+        .collect();
+    check_folder(&root, &paths, principal::resolve(), (global, locations))
+        .map(|checked| checked.report)
+}
+
+/// The result of `check_folder`, with the largest number of results the configuration lets an
+/// answer list (`mcp.max_limit`).
+#[derive(Debug)]
+pub struct FolderCheck {
+    /// What the check found.
+    pub report: CheckReport,
+    /// How many findings an answer lists at most.
+    pub max_limit: u32,
+}
+
+/// Checks the files of the folder `root` named in `paths` (everything if none), the way the
+/// command and the screen Conventions both do: the files are analysed afresh with the configuration of
+/// the folder, and nothing is stored.
+///
+/// # Errors
+/// Any coded failure of the configuration, the language packs or the file discovery.
+pub fn check_folder(
+    root: &FolderPath,
+    paths: &[String],
+    principal: Principal,
+    (global, locations): (&GlobalOptions, &Locations),
+) -> Result<FolderCheck, CodedError> {
     let config = config_files::load(locations, global, Some(Path::new(root.as_str())))?;
     let Analysis {
         discovery,
@@ -46,16 +77,15 @@ pub fn run(
         Arc::new(FolderText),
         config.conventions,
     );
-    let paths: Vec<String> = args
-        .paths
-        .iter()
-        .map(|path| below_root(path, &root))
-        .collect();
-    checker.check(&CheckRequest {
-        principal: &principal::resolve(),
-        root: &root,
-        paths: &paths,
+    let report = checker.check(&CheckRequest {
+        principal: &principal,
+        root,
+        paths,
         stored: None,
+    })?;
+    Ok(FolderCheck {
+        report,
+        max_limit: config.mcp.max_limit,
     })
 }
 

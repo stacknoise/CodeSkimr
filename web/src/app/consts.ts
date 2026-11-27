@@ -74,6 +74,13 @@ export const LAYERS_ROUTE: Route = {
   icon: "layers",
   needsProject: true,
 };
+/** The check of the code rules of the project folder, as `codeskimr check` does it (ADR 0116). */
+export const CONVENTIONS_ROUTE: Route = {
+  path: "/conventions",
+  label: I18N_KEYS.NAV_CONVENTIONS,
+  icon: "conventions",
+  needsProject: true,
+};
 export const SETTINGS_ROUTE: Route = {
   path: "/settings",
   label: I18N_KEYS.NAV_SETTINGS,
@@ -94,6 +101,7 @@ export const PROJECT_PATHS: readonly string[] = [
   CHANGE_ROUTE.path,
   LAYERS_ROUTE.path,
   RULES_ROUTE.path,
+  CONVENTIONS_ROUTE.path,
   USAGES_ROUTE.path,
 ];
 
@@ -106,6 +114,7 @@ export const MAIN_ROUTES: Route[] = [
   CHANGE_ROUTE,
   LAYERS_ROUTE,
   RULES_ROUTE,
+  CONVENTIONS_ROUTE,
   ANNOTATIONS_ROUTE,
 ];
 /** Screens in the lower part of the rail. */

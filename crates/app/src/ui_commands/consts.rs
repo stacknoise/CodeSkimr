@@ -577,3 +577,10 @@ pub const LOG_OPEN_FOLDER: &str = "log.open_folder";
 pub const LOG_OPEN_FOLDER_TITLE: &str = i18n::COMMAND_LOG_OPEN_FOLDER_TITLE;
 /// Description key of `log.open_folder`.
 pub const LOG_OPEN_FOLDER_DESCRIPTION: &str = i18n::COMMAND_LOG_OPEN_FOLDER_DESCRIPTION;
+
+/// Id of the command that checks the code of a folder project against the code rules.
+pub const CONVENTIONS_CHECK: &str = "conventions.check";
+/// Title key of `conventions.check`.
+pub const CONVENTIONS_CHECK_TITLE: &str = i18n::COMMAND_CONVENTIONS_CHECK_TITLE;
+/// Description key of `conventions.check`.
+pub const CONVENTIONS_CHECK_DESCRIPTION: &str = i18n::COMMAND_CONVENTIONS_CHECK_DESCRIPTION;
