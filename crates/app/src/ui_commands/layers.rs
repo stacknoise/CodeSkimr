@@ -13,7 +13,7 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::OutlineNode;
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Permission, Project, ProjectId, ProjectSource, SymbolId};
+use codeskimr_domain::{Layer, Permission, Project, ProjectId, ProjectSource, SymbolId};
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
@@ -22,7 +22,8 @@ use super::consts::{
 };
 use super::explorer::{ExplorerPorts, namespace_of};
 use crate::consts::PROJECT_FILE_MAX_BYTES;
-use crate::project_file::{read_project_file, require_version, version_of_source};
+use crate::project_file::{read_project_file, require_version};
+use crate::rules_check::project_files;
 
 /// The input of `layers.get`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -86,9 +87,8 @@ fn namespaces_of(project: &Project, nodes: &[OutlineNode]) -> Vec<NamespaceEntry
         .collect()
 }
 
-fn layer_entries(project: &Project) -> Vec<LayerEntry> {
-    project
-        .layers
+fn layer_entries(layers: &[Layer]) -> Vec<LayerEntry> {
+    layers
         .iter()
         .map(|layer| LayerEntry {
             name: layer.name.to_string(),
@@ -123,12 +123,13 @@ impl Command for LayersGet {
             Some(snapshot) => namespaces_of(&project, &ports.outline.outline(snapshot.id)?),
             None => Vec::new(),
         };
+        let files = project_files(&project.source)?;
         Ok(LayersOut {
             editable: matches!(project.source, ProjectSource::Folder(_)),
             scanned: snapshot.is_some(),
-            layers: layer_entries(&project),
+            layers: layer_entries(files.layers.as_deref().unwrap_or(&project.layers)),
             namespaces,
-            file_version: version_of_source(&project.source)?,
+            file_version: files.version,
         })
     }
 }

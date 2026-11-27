@@ -13,6 +13,15 @@ use crate::source_arg::classify;
 
 const PROJECT_FILE: &str = ".codeskimr.toml";
 
+/// A scanned project whose project file holds `text`, and the path of that file.
+fn scanned_with_file(text: &str) -> (Fixture, u64, std::path::PathBuf) {
+    let fixture = Fixture::installed(None);
+    let project = fixture.scanned();
+    let path = fixture.root.path().join("app").join(PROJECT_FILE);
+    fs::write(&path, text).unwrap();
+    (fixture, project, path)
+}
+
 fn demo_layer() -> Value {
     json!([{ "name": "calculation", "namespaces": ["Demo"] }])
 }
@@ -75,10 +84,7 @@ fn invalid_layers_leave_the_file_alone() {
 
 #[test]
 fn a_file_that_is_not_toml_is_not_touched() {
-    let fixture = Fixture::installed(None);
-    let project = fixture.scanned();
-    let path = fixture.root.path().join("app").join(PROJECT_FILE);
-    fs::write(&path, "[broken").unwrap();
+    let (fixture, project, path) = scanned_with_file("[broken");
     let input = json!({ "project": project, "layers": demo_layer() });
     assert_eq!(fixture.call("layers.set", input), Err("CFG-102"));
     assert_eq!(fs::read_to_string(path).unwrap(), "[broken");
@@ -190,12 +196,10 @@ fn edits_of_the_project_file_at_the_same_time_do_not_lose_each_other() {
 
 #[test]
 fn layers_of_a_file_that_changed_since_they_were_shown_are_refused() {
-    let fixture = Fixture::installed(None);
-    let project = fixture.scanned();
+    let (fixture, project, path) = scanned_with_file("");
     let shown = fixture
         .call("layers.get", json!({ "project": project }))
         .unwrap();
-    let path = fixture.root.path().join("app").join(PROJECT_FILE);
     fs::write(&path, "# by hand\n").unwrap();
     let input = json!({
         "project": project,
@@ -204,4 +208,14 @@ fn layers_of_a_file_that_changed_since_they_were_shown_are_refused() {
     });
     assert_eq!(fixture.call("layers.set", input), Err("CFG-106"));
     assert_eq!(fs::read_to_string(&path).unwrap(), "# by hand\n");
+}
+
+#[test]
+fn layers_shown_come_from_the_file_as_it_is_now_not_from_the_scan() {
+    let (fixture, project, _) =
+        scanned_with_file("[[layers]]\nname = \"by_hand\"\nnamespaces = [\"Demo\"]\n");
+    let shown = fixture
+        .call("layers.get", json!({ "project": project }))
+        .unwrap();
+    assert_eq!(shown["layers"][0]["name"], "by_hand");
 }

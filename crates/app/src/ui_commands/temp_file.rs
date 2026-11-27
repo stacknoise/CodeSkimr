@@ -12,6 +12,7 @@ pub(super) fn beside(path: &Path) -> PathBuf {
     static COUNTER: AtomicU64 = AtomicU64::new(u64::MIN);
     let mut bytes = [u8::MIN; size_of::<u64>()];
     let random = getrandom::fill(&mut bytes)
+        .inspect_err(|error| tracing::warn!(%error))
         .map(|()| u64::from_le_bytes(bytes))
         .unwrap_or_default();
     let unique = [

@@ -23,8 +23,7 @@ use super::consts::{
 use super::explorer::ExplorerPorts;
 use super::layers::write_project_file;
 use crate::clock::SystemClock;
-use crate::project_file::version_of_source;
-use crate::rules_check::{files_of, rules_of};
+use crate::rules_check::{project_file_state, project_files};
 
 /// The input of `rules.show`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -277,20 +276,20 @@ impl Command for RulesShow {
     ///   invalid value: the screen fails instead of showing every rule as kept.
     fn execute(&self, request: Request<'_, Self>) -> Result<RulesOut, CodedError> {
         let (project, snapshot) = self.ports.project_and_newest(request.input.project)?;
-        let (rules, baseline) = files_of(&project.source)?;
+        let files = project_files(&project.source)?;
         let holdable = matches!(project.source, ProjectSource::Folder(_));
         let shown = judged(
             self.ports.references.as_ref(),
             &Candidate {
-                rules: &rules,
-                layers: &project.layers,
-                baseline: baseline.as_ref(),
+                rules: &files.rules,
+                layers: files.layers.as_deref().unwrap_or(&project.layers),
+                baseline: files.baseline.as_ref(),
                 holdable,
             },
             snapshot.map(|snapshot| snapshot.id),
         )?;
         Ok(RulesOut {
-            file_version: version_of_source(&project.source)?,
+            file_version: files.version,
             ..shown
         })
     }
@@ -371,8 +370,9 @@ pub(crate) fn hold(
     let ProjectSource::Folder(folder) = &project.source else {
         return Err(CodedError::new(ErrorCode::ProjectSourceInvalid));
     };
-    let rules = rules_of(&project.source)?;
-    let answer = report(&rules, &project.layers, None, references, snapshot)?;
+    let files = project_file_state(&project.source)?;
+    let layers = files.layers.as_deref().unwrap_or(&project.layers);
+    let answer = report(&files.rules, layers, None, references, snapshot)?;
     let held_on = now.iso_date();
     let state = Baseline::holding(&held_on, &answer.outcomes);
     write_project_file(

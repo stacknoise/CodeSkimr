@@ -8,6 +8,7 @@ use serde_json::{Value, json};
 use super::stats_tests::project;
 use super::tests::Fixture;
 
+const LAYERS: &str = "[[layers]]\nname = \"shop\"\nnamespaces = [\"Demo.Shop\"]\nmay_use = []\n\n[[layers]]\nname = \"calc\"\nnamespaces = [\"Demo.Calculator\"]\n";
 const FORBID: &str = "[[rules.forbid]]\nfrom = \"Demo.Shop\"\nto = \"Demo.Calculator\"\nreason = \"shop must not count\"\n\n[[rules.forbid]]\nfrom = \"Demo.Calculator\"\nto = \"Demo.Shop\"\n";
 
 /// A scanned project whose project file holds `rules`.
@@ -150,29 +151,7 @@ fn holding_again_replaces_the_file_and_drops_entries_that_are_gone() {
 
 #[test]
 fn the_layers_are_the_first_rule_and_can_be_held() {
-    let (fixture, id) = with_rules("");
-    let layers = vec![
-        codeskimr_domain::Layer {
-            name: codeskimr_domain::LayerName::new("shop").unwrap(),
-            namespaces: vec![codeskimr_domain::QualifiedName::new("Demo.Shop").unwrap()],
-            may_use: Some(Vec::new()),
-        },
-        codeskimr_domain::Layer {
-            name: codeskimr_domain::LayerName::new("calc").unwrap(),
-            namespaces: vec![codeskimr_domain::QualifiedName::new("Demo.Calculator").unwrap()],
-            may_use: None,
-        },
-    ];
-    let store =
-        codeskimr_storage::SqliteStore::open(&fixture.locations.database(), NonZeroU32::MIN)
-            .unwrap();
-    let mut project = codeskimr_application::ports::ProjectRepository::project(
-        &store,
-        codeskimr_domain::ProjectId::new(id),
-    )
-    .unwrap();
-    project.layers = layers;
-    store.save_project(&project).unwrap();
+    let (fixture, id) = with_rules(LAYERS);
     let answer = show(&fixture, id);
     let first = &answer["rules"][0];
     assert_eq!(first["kind"], "layers");

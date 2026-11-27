@@ -9,9 +9,6 @@ use std::path::Path;
 
 use codeskimr_application::error::CodedError;
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::ProjectSource;
-
-use codeskimr_application::config::PROJECT_CONFIG_FILE;
 
 use crate::consts::PROJECT_FILE_MAX_BYTES;
 
@@ -44,15 +41,6 @@ pub(crate) fn version_of(text: &str) -> String {
     let mut hasher = DefaultHasher::new();
     text.hash(&mut hasher);
     hasher.finish().to_string()
-}
-
-/// The version of the project file of `source`; empty for a Git project, which has none.
-pub(crate) fn version_of_source(source: &ProjectSource) -> Result<String, CodedError> {
-    let ProjectSource::Folder(folder) = source else {
-        return Ok(String::new());
-    };
-    let path = Path::new(folder.as_str()).join(PROJECT_CONFIG_FILE);
-    read_project_file(&path).map(|text| version_of(&text))
 }
 
 /// Refuses a write that was made from an older state of the file: `expected` is the version the
