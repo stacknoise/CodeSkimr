@@ -23,6 +23,10 @@ A real project, a copy of the folders `crates/application` and `crates/domain` o
 | Wrong order is refused with a code | `compare --base <newer> --target <older>` ends with `CMP-101` and exit code 1. |
 | Registry, REST, MCP and screen | Covered by the tests of #796 (registry commands, MCP tool `impact_of_diff`) and #798 (screen with the e2e `ui-change` in three themes). Not clicked through by hand in a browser in this run. |
 
+## Backed by tests only
+
+The real run saw no moved symbol, no change of visibility, no critical symbol, no new layer violation or cycle, and neither `CMP-201` nor `CMP-301`. These criteria are backed by the tests of packages 3 to 5 (`crates/domain/tests/compare.rs`, `crates/application/tests/`, the registry, CLI and MCP tests of #796 and the screen tests of #798), not by this run.
+
 ## Open points
 
 - The button "Copy as Markdown" of the mock is missing in the screen until #799 is done (ADR 0092 lists `--markdown` as an exception meanwhile).
