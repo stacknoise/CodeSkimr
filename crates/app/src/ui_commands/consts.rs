@@ -577,3 +577,14 @@ pub const LOG_OPEN_FOLDER: &str = "log.open_folder";
 pub const LOG_OPEN_FOLDER_TITLE: &str = i18n::COMMAND_LOG_OPEN_FOLDER_TITLE;
 /// Description key of `log.open_folder`.
 pub const LOG_OPEN_FOLDER_DESCRIPTION: &str = i18n::COMMAND_LOG_OPEN_FOLDER_DESCRIPTION;
+
+/// Id of the command that colours short pieces of code, such as signatures.
+pub const CODE_HIGHLIGHT: &str = "code.highlight";
+/// Title key of `code.highlight`.
+pub const HIGHLIGHT_TITLE: &str = i18n::COMMAND_CODE_HIGHLIGHT_TITLE;
+/// Description key of `code.highlight`.
+pub const HIGHLIGHT_DESCRIPTION: &str = i18n::COMMAND_CODE_HIGHLIGHT_DESCRIPTION;
+/// Most pieces one call of `code.highlight` colours; the rest comes back plain.
+pub const HIGHLIGHT_MAX_PIECES: usize = 200;
+/// Most characters of one piece that `code.highlight` colours; a longer piece comes back plain.
+pub const HIGHLIGHT_MAX_CHARS: usize = 600;

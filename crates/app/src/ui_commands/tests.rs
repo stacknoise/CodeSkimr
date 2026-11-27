@@ -186,7 +186,7 @@ impl Fixture {
 }
 
 /// Every command of the registry, in the order the API lists them.
-const COMMAND_IDS: [&str; 68] = [
+const COMMAND_IDS: [&str; 69] = [
     "alerts.dismiss",
     "alerts.dismiss_all",
     "alerts.list",
@@ -198,6 +198,7 @@ const COMMAND_IDS: [&str; 68] = [
     "annotations.mark_critical",
     "annotations.summary",
     "annotations.update",
+    "code.highlight",
     "credentials.delete",
     "credentials.list",
     "credentials.set",
@@ -844,6 +845,35 @@ fn the_source_of_a_type_and_of_a_member_comes_from_the_project_folder() {
         line["lines"],
         json!(["    public int Add(int a, int b) { return a + b; }"])
     );
+}
+
+#[test]
+fn short_pieces_of_code_are_coloured_by_the_language_of_their_file() {
+    let fixture = Fixture::new();
+    let shown = fixture
+        .call(
+            "code.highlight",
+            json!({ "pieces": [
+                { "path": "Calculator.cs", "text": "public int Add(int a, int b)" },
+                { "path": "notes.unknownext", "text": "public int Add" },
+                { "path": "../escape", "text": "public int Add" },
+            ] }),
+        )
+        .unwrap();
+    let pieces = shown["pieces"].as_array().unwrap();
+    assert_eq!(pieces.len(), 3);
+    assert!(
+        pieces[0]["tokens"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|token| token["line"] == 0
+                && token["start"] == 0
+                && token["end"] == 6
+                && token["class"] == "keyword")
+    );
+    assert_eq!(pieces[1]["tokens"], json!([]));
+    assert_eq!(pieces[2]["tokens"], json!([]));
 }
 
 #[test]

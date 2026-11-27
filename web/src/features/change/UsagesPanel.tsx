@@ -3,6 +3,7 @@ import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { TONE } from "../../shared/ui/consts";
 import { cx } from "../../shared/ui/cx";
+import { Code } from "../../shared/code/Code";
 import { Pill } from "../../shared/ui/Pill";
 import { CAUSE, CAUSE_MOVED, CONFIDENCE, LINE_SEPARATOR, REASON, SIGN, STATUS } from "./consts";
 import { changeOnlyOpen, showOnlyOpen } from "./change";
@@ -30,14 +31,18 @@ function headingOf(row: ImpactRow) {
     : I18N_KEYS.CHANGE_VIEW_DETAIL_CONTENT;
 }
 
-/** The old and the new signature as lines with a sign, in the colours of removed and new. */
+/** The old and the new signature as lines with a sign, in the colours of removed and new. The code
+ * has the syntax colours of its language, and the indentation and the line breaks stay. */
 function Lines(props: { lines: DiffLine[] }) {
   return (
     <div class={styles.code}>
       <For each={props.lines}>
         {(line) => (
-          <div class={line.sign === SIGN.before ? styles.before : styles.after}>
-            {line.sign} {line.text}
+          <div class={cx(styles.line, line.sign === SIGN.before ? styles.before : styles.after)}>
+            <span class={styles.sign} aria-hidden="true">
+              {line.sign}
+            </span>
+            <Code path={line.path} text={line.text} class={styles.text} />
           </div>
         )}
       </For>

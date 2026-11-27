@@ -205,10 +205,8 @@ describe("ChangeScreen, view Impact", () => {
     fireEvent.keyDown(grid, { key: "ArrowDown" });
     const panel = within(screen.getByRole("region", { name: "Usages of the selected symbol" }));
     expect(panel.getByText("Changed signature")).toBeInTheDocument();
-    expect(panel.getByText("− decimal Round(decimal value)")).toBeInTheDocument();
-    expect(
-      panel.getByText("+ decimal Round(decimal value, RoundingMode mode)"),
-    ).toBeInTheDocument();
+    expect(panel.getByText("decimal Round(decimal value)")).toBeInTheDocument();
+    expect(panel.getByText("decimal Round(decimal value, RoundingMode mode)")).toBeInTheDocument();
     expect(panel.queryByText("Shop.Checkout.Flow88")).not.toBeInTheDocument();
     expect(panel.getAllByText("not touched")).toHaveLength(2);
     fireEvent.click(panel.getByRole("button", { name: "All · 3" }));
