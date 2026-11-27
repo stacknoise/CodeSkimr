@@ -143,6 +143,15 @@ fn answer(report: CheckReport, limit: u32, clamped: bool) -> Answer {
     }
 }
 
+/// The answer of `check_conventions` for a finished check, without a limit: every finding is
+/// listed. The command of the UI that runs the same check shows its answer in this form.
+///
+/// # Errors
+/// The internal error code if the answer cannot be written as JSON.
+pub fn conventions_answer(report: CheckReport) -> Result<Value, McpError> {
+    to_json(&answer(report, u32::MAX, false))
+}
+
 impl Tools {
     /// Checks the files of a project against the code rules of blueprint section 3. The files are
     /// read afresh, so the answer shows the code as it is now and not as the last scan saw it.

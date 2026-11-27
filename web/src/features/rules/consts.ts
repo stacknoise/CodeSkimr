@@ -79,10 +79,15 @@ export const ICON_SIZE = 16;
 export const INSIDE_ROWS = 3;
 
 /** The tabs of the screen Rules. */
-export const RULES_TAB = { rules: "rules", layers: "layers" } as const;
+export const RULES_TAB = {
+  rules: "rules",
+  layers: "layers",
+  conventions: "conventions",
+} as const;
 export type RulesTab = (typeof RULES_TAB)[keyof typeof RULES_TAB];
 /** The tabs in their order, with the text of each. */
 export const RULES_TABS = [
   { id: RULES_TAB.rules, label: I18N_KEYS.RULES_TAB_RULES },
   { id: RULES_TAB.layers, label: I18N_KEYS.RULES_TAB_LAYERS },
+  { id: RULES_TAB.conventions, label: I18N_KEYS.RULES_TAB_CONVENTIONS },
 ] as const;

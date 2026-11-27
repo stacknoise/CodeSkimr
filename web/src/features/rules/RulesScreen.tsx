@@ -1,4 +1,4 @@
-import { createEffect, createSignal, For, on, onCleanup, Show } from "solid-js";
+import { createEffect, createSignal, For, Match, on, onCleanup, Show, Switch } from "solid-js";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
@@ -16,6 +16,7 @@ import {
   rulesData,
   rulesFailure,
 } from "./rules";
+import { ConventionsScreen } from "../conventions/ConventionsScreen";
 import { LayersScreen } from "../layers/LayersScreen";
 import { RULES_TAB, RULES_TABS } from "./consts";
 import { rulesTab, showRulesTab } from "./tab";
@@ -252,7 +253,8 @@ function Header() {
   );
 }
 
-/** The tabs "Rules" and "Layers" (ADR 0112): the layers are rules of the project too. */
+/** The tabs "Rules", "Layers" and "Conventions" (ADR 0112, ADR 0116): the layers are rules of the
+ * project too, and the conventions are the code rules the console checks. */
 function Tabs() {
   return (
     <div class={styles.tabs} role="tablist" aria-label={t(I18N_KEYS.RULES_TABS_LABEL)}>
@@ -312,9 +314,17 @@ export function RulesScreen() {
   return (
     <>
       <Tabs />
-      <Show when={rulesTab() === RULES_TAB.rules} fallback={<LayersScreen />}>
-        <RulesTabPanel />
-      </Show>
+      <Switch>
+        <Match when={rulesTab() === RULES_TAB.rules}>
+          <RulesTabPanel />
+        </Match>
+        <Match when={rulesTab() === RULES_TAB.layers}>
+          <LayersScreen />
+        </Match>
+        <Match when={rulesTab() === RULES_TAB.conventions}>
+          <ConventionsScreen />
+        </Match>
+      </Switch>
     </>
   );
 }

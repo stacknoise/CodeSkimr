@@ -22,7 +22,7 @@ pub use args::{
 pub use consts::LEVEL_MODULE;
 pub use error::{CodeReport, McpError};
 pub use server::McpServer;
-pub use tools::{Ports, SnapshotInfo, Tools};
+pub use tools::{Ports, SnapshotInfo, Tools, conventions_answer};
 
 use std::sync::Arc;
 

@@ -24,3 +24,11 @@ Sie müssen die Datei nicht von Hand schreiben (ADR 0112). **Regel hinzufügen**
 Jede Regelkarte hat einen Stift (ändern) und einen Papierkorb (löschen; vorher fragt ein Dialog). Nur die Tabellen `rules` (und das `may_use` der Schichten) werden neu geschrieben; alles andere in der Datei bleibt, ebenso Kommentare außerhalb der Regel-Tabellen. Eine ungültige Regel (ein Modul im anderen, dasselbe Paar doppelt, eine unbekannte Schicht) wird mit `CFG-101` abgelehnt, die Datei bleibt wie sie war.
 
 Ein Git-Projekt hat keinen Projektordner, darum sind **Regel hinzufügen**, Stift und Papierkorb dort aus; tragen Sie die Regeln in die Datei im Repository ein.
+
+## Die Code-Regeln im Reiter „Konventionen“ prüfen
+
+Der dritte Reiter der Seite prüft den Code des Projektordners gegen die Code-Regeln, so wie der Konsolenbefehl `codeskimr check` es tut (ADR 0116): eine zu lange oder zu verschachtelte Funktion, zu viele Parameter, Literale im Code und zwei Funktionen, die Kopien voneinander sind (`docs/conventions.md`). Er liest die Dateien so, wie sie jetzt sind, und sieht darum auch Änderungen, die noch kein Scan gesehen hat. Es wird nichts gespeichert.
+
+**Jetzt prüfen** startet die Prüfung für den ganzen Ordner des Projekts. Ein großes Projekt braucht etwa so lange wie die Analyse eines Scans. Der Streifen zeigt, wie viele Dateien geprüft wurden, wie viele Funde es gibt und wie viele Dateien sich nicht analysieren ließen. Die Funde stehen in einer Tabelle, die du nach jeder Spalte sortieren und deren Spalten du verbreitern kannst; **Öffnen** öffnet die Datei an der Zeile im Editor aus den Einstellungen. **Als Markdown kopieren** legt das Ergebnis in die Zwischenablage, für ein Issue oder einen Kommentar. Unter der Tabelle steht, welche Regeln diese Prüfung nicht abdeckt (ein sauberes Ergebnis sagt darüber nichts) und welche Dateien sie nicht lesen konnte.
+
+Ein Projekt von einer Git-Adresse hat keinen Ordner auf diesem Rechner; der Knopf ist dort ausgegraut.

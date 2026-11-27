@@ -109,4 +109,5 @@ rules-save-failed = The rules could not be saved.
 rules-toml-label = Text written into the file
 rules-tab-rules = Rules
 rules-tab-layers = Layers
-rules-tabs-label = Rules and layers
+rules-tab-conventions = Conventions
+rules-tabs-label = Rules, layers and conventions

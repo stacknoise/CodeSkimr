@@ -43,6 +43,7 @@ use serde_json::Value;
 
 use crate::consts::{ARG_DEPTH, ARG_SYMBOL, MIN_LIMIT, PARAM_PROJECT};
 use crate::error::{CodeReport, McpError};
+pub use conventions::conventions_answer;
 
 /// Which snapshot an answer is based on and how old it is.
 #[derive(Debug, Clone, Copy, Serialize)]

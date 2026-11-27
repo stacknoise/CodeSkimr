@@ -34,6 +34,25 @@ pub fn run(
         .ok()
         .and_then(|path| FolderPath::new(path.to_str()?).ok())
         .ok_or_else(|| CodedError::new(ErrorCode::ProjectSourceInvalid))?;
+    let paths: Vec<String> = args
+        .paths
+        .iter()
+        .map(|path| below_root(path, &root))
+        .collect();
+    check_folder(&root, &paths, (global, locations))
+}
+
+/// Checks the files of the folder `root` named in `paths` (everything if none), the way the
+/// command and the screen Rules both do: the files are analysed afresh with the configuration of
+/// the folder, and nothing is stored.
+///
+/// # Errors
+/// Any coded failure of the configuration, the language packs or the file discovery.
+pub fn check_folder(
+    root: &FolderPath,
+    paths: &[String],
+    (global, locations): (&GlobalOptions, &Locations),
+) -> Result<CheckReport, CodedError> {
     let config = config_files::load(locations, global, Some(Path::new(root.as_str())))?;
     let Analysis {
         discovery,
@@ -46,15 +65,10 @@ pub fn run(
         Arc::new(FolderText),
         config.conventions,
     );
-    let paths: Vec<String> = args
-        .paths
-        .iter()
-        .map(|path| below_root(path, &root))
-        .collect();
     checker.check(&CheckRequest {
         principal: &principal::resolve(),
-        root: &root,
-        paths: &paths,
+        root,
+        paths,
         stored: None,
     })
 }

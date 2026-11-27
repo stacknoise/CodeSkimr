@@ -132,3 +132,5 @@ command-log-clear-title = Protokoll leeren
 command-log-clear-description = Leert die Protokolldatei und entfernt die alten. Der Pfad wird aus dem Datenordner gebaut, nie vom Aufrufer genommen.
 command-log-open-folder-title = Protokollordner öffnen
 command-log-open-folder-description = Öffnet den Ordner der Protokolldateien mit dem Programm, das das Betriebssystem dafür nennt, auf dem Rechner der App.
+command-conventions-check-title = Konventionen prüfen
+command-conventions-check-description = Prüft die Dateien eines Projektordners gegen die Code-Regeln (Länge, Komplexität, Parameter, Literale, Doppelungen) im heutigen Stand, ohne Scan, und speichert nichts. Dieselbe Prüfung wie `codeskimr check`.
