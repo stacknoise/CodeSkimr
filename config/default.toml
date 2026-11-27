@@ -281,3 +281,11 @@ max_references = 600000
 max_symbols = 200
 # Most usages listed per symbol whose usages a change can break; the total of its usages is still counted.
 max_usages = 50
+# From which size a move of a metric counts as worse or better in the list of metric changes (ADR 0114); a smaller
+# move is noise and is not listed. Complexity and efferent coupling are counted in units, the maintainability index in
+# points, instability in thousandths, and lines are only marked when an object grew by at least this many.
+metric_min_cc = 2
+metric_min_mi = 5
+metric_min_ce = 2
+metric_min_instability = 100
+metric_loc_growth = 20

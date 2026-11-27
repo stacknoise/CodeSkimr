@@ -289,3 +289,6 @@ pub const OUTCOME_CHANGED: &str = "changed";
 
 /// Lines of a place are counted from 1 when shown, the stored ones from 0.
 pub const PLACE_LINE_OFFSET: u32 = 1;
+
+/// Thousandths in one: the thresholds of instability are configured in thousandths (ADR 0114).
+pub const PERMILLE: f64 = 1000.0;

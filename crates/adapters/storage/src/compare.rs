@@ -6,8 +6,8 @@
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::ComparisonSource;
 use codeskimr_domain::{
-    ContentHash, QualifiedName, RelativePath, SnapshotId, SymbolFact, SymbolId, SymbolKind,
-    SymbolOrigin, Visibility, compares_kind,
+    ContentHash, MetricFact, MetricKind, MetricLevel, MetricValues, QualifiedName, RelativePath,
+    SnapshotId, SymbolFact, SymbolId, SymbolKind, SymbolOrigin, Visibility, compares_kind,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 
@@ -78,6 +78,78 @@ fn facts(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<SymbolFac
         .collect()
 }
 
+/// The columns of `METRIC_FACTS`, still raw: one object and one of its metrics.
+struct MetricRow {
+    id: i64,
+    kind: String,
+    name: String,
+    signature: Option<String>,
+    path: String,
+    metric: String,
+    value: f64,
+}
+
+impl MetricRow {
+    // codeskimr: allow CHK-102 maps the columns of a metric row into its fields
+    fn read(cols: &Cols<'_>) -> rusqlite::Result<Self> {
+        Ok(Self {
+            id: cols.take()?,
+            kind: cols.take()?,
+            name: cols.take()?,
+            signature: cols.take()?,
+            path: cols.take()?,
+            metric: cols.take()?,
+            value: cols.take()?,
+        })
+    }
+
+    fn fact(&self) -> StorageResult<MetricFact> {
+        Ok(MetricFact {
+            kind: label_from::<SymbolKind>(&self.kind)?,
+            qualified_name: QualifiedName::new(self.name.clone())?,
+            signature: self.signature.clone(),
+            path: RelativePath::new(self.path.clone())?,
+            values: MetricValues::default(),
+        })
+    }
+}
+
+/// Adds the metric of `row` to its object, which starts a new one when the id changes. The rows
+/// come ordered by object, so the rows of one object follow each other.
+fn add_metric(found: &mut Vec<(i64, MetricFact)>, row: &MetricRow) -> StorageResult<()> {
+    if found.last().is_none_or(|(id, _)| *id != row.id) {
+        found.push((row.id, row.fact()?));
+    }
+    if let (Some((_, fact)), Ok(metric)) = (found.last_mut(), label_from::<MetricKind>(&row.metric))
+    {
+        fact.values.set(metric, row.value);
+    }
+    Ok(())
+}
+
+fn metric_facts(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<MetricFact>> {
+    let kinds = json_labels(
+        SymbolKind::ALL
+            .iter()
+            .filter(|kind| MetricLevel::of(**kind).is_some())
+            .map(|kind| kind.label()),
+    );
+    let mut statement = conn.prepare_cached(sql::METRIC_FACTS)?;
+    let rows = statement.query_map(
+        params![
+            column_int(snapshot.get())?,
+            kinds,
+            SymbolOrigin::Syntax.label()
+        ],
+        |row| MetricRow::read(&Cols::new(row)),
+    )?;
+    let mut found = Vec::new();
+    for row in rows {
+        add_metric(&mut found, &row?)?;
+    }
+    Ok(found.into_iter().map(|(_, fact)| fact).collect())
+}
+
 fn naming_rules(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Option<String>> {
     let found = conn
         .prepare_cached(sql::SNAPSHOT_NAMING_OF)?
@@ -91,6 +163,11 @@ fn naming_rules(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Option
 impl ComparisonSource for ProjectDb {
     fn comparison_facts(&self, snapshot: SnapshotId) -> Result<Vec<SymbolFact>, CodedError> {
         self.read_apart(|conn| facts(conn, snapshot))
+            .map_err(CodedError::from)
+    }
+
+    fn metric_facts(&self, snapshot: SnapshotId) -> Result<Vec<MetricFact>, CodedError> {
+        self.read_apart(|conn| metric_facts(conn, snapshot))
             .map_err(CodedError::from)
     }
 

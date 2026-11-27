@@ -8,12 +8,14 @@ mod common;
 mod tests {
     use codeskimr_application::ports::{ComparisonSource, SnapshotStore, SymbolHash, UsageIndex};
     use codeskimr_domain::{
-        ContentHash, Direction, ScanMode, SnapshotId, SymbolId, SymbolKind, SymbolOrigin,
-        UsageQuery, Visibility, compare_symbols,
+        ContentHash, Direction, MetricKind, MetricLevel, ScanMode, SnapshotId, SymbolId,
+        SymbolKind, SymbolOrigin, UsageQuery, Visibility, compare_symbols,
     };
     use codeskimr_storage::ProjectDb;
 
-    use super::common::{data, file, header, project, reference, registered_store, store, symbol};
+    use super::common::{
+        data, file, header, metric, project, reference, registered_store, store, symbol,
+    };
 
     const FIRST: SnapshotId = SnapshotId::new(10);
     const SECOND: SnapshotId = SnapshotId::new(20);
@@ -44,6 +46,12 @@ mod tests {
         ];
         scan.references = vec![reference(31, 11, 23, 24)];
         scan.hashes = vec![hashed(22, "h22"), hashed(23, "h23")];
+        scan.metrics = vec![
+            metric(23, MetricKind::CyclomaticComplexity, 6.0),
+            metric(23, MetricKind::MaintainabilityIndex, 71.0),
+            metric(21, MetricKind::EfferentCoupling, 4.0),
+            metric(25, MetricKind::Loc, 3.0),
+        ];
         scan.naming_rules = "csharp=file".to_owned();
         scan
     }
@@ -119,6 +127,32 @@ mod tests {
         assert_eq!(found.added.len(), 1);
         assert_eq!(found.added[0].qualified_name.as_str(), "App.B");
         assert!(found.removed.is_empty() && found.changed.is_empty());
+    }
+
+    #[test]
+    fn the_metric_facts_hold_the_values_of_the_comparable_objects() {
+        let facts = two_scans().metric_facts(FIRST).unwrap();
+        let seen: Vec<_> = facts
+            .iter()
+            .map(|fact| {
+                let values = fact.values;
+                (
+                    fact.qualified_name.as_str(),
+                    values.cc,
+                    values.mi,
+                    values.ce,
+                )
+            })
+            .collect();
+        assert_eq!(
+            seen,
+            [
+                ("App", None, None, Some(4.0)),
+                ("App.A.Run", Some(6.0), Some(71.0), None)
+            ],
+            "only objects that have a metric come, and a parameter is no object of a level"
+        );
+        assert_eq!(MetricLevel::of(facts[0].kind), Some(MetricLevel::Module));
     }
 
     #[test]
