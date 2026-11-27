@@ -106,9 +106,10 @@ function Toggle(props: {
   label: string;
   onChange: (on: boolean) => void;
   disabled?: boolean;
+  title?: string | undefined;
 }) {
   return (
-    <label class={styles.toggle}>
+    <label class={styles.toggle} title={props.title}>
       <input
         type="checkbox"
         checked={props.checked}
@@ -133,6 +134,9 @@ export function Toolbar(props: ToolbarProps) {
       <Toggle
         checked={props.violationsOnly}
         disabled={props.level !== LEVEL.layers}
+        title={
+          props.level === LEVEL.layers ? undefined : t(I18N_KEYS.GRAPH_TOGGLE_VIOLATIONS_ONLY_HINT)
+        }
         label={t(I18N_KEYS.GRAPH_TOGGLE_VIOLATIONS_ONLY)}
         onChange={props.onViolationsOnly}
       />

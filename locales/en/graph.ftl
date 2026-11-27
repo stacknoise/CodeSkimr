@@ -103,3 +103,5 @@ graph-modules-places-more = { $count ->
 }
 graph-modules-places-failed = The places could not be loaded.
 graph-modules-legend-cycle = in a cycle
+graph-toggle-violations-only-hint = Only available in the "Layers" view: that is where layering violations are drawn as connections. For modules the side panel lists them under "Against the layering".
+graph-modules-badge-cycle-hint = Cycle: this module depends on itself through other modules (A needs B, B needs A). The side panel names the weakest edge that ends the cycle.
