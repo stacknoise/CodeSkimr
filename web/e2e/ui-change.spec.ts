@@ -301,7 +301,9 @@ inEachTheme(
     await page.getByRole("tab", { name: "Metrics" }).click();
     const worse = page.getByRole("region", { name: "Got worse" });
     const better = page.getByRole("region", { name: "Got better" });
-    await expect(worse.getByText("Shop.Pricing.Fee.Total").first()).toBeVisible({ timeout: SCAN_MS });
+    await expect(worse.getByText("Shop.Pricing.Fee.Total").first()).toBeVisible({
+      timeout: SCAN_MS,
+    });
     await expect(better.getByText("Shop.Pricing.Legacy.Calculate").first()).toBeVisible();
     await shot(page, SHOTS, `metrics-${theme}`, info);
 

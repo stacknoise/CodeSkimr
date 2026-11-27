@@ -88,7 +88,7 @@ function MetricsGrid(props: { side: MetricsSide; rows: readonly MetricRow[]; tag
   return (
     <div class={styles.scroll}>
       <table
-        class={cx(parts.table)}
+        class={parts.table}
         style={grid.style()}
         aria-label={t(I18N_KEYS.CHANGE_METRICS_LIST_LABEL)}
       >
