@@ -208,8 +208,9 @@ function unused(th,v){
 }
 
 const q=new URLSearchParams(location.search);
-const themes=q.get('themes')?q.get('themes').split(','):['petrol'];
+const ALL_THEMES=['hell','petrol','dunkel'],ALL_VIEWS=['zu','offen','privat'];
+const themes=q.get('themes')?q.get('themes').split(',').filter(x=>ALL_THEMES.includes(x)):['petrol'];
 const v=q.get('v');
-const views=v?[v]:['zu','offen','privat'];
+const views=ALL_VIEWS.includes(v)?[v]:ALL_VIEWS;
 document.getElementById('root').innerHTML=themes.map(t=>views.map(x=>unused(t,x)).join('')).join('');
 </script></body></html>
