@@ -275,3 +275,48 @@ inEachTheme(
     await shot(page, SHOTS, `compare-many-${theme}`, info);
   },
 );
+
+/** Two states in which one method got a lot more branches and another one lost most of them. */
+const METRICS_BEFORE = [
+  "namespace Shop.Pricing;",
+  "public class Fee { public int Total(int a) { return a; } }",
+  "public class Legacy { public int Calculate(int a) { if (a > 1) { return 1; } if (a > 2) { return 2; } if (a > 3) { return 3; } if (a > 4) { return 4; } return a; } }",
+  "",
+].join("\n");
+const METRICS_AFTER = [
+  "namespace Shop.Pricing;",
+  "public class Fee { public int Total(int a) { if (a > 1) { return 1; } if (a > 2) { return 2; } if (a > 3) { return 3; } if (a > 4) { return 4; } return a; } }",
+  "public class Legacy { public int Calculate(int a) { return a; } }",
+  "",
+].join("\n");
+
+inEachTheme(
+  "the view Metrics lists what got worse and what got better and narrows by metric and level",
+  async (page, harness, info, theme) => {
+    await addTwiceScanned(page, harness, `changemetrics${theme}`, {
+      before: METRICS_BEFORE,
+      after: METRICS_AFTER,
+    });
+    await page.getByRole("link", { name: "Change", exact: true }).click();
+    await page.getByRole("tab", { name: "Metrics" }).click();
+    const worse = page.getByRole("region", { name: "Got worse" });
+    const better = page.getByRole("region", { name: "Got better" });
+    await expect(worse.getByText("Shop.Pricing.Fee.Total").first()).toBeVisible({
+      timeout: SCAN_MS,
+    });
+    await expect(better.getByText("Shop.Pricing.Legacy.Calculate").first()).toBeVisible();
+    await shot(page, SHOTS, `metrics-${theme}`, info);
+
+    // The chips narrow both lists to one metric; the keyboard reaches them.
+    await page.getByRole("button", { name: "Maintainability" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("button", { name: "Maintainability" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.getByRole("button", { name: "All", exact: true }).click();
+    // Another level reads the metrics again; types have complexity too.
+    await page.getByLabel("Level").selectOption("type");
+    await expect(worse.getByText("Shop.Pricing.Fee", { exact: true }).first()).toBeVisible();
+  },
+);

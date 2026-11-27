@@ -8,15 +8,17 @@ export const COMMAND = {
   list: "scans.list",
   impact: "scans.impact",
   markdown: "scans.impact_markdown",
+  metrics: "scans.metrics",
 } as const;
 
 /** The two views of the screen (ADR 0097). */
-export const TAB = { impact: "impact", compare: "compare" } as const;
+export const TAB = { impact: "impact", compare: "compare", metrics: "metrics" } as const;
 
 /** The tabs in their order, with their texts. */
 export const TABS = [
   { id: TAB.impact, label: I18N_KEYS.CHANGE_VIEW_TAB_IMPACT },
   { id: TAB.compare, label: I18N_KEYS.CHANGE_VIEW_TAB_COMPARE },
+  { id: TAB.metrics, label: I18N_KEYS.CHANGE_VIEW_TAB_METRICS },
 ] as const;
 
 /** Start of the ids of the tab buttons, and the id of the panel they control. */
@@ -163,3 +165,84 @@ export const COMPARE_COLUMNS = [
   { id: COMPARE_COLUMN.symbol, label: I18N_KEYS.CHANGE_VIEW_COL_SYMBOL, number: false },
   { id: COMPARE_COLUMN.file, label: I18N_KEYS.CHANGE_VIEW_COL_FILE, number: false },
 ] as const;
+
+/** The levels of the view "Metrics" by the word the answer uses, in the order of the choice, with
+ * their texts and the letter of the tag in front of an object. */
+export const METRICS_LEVEL = { member: "member", type: "type", module: "module" } as const;
+export const METRICS_LEVELS = [
+  { id: METRICS_LEVEL.member, label: I18N_KEYS.CHANGE_METRICS_LEVEL_MEMBER, tag: "M" },
+  { id: METRICS_LEVEL.type, label: I18N_KEYS.CHANGE_METRICS_LEVEL_TYPE, tag: "T" },
+  { id: METRICS_LEVEL.module, label: I18N_KEYS.CHANGE_METRICS_LEVEL_MODULE, tag: "N" },
+] as const;
+/** The id of the choice of the level. */
+export const METRICS_LEVEL_FIELD_ID = "change-metrics-level";
+
+/** The metrics by the word the answer uses (`MetricKind::label`), in the order of the filter. */
+export const METRIC = {
+  cc: "cc",
+  mi: "mi",
+  loc: "loc",
+  ce: "ce",
+  instability: "instability",
+} as const;
+/** The value of the filter that shows every metric. */
+export const METRIC_ALL = "all";
+/** The choices of the filter by metric, in the order of the mock, with their texts. */
+export const METRIC_CHOICES = [
+  { id: METRIC_ALL, label: I18N_KEYS.CHANGE_METRICS_FILTER_ALL },
+  { id: METRIC.cc, label: I18N_KEYS.CHANGE_METRICS_METRIC_CC },
+  { id: METRIC.mi, label: I18N_KEYS.CHANGE_METRICS_METRIC_MI },
+  { id: METRIC.loc, label: I18N_KEYS.CHANGE_METRICS_METRIC_LOC },
+  { id: METRIC.ce, label: I18N_KEYS.CHANGE_METRICS_METRIC_CE },
+  { id: METRIC.instability, label: I18N_KEYS.CHANGE_METRICS_METRIC_INSTABILITY },
+] as const;
+/** The name of a metric in a row, by the word the answer uses. */
+export const METRIC_TEXT: Record<string, MessageKey> = {
+  cc: I18N_KEYS.CHANGE_METRICS_METRIC_CC,
+  mi: I18N_KEYS.CHANGE_METRICS_METRIC_MI,
+  loc: I18N_KEYS.CHANGE_METRICS_METRIC_LOC,
+  ce: I18N_KEYS.CHANGE_METRICS_METRIC_CE,
+  instability: I18N_KEYS.CHANGE_METRICS_METRIC_INSTABILITY,
+};
+/** The tone of the pill of a move, by what the move did as the answer names it. */
+export const DIRECTION_TONE: Record<string, PillTone> = {
+  worse: TONE.bad,
+  better: TONE.good,
+  grew: TONE.warn,
+};
+/** How a move crossed the bound of the rating, as the answer names it, and its text. */
+export const CROSSING_TEXT: Record<string, MessageKey> = {
+  into_poor: I18N_KEYS.CHANGE_METRICS_CROSSING_INTO,
+  out_of_poor: I18N_KEYS.CHANGE_METRICS_CROSSING_OUT,
+};
+/** The sign of a change, shown in front of its size. */
+export const DELTA_SIGN = { up: "+", down: "−" } as const;
+/** Values are shown with at most this many decimals. */
+export const METRIC_DECIMALS = 2;
+/** The id of the box of the list of what got worse and of what got better. */
+export const METRICS_LIST = { worse: "worse", better: "better" } as const;
+/** The prefix of the key under which the widths of the columns of a list are kept. */
+export const METRICS_TABLE_KEY = "change-metrics-";
+/** The columns of the two lists of the view "Metrics", by id. */
+export const METRICS_COLUMN = {
+  object: "object",
+  file: "file",
+  metric: "metric",
+  values: "values",
+  change: "change",
+} as const;
+export const METRICS_COLUMNS = [
+  { id: METRICS_COLUMN.object, label: I18N_KEYS.CHANGE_METRICS_COL_OBJECT, number: false },
+  { id: METRICS_COLUMN.file, label: I18N_KEYS.CHANGE_VIEW_COL_FILE, number: false },
+  { id: METRICS_COLUMN.metric, label: I18N_KEYS.CHANGE_METRICS_FILTER_LABEL, number: false },
+  { id: METRICS_COLUMN.values, label: I18N_KEYS.CHANGE_METRICS_COL_VALUES, number: true },
+  { id: METRICS_COLUMN.change, label: I18N_KEYS.CHANGE_VIEW_COL_CHANGE, number: true },
+] as const;
+/** The metrics that a level does not have (ADR 0114): members have no coupling and no stability. */
+export const METRICS_NOT_AT_MEMBER: readonly string[] = [METRIC.ce, METRIC.instability];
+/** Joins the parts of the key that tells one object from another. */
+export const OBJECT_KEY_JOIN = "\u0000";
+/** What a figure shows when its number is not known. */
+export const UNKNOWN_FIGURE = "–";
+/** The tag of an object whose level the screen does not know. */
+export const NO_TAG = "";

@@ -25,7 +25,7 @@ Option 2, and for the pairs: every symbol that exists in both scans under the sa
    - registry commands `scans.metrics` and `scans.metrics_markdown` (permission `read`; inputs: project, base, target, `level` = module | type | member, `direction` = worse | better | all, `metric`, `include_tests`);
    - CLI `codeskimr compare <project> --metrics [--worse | --better] [--metric cc,mi,loc,ce,instability] [--level module|type|member] [--base <id>] [--target <id>] [--json] [--markdown]`;
    - MCP: no new tool. `impact_of_diff` gets the argument `metrics` (boolean, default false) and adds the lists `worse` and `better`; the tool list stays as ADR 0097 left it;
-   - UI: a third tab "Metrics" on the screen "Change" with mock 43 variant A (two lists, filter by metric, "Copy as Markdown" through `scans.metrics_markdown` as ADR 0092 asks).
+   - UI: a third tab "Metrics" on the screen "Change" with mock 43 variant A (two lists, drawn as sortable tables with column handles, one row per moved metric; filter by metric, "Copy as Markdown" through `scans.metrics_markdown` as ADR 0092 asks).
    The comment of the pull request action (ADR 0109) may take the three worst rows from the same answer.
 7. **Retention.** Only retained scans can be compared; a longer view per object is a later decision (A3 stores sums only).
 8. **Texts and codes.** German and English through Fluent. The errors are those of the group `CMP` (ADR 0097); no new code is needed. No new dependency.

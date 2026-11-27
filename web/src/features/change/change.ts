@@ -1,20 +1,28 @@
 import { createSignal } from "solid-js";
 import { runCommand } from "../../shared/api/commands";
-import { openProject } from "../../shared/project/active";
+import { activeProject, openProject } from "../../shared/project/active";
 import { navigate } from "../../app/router";
 import { CHANGE_ROUTE } from "../../app/consts";
 import { failed, type Failure } from "../explorer/failure";
 import type { ScanHistoryAnswer } from "../scan/types";
 import { resetFilter } from "./filter";
-import { COMMAND, MIN_SCANS, TAB } from "./consts";
+import { COMMAND, METRIC_ALL, METRICS_LEVEL, MIN_SCANS, TAB } from "./consts";
 import { firstToSelect, impactRows } from "./rows";
-import type { ChangeAnswer, Selection } from "./types";
+import { metricAvailable } from "./metrics";
+import type { ChangeAnswer, MetricsAnswer, Selection } from "./types";
 
 type Tab = (typeof TAB)[keyof typeof TAB];
 
 const NO_SELECTION: Selection = { base: null, target: null };
 
 const [tab, setTab] = createSignal<Tab>(TAB.impact);
+const [metrics, setMetrics] = createSignal<MetricsAnswer | null>(null);
+const [metricsFailure, setMetricsFailure] = createSignal<Failure | null>(null);
+const [metricsReading, setMetricsReading] = createSignal(false);
+const [metricsLevel, setMetricsLevel] = createSignal<string>(METRICS_LEVEL.member);
+const [metricsMetric, setMetricsMetric] = createSignal<string>(METRIC_ALL);
+/** Counts the reads of the metrics, so that an answer for a pair that is no longer shown is dropped. */
+let latestMetrics = 0;
 const [scans, setScans] = createSignal<ScanHistoryAnswer | null>(null);
 const [answer, setAnswer] = createSignal<ChangeAnswer | null>(null);
 const [failure, setFailure] = createSignal<Failure | null>(null);
@@ -30,8 +38,77 @@ let requestedBase: number | null = null;
 
 /** The view that is shown. */
 export const changeTab = tab;
-/** Shows a view. */
-export const showChangeTab = setTab;
+/** The metric changes of the pair that is compared; `null` until they are read. */
+export const changeMetrics = metrics;
+/** The failure of the last read of the metrics; `null` if it worked. */
+export const changeMetricsFailure = metricsFailure;
+/** Whether the metrics are being read. */
+export const changeMetricsReading = metricsReading;
+/** The level the metrics are read for: `member`, `type` or `module`. */
+export const changeMetricsLevel = metricsLevel;
+/** The metric the lists are narrowed to, or the value that shows all. */
+export const changeMetricsMetric = metricsMetric;
+/** Narrows the lists of the metrics to one metric. */
+export const showMetricsMetric = setMetricsMetric;
+
+/** Reads the metric changes between the two scans of the answer that is shown (`scans.metrics`),
+ * for the level that is chosen. The pair is the one the comparison resolved, so both views show the
+ * same two scans. */
+export async function loadMetrics(project: number): Promise<void> {
+  const compared = answer();
+  if (compared === null) {
+    return;
+  }
+  const mine = ++latestMetrics;
+  setMetricsReading(true);
+  setMetricsFailure(null);
+  try {
+    const read = await runCommand<MetricsAnswer>(COMMAND.metrics, {
+      project,
+      base: compared.base.snapshot,
+      target: compared.target.snapshot,
+      level: metricsLevel(),
+    });
+    if (mine === latestMetrics) {
+      setMetrics(read);
+    }
+  } catch (error) {
+    if (mine === latestMetrics) {
+      setMetrics(null);
+      setMetricsFailure(failed(error));
+    }
+  } finally {
+    if (mine === latestMetrics) {
+      setMetricsReading(false);
+    }
+  }
+}
+
+/** Chooses the level of the metrics and reads them again. */
+export function chooseMetricsLevel(project: number, level: string): void {
+  setMetricsLevel(level);
+  if (!metricAvailable(metricsMetric(), level)) {
+    setMetricsMetric(METRIC_ALL);
+  }
+  void loadMetrics(project);
+}
+
+/** Forgets the metrics that were read, because the pair of scans changed or the screen was left. */
+function forgetMetrics(): void {
+  latestMetrics += 1;
+  setMetrics(null);
+  setMetricsFailure(null);
+  setMetricsReading(false);
+}
+
+/** Shows a view; the metrics are read when their view opens and they are not there yet. */
+export function showChangeTab(next: Tab): void {
+  setTab(next);
+  const project = activeProject();
+  if (next === TAB.metrics && project !== null && metrics() === null && !metricsReading()) {
+    void loadMetrics(project);
+  }
+}
 /** The retained scans of the project, newest first; `null` until they are read. */
 export const changeScans = scans;
 /** The comparison that was read; `null` while there is none. */
@@ -106,9 +183,13 @@ export async function loadChange(project: number, wanted: Selection = picked()):
         ? null
         : await runCommand<ChangeAnswer>(COMMAND.impact, inputOf(project, list, wanted));
     if (mine === latest) {
+      forgetMetrics();
       setAnswer(read);
       setPicked(read === null ? NO_SELECTION : shown(list, wanted, read));
       keepRow(read);
+      if (tab() === TAB.metrics) {
+        void loadMetrics(project);
+      }
     }
   } catch (error) {
     if (mine === latest) {
@@ -140,6 +221,8 @@ export function enterChange(): Selection {
   setFailure(null);
   setReading(false);
   setRowKey(null);
+  forgetMetrics();
+  setMetricsMetric(METRIC_ALL);
   resetFilter();
   const wanted: Selection = { base: requestedBase, target: null };
   requestedBase = null;
@@ -150,6 +233,7 @@ export function enterChange(): Selection {
 /** Forgets what was read, when the screen is left. */
 export function resetChange(): void {
   latest += 1;
+  forgetMetrics();
   setScans(null);
   setAnswer(null);
   setFailure(null);
