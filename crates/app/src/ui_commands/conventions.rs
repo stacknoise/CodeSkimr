@@ -1,4 +1,4 @@
-//! The command behind the tab "Conventions" of the screen Rules: the convention check of the
+//! The command behind the screen "Conventions": the convention check of the
 //! console (`codeskimr check`) for a project that is a folder on this machine (ADR 0116).
 //!
 //! The check reads the files as they are now, so it needs the right to read source, like the

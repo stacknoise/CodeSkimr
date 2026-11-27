@@ -110,7 +110,3 @@ rules-saving = Speichere …
 rules-delete-confirm = Löschen
 rules-save-failed = Die Regeln konnten nicht gespeichert werden.
 rules-toml-label = Text, der in die Datei geschrieben wird
-rules-tab-rules = Regeln
-rules-tab-layers = Schichten
-rules-tab-conventions = Konventionen
-rules-tabs-label = Regeln, Schichten und Konventionen

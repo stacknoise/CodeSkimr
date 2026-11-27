@@ -1,6 +1,6 @@
 # 0116 – Conventions check in the UI
 
-Status: accepted (variant A of mock 44 was chosen by the product owner on 2026-11-27: a tab "Conventions" on the page Rules). Follow-up of ADR 0092.
+Status: accepted (variant A of mock 44 was chosen by the product owner on 2026-11-27: a place for the check inside the page Rules; since the tabs of that page were dropped on the same day, ADR 0112 addendum, it is a screen of its own in the rail). Follow-up of ADR 0092.
 
 ## Context
 
@@ -8,7 +8,7 @@ Status: accepted (variant A of mock 44 was chosen by the product owner on 2026-1
 
 ## Options
 
-1. A tab "Conventions" next to "Rules" and "Layers" on the page Rules, one button "Check now" for the whole project folder (mock 44, variant A).
+1. A screen "Conventions" of its own in the rail (`/conventions`, next to "Rules", like "Layers"; the first plan was a tab on the page Rules, which the product owner dropped when the layers left it), one button "Check now" for the whole project folder (mock 44, variant A).
 2. A page of its own with the choice of project and scope: whole folder, changed files, chosen paths (mock 44, variant B; not chosen).
 
 ## Decision

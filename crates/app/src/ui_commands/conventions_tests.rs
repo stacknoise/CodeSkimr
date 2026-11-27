@@ -1,4 +1,4 @@
-//! The tab "Conventions" of the screen Rules through the path the server takes (ADR 0116).
+//! The screen "Conventions" through the path the server takes (ADR 0116).
 
 use std::fmt::Write as _;
 use std::fs;

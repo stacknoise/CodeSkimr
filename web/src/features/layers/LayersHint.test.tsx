@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@solidjs/testing-library";
 import { beforeEach, describe, expect, it } from "vitest";
-import { RULES_ROUTE } from "../../app/consts";
+import { LAYERS_ROUTE } from "../../app/consts";
 import { currentPath } from "../../app/router";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { hasLayers, Overview } from "../explorer/Overview";
@@ -31,7 +31,7 @@ describe("LayersHint", () => {
     render(() => <LayersHint />);
     expect(screen.getByText("No layers set yet")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Set layers" }));
-    expect(currentPath()).toBe(RULES_ROUTE.path);
+    expect(currentPath()).toBe(LAYERS_ROUTE.path);
   });
 });
 

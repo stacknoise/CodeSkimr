@@ -1,4 +1,4 @@
-import { createEffect, createSignal, For, Match, on, onCleanup, Show, Switch } from "solid-js";
+import { createEffect, createSignal, For, on, onCleanup, Show } from "solid-js";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
@@ -16,10 +16,6 @@ import {
   rulesData,
   rulesFailure,
 } from "./rules";
-import { ConventionsScreen } from "../conventions/ConventionsScreen";
-import { LayersScreen } from "../layers/LayersScreen";
-import { RULES_TAB, RULES_TABS } from "./consts";
-import { rulesTab, showRulesTab } from "./tab";
 import { closeDialog, dialogTarget } from "./editor";
 import { RuleCard } from "./RuleCard";
 import { RuleActions } from "./RuleActions";
@@ -253,30 +249,8 @@ function Header() {
   );
 }
 
-/** The tabs "Rules", "Layers" and "Conventions" (ADR 0112, ADR 0116): the layers are rules of the
- * project too, and the conventions are the code rules the console checks. */
-function Tabs() {
-  return (
-    <div class={styles.tabs} role="tablist" aria-label={t(I18N_KEYS.RULES_TABS_LABEL)}>
-      <For each={RULES_TABS}>
-        {(tab) => (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={rulesTab() === tab.id}
-            class={rulesTab() === tab.id ? styles.tabOn : styles.tab}
-            onClick={() => showRulesTab(tab.id)}
-          >
-            {t(tab.label)}
-          </button>
-        )}
-      </For>
-    </div>
-  );
-}
-
-/** The tab "Rules": the head, the messages and the rules with their dialogs. */
-function RulesTabPanel() {
+/** The head, the messages and the rules with their dialogs. */
+function RulesBody() {
   return (
     <>
       <Header />
@@ -297,7 +271,7 @@ function RulesTabPanel() {
 }
 
 /** The screen "Rules": every architecture rule of the project with its violations (ADR 0104), the
- * dialogs that create, change and delete them (ADR 0112) and, in the second tab, the layers. */
+ * dialogs that create, change and delete them (ADR 0112). */
 export function RulesScreen() {
   createEffect(
     on(activeProject, (id) => {
@@ -311,20 +285,5 @@ export function RulesScreen() {
     resetRules();
     closeDialog();
   });
-  return (
-    <>
-      <Tabs />
-      <Switch>
-        <Match when={rulesTab() === RULES_TAB.rules}>
-          <RulesTabPanel />
-        </Match>
-        <Match when={rulesTab() === RULES_TAB.layers}>
-          <LayersScreen />
-        </Match>
-        <Match when={rulesTab() === RULES_TAB.conventions}>
-          <ConventionsScreen />
-        </Match>
-      </Switch>
-    </>
-  );
+  return <RulesBody />;
 }

@@ -30,8 +30,7 @@ for (const theme of THEMES) {
     await page.addInitScript((value) => localStorage.setItem("codeskimr.theme", value), theme);
     const row = await addScannedProject(page, harness as Harness, `check${theme}`, SOURCE);
     await row.click({ position: { x: 4, y: 4 } });
-    await page.getByRole("link", { name: "Rules", exact: true }).click();
-    await page.getByRole("tab", { name: "Conventions" }).click();
+    await page.getByRole("link", { name: "Conventions", exact: true }).click();
     await expect(page.getByText(/No result yet/)).toBeVisible();
     await page.getByRole("button", { name: "Check now" }).click();
     await expect(page.getByText("CHK-104", { exact: true })).toBeVisible();

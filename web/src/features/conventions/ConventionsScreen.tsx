@@ -300,7 +300,7 @@ function Toolbar(props: { project: number }) {
   );
 }
 
-/** The tab "Conventions" of the screen Rules: the convention check of the console for the project
+/** The screen "Conventions": the convention check of the console for the project
  * folder (ADR 0116). */
 export function ConventionsScreen() {
   createEffect(on(activeProject, () => resetConventions()));

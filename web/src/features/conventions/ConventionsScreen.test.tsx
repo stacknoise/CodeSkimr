@@ -93,7 +93,7 @@ beforeEach(() => {
   rows.mockReturnValue([{ id: 7, name: "app", kind: "folder", location: "/work/app" }]);
 });
 
-describe("the tab Conventions", () => {
+describe("the screen Conventions", () => {
   it("shows nothing but the button before the first check, then the numbers and the findings", async () => {
     serveCheck();
     render(() => <ConventionsScreen />);

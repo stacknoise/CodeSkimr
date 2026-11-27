@@ -60,7 +60,7 @@ test_folders = ["tests", "benches"]
 
 `check_conventions` (WP-37) runs this check for a registered project: `paths` (the files of a change; none means the whole project) and `limit`. It needs a project that is a folder on this machine (`PRJ-101` for a Git source, whose files live in the cache) and the permissions `read` and `read_source`. The answer lists `findings` (code, description, path, symbol, one-based lines, and `lines`/`max_lines`, `value`/`max_value`, `literals` or `duplicate_of`/`similarity_percent`), `total`, `files_checked`, `unchecked`, `unmatched` and `not_checked`; findings beyond the limit are cut with the notice `MCP-501`. Paths are never opened (see above), so the tool cannot be used to read outside the project (blueprint S-05).
 
-The same check is in the UI as the tab "Conventions" of the screen Rules (ADR 0116, command `conventions.check`): the whole folder of a folder project, with the same answer as `check_conventions`.
+The same check is in the UI as the screen "Conventions" (ADR 0116, command `conventions.check`): the whole folder of a folder project, with the same answer as `check_conventions`.
 
 ## Not part of this package
 

@@ -67,6 +67,20 @@ export const RULES_ROUTE: Route = {
   icon: "rules",
   needsProject: true,
 };
+/** The layers of the project: where they are set from its namespaces (ADR 0065, ADR 0112). */
+export const LAYERS_ROUTE: Route = {
+  path: "/layers",
+  label: I18N_KEYS.NAV_LAYERS,
+  icon: "layers",
+  needsProject: true,
+};
+/** The check of the code rules of the project folder, as `codeskimr check` does it (ADR 0116). */
+export const CONVENTIONS_ROUTE: Route = {
+  path: "/conventions",
+  label: I18N_KEYS.NAV_CONVENTIONS,
+  icon: "conventions",
+  needsProject: true,
+};
 export const SETTINGS_ROUTE: Route = {
   path: "/settings",
   label: I18N_KEYS.NAV_SETTINGS,
@@ -85,7 +99,9 @@ export const PROJECT_PATHS: readonly string[] = [
   ANNOTATIONS_ROUTE.path,
   STATS_ROUTE.path,
   CHANGE_ROUTE.path,
+  LAYERS_ROUTE.path,
   RULES_ROUTE.path,
+  CONVENTIONS_ROUTE.path,
   USAGES_ROUTE.path,
 ];
 
@@ -96,7 +112,9 @@ export const MAIN_ROUTES: Route[] = [
   GRAPH_ROUTE,
   STATS_ROUTE,
   CHANGE_ROUTE,
+  LAYERS_ROUTE,
   RULES_ROUTE,
+  CONVENTIONS_ROUTE,
   ANNOTATIONS_ROUTE,
 ];
 /** Screens in the lower part of the rail. */

@@ -1,5 +1,6 @@
-# The tab "Conventions" of the screen Rules: the convention check of the console in the UI (ADR 0116).
+# The screen "Conventions": the convention check of the console in the UI (ADR 0116).
 
+nav-conventions = Conventions
 conventions-title = Conventions
 conventions-subtitle = Checks the files of the project folder against the code rules, as the code is now. No scan is needed and nothing is stored.
 conventions-no-project = Pick a project first, the one whose code you want to check.

@@ -54,7 +54,7 @@ pub struct FolderCheck {
 }
 
 /// Checks the files of the folder `root` named in `paths` (everything if none), the way the
-/// command and the screen Rules both do: the files are analysed afresh with the configuration of
+/// command and the screen Conventions both do: the files are analysed afresh with the configuration of
 /// the folder, and nothing is stored.
 ///
 /// # Errors

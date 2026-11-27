@@ -1,5 +1,6 @@
-# Der Reiter „Konventionen“ der Seite Regeln: die Konventionsprüfung der Konsole in der Oberfläche (ADR 0116).
+# Die Seite „Konventionen“: die Konventionsprüfung der Konsole in der Oberfläche (ADR 0116).
 
+nav-conventions = Konventionen
 conventions-title = Konventionen
 conventions-subtitle = Prüft die Dateien des Projektordners gegen die Code-Regeln, so wie der Code jetzt ist. Es braucht keinen Scan, und nichts wird gespeichert.
 conventions-no-project = Wähle zuerst ein Projekt, dessen Code du prüfen willst.

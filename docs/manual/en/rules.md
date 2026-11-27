@@ -1,6 +1,6 @@
 # Rules
 
-The screen **Rules** (left bar) checks the architecture rules of your project file `.codeskimr.toml` against the last scan and lists their violations. It has two tabs: **Rules** and **Layers** (the editor of the layers, see [Projects and scan](projects-and-scan.md)).
+The screen **Rules** (left bar) checks the architecture rules of your project file `.codeskimr.toml` against the last scan and lists their violations. The layers have a screen of their own, **Layers**, in the left bar (the editor of the layers, see [Projects and scan](projects-and-scan.md)).
 
 ## What a rule is
 
@@ -25,9 +25,9 @@ Every rule card has a pen (change) and a bin (delete; a dialog asks first). Only
 
 A Git project has no project folder, so **Add rule**, the pen and the bin are off there; add the rules to the file in the repository.
 
-## Checking the code rules in the tab "Conventions"
+## Checking the code rules on the screen "Conventions"
 
-The third tab of the screen checks the code of the project folder against the code rules, as the console command `codeskimr check` does (ADR 0116): a function that is too long, too complex or has too many parameters, literals in the code, and two functions that are copies of each other (`docs/conventions.md`). It reads the files as they are now, so it also sees edits that no scan has seen. Nothing is stored.
+The screen "Conventions" (its own item in the left bar, next to "Rules") checks the code of the project folder against the code rules, as the console command `codeskimr check` does (ADR 0116): a function that is too long, too complex or has too many parameters, literals in the code, and two functions that are copies of each other (`docs/conventions.md`). It reads the files as they are now, so it also sees edits that no scan has seen. Nothing is stored.
 
 **Check now** starts it for the whole folder of the project. A large project takes about as long as the analysis of a scan. The strip shows how many files were checked, how many findings there are and how many files could not be analysed. The findings are in a table that you can sort by every column and whose columns you can widen; **Open** opens the file at the line in the editor of the settings. **Copy as Markdown** puts the result into the clipboard, for an issue or a comment. Below the table the tab names the rules this check does not cover (a clean result says nothing about them) and the files it could not read.
 
