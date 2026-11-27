@@ -407,7 +407,7 @@ pub(crate) fn change_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<St
 }
 
 /// A name or path for a code span of Markdown: no control characters, no backticks.
-fn code(value: &str) -> String {
+pub(crate) fn code(value: &str) -> String {
     plain(value).replace(BACKTICK, APOSTROPHE)
 }
 
@@ -456,7 +456,7 @@ fn markdown_line(
 }
 
 /// A heading and its lines, nothing if there are no lines. A blank line comes before the heading.
-fn titled(
+pub(crate) fn titled(
     speak: &Speaker<'_>,
     heading: &str,
     lines: Vec<String>,

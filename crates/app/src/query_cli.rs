@@ -17,14 +17,14 @@ use codeskimr_application::compare::{
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{Clock, CodeIndex, FileDiscovery, ProjectRepository};
 use codeskimr_cli::{
-    CompareQuery, ContextQuery, ImpactQuery, MetricsOptions, MetricsSide, ModulesQuery,
-    QueryAction, QueryKind, RenameQuery, RulesQuery, SymbolsQuery, UnusedQuery, UsagesQuery,
-    change_markdown, query_code_report, query_error_json, query_json, query_text,
+    CompareQuery, ContextQuery, ImpactQuery, MetricsOptions, ModulesQuery, QueryAction, QueryKind,
+    RenameQuery, RulesQuery, SymbolsQuery, UnusedQuery, UsagesQuery, change_markdown,
+    metrics_markdown, query_code_report, query_error_json, query_json, query_text,
 };
 use codeskimr_codes::i18n::COMPARE_DIRECT_ONLY_NOTE;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Permission, Principal, ProjectId, ProjectSource, SnapshotId};
-use codeskimr_i18n::Messages;
+use codeskimr_i18n::{I18nError, Messages};
 use codeskimr_mcp::{
     ContextArgs, DependenciesArgs, ImpactArgs, LEVEL_MODULE, McpError, RenameArgs, RulesArgs,
     SearchArgs, Tools, UnusedArgs, UsagesArgs,
@@ -303,10 +303,10 @@ const fn kind_of(action: &QueryAction) -> QueryKind {
         QueryAction::Compare(CompareQuery {
             metrics: Some(options),
             ..
-        }) => QueryKind::Metrics {
-            worse: !matches!(options.side, MetricsSide::Better),
-            better: !matches!(options.side, MetricsSide::Worse),
-        },
+        }) => {
+            let (worse, better) = options.side.lists();
+            QueryKind::Metrics { worse, better }
+        }
         QueryAction::Symbols(_) => QueryKind::Symbols,
         QueryAction::Usages(_) => QueryKind::Usages,
         QueryAction::Impact(_) => QueryKind::Impact,
@@ -318,6 +318,31 @@ const fn kind_of(action: &QueryAction) -> QueryKind {
         QueryAction::Scans(_) => QueryKind::Scans,
         QueryAction::Compare(_) => QueryKind::Compare,
         QueryAction::Change(_) => QueryKind::Change,
+    }
+}
+
+/// The Markdown a comment on a pull request holds, for `change --markdown` and
+/// `compare --metrics --markdown`; `None` for any other command.
+fn markdown_of(
+    action: &QueryAction,
+    around: &Surroundings<'_>,
+    answer: &Value,
+) -> Option<Result<String, I18nError>> {
+    match action {
+        QueryAction::Change(CompareQuery { markdown: true, .. }) => {
+            Some(change_markdown(around.messages, around.language, answer))
+        }
+        QueryAction::Compare(CompareQuery {
+            markdown: true,
+            metrics: Some(options),
+            ..
+        }) => Some(metrics_markdown(
+            around.messages,
+            around.language,
+            answer,
+            options.side.lists(),
+        )),
+        _ => None,
     }
 }
 
@@ -411,9 +436,8 @@ pub fn run(
     } else {
         kind_of(action)
     };
-    let text = if let QueryAction::Change(CompareQuery { markdown: true, .. }) = action {
-        change_markdown(around.messages, around.language, &answer)
-            .map_err(|error| QueryFailure::from(CodedError::caused_by(error)))?
+    let text = if let Some(markdown) = markdown_of(action, around, &answer) {
+        markdown.map_err(|error| QueryFailure::from(CodedError::caused_by(error)))?
     } else if action.target().json {
         query_json(answer, stale)
             .map_err(|_| QueryFailure::from(CodedError::new(ErrorCode::UnexpectedInternalError)))?

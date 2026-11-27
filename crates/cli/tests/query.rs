@@ -3,8 +3,8 @@
 use codeskimr_cli::{
     Action, CompareQuery, ContextQuery, ImpactQuery, MetricsSide, ModulesQuery, Parsed,
     QueryAction, QueryKind, QueryTarget, RenameQuery, ScansQuery, SymbolsQuery, UnusedQuery,
-    UsagesQuery, change_markdown, parse, query_code_report, query_error_json, query_json,
-    query_text,
+    UsagesQuery, change_markdown, metrics_markdown, parse, query_code_report, query_error_json,
+    query_json, query_text,
 };
 use codeskimr_i18n::Messages;
 use serde_json::{Value, json};
@@ -638,4 +638,36 @@ fn compare_metrics_says_when_nothing_moved_by_its_threshold() {
     };
     let text = query_text(&messages, "en", kind, (&answer, None)).unwrap();
     assert!(text.contains("No object moved"), "{text}");
+}
+
+#[test]
+fn the_markdown_of_compare_metrics_has_the_marker_the_counts_and_the_moves() {
+    let messages = Messages::load().unwrap();
+    let text = metrics_markdown(&messages, "en", &metrics_answer(), (true, true)).unwrap();
+    let lines: Vec<&str> = text.lines().collect();
+    assert_eq!(lines[0], "<!-- codeskimr-metrics -->");
+    assert!(text.contains("- Got worse: 1, got better: 0"), "{text}");
+    assert!(text.contains("### Got worse (1 of 1)"), "{text}");
+    assert!(
+        text.contains("`Demo.Big.Run` (`Big.cs`): complexity 6 -> 14.5 (now rated poor)"),
+        "{text}"
+    );
+    assert!(!text.contains("### Got better"), "{text}");
+    let only_better = metrics_markdown(&messages, "de", &metrics_answer(), (false, true)).unwrap();
+    assert!(only_better.contains("Kein Objekt"), "{only_better}");
+}
+
+#[test]
+fn markdown_is_a_flag_of_compare_metrics_that_needs_it_and_excludes_json() {
+    let QueryAction::Compare(query) = action(&["codeskimr", "compare", "--metrics", "--markdown"])
+    else {
+        panic!("not a compare");
+    };
+    assert!(query.markdown);
+    let messages = Messages::load().unwrap();
+    let without: &[&str] = &["codeskimr", "compare", "--markdown"];
+    let with_json: &[&str] = &["codeskimr", "compare", "--metrics", "--markdown", "--json"];
+    for bad in [without, with_json] {
+        assert!(parse(bad.iter().copied(), &messages, "en").is_err());
+    }
 }

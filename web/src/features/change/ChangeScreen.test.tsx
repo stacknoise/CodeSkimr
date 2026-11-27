@@ -386,6 +386,45 @@ describe("ChangeScreen, button Copy as Markdown", () => {
     ]);
   });
 
+  it("copies the metric changes of the level shown in the view Metrics", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    setClipboard({ writeText });
+    const metrics = { markdown: "<!-- codeskimr-metrics -->\n## Metrics" };
+    serveChange({
+      "scans.metrics": () => answer(METRICS),
+      "scans.metrics_markdown": () => answer(metrics),
+    });
+    render(() => <ChangeScreen />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Metrics" }));
+    await screen.findByText("Got worse", { selector: "h2" });
+    fireEvent.click(screen.getByRole("button", { name: "Copy as Markdown" }));
+    expect(await screen.findByRole("button", { name: "Copied" })).toBeInTheDocument();
+    expect(writeText).toHaveBeenCalledWith(metrics.markdown);
+    expect(bodiesOf("scans.metrics_markdown")).toEqual([
+      {
+        project: 1,
+        base: ANSWER.base.snapshot,
+        target: ANSWER.target.snapshot,
+        level: "member",
+        language: "en",
+      },
+    ]);
+  });
+
+  it("copies only the metric that is chosen, as the lists show it", async () => {
+    setClipboard({ writeText: vi.fn().mockResolvedValue(undefined) });
+    serveChange({
+      "scans.metrics": () => answer(METRICS),
+      "scans.metrics_markdown": () => answer({ markdown: "x" }),
+    });
+    render(() => <ChangeScreen />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Metrics" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Maintainability" }));
+    fireEvent.click(screen.getByRole("button", { name: "Copy as Markdown" }));
+    await screen.findByRole("button", { name: "Copied" });
+    expect(bodiesOf("scans.metrics_markdown").at(-1)).toMatchObject({ metrics: ["mi"] });
+  });
+
   it("says so when the browser has no clipboard", async () => {
     setClipboard(undefined);
     serveChange({ "scans.impact_markdown": () => answer(TEXT) });
@@ -711,5 +750,8 @@ describe("ChangeScreen, view Metrics", () => {
     render(() => <ChangeScreen />);
     fireEvent.click(await screen.findByRole("tab", { name: "Metrics" }));
     expect(await screen.findByRole("alert")).toBeInTheDocument();
+    const copy = screen.getByRole("button", { name: "Copy as Markdown" });
+    expect(copy).toBeDisabled();
+    expect(copy).toHaveAttribute("title", expect.stringContaining("could not be read"));
   });
 });

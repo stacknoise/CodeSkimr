@@ -66,3 +66,10 @@ metrics-name-instability = instability
 metrics-into-poor = now rated poor
 metrics-out-of-poor = no longer rated poor
 metrics-none = No object moved by its threshold.
+
+metrics-md-title = ## CodeSkimr: metric changes from scan { $base } to scan { $target }, level { $level }
+metrics-md-counts = - Got worse: { $worse }, got better: { $better }, objects looked at: { $looked }
+metrics-md-worse = ### Got worse ({ $shown } of { $total })
+metrics-md-better = ### Got better ({ $shown } of { $total })
+metrics-md-line = - { $kind } `{ $name }` (`{ $path }`): { $moves }
+metrics-md-none = No object moved by its threshold.
