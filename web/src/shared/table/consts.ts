@@ -21,3 +21,11 @@ export const COLUMN_SELECTOR = "th[data-column]";
 export const ROW_SELECTOR = "tr";
 /** The stored text that has no column (a table without widths). */
 export const NO_WIDTHS = "{}";
+/** The two directions of a sort, as `aria-sort` names them. */
+export const SORT_DIRECTION = { ascending: "ascending", descending: "descending" } as const;
+export type SortDirection = (typeof SORT_DIRECTION)[keyof typeof SORT_DIRECTION];
+/** What a sorted column head shows, and the sign a direction gives to a comparison. */
+export const SORT_MARK = { ascending: "▲", descending: "▼" } as const;
+export const SORT_SIGN = { ascending: 1, descending: -1 } as const;
+/** Compares texts without regard to case and accents, and digits by their value. */
+export const TEXT_COLLATION: Intl.CollatorOptions = { sensitivity: "base", numeric: true };

@@ -5,8 +5,9 @@ import { navigate } from "../../app/router";
 import { CHANGE_ROUTE } from "../../app/consts";
 import { failed, type Failure } from "../explorer/failure";
 import type { ScanHistoryAnswer } from "../scan/types";
+import { resetFilter } from "./filter";
 import { COMMAND, MIN_SCANS, TAB } from "./consts";
-import { impactRows, openCount } from "./rows";
+import { firstToSelect, impactRows } from "./rows";
 import type { ChangeAnswer, Selection } from "./types";
 
 type Tab = (typeof TAB)[keyof typeof TAB];
@@ -56,11 +57,7 @@ export const showOnlyOpen = setOnlyOpen;
 function keepRow(read: ChangeAnswer | null): void {
   const rows = read === null ? [] : impactRows(read);
   const current = rowKey();
-  setRowKey(
-    rows.some((row) => row.key === current)
-      ? current
-      : ((rows.find((row) => openCount(row) > 0) ?? rows[0])?.key ?? null),
-  );
+  setRowKey(rows.some((row) => row.key === current) ? current : (firstToSelect(rows)?.key ?? null));
 }
 
 /** The snapshot of the scan with the id `scan` in `list`, `null` if the list does not have it. */
@@ -143,6 +140,7 @@ export function enterChange(): Selection {
   setFailure(null);
   setReading(false);
   setRowKey(null);
+  resetFilter();
   const wanted: Selection = { base: requestedBase, target: null };
   requestedBase = null;
   setPicked(wanted);

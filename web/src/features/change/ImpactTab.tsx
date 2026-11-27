@@ -1,12 +1,21 @@
-import { Show } from "solid-js";
+import { createEffect, createMemo, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { cx } from "../../shared/ui/cx";
 import { I18N_KEYS } from "../../shared/i18n/keys";
-import { changeRowKey } from "./change";
+import { changeRowKey, selectChangeRow } from "./change";
+import { ChangeFilterBar, FilterEmpty } from "./ChangeFilter";
 import { MARK } from "./consts";
 import { Figure } from "./Figure";
 import { Notes } from "./Notes";
-import { affectedFiles, impactRows, symbolCounts } from "./rows";
+import { changeFilter, kindsOf, passes } from "./filter";
+import {
+  affectedFiles,
+  answerTotal,
+  factsOf,
+  firstToSelect,
+  impactRows,
+  symbolCounts,
+} from "./rows";
 import { SymbolTable } from "./SymbolTable";
 import { UsagesPanel } from "./UsagesPanel";
 import type { ChangeAnswer } from "./types";
@@ -53,11 +62,28 @@ function Figures(props: { answer: ChangeAnswer }) {
   );
 }
 
-/** The view "Impact" (mock erw-auswirkung): the figures, the table of the symbols with the notes
- * under it, and on the right the usages of the selected symbol. */
+/** The rows of the table that pass the filter. If the selected row is held back, the selection
+ * moves to the first row that is left (or to none), so the panel never shows a hidden symbol. */
+function visibleRows(answer: () => ChangeAnswer) {
+  const rows = createMemo(() => impactRows(answer()));
+  const visible = createMemo(() =>
+    rows().filter((row) => passes(factsOf(row), changeFilter(), true)),
+  );
+  createEffect(() => {
+    const key = changeRowKey();
+    if (!visible().some((row) => row.key === key)) {
+      selectChangeRow(firstToSelect(visible())?.key ?? null);
+    }
+  });
+  return { rows, visible };
+}
+
+/** The view "Impact" (mock erw-auswirkung): the figures, the table of the symbols with the filter
+ * over it and the notes under it, and on the right the usages of the selected symbol. The list and
+ * the panel each scroll on their own; the page keeps its height. */
 export function ImpactTab(props: { answer: ChangeAnswer }) {
-  const rows = () => impactRows(props.answer);
-  const selected = () => rows().find((row) => row.key === changeRowKey());
+  const { rows, visible } = visibleRows(() => props.answer);
+  const selected = () => visible().find((row) => row.key === changeRowKey());
   return (
     <>
       <Figures answer={props.answer} />
@@ -75,7 +101,18 @@ export function ImpactTab(props: { answer: ChangeAnswer }) {
       >
         <div class={styles.columns}>
           <div class={cx(parts.card, styles.list)}>
-            <SymbolTable rows={rows()} />
+            <ChangeFilterBar
+              kinds={kindsOf(rows().map(factsOf))}
+              withOpen
+              count={{
+                shown: visible().length,
+                listed: rows().length,
+                total: answerTotal(props.answer),
+              }}
+            />
+            <Show when={visible().length > 0} fallback={<FilterEmpty />}>
+              <SymbolTable rows={visible()} />
+            </Show>
             <Notes answer={props.answer} />
           </div>
           <Show when={selected()}>{(row) => <UsagesPanel row={row()} />}</Show>

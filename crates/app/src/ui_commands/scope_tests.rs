@@ -174,3 +174,55 @@ fn an_unknown_project_and_a_reader_are_refused() {
     );
     assert_eq!(refused, Err("AUTH-401"));
 }
+
+const CONFIG: &str =
+    "<DATA><STARTING_FOLDER>/code/</STARTING_FOLDER><FOLDER_LOGIC>FULL</FOLDER_LOGIC></DATA>";
+const CLASS: &str = "CLASS zcl_a DEFINITION PUBLIC.\nENDCLASS.\nCLASS zcl_a IMPLEMENTATION.\n  METHOD run.\n  ENDMETHOD.\nENDCLASS.\n";
+
+#[test]
+fn an_abapgit_folder_is_recognised_and_counted() {
+    let fixture = Fixture::installed(None);
+    let app = fixture.root.path().join("app");
+    fs::create_dir_all(app.join("code/sub")).unwrap();
+    fs::write(app.join(".abapgit.xml"), CONFIG).unwrap();
+    fs::write(app.join("code/zcl_a.clas.abap"), CLASS).unwrap();
+    fs::write(app.join("code/zcl_a.clas.xml"), "<x/>").unwrap();
+    fs::write(app.join("code/sub/zcl_b.clas.abap"), CLASS).unwrap();
+    fs::write(
+        app.join("code/sub/zif_c.intf.abap"),
+        "INTERFACE zif_c PUBLIC.\nENDINTERFACE.\n",
+    )
+    .unwrap();
+    let project = fixture.scanned();
+    let answer = fixture
+        .call("scope.get", json!({ "project": project }))
+        .unwrap();
+    let abapgit = &answer["abapgit"];
+    assert_eq!(abapgit["starting_folder"], "code");
+    assert_eq!(abapgit["folder_logic"], "full");
+    assert_eq!(abapgit["configured"], true);
+    assert_eq!(abapgit["kinds"][0], json!({ "kind": "CLAS", "objects": 2 }));
+    assert_eq!(abapgit["kinds"][1], json!({ "kind": "INTF", "objects": 1 }));
+    assert_eq!(abapgit["packages"], 2);
+    assert_eq!(abapgit["source_files"], 3);
+    let plain = fixture
+        .call("scope.get", json!({ "project": project }))
+        .unwrap();
+    assert!(
+        plain["languages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|l| l["language"] == "abap")
+    );
+}
+
+#[test]
+fn a_folder_without_abapgit_has_none() {
+    let fixture = Fixture::installed(None);
+    let project = fixture.scanned();
+    let answer = fixture
+        .call("scope.get", json!({ "project": project }))
+        .unwrap();
+    assert_eq!(answer["abapgit"], Value::Null);
+}

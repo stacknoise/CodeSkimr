@@ -319,3 +319,10 @@ projects-scope-hint-own = Add it as a project of its own anyway
 projects-scope-hint-next = Continue
 projects-scope-hint-inside-note = Nothing is read twice. Recommended if you want to see the whole picture.
 projects-scope-hint-own-note = Own database, own scans. The code is read and stored a second time.
+
+projects-abapgit-title = abapGit repository
+projects-abapgit-found = Objects lie in { $folder } ({ $logic } folder logic): { $packages } packages, { $files } files with source.
+projects-abapgit-folder-root = the project folder
+projects-abapgit-defaults = No .abapgit.xml was read, so the defaults apply (folder src, logic prefix).
+projects-abapgit-kinds = Objects by type
+projects-abapgit-limits = ABAP is read as an approximation (basic stage): no visibility, no exact usages, names in lower case, and no check of the exact stage 2 yet.

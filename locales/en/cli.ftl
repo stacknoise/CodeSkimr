@@ -212,6 +212,7 @@ cli-scope-folder = { $state ->
    *[left_out] Left out
 }: folder { $path } ({ $files } files)
 cli-scope-more = { $count } more folders are not listed. Use --json for the whole answer.
+cli-scope-abapgit = abapGit project: starting folder "{ $folder }", folder logic { $logic }, { $objects } objects in { $packages } packages, { $files } source files.
 cli-scope-saved = The scope is saved. It applies from the next scan; the code stays one project.
 cli-scope-unchanged = The scope stays as it was.
 # The query commands symbols, usages, impact and context.

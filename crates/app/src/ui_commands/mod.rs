@@ -29,6 +29,7 @@ mod layers;
 mod layers_tests;
 mod level2;
 mod level2_revoke;
+mod log;
 mod preferences;
 mod project_file_open;
 #[cfg(test)]
@@ -135,6 +136,7 @@ use layers::{LayersGet, LayersSet};
 use level2::Level2StatusCommand;
 pub(crate) use level2::{Window, confirmation_desk};
 use level2_revoke::Level2Revoke;
+use log::{LogClear, LogOpenFolder, LogPorts, LogSetLevel, LogStatusCommand, LogTail};
 use preferences::{GetPreferences, PreferencesFile, SetPreferences};
 use project_file_open::ProjectFileOpen;
 use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
@@ -365,6 +367,7 @@ fn register_views(
     register_explorer(registry, catalog, config.metrics.clone(), locations)?;
     register_preferences(registry, locations)?;
     register_ui_settings(registry, locations)?;
+    register_log(registry, locations)?;
     add(registry, effective_settings(locations, global)?)?;
     add(registry, export_command(catalog, config, locations))
 }
@@ -502,6 +505,34 @@ fn register_ui_settings(registry: &mut Registry, locations: &Locations) -> Resul
     add(registry, SetIndexerMemory { file })
 }
 
+/// The commands of the tab Diagnosis: the log level and the log file in the data folder (ADR 0115).
+fn register_log(registry: &mut Registry, locations: &Locations) -> Result<(), CodedError> {
+    crate::log_control::attach_file(&locations.data_dir);
+    let ports = Arc::new(LogPorts {
+        opener: Arc::new(SystemOpener),
+    });
+    add(
+        registry,
+        LogStatusCommand {
+            ports: ports.clone(),
+        },
+    )?;
+    add(
+        registry,
+        LogSetLevel {
+            ports: ports.clone(),
+        },
+    )?;
+    add(registry, LogTail)?;
+    add(
+        registry,
+        LogClear {
+            ports: ports.clone(),
+        },
+    )?;
+    add(registry, LogOpenFolder { ports })
+}
+
 /// Registers one command, with the registry's refusal as a coded failure.
 fn add<C: Command>(registry: &mut Registry, command: C) -> Result<(), CodedError> {
     registry.register(command).map_err(CodedError::caused_by)
@@ -518,6 +549,16 @@ fn expose_project_file(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ProjectFileOpen>()?;
     api.expose::<UnusedKeep>()?;
     api.expose::<UnusedLift>()?;
+    Ok(())
+}
+
+/// The commands of the log.
+fn expose_log(api: &mut CommandApi) -> Result<(), CodedError> {
+    api.expose::<LogStatusCommand>()?;
+    api.expose::<LogSetLevel>()?;
+    api.expose::<LogTail>()?;
+    api.expose::<LogClear>()?;
+    api.expose::<LogOpenFolder>()?;
     Ok(())
 }
 
@@ -557,6 +598,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<SetPreferences>()?;
     api.expose::<GetUiSettings>()?;
     api.expose::<SetIndexerMemory>()?;
+    expose_log(api)?;
     api.expose::<EffectiveSettings>()?;
     api.expose::<HtmlExport>()?;
     expose_annotations(api)

@@ -1,7 +1,7 @@
 //! Makes the picture of the map readable: a row with more boxes than fit a line wraps into
 //! several lines, and the picture gets a margin so that the stripe of a layer surrounds its boxes.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use codeskimr_application::config::Graph;
 
@@ -23,11 +23,32 @@ fn to_u32(value: usize) -> u32 {
     u32::try_from(value).unwrap_or(u32::MAX)
 }
 
+/// A row of the layout and which boxes it holds: the boxes of a layer come first, then the ones that
+/// belong to no layer. Both parts are wrapped on their own, so that the stripe of a layer never
+/// covers a line it shares with a box of no layer. Every layer has exactly one row, because the
+/// layout fixes the row of a box by the position of its layer; so no box of no layer can lie
+/// between two rows of one layer.
+type RowKey = (u32, bool);
+
+/// What the wrapped picture is for.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Purpose {
+    /// Every row is centred; there are no stripes, so boxes of a layer and of none stay mixed.
+    Centred,
+    /// Only long rows or rows with boxes of a layer and of none change; stripes are drawn.
+    Stripes,
+}
+
 /// Boxes of each row, in the order the layout gave them.
-fn rows(boxes: &[BoxOut]) -> BTreeMap<u32, Vec<usize>> {
-    let mut rows: BTreeMap<u32, Vec<usize>> = BTreeMap::new();
+fn rows(boxes: &[BoxOut], purpose: Purpose) -> BTreeMap<RowKey, Vec<usize>> {
+    let mut rows: BTreeMap<RowKey, Vec<usize>> = BTreeMap::new();
     for (index, found) in boxes.iter().enumerate() {
-        rows.entry(found.rank).or_default().push(index);
+        rows.entry((
+            found.rank,
+            purpose == Purpose::Stripes && found.layer.is_none(),
+        ))
+        .or_default()
+        .push(index);
     }
     for row in rows.values_mut() {
         row.sort_by_key(|&index| boxes.get(index).map(|found| found.order));
@@ -35,12 +56,18 @@ fn rows(boxes: &[BoxOut]) -> BTreeMap<u32, Vec<usize>> {
     rows
 }
 
+/// Whether a row is too long for a line or a row holds boxes of a layer and boxes of no layer.
+fn needs_change(rows: &BTreeMap<RowKey, Vec<usize>>, per_line: usize) -> bool {
+    let ranks: BTreeSet<u32> = rows.keys().map(|key| key.0).collect();
+    rows.values().any(|row| row.len() > per_line) || ranks.len() < rows.len()
+}
+
 /// Puts the boxes of a row that is too long into a grid; a picture with no long row stays as the
 /// layout placed it. Returns the new size, or `None` when nothing changed.
-fn wrap_rows(boxes: &mut [BoxOut], look: &Graph, always: bool) -> Option<Extent> {
+fn wrap_rows(boxes: &mut [BoxOut], look: &Graph, purpose: Purpose) -> Option<Extent> {
     let per_line = to_usize(look.row_boxes.max(MIN_LINE_BOXES));
-    let rows = rows(boxes);
-    if !always && rows.values().all(|row| row.len() <= per_line) {
+    let rows = rows(boxes, purpose);
+    if purpose == Purpose::Stripes && !needs_change(&rows, per_line) {
         return None;
     }
     let (cell_width, cell_height) = (
@@ -73,7 +100,7 @@ fn wrap_rows(boxes: &mut [BoxOut], look: &Graph, always: bool) -> Option<Extent>
 /// Puts every row into centred lines of at most `row_boxes` boxes, even a short one, so that the
 /// rows of the type level sit centred above and below the type in the middle.
 pub(super) fn centre(boxes: &mut [BoxOut], look: &Graph) -> Extent {
-    wrap_rows(boxes, look, true).unwrap_or(Extent {
+    wrap_rows(boxes, look, Purpose::Centred).unwrap_or(Extent {
         width: 0,
         height: 0,
     })
@@ -83,7 +110,7 @@ pub(super) fn centre(boxes: &mut [BoxOut], look: &Graph) -> Extent {
 /// half a row gap, so that the stripe of the first layer has room above its boxes. `extent` is the
 /// size the layout reported; the result has the margin on both sides.
 pub(super) fn arrange(boxes: &mut [BoxOut], extent: Extent, look: &Graph) -> Extent {
-    let extent = wrap_rows(boxes, look, false).unwrap_or(extent);
+    let extent = wrap_rows(boxes, look, Purpose::Stripes).unwrap_or(extent);
     let pad = look.rank_gap / BAND_PAD_DIVISOR;
     for found in boxes.iter_mut() {
         found.y += pad;
@@ -114,6 +141,13 @@ mod tests {
             max_modules: 200,
             max_places: 100,
         }
+    }
+
+    fn owned(mut all: Vec<BoxOut>, count: usize) -> Vec<BoxOut> {
+        for found in all.iter_mut().take(count) {
+            found.layer = Some("layer".to_owned());
+        }
+        all
     }
 
     fn boxes(ranks: &[u32]) -> Vec<BoxOut> {
@@ -199,5 +233,37 @@ mod tests {
         );
         let first_bottom = placed[..4].iter().map(|b| b.y + b.height).max().unwrap();
         assert!(placed[4].y >= first_bottom + 60);
+    }
+
+    #[test]
+    fn boxes_of_no_layer_do_not_share_a_line_with_the_boxes_of_a_layer() {
+        let mut placed = owned(boxes(&[0, 0, 0, 0]), 2);
+        arrange(
+            &mut placed,
+            Extent {
+                width: 1000,
+                height: 40,
+            },
+            &look(),
+        );
+        let bottom = |own: bool| {
+            placed
+                .iter()
+                .filter(|b| b.layer.is_some() == own)
+                .map(|b| (b.y, b.y + b.height))
+                .collect::<Vec<_>>()
+        };
+        let (own, other) = (bottom(true), bottom(false));
+        let own_end = own.iter().map(|r| r.1).max().unwrap();
+        let other_start = other.iter().map(|r| r.0).min().unwrap();
+        assert!(other_start >= own_end, "{other_start} < {own_end}");
+    }
+
+    #[test]
+    fn centred_rows_keep_boxes_of_a_layer_and_of_none_together() {
+        let mut placed = owned(boxes(&[0, 0, 0, 0]), 2);
+        centre(&mut placed, &look());
+        let lines: std::collections::BTreeSet<u32> = placed.iter().map(|b| b.y).collect();
+        assert_eq!(lines.len(), 2, "four boxes at three per line");
     }
 }

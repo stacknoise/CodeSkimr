@@ -126,3 +126,21 @@ export const OUTCOME_TEXT: Record<string, MessageKey> = {
 export const MIN_SCANS = 2;
 /** The index `findIndex` answers when nothing matches. */
 export const NOT_FOUND = -1;
+
+/** The visibility the filter "only public" keeps. */
+export const VISIBILITY_PUBLIC = "public";
+/** The value of a choice of the filter that lets everything pass. */
+export const FILTER_ALL = "all";
+/** The kinds of change the filter offers, in the order of the table, with their texts. */
+export const CAUSE_CHOICES = [
+  { id: CAUSE.removed, label: I18N_KEYS.CHANGE_VIEW_FILTER_CAUSE_REMOVED },
+  { id: CAUSE.changed, label: I18N_KEYS.CHANGE_VIEW_FILTER_CAUSE_CHANGED },
+  { id: CAUSE_MOVED, label: I18N_KEYS.CHANGE_VIEW_FILTER_CAUSE_MOVED },
+  { id: CAUSE.added, label: I18N_KEYS.CHANGE_VIEW_FILTER_CAUSE_ADDED },
+] as const;
+/** Joins the letter of a symbol kind and its name in the choice of the filter. */
+export const KIND_JOIN = " · ";
+/** The id of the search field of the filter. */
+export const FILTER_FIELD_ID = "change-filter-query";
+/** Joins the name of a symbol and its signature in a tooltip. */
+export const TITLE_JOIN = " ";

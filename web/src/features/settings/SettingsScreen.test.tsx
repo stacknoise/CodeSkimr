@@ -57,10 +57,17 @@ describe("SettingsScreen", () => {
 describe("the tabs of the settings screen", () => {
   useServerSession();
 
-  it("shows five tabs and the appearance first", () => {
+  it("shows six tabs and the appearance first", () => {
     render(() => <SettingsScreen />);
     const names = screen.getAllByRole("tab").map((tab) => tab.textContent);
-    expect(names).toEqual(["Appearance", "Analysis", "Access", "Effective settings", "Info"]);
+    expect(names).toEqual([
+      "Appearance",
+      "Analysis",
+      "Access",
+      "Effective settings",
+      "Info",
+      "Diagnosis",
+    ]);
     expect(screen.getByRole("tab", { name: "Appearance" })).toHaveAttribute(
       "aria-selected",
       "true",
@@ -75,7 +82,7 @@ describe("the tabs of the settings screen", () => {
     expect(settingsTab()).toBe(SETTINGS_TAB.analysis);
     fireEvent.keyDown(screen.getByRole("tablist"), { key: "ArrowLeft" });
     fireEvent.keyDown(screen.getByRole("tablist"), { key: "ArrowLeft" });
-    expect(settingsTab()).toBe(SETTINGS_TAB.info);
+    expect(settingsTab()).toBe(SETTINGS_TAB.diagnosis);
   });
 
   it("shows the effective settings when the search is used on another tab", () => {

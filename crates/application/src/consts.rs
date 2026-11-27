@@ -292,3 +292,40 @@ pub const PLACE_LINE_OFFSET: u32 = 1;
 
 /// Thousandths in one: the thresholds of instability are configured in thousandths (ADR 0114).
 pub const PERMILLE: f64 = 1000.0;
+
+/// Name of the file that marks an abapGit repository, in the project folder (ADR 0113).
+pub const ABAPGIT_CONFIG_FILE: &str = ".abapgit.xml";
+/// The start of an opening tag in `.abapgit.xml`.
+pub const ABAPGIT_TAG_OPEN: &str = "<";
+/// The start of a closing tag in `.abapgit.xml`.
+pub const ABAPGIT_TAG_CLOSE: &str = "</";
+/// The end of a tag in `.abapgit.xml`.
+pub const ABAPGIT_TAG_END: &str = ">";
+/// The folder name of files directly below the starting folder.
+pub const ABAPGIT_ROOT_FOLDER: &str = "";
+/// Tag of the folder below which abapGit keeps the objects.
+pub const ABAPGIT_STARTING_FOLDER_TAG: &str = "STARTING_FOLDER";
+/// Tag of the rule that turns a package into a folder.
+pub const ABAPGIT_FOLDER_LOGIC_TAG: &str = "FOLDER_LOGIC";
+/// Value of the folder logic where the folder holds the full name of the package.
+pub const ABAPGIT_FOLDER_LOGIC_FULL: &str = "FULL";
+/// The starting folder of abapGit when the file does not name one.
+pub const ABAPGIT_DEFAULT_STARTING_FOLDER: &str = "src";
+/// Extensions of the files that hold the source of an abapGit object (code and CDS source).
+pub const ABAPGIT_SOURCE_EXTENSIONS: [&str; 2] = ["abap", "asddls"];
+/// Extension of the XML files that hold the metadata of an abapGit object.
+pub const ABAPGIT_METADATA_EXTENSION: &str = "xml";
+/// Object type of the description of a package (`package.devc.xml`), which is no object.
+pub const ABAPGIT_PACKAGE_TYPE: &str = "devc";
+/// abapGit writes the slash of a namespace as this character in a file name.
+pub const ABAPGIT_NAMESPACE_MARK: char = '#';
+/// The slash of a namespace, as ABAP writes it.
+pub const ABAPGIT_NAMESPACE_SLASH: char = '/';
+/// Separator of the parts of an abapGit file name.
+pub const ABAPGIT_NAME_SEPARATOR: char = '.';
+/// File name that describes the package of a folder.
+pub const ABAPGIT_PACKAGE_FILE: &str = "package.devc.xml";
+/// Label of the prefix folder logic in answers.
+pub const ABAPGIT_LOGIC_PREFIX_LABEL: &str = "prefix";
+/// Label of the full folder logic in answers.
+pub const ABAPGIT_LOGIC_FULL_LABEL: &str = "full";
