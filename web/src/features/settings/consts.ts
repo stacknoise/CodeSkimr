@@ -129,6 +129,7 @@ export const SETTINGS_TAB = {
   access: "access",
   effective: "effective",
   info: "info",
+  diagnosis: "diagnosis",
 } as const;
 /** One tab of the settings screen. */
 export type SettingsTab = (typeof SETTINGS_TAB)[keyof typeof SETTINGS_TAB];
@@ -139,6 +140,7 @@ export const SETTINGS_TABS = [
   { id: SETTINGS_TAB.access, label: I18N_KEYS.SETTINGS_TAB_ACCESS },
   { id: SETTINGS_TAB.effective, label: I18N_KEYS.SETTINGS_TAB_EFFECTIVE },
   { id: SETTINGS_TAB.info, label: I18N_KEYS.SETTINGS_TAB_INFO },
+  { id: SETTINGS_TAB.diagnosis, label: I18N_KEYS.SETTINGS_TAB_DIAGNOSIS },
 ] as const;
 /** Id prefix of the tab buttons and the id of the tab panel. */
 export const SETTINGS_TAB_ID_PREFIX = "settings-tab-";
@@ -159,3 +161,28 @@ export const GENERAL_MEMORY_KEY = "level2.max_memory_mb";
 export const INDEXER_MEMORY_MAX = 1_048_576;
 /** Ids that tie the input of an indexer to its note. */
 export const INDEXER_MEMORY_ID_PREFIX = "indexer-memory-";
+
+/** The commands of the log (ADR 0115). */
+export const LOG_STATUS_COMMAND = "log.status";
+export const LOG_SET_LEVEL_COMMAND = "log.set_level";
+export const LOG_TAIL_COMMAND = "log.tail";
+export const LOG_CLEAR_COMMAND = "log.clear";
+export const LOG_OPEN_FOLDER_COMMAND = "log.open_folder";
+/** How many of the last lines the panel shows, and how many "Copy log" copies. */
+export const LOG_SHOWN_LINES = 8;
+export const LOG_COPIED_LINES = 2000;
+/** How often the last lines are read again while the tab is open, in milliseconds. */
+export const LOG_REFRESH_MS = 3000;
+/** The texts of the levels by their wire word. */
+export const LOG_LEVEL_TEXTS: Record<string, MessageKey> = {
+  off: I18N_KEYS.SETTINGS_LOG_LEVEL_OFF,
+  warn: I18N_KEYS.SETTINGS_LOG_LEVEL_WARN,
+  info: I18N_KEYS.SETTINGS_LOG_LEVEL_INFO,
+  debug: I18N_KEYS.SETTINGS_LOG_LEVEL_DEBUG,
+  trace: I18N_KEYS.SETTINGS_LOG_LEVEL_TRACE,
+};
+/** Seconds in a minute and in an hour, to say how long a level lasts. */
+export const SECONDS_PER_MINUTE = 60;
+export const MINUTES_PER_HOUR = 60;
+/** The line break of the copied log. */
+export const LOG_LINE_BREAK = "\n";

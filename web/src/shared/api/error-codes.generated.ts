@@ -11,6 +11,8 @@ export type ErrorCode =
   | "APP-603"
   | "APP-604"
   | "APP-605"
+  | "APP-606"
+  | "APP-607"
   | "CFG-101"
   | "CFG-102"
   | "CFG-103"
@@ -139,6 +141,8 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "APP-603": { id: "APP-603", name: "tray_start_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The program could not start itself in the background or show its tray icon.", since: "0.1.0", deprecated: false, messageKey: "error-APP-603" },
   "APP-604": { id: "APP-604", name: "confirm_window_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The console window for the level 2 confirmation could not be started; the screen shows the command instead.", since: "0.9.0", deprecated: false, messageKey: "error-APP-604" },
   "APP-605": { id: "APP-605", name: "project_file_open_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The system did not start a program for the project file.", since: "1.2.0", deprecated: false, messageKey: "error-APP-605" },
+  "APP-606": { id: "APP-606", name: "log_folder_open_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The system did not open the folder of the log files.", since: "1.2.0", deprecated: false, messageKey: "error-APP-606" },
+  "APP-607": { id: "APP-607", name: "log_file_unavailable", group: "APP", class: "external", severity: "error", retryable: true, description: "The log file does not exist, cannot be read or cannot be emptied.", since: "1.2.0", deprecated: false, messageKey: "error-APP-607" },
   "CFG-101": { id: "CFG-101", name: "config_invalid_value", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration value is outside its allowed range or has the wrong type.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-101" },
   "CFG-102": { id: "CFG-102", name: "config_parse_failed", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file is not valid TOML.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-102" },
   "CFG-103": { id: "CFG-103", name: "config_unknown_key", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file or flag sets a key that does not exist.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-103" },

@@ -39,6 +39,10 @@ tracing-subscriber.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 
+# Unix only: `O_NOFOLLOW`, so that the log file is never opened through a link (ADR 0115).
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
+
 # Windows only: compares the open launch file with its path by the identity the system gives the file
 # (volume and index), which needs no `unsafe` of ours (issue #372).
 [target.'cfg(windows)'.dependencies]

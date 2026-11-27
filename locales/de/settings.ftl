@@ -136,3 +136,28 @@ status-performance-missed =
         [one] Leistung: 1 Ziel verfehlt
        *[other] Leistung: { $count } Ziele verfehlt
     }
+settings-tab-diagnosis = Diagnose
+settings-log-title = Protokoll
+settings-log-note = Das Protokoll hilft bei der Fehlersuche. Es enthält keine Zugangsdaten (sie werden vor dem Schreiben entfernt) und keinen Quelltext. Die Stufe gilt sofort, ohne Neustart, und auch für die Konsole.
+settings-log-level = Stufe
+settings-log-level-off = Aus
+settings-log-level-warn = Warnungen
+settings-log-level-info = Info
+settings-log-level-debug = Debug
+settings-log-level-trace = Trace
+settings-log-default = Standard: { $level }. Ab Debug werden große Scans langsamer und die Datei wird groß.
+settings-log-resets = Nach { $hours } Std. { $minutes } Min. wieder Standard
+settings-log-file = Datei
+settings-log-limit = höchstens { $count } Dateien à { $size }
+settings-log-copy = Protokoll kopieren
+settings-log-copied = Kopiert
+settings-log-copy-failed = Das Protokoll konnte nicht kopiert werden.
+settings-log-open-folder = Ordner öffnen
+settings-log-clear = Datei leeren
+settings-log-cleared = Geleert
+settings-log-last-lines = Letzte Zeilen
+settings-log-no-lines = Auf dieser Stufe wurde noch nichts protokolliert.
+settings-log-failed = Das Protokoll konnte nicht gelesen oder geändert werden. Prüfe, ob der Datenordner beschreibbar ist.
+settings-log-fixed = Das Protokoll dieses Laufs gehört einem anderen Programm, daher lässt sich die Stufe hier nicht ändern.
+settings-log-no-file = Die Protokolldatei konnte im Datenordner nicht angelegt werden; das Protokoll geht nur in die Konsole.
+settings-log-copy-hint = Das kopierte Protokoll kann Pfade und Namen Ihrer Projekte enthalten. Lesen Sie es durch, bevor Sie es in ein öffentliches Issue stellen.
