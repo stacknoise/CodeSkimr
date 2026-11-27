@@ -18,6 +18,8 @@ Eine Verwendung ist „angepasst“, wenn das Symbol, das sie enthält, im selbe
 
 Unter der Tabelle nennt die Ansicht neue Schichtverstöße und neue Schichtzyklen (Abhängigkeiten zwischen Schichten, die der Ziel-Scan hat und der Basis-Scan nicht hatte) sowie die kritischen Symbole, die der Unterschied berührt.
 
+Der Knopf „Als Markdown kopieren“ oben rechts kopiert die Auswirkung als Text für einen Kommentar zu einem Pull Request: die Zahlen, die Prüfliste der nicht angefassten Stellen, neue Schichtverstöße und Zyklen. Es ist der Text, den `codeskimr change --markdown` ausgibt, in der Sprache der Ansicht. Der Knopf meldet „Kopiert“ oder „Nicht kopiert“, wenn der Browser die Zwischenablage verweigert.
+
 Bekannt sind nur direkte Verwendungen. Aufrufe über Reflection, in Zeichenketten oder aus anderen Repositories sieht der Vergleich nicht; die Ansicht sagt das. Wurde eine Liste auf ihre Grenze gekürzt (`compare.max_symbols`, `compare.max_usages` in der Konfiguration), sagt eine Zeile es.
 
 ## Vergleich
@@ -28,7 +30,7 @@ Die beiden Auswahlfelder wählen die Scans; „Vergleichen“ liest den Vergleic
 
 ## Auf der Kommandozeile
 
-Dieselbe Antwort gibt es als `codeskimr scans`, `codeskimr compare` und `codeskimr change` (mit `--markdown` für einen Kommentar zu einem Pull Request) und für Agenten als MCP-Werkzeug `impact_of_diff`. Siehe die Referenzen zur [Kommandozeile](../../cli.md) und zum [Vergleich](../../compare.md).
+Dieselbe Antwort gibt es als `codeskimr scans`, `codeskimr compare` und `codeskimr change` (mit `--markdown` für einen Kommentar zu einem Pull Request; dafür hat die Ansicht den Knopf „Als Markdown kopieren“) und für Agenten als MCP-Werkzeug `impact_of_diff`. Siehe die Referenzen zur [Kommandozeile](../../cli.md) und zum [Vergleich](../../compare.md).
 
 ## Tasten
 

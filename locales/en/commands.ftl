@@ -118,3 +118,5 @@ command-rules-set-title = Change the rules
 command-rules-set-description = Writes the rules (cycles, bans, public interface and what layers may use) into the `.codeskimr.toml` of a folder project; comments and the other tables stay.
 command-rules-preview-title = Check rules in advance
 command-rules-preview-description = Shows which violations the last scan would find for wanted rules, without writing anything.
+command-scans-impact-markdown-title = Show the impact as Markdown
+command-scans-impact-markdown-description = Makes the impact of a change (the same answer as the one of showing what a change hits) as the Markdown text that `codeskimr change --markdown` prints and a comment on a pull request holds: the numbers, the checklist of the places not touched and the new layer violations and cycles. The text is in the language given, or in the saved language of the user.

@@ -124,3 +124,8 @@ export interface Selection {
   base: number | null;
   target: number | null;
 }
+
+/** The answer of `scans.impact_markdown`: the text `codeskimr change --markdown` prints. */
+export interface MarkdownAnswer {
+  markdown: string;
+}

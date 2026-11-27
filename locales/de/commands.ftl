@@ -118,3 +118,5 @@ command-rules-set-title = Regeln ändern
 command-rules-set-description = Schreibt die Regeln (Zyklen, Verbote, öffentliche Schnittstelle und was Schichten nutzen dürfen) in die `.codeskimr.toml` eines Ordnerprojekts; Kommentare und übrige Tabellen bleiben.
 command-rules-preview-title = Regeln vorab prüfen
 command-rules-preview-description = Zeigt, welche Verstöße der letzte Scan für gewünschte Regeln fände, ohne etwas zu schreiben.
+command-scans-impact-markdown-title = Auswirkung als Markdown zeigen
+command-scans-impact-markdown-description = Erzeugt die Auswirkung einer Änderung (dieselbe Antwort wie beim Zeigen der Auswirkung) als Markdown-Text, den `codeskimr change --markdown` ausgibt und ein Kommentar an einem Pull Request enthält: die Zahlen, die Checkliste der nicht angefassten Stellen sowie die neuen Schichtverstöße und Zyklen. Der Text steht in der angegebenen oder in der gespeicherten Sprache des Nutzers.

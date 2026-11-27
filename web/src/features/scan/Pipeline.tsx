@@ -1,4 +1,4 @@
-import { For, Show } from "solid-js";
+import { createSignal, For, onCleanup, Show } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { count, seconds } from "../projects/format";
@@ -14,9 +14,20 @@ import {
   STAGE_TEXT,
   STAGES,
   STATE_ATTRIBUTE,
+  STEP_STAGE,
+  STEP_TEXT,
+  STEP_TICK_MS,
 } from "./consts";
 import { lastEventAt } from "./events";
-import { isUnmeasured, stagePercent, stageSeconds, stageState, type StageState } from "./run";
+import {
+  activeStep,
+  isUnmeasured,
+  minutesSeconds,
+  stagePercent,
+  stageSeconds,
+  stageState,
+  type StageState,
+} from "./run";
 import type { Run, Stage } from "./types";
 import { cx } from "../../shared/ui/cx";
 import styles from "./Pipeline.module.css";
@@ -72,6 +83,26 @@ function Bar(props: { run: Run | undefined; stage: Stage; state: StageState }) {
   );
 }
 
+/** The step of the write the stage is in, with its place and the time it has taken so far. The
+ * time runs on a timer of its own: a step that takes minutes sends nothing in between. */
+function StepLine(props: { run: Run; fallback: string }) {
+  const [now, setNow] = createSignal(Date.now());
+  const timer = setInterval(() => setNow(Date.now()), STEP_TICK_MS);
+  onCleanup(() => clearInterval(timer));
+  const active = () => activeStep(props.run, now());
+  const key = () => STEP_TEXT[active()?.step.name ?? ""];
+  return (
+    <Show when={active() !== null && key() !== undefined} fallback={props.fallback}>
+      {t(I18N_KEYS.SCAN_STEP_LINE, {
+        step: t(key() ?? I18N_KEYS.SCAN_STEP_HEADER),
+        number: active()?.step.number ?? 0,
+        of: active()?.step.of ?? 0,
+        time: minutesSeconds(active()?.seconds ?? 0),
+      })}
+    </Show>
+  );
+}
+
 function Row(props: { run: Run | undefined; stage: Stage }) {
   const state = () => (props.run ? stageState(props.run, props.stage) : STAGE_STATE.waiting);
   const share = () => (props.run ? stagePercent(props.run, props.stage) : null);
@@ -82,7 +113,14 @@ function Row(props: { run: Run | undefined; stage: Stage }) {
       <span class={styles.mark}>{STAGE_MARKS[state()]}</span>
       <div>
         <div class={styles.name}>{t(STAGE_TEXT[props.stage].name)}</div>
-        <div class={styles.detail}>{detail(props.run, props.stage)}</div>
+        <div class={styles.detail}>
+          <Show
+            when={props.stage === STEP_STAGE && props.run}
+            fallback={detail(props.run, props.stage)}
+          >
+            {(run) => <StepLine run={run()} fallback={detail(run(), props.stage)} />}
+          </Show>
+        </div>
         <Show when={unmeasured()}>
           <div class={styles.detail} id={noteId(props.stage)}>
             {t(I18N_KEYS.SCAN_STAGE_UNMEASURED)}
