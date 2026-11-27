@@ -51,7 +51,10 @@ mod tests {
 
     #[test]
     fn a_move_below_the_threshold_is_not_listed() {
-        assert!(one(member(6.0, 71.0, 22.0), member(7.0, 68.0, 30.0)).is_empty());
+        assert_eq!(
+            one(member(6.0, 71.0, 22.0), member(7.0, 68.0, 30.0)),
+            Vec::new()
+        );
     }
 
     #[test]
@@ -72,7 +75,10 @@ mod tests {
 
     #[test]
     fn lines_alone_are_never_a_verdict() {
-        assert!(one(member(6.0, 71.0, 22.0), member(6.0, 71.0, 90.0)).is_empty());
+        assert_eq!(
+            one(member(6.0, 71.0, 22.0), member(6.0, 71.0, 90.0)),
+            Vec::new()
+        );
     }
 
     #[test]
@@ -107,7 +113,7 @@ mod tests {
             )
         };
         assert_eq!(compare(14.0)[0].verdict, Verdict::Worse);
-        assert!(compare(3.0).is_empty());
+        assert_eq!(compare(3.0), Vec::new());
     }
 
     #[test]
@@ -118,7 +124,7 @@ mod tests {
             &[fact(kind, "a::new", member(30.0, 20.0, 99.0))],
             &limits(),
         );
-        assert!(found.is_empty());
+        assert_eq!(found, Vec::new());
     }
 
     #[test]
