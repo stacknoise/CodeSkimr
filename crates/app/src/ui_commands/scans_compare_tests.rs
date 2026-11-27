@@ -102,3 +102,33 @@ fn an_unknown_project_is_refused() {
     let fixture = Fixture::installed(None);
     assert!(ask(&fixture, "scans.compare", json!({ "project": 999 })).is_err());
 }
+
+#[test]
+fn the_markdown_is_the_text_of_the_command_line_in_the_chosen_language() {
+    let fixture = Fixture::installed(None);
+    let id = two_scans(&fixture);
+    let english = ask(
+        &fixture,
+        "scans.impact_markdown",
+        json!({ "project": id, "language": "en" }),
+    )
+    .unwrap();
+    let german = ask(
+        &fixture,
+        "scans.impact_markdown",
+        json!({ "project": id, "language": "de" }),
+    )
+    .unwrap();
+    let text = english["markdown"].as_str().unwrap();
+    assert!(text.contains("Demo.Caller.Run"));
+    assert!(text.starts_with("<!-- codeskimr-change -->"));
+    assert_ne!(text, german["markdown"].as_str().unwrap());
+    let plain = ask(&fixture, "scans.impact_markdown", json!({ "project": id })).unwrap();
+    assert_eq!(plain["markdown"], english["markdown"]);
+}
+
+#[test]
+fn the_markdown_of_an_unknown_project_is_refused() {
+    let fixture = Fixture::installed(None);
+    assert!(ask(&fixture, "scans.impact_markdown", json!({ "project": 999 })).is_err());
+}

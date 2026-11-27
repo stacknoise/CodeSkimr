@@ -5,6 +5,30 @@ import type { MessageKey } from "../../shared/i18n/i18n";
  * (`StageKind::label` in crates/application/src/stage.rs). */
 export const STAGES = ["fetch", "discover", "analyze", "resolve", "measure", "persist"] as const;
 
+/** The stage whose write reports its steps. */
+export const STEP_STAGE = "persist";
+/** How often the time of a step is renewed while it runs, in milliseconds. */
+export const STEP_TICK_MS = 1000;
+/** Seconds in a minute, for the time of a step as "4:12". */
+export const SECONDS_PER_MINUTE = 60;
+/** The width of the seconds of a time as "4:12". */
+export const CLOCK_SECONDS_WIDTH = 2;
+
+/** The names of the steps of writing a snapshot (`PersistStep` in crates/application). */
+export const STEP_TEXT: Record<string, MessageKey> = {
+  header: I18N_KEYS.SCAN_STEP_HEADER,
+  prune_before_load: I18N_KEYS.SCAN_STEP_PRUNE_BEFORE_LOAD,
+  facts: I18N_KEYS.SCAN_STEP_FACTS,
+  references: I18N_KEYS.SCAN_STEP_REFERENCES,
+  reference_indexes: I18N_KEYS.SCAN_STEP_REFERENCE_INDEXES,
+  fingerprints: I18N_KEYS.SCAN_STEP_FINGERPRINTS,
+  details: I18N_KEYS.SCAN_STEP_DETAILS,
+  integrity: I18N_KEYS.SCAN_STEP_INTEGRITY,
+  read_models: I18N_KEYS.SCAN_STEP_READ_MODELS,
+  prune: I18N_KEYS.SCAN_STEP_PRUNE,
+  commit: I18N_KEYS.SCAN_STEP_COMMIT,
+};
+
 /** The stage whose units are files: its progress is the progress of the whole scan. */
 export const FILE_STAGE = "analyze";
 /** The stage that compares every file with the newest snapshot. */

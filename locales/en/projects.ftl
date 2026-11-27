@@ -205,10 +205,10 @@ projects-report-todo-no-project-file = Put the project file in the project folde
 projects-report-todo-stale = Scan again.
 projects-report-todo-retry = Check again.
 projects-report-todo-later = Scan again later.
-projects-report-todo-RES-504 = Raise the memory limit (level2.max_memory_mb, or level2.indexer_memory_mb for this indexer alone, in the configuration), then check again.
+projects-report-todo-RES-504 = Raise the memory limit of this indexer in Settings, tab Analysis, "Memory per indexer" (or level2.max_memory_mb for all indexers in the configuration), then check again. A Node.js indexer gets three quarters of the limit as its heap; a very large TypeScript project can need 16,000 MB or more.
 projects-report-todo-RES-502 = Raise the time limit (level2.timeout_seconds in the configuration), then check again.
 projects-report-todo-RES-503 = Raise the output limit (level2.max_output_bytes in the configuration), then check again.
-projects-report-todo-RES-601 = Look at the log (set the environment variable CODESKIMR_LOG=info for the scan), then check again.
+projects-report-todo-RES-601 = Look at the log (set the environment variable CODESKIMR_LOG=info for the scan). If it says that a Rust toolchain is not installed, install it as the log says (`rustup toolchain install` in the project folder), then check again.
 projects-report-failed-note = The last run failed. Results of an earlier run may remain for files that did not change.
 projects-report-reason-not-permitted = this way of scanning may not run indexers
 projects-report-reason-not-confirmed = level 2 is not confirmed for this project

@@ -48,7 +48,7 @@ All four call `ScanComparer` and print the same answer (`codeskimr_application::
 
 | Way in | Name | Impact |
 |---|---|---|
-| Registry command (REST, screen) | `scans.list`, `scans.compare`, `scans.impact` (`docs/server.md`) | `scans.compare` without, `scans.impact` with (a superset: it also holds the lists of `scans.compare`) |
+| Registry command (REST, screen) | `scans.list`, `scans.compare`, `scans.impact`, `scans.impact_markdown` (`docs/server.md`) | `scans.compare` without, `scans.impact` with (a superset: it also holds the lists of `scans.compare`); `scans.impact_markdown` gives the text of `change --markdown` |
 | Command line | `codeskimr scans`, `compare`, `change` (`docs/cli.md`) | `change` with; `change --markdown` for a comment on a pull request |
 | MCP | `impact_of_diff` (`docs/mcp.md`) | with |
 

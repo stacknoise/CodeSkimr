@@ -11,7 +11,7 @@ use serde_json::Value;
 use super::usages::{cut_notice, direction_label, parse_direction};
 use super::{Scope, SnapshotInfo, Tools, to_json};
 use crate::args::DependenciesArgs;
-use crate::consts::{ARG_LAYER, ARG_SYMBOL_OR_LAYER, READ_TOOL_PERMISSION};
+use crate::consts::{ARG_DEPTH, ARG_LAYER, ARG_SYMBOL_OR_LAYER, READ_TOOL_PERMISSION};
 use crate::error::{CodeReport, McpError};
 
 /// What the caller asked about.
@@ -216,6 +216,12 @@ impl Tools {
         args: &DependenciesArgs,
     ) -> Result<Value, McpError> {
         access::require(principal, READ_TOOL_PERMISSION)?;
+        if args.level.is_some() {
+            return self.module_answer(args);
+        }
+        if args.depth.is_some() {
+            return Err(McpError::ArgumentsInvalid(ARG_DEPTH.to_owned()));
+        }
         let subject = subject(args)?;
         let direction = parse_direction(args.direction.as_deref(), Direction::Outgoing)?;
         let scope = self.scope(args.project)?;

@@ -120,6 +120,12 @@ pub struct Layer {
     pub may_use: Option<Vec<LayerName>>,
 }
 
+/// Position of the first layer that owns the namespace or symbol `name`.
+#[must_use]
+pub fn layer_position(layers: &[Layer], name: &str) -> Option<usize> {
+    layers.iter().position(|layer| layer.owns(name))
+}
+
 impl Layer {
     /// Whether a dependency on `target` is allowed. Using a layer's own names is always allowed.
     #[must_use]

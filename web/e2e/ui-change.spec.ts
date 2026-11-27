@@ -76,6 +76,14 @@ for (const theme of THEMES) {
     await expect(table.getByText("Shop.Pricing.Discount.Apply")).toBeVisible();
     await shot(page, SHOTS, `impact-${theme}`, info);
 
+    // The button puts the text of `codeskimr change --markdown` on the clipboard.
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.getByRole("button", { name: "Copy as Markdown" }).click();
+    await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toContain("<!-- codeskimr-change -->");
+    expect(copied).toContain("Shop.Checkout.Flow.Total");
+
     // Keyboard: the arrow keys of the table select a symbol, the arrow keys of the tab list switch
     // the view.
     await table.focus();

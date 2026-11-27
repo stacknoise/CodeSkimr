@@ -2,6 +2,8 @@ import { fireEvent, render, screen, within } from "@solidjs/testing-library";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
+import { useClipboard } from "../../tests/clipboard";
+import { setLanguage } from "../../shared/i18n/i18n";
 import { compareWithCurrent, resetChange, showChangeTab } from "./change";
 import { ChangeScreen } from "./ChangeScreen";
 import { TAB } from "./consts";
@@ -223,6 +225,43 @@ describe("ChangeScreen, view Impact", () => {
         'Two states of the same project. "Impact" shows the places that are hit.',
       ),
     ).toBeInTheDocument();
+  });
+});
+
+describe("ChangeScreen, button Copy as Markdown", () => {
+  const setClipboard = useClipboard();
+  const TEXT = { markdown: "<!-- codeskimr-change -->\n## Impact" };
+
+  it("asks for the text of the two scans shown, in the language of the UI, and copies it", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    setClipboard({ writeText });
+    setLanguage("de");
+    serveChange({ "scans.impact_markdown": () => answer(TEXT) });
+    render(() => <ChangeScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Als Markdown kopieren" }));
+    expect(await screen.findByRole("button", { name: "Kopiert" })).toBeInTheDocument();
+    expect(writeText).toHaveBeenCalledWith(TEXT.markdown);
+    expect(bodiesOf("scans.impact_markdown")).toEqual([
+      { project: 1, base: ANSWER.base.snapshot, target: ANSWER.target.snapshot, language: "de" },
+    ]);
+  });
+
+  it("says so when the browser has no clipboard", async () => {
+    setClipboard(undefined);
+    serveChange({ "scans.impact_markdown": () => answer(TEXT) });
+    render(() => <ChangeScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Copy as Markdown" }));
+    expect(await screen.findByRole("button", { name: "Not copied" })).toBeInTheDocument();
+  });
+
+  it("says so when the command fails, and is not offered in the view Comparison", async () => {
+    setClipboard({ writeText: vi.fn() });
+    serveChange({ "scans.impact_markdown": () => answer({ code: "PRJ-201" }, 404) });
+    render(() => <ChangeScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Copy as Markdown" }));
+    expect(await screen.findByRole("button", { name: "Not copied" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Comparison" }));
+    expect(screen.queryByRole("button", { name: /Not copied|Copy as Markdown/ })).toBeNull();
   });
 });
 
