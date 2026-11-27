@@ -303,3 +303,29 @@ cli-arg-compare-project = Id des Projekts oder der Ordner oder die Git-URL, aus 
 cli-arg-compare-base = Id des älteren Scans (Standard: der Scan vor dem Ziel); `codeskimr scans` listet die Ids
 cli-arg-compare-target = Id des neueren Scans (Standard: der neueste Scan)
 cli-arg-markdown = Die Antwort als Markdown für einen Kommentar an einem Pull Request ausgeben; nicht zusammen mit --json
+cli-cmd-modules = Zeigt die Module (Namespaces) des Projekts: Stellen hinein und heraus, Stabilität, die Zyklen zwischen Modulen mit den Abhängigkeiten, die sie beenden, die Abhängigkeiten gegen die Schichtung und die auffälligen Module (die Antwort von get_dependencies mit level module)
+cli-arg-modules-depth = Namespaces auf ihre ersten N Segmente zusammenfassen (alle, wenn weggelassen)
+cli-query-modules-none = Keine Module gefunden.
+cli-query-modules-head = Module: { $shown } von { $total } gezeigt, die am meisten verwendeten zuerst. ein: Stellen in anderen Modulen, die es nutzen; aus: Stellen darin, die andere Module nutzen; Stabilität = aus / (ein + aus).
+cli-query-modules-line = { $name }{ $layer }  ein { $incoming }, aus { $outgoing }, Stabilität { $stability }{ $flags }
+cli-query-modules-layer = [{ $name }]
+cli-query-modules-stability = { $whole },{ $hundredths }
+cli-query-modules-stability-none = keine
+cli-query-modules-flag-cycle = im Zyklus
+cli-query-modules-flag-violations = { $count ->
+    [one] 1 Abhängigkeit gegen die Schichtung
+   *[other] { $count } Abhängigkeiten gegen die Schichtung
+}
+cli-query-modules-cycles = Zyklen: { $shown }
+cli-query-modules-cycle = { $modules } Module im Ring: { $chain }
+cli-query-modules-resolve = Beenden lässt er sich mit dem Wegnehmen von { $from } -> { $to } ({ $count ->
+    [one] 1 Stelle
+   *[other] { $count } Stellen
+})
+cli-query-modules-violations = Gegen die Schichtung: { $shown }
+cli-query-modules-violation = { $from } ({ $from_layer }) -> { $to } ({ $to_layer }): { $count ->
+    [one] 1 Stelle
+   *[other] { $count } Stellen
+}
+cli-query-modules-risks = Auffällig: { $shown }
+cli-query-modules-risk = { $name } (Stabilität { $stability }) wird an { $incoming } Stellen genutzt und hängt von { $other } ab (Stabilität { $otherStability }), das sich häufiger ändert.

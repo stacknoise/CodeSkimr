@@ -1,9 +1,9 @@
 //! The query commands: their arguments, and the JSON and text they print.
 
 use codeskimr_cli::{
-    Action, CompareQuery, ContextQuery, ImpactQuery, Parsed, QueryAction, QueryKind, QueryTarget,
-    RenameQuery, ScansQuery, SymbolsQuery, UnusedQuery, UsagesQuery, change_markdown, parse,
-    query_code_report, query_error_json, query_json, query_text,
+    Action, CompareQuery, ContextQuery, ImpactQuery, ModulesQuery, Parsed, QueryAction, QueryKind,
+    QueryTarget, RenameQuery, ScansQuery, SymbolsQuery, UnusedQuery, UsagesQuery, change_markdown,
+    parse, query_code_report, query_error_json, query_json, query_text,
 };
 use codeskimr_i18n::Messages;
 use serde_json::{Value, json};
@@ -380,4 +380,91 @@ fn a_name_cannot_break_out_of_the_code_span_of_the_markdown() {
         "{markdown}"
     );
     assert_eq!(markdown.lines().next(), Some("<!-- codeskimr-change -->"));
+}
+
+#[test]
+fn modules_reads_the_depth_the_limit_and_the_output() {
+    assert_eq!(
+        action(&[
+            "codeskimr",
+            "modules",
+            "--depth",
+            "2",
+            "--limit",
+            "20",
+            "--json"
+        ]),
+        QueryAction::Modules(ModulesQuery {
+            depth: Some(2),
+            limit: Some(20),
+            target: QueryTarget {
+                project: None,
+                json: true
+            },
+        })
+    );
+}
+
+fn module_answer() -> Value {
+    json!({
+        "level": "module",
+        "total": 3,
+        "modules": [
+            {"name": "App.Domain", "layer": "Domain", "incoming": 11, "outgoing": 2,
+             "stability": 154, "types": 2, "in_cycle": true, "violations": 0},
+            {"name": "App.Web", "layer": null, "incoming": 0, "outgoing": 7,
+             "stability": 1000, "types": 1, "in_cycle": false, "violations": 1},
+            {"name": "App.Lonely", "layer": null, "incoming": 0, "outgoing": 0,
+             "stability": null, "types": 1, "in_cycle": false, "violations": 0}
+        ],
+        "cycles": [{
+            "modules": ["App.Domain", "App.Application"],
+            "edges": [],
+            "resolution": [{"from": "App.Domain", "to": "App.Application", "count": 1}]
+        }],
+        "violations": [{
+            "edge": {"from": "App.Web", "to": "App.Domain", "count": 4},
+            "from_layer": "Web", "to_layer": "Domain"
+        }],
+        "risks": [{
+            "module": "App.Domain", "incoming": 11, "stability": 154,
+            "depends_on": "App.Web", "depends_on_stability": 1000
+        }]
+    })
+}
+
+#[test]
+fn the_text_of_modules_names_rings_violations_and_risks_in_both_languages() {
+    let messages = Messages::load().unwrap();
+    let answer = module_answer();
+    let english = query_text(&messages, "en", QueryKind::Modules, (&answer, None)).unwrap();
+    assert!(english.contains("App.Domain [Domain]"), "{english}");
+    assert!(english.contains("stability 0.15"), "{english}");
+    assert!(english.contains("stability none"), "{english}");
+    assert!(english.contains("in a cycle"), "{english}");
+    assert!(
+        english.contains("2 modules in a ring: App.Domain -> App.Application"),
+        "{english}"
+    );
+    assert!(
+        english.contains("Ending it takes away App.Domain -> App.Application (1 place)"),
+        "{english}"
+    );
+    assert!(
+        english.contains("App.Web (Web) -> App.Domain (Domain): 4 places"),
+        "{english}"
+    );
+    assert!(english.contains("is used in 11 places"), "{english}");
+    let german = query_text(&messages, "de", QueryKind::Modules, (&answer, None)).unwrap();
+    assert!(german.contains("Stabilität 0,15"), "{german}");
+    assert!(german.contains("im Zyklus"), "{german}");
+    assert!(german.contains("1 Stelle"), "{german}");
+}
+
+#[test]
+fn the_text_of_modules_says_when_there_are_none() {
+    let messages = Messages::load().unwrap();
+    let none = json!({"modules": [], "total": 0});
+    let text = query_text(&messages, "en", QueryKind::Modules, (&none, None)).unwrap();
+    assert_eq!(text, "No modules found.");
 }
