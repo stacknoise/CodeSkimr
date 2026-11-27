@@ -103,3 +103,5 @@ graph-modules-places-more = { $count ->
 }
 graph-modules-places-failed = Die Stellen ließen sich nicht laden.
 graph-modules-legend-cycle = im Zyklus
+graph-toggle-violations-only-hint = Nur in der Ansicht „Schichten“ verfügbar: Nur dort werden Verstöße gegen die Schichtung als Verbindungen gezeichnet. Bei Modulen zeigt die Seitenleiste sie unter „Gegen die Schichtung“.
+graph-modules-badge-cycle-hint = Zyklus: Dieses Modul hängt über andere Module von sich selbst ab (A braucht B, B braucht A). Die Seitenleiste nennt die schwächste Kante, mit der man den Zyklus beendet.

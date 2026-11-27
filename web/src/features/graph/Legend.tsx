@@ -29,7 +29,7 @@ export function Legend(props: {
         {t(I18N_KEYS.GRAPH_LEGEND_VIOLATION, { count: props.violations })}
       </span>
       <Show when={props.cycles}>
-        <span>
+        <span title={t(I18N_KEYS.GRAPH_MODULES_BADGE_CYCLE_HINT)}>
           <i class={cx(styles.swatch, styles.cycle)} /> {t(I18N_KEYS.GRAPH_MODULES_LEGEND_CYCLE)}
         </span>
       </Show>

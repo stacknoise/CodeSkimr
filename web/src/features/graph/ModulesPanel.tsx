@@ -45,7 +45,7 @@ function Badges(props: { row: ModuleRow }) {
   return (
     <>
       <Show when={props.row.in_cycle}>
-        <Pill tone={TONE.bad} compact>
+        <Pill tone={TONE.bad} compact title={t(I18N_KEYS.GRAPH_MODULES_BADGE_CYCLE_HINT)}>
           {t(I18N_KEYS.GRAPH_MODULES_BADGE_CYCLE)}
         </Pill>
       </Show>

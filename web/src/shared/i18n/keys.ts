@@ -861,6 +861,8 @@ export const I18N_KEYS = {
   GRAPH_MODULES_PLACES_MORE: "graph-modules-places-more",
   GRAPH_MODULES_PLACES_FAILED: "graph-modules-places-failed",
   GRAPH_MODULES_LEGEND_CYCLE: "graph-modules-legend-cycle",
+  GRAPH_TOGGLE_VIOLATIONS_ONLY_HINT: "graph-toggle-violations-only-hint",
+  GRAPH_MODULES_BADGE_CYCLE_HINT: "graph-modules-badge-cycle-hint",
   LAYERS_TITLE: "layers-title",
   LAYERS_SUBTITLE: "layers-subtitle",
   LAYERS_NO_PROJECT: "layers-no-project",
