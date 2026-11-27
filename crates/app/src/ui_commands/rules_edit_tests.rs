@@ -62,7 +62,7 @@ fn a_preview_judges_without_writing() {
         .iter()
         .find(|rule| rule["kind"] == "forbid")
         .unwrap();
-    assert_ne!(rule["violations"].as_array().unwrap().as_slice(), []);
+    assert_ne!(rule["violations"], json!([]));
     assert_eq!(fs::read_to_string(file(&fixture)).unwrap(), OLD);
 }
 
