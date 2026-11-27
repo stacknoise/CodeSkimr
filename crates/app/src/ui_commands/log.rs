@@ -1,7 +1,9 @@
 //! The commands behind the tab Diagnosis of the settings: the log level that can be changed while
-//! the program runs, and the log file in the data folder (ADR 0113).
+//! the program runs, and the log file in the data folder (ADR 0115).
 //!
-//! No command takes a path. The file and its folder are built from the data folder.
+//! No command takes a path. The file and its folder are built from the data folder. The log holds
+//! paths and names of projects, so reading it needs the token like reading source text does
+//! (ADR 0035, ADR 0115).
 
 use std::io::ErrorKind;
 use std::path::PathBuf;
@@ -104,11 +106,11 @@ impl Command for LogStatusCommand {
         description_key: LOG_STATUS_DESCRIPTION,
         shortcut: None,
         read_only: true,
-        permission: Permission::Read,
+        permission: Permission::ReadSource,
     };
 
     fn execute(&self, request: Request<'_, Self>) -> Result<LogStatus, CodedError> {
-        access::require(request.principal, Permission::Read)?;
+        access::require(request.principal, Permission::ReadSource)?;
         Ok(status(self.ports.opener.as_ref()))
     }
 }
@@ -140,14 +142,16 @@ impl Command for LogSetLevel {
     };
 
     /// # Errors
-    /// `AUTH-401` without the right to manage; `API-101` for a word that is not one of the levels.
+    /// `AUTH-401` without the right to manage; `API-101` for a word that is not one of the levels or if another subscriber owns the log.
     fn execute(&self, request: Request<'_, Self>) -> Result<LogStatus, CodedError> {
         access::require(request.principal, Permission::Manage)?;
         let level = LevelFilter::from_str(&request.input.level)
             .ok()
             .filter(|level| log_control::LEVELS.contains(level))
             .ok_or_else(|| CodedError::new(ErrorCode::RequestInvalid))?;
-        log_control::set_level(level);
+        if !log_control::set_level(level) {
+            return Err(CodedError::new(ErrorCode::RequestInvalid));
+        }
         Ok(status(self.ports.opener.as_ref()))
     }
 }
@@ -180,13 +184,15 @@ impl Command for LogTail {
         description_key: LOG_TAIL_DESCRIPTION,
         shortcut: None,
         read_only: true,
-        permission: Permission::Read,
+        permission: Permission::ReadSource,
     };
 
     /// # Errors
-    /// `APP-607` if there is no log file or it cannot be read.
+    /// `AUTH-401` without the right to read source text (the log holds paths and names, so the
+    /// token is needed like for the source view); `APP-607` if there is no log file or it cannot
+    /// be read.
     fn execute(&self, request: Request<'_, Self>) -> Result<LogLines, CodedError> {
-        access::require(request.principal, Permission::Read)?;
+        access::require(request.principal, Permission::ReadSource)?;
         let wanted = request.input.lines.min(LOG_TAIL_MAX_LINES);
         match log_control::with_file(|file| file.tail(wanted)) {
             Some(Ok(lines)) => Ok(LogLines { lines }),

@@ -38,8 +38,18 @@ The UI and the messages come in German and English. The browser UI has a switch 
 
 ## Look of the UI
 
-The settings have five tabs: Appearance, Analysis, Access, Effective settings and Info. The search field at the right of the tabs searches the effective settings.
+The settings have six tabs: Appearance, Analysis, Access, Effective settings, Info and Diagnosis. The search field at the right of the tabs searches the effective settings.
 
 Three themes exist: Hell, Petrol (default) and Dunkel. Choose one in the settings on the tab **Appearance**; the card shows a live preview. On first start a dark operating system gets Dunkel.
 
 Theme and language are kept **by the server** (file `preferences.json` in the data folder, see [Installation](installation.md#where-data-lives)), so every browser that opens the same installation shows the same choice. The browser keeps a copy so that the first screen needs no request; if the server holds a choice it wins over that copy. The file holds no secret.
+
+## The log (tab "Diagnosis")
+
+When something goes wrong, the log tells what the program did. You do not need a console for it: open the settings, tab **Diagnosis**.
+
+- **Level.** Off, Warnings (the default), Info, Debug or Trace. The choice counts at once, without a restart, and also for a console window of the same run. From Debug on, large scans get slower and the file gets big. A level other than the default **goes back to the default after 24 hours** by itself, so a forgotten Trace cannot fill the disk; the tab shows the time that is left. After a restart the default counts again (or `CODESKIMR_LOG`, if you set it).
+- **File.** The log is also written to `logs/codeskimr.log` in the data folder (see [Installation](installation.md#where-data-lives)). At 10 MB the file is renamed and a new one starts; five files are kept at most, so the logs take 50 MB at most. Logins, tokens and source text are not in it: they are removed before a line is written.
+- **Buttons.** "Copy log" copies the last 2000 lines (for a bug report), "Open folder" opens the folder with the program of your system (only on the machine of the app), "Empty file" empties the file and removes the old ones. Below them you see the last lines.
+
+The level is the same as the environment variable `CODESKIMR_LOG`; the tab replaces starting the program from a terminal for that purpose.

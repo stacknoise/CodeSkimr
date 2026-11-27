@@ -599,7 +599,7 @@ pub const UI_LAYER_NEWLINE: &str = "\n";
 /// The field of the answer of `rules` that counts the violations the held state does not have.
 pub const NEW_VIOLATIONS: &str = "new";
 
-/// The folder of the log files inside the data folder (ADR 0113).
+/// The folder of the log files inside the data folder (ADR 0115).
 pub const LOG_DIR: &str = "logs";
 /// The active log file inside [`LOG_DIR`]; older ones carry `.1`, `.2` and so on behind it.
 pub const LOG_FILE: &str = "codeskimr.log";
@@ -619,3 +619,8 @@ pub const LOG_FILE_MODE: u32 = 0o600;
 pub const LOG_OLD_SEPARATOR: &str = ".";
 /// Name of the thread that takes the default log level back.
 pub const LOG_RESET_THREAD: &str = "log-level-reset";
+/// The start of the targets (crate names) the chosen log level applies to. Libraries stay at the
+/// default level, so that a level of Debug or Trace does not log their requests and headers.
+pub const LOG_TARGET_PREFIX: &str = "codeskimr";
+/// Permission bits of the folder of the log files on Unix: the owner only.
+pub const LOG_DIR_MODE: u32 = 0o700;

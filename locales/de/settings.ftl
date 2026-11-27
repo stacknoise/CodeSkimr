@@ -160,3 +160,4 @@ settings-log-no-lines = Auf dieser Stufe wurde noch nichts protokolliert.
 settings-log-failed = Das Protokoll konnte nicht gelesen oder geändert werden. Prüfe, ob der Datenordner beschreibbar ist.
 settings-log-fixed = Das Protokoll dieses Laufs gehört einem anderen Programm, daher lässt sich die Stufe hier nicht ändern.
 settings-log-no-file = Die Protokolldatei konnte im Datenordner nicht angelegt werden; das Protokoll geht nur in die Konsole.
+settings-log-copy-hint = Das kopierte Protokoll kann Pfade und Namen Ihrer Projekte enthalten. Lesen Sie es durch, bevor Sie es in ein öffentliches Issue stellen.

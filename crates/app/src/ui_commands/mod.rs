@@ -505,7 +505,7 @@ fn register_ui_settings(registry: &mut Registry, locations: &Locations) -> Resul
     add(registry, SetIndexerMemory { file })
 }
 
-/// The commands of the tab Diagnosis: the log level and the log file in the data folder (ADR 0113).
+/// The commands of the tab Diagnosis: the log level and the log file in the data folder (ADR 0115).
 fn register_log(registry: &mut Registry, locations: &Locations) -> Result<(), CodedError> {
     crate::log_control::attach_file(&locations.data_dir);
     let ports = Arc::new(LogPorts {

@@ -8,7 +8,7 @@ use std::panic::PanicHookInfo;
 
 use codeskimr_codes::ErrorCode;
 use tracing::Subscriber;
-use tracing_subscriber::filter::LevelFilter;
+use tracing_subscriber::filter::{LevelFilter, Targets};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::reload::{self, Handle};
 use tracing_subscriber::{Registry, fmt};
@@ -53,11 +53,11 @@ where
 fn layered<W>(
     level: LevelFilter,
     sink: impl Fn() -> W + Send + Sync + 'static,
-) -> (impl Subscriber + Send + Sync, Handle<LevelFilter, Registry>)
+) -> (impl Subscriber + Send + Sync, Handle<Targets, Registry>)
 where
     W: Write + 'static,
 {
-    let (filter, handle) = reload::Layer::new(level);
+    let (filter, handle) = reload::Layer::new(log_control::filter_for(level));
     let lines = fmt::layer()
         .with_ansi(false)
         .with_writer(move || RedactingWriter::new(sink()));
@@ -103,6 +103,7 @@ mod tests {
     use tracing_subscriber::filter::LevelFilter;
 
     use super::{layered, report_panic, subscriber};
+    use crate::log_control;
 
     const CANARY: &str = "CANARY7f3a9c1e5b2d4f60";
 
@@ -163,13 +164,19 @@ mod tests {
         let (subscriber, handle) = layered(LevelFilter::WARN, move || copy.clone());
         tracing::subscriber::with_default(subscriber, || {
             tracing::info!("before");
-            handle.modify(|level| *level = LevelFilter::INFO).unwrap();
+            handle
+                .reload(log_control::filter_for(LevelFilter::INFO))
+                .unwrap();
             tracing::info!("after");
-            handle.modify(|level| *level = LevelFilter::OFF).unwrap();
+            tracing::info!(target: "hyper::proto", "foreign");
+            handle
+                .reload(log_control::filter_for(LevelFilter::OFF))
+                .unwrap();
             tracing::error!("never");
         });
         let text = sink.text();
         assert!(text.contains("after") && !text.contains("before") && !text.contains("never"));
+        assert!(!text.contains("foreign"), "{text}");
     }
 
     #[test]

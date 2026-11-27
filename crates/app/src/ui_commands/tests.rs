@@ -1322,9 +1322,8 @@ fn the_log_level_is_checked_and_only_a_manager_may_change_the_log() {
         );
     }
     let as_reader = |id: &str, input: Value| run_as(&fixture, principal::reader(), id, input);
-    assert!(as_reader("log.status", json!(null)).is_ok());
-    for id in ["log.clear", "log.open_folder"] {
-        assert_eq!(as_reader(id, json!(null)).unwrap_err(), "AUTH-401");
+    for id in ["log.status", "log.tail", "log.clear", "log.open_folder"] {
+        assert_eq!(as_reader(id, json!({"lines": 1})).unwrap_err(), "AUTH-401");
     }
     assert_eq!(
         as_reader("log.set_level", json!({"level": "debug"})).unwrap_err(),

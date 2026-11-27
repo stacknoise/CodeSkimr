@@ -162,7 +162,7 @@ export const INDEXER_MEMORY_MAX = 1_048_576;
 /** Ids that tie the input of an indexer to its note. */
 export const INDEXER_MEMORY_ID_PREFIX = "indexer-memory-";
 
-/** The commands of the log (ADR 0113). */
+/** The commands of the log (ADR 0115). */
 export const LOG_STATUS_COMMAND = "log.status";
 export const LOG_SET_LEVEL_COMMAND = "log.set_level";
 export const LOG_TAIL_COMMAND = "log.tail";

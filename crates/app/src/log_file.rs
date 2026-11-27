@@ -1,4 +1,4 @@
-//! The log file in the data folder: it rotates by size and keeps a few old files (ADR 0113).
+//! The log file in the data folder: it rotates by size and keeps a few old files (ADR 0115).
 //!
 //! Every line that reaches it has passed the redaction already (`log_writer`).
 
@@ -7,7 +7,8 @@ use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
 use crate::consts::{
-    LOG_FILE_MAX_BYTES, LOG_FILE_MODE, LOG_FILES_KEPT, LOG_OLD_SEPARATOR, LOG_TAIL_BYTES,
+    LOG_DIR_MODE, LOG_FILE_MAX_BYTES, LOG_FILE_MODE, LOG_FILES_KEPT, LOG_OLD_SEPARATOR,
+    LOG_TAIL_BYTES,
 };
 
 /// An open log file that knows its size.
@@ -26,17 +27,41 @@ fn old_name(path: &Path, index: u32) -> PathBuf {
     PathBuf::from(name)
 }
 
-/// Opens `path` for appending. A link or a folder of that name is refused, so that the log never
-/// writes through something that points elsewhere.
+/// Opens `path` for appending. A link or anything but a plain file of that name is refused, so
+/// that the log never writes through something that points elsewhere. On Unix the open itself
+/// does not follow a link (`O_NOFOLLOW`) and the file is made readable by its owner only, also if
+/// it existed with wider rights.
 fn open_append(path: &Path) -> io::Result<File> {
-    if fs::symlink_metadata(path).is_ok_and(|meta| !meta.is_file()) {
-        return Err(io::Error::from(io::ErrorKind::InvalidInput));
-    }
     let mut options = OpenOptions::new();
     options.create(true).append(true);
     #[cfg(unix)]
-    std::os::unix::fs::OpenOptionsExt::mode(&mut options, LOG_FILE_MODE);
-    options.open(path)
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(LOG_FILE_MODE).custom_flags(libc::O_NOFOLLOW);
+    }
+    #[cfg(not(unix))]
+    if fs::symlink_metadata(path).is_ok_and(|meta| !meta.is_file()) {
+        return Err(io::Error::from(io::ErrorKind::InvalidInput));
+    }
+    let file = options.open(path)?;
+    if !file.metadata()?.is_file() {
+        return Err(io::Error::from(io::ErrorKind::InvalidInput));
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        file.set_permissions(fs::Permissions::from_mode(LOG_FILE_MODE))?;
+    }
+    Ok(file)
+}
+
+/// Creates the folder of the log; on Unix only its owner may enter it.
+fn create_folder(folder: &Path) -> io::Result<()> {
+    let mut builder = fs::DirBuilder::new();
+    builder.recursive(true);
+    #[cfg(unix)]
+    std::os::unix::fs::DirBuilderExt::mode(&mut builder, LOG_DIR_MODE);
+    builder.create(folder)
 }
 
 impl LogFile {
@@ -51,7 +76,7 @@ impl LogFile {
     /// Like [`Self::open`] with another size at which the file rotates.
     pub(crate) fn open_with_limit(path: &Path, max_bytes: u64) -> io::Result<Self> {
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?;
+            create_folder(parent)?;
         }
         let file = open_append(path)?;
         let size = file.metadata()?.len();
@@ -110,7 +135,11 @@ impl LogFile {
         for index in 1..LOG_FILES_KEPT {
             let _ = fs::remove_file(old_name(&self.path, index));
         }
-        self.file.set_len(0)?;
+        // The append handle has no right to cut the file on Windows, so a handle of its own does.
+        OpenOptions::new()
+            .write(true)
+            .open(&self.path)?
+            .set_len(0)?;
         self.size = 0;
         Ok(())
     }
@@ -182,6 +211,8 @@ mod tests {
         log.clear().unwrap();
         assert_eq!(log.size(), 0);
         assert!(log.tail(5).unwrap().is_empty());
+        log.write(b"after\n").unwrap();
+        assert_eq!(log.tail(5).unwrap(), ["after"]);
         assert!(!old_name(&path, 1).exists());
     }
 

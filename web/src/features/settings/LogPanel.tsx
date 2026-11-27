@@ -112,6 +112,7 @@ function Actions(props: { status: LogStatus; onFailure: () => void }) {
           ? t(I18N_KEYS.SETTINGS_LOG_CLEARED)
           : t(I18N_KEYS.SETTINGS_LOG_CLEAR)}
       </button>
+      <span class={styles.muted}>{t(I18N_KEYS.SETTINGS_LOG_COPY_HINT)}</span>
       <Show when={note() === NOTE.copyFailed}>
         <span role="alert" class={styles.error}>
           {t(I18N_KEYS.SETTINGS_LOG_COPY_FAILED)}
@@ -169,7 +170,7 @@ function LogBody(props: { status: LogStatus; onFailure: () => void }) {
   );
 }
 
-/** The tab Diagnosis: the log level, the file and its last lines (ADR 0113, mock 42 variant A). */
+/** The tab Diagnosis: the log level, the file and its last lines (ADR 0115, mock 42 variant A). */
 export function LogPanel() {
   const [failed, setFailed] = createSignal(false);
   const refresh = () => {

@@ -1645,6 +1645,7 @@ export const I18N_KEYS = {
   SETTINGS_LOG_FAILED: "settings-log-failed",
   SETTINGS_LOG_FIXED: "settings-log-fixed",
   SETTINGS_LOG_NO_FILE: "settings-log-no-file",
+  SETTINGS_LOG_COPY_HINT: "settings-log-copy-hint",
   NAV_STATS: "nav-stats",
   STATS_TITLE: "stats-title",
   STATS_TABS_LABEL: "stats-tabs-label",

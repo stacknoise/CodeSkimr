@@ -193,7 +193,7 @@ function TabPage() {
   );
 }
 
-/** Screen 13: the settings in six tabs (ADR 0098, ADR 0113): appearance (theme with live preview,
+/** Screen 13: the settings in six tabs (ADR 0098, ADR 0115): appearance (theme with live preview,
  * language), analysis (layers, tools for stage 2), access (Git logins, editor link), the effective
  * settings and information (configuration file, error codes; the version is in the header) (blueprint 15.3). */
 export function SettingsScreen() {

@@ -38,8 +38,18 @@ Oberfläche und Meldungen gibt es auf Deutsch und Englisch. Die Browser-Oberflä
 
 ## Aussehen der Oberfläche
 
-Die Einstellungen haben fünf Reiter: Darstellung, Analyse, Zugänge, Wirksame Einstellungen und Info. Das Suchfeld rechts neben den Reitern sucht in den wirksamen Einstellungen.
+Die Einstellungen haben sechs Reiter: Darstellung, Analyse, Zugänge, Wirksame Einstellungen, Info und Diagnose. Das Suchfeld rechts neben den Reitern sucht in den wirksamen Einstellungen.
 
 Es gibt drei Themes: Hell, Petrol (Standard) und Dunkel. Wählen Sie in den Einstellungen im Reiter **Darstellung**; die Karte zeigt eine Live-Vorschau. Beim ersten Start bekommt ein dunkles Betriebssystem das Theme Dunkel.
 
 Theme und Sprache merkt sich **der Server** (Datei `preferences.json` im Datenordner, siehe [Installation](installation.md#wo-die-daten-liegen)), jeder Browser, der dieselbe Installation öffnet, zeigt also dieselbe Wahl. Der Browser behält eine Kopie, damit der erste Bildschirm ohne Anfrage auskommt; hat der Server eine Wahl gespeichert, gilt sie vor der Kopie. Die Datei enthält kein Geheimnis.
+
+## Das Protokoll (Reiter „Diagnose“)
+
+Wenn etwas schiefgeht, zeigt das Protokoll, was das Programm getan hat. Dafür brauchen Sie keine Konsole: Öffnen Sie die Einstellungen, Reiter **Diagnose**.
+
+- **Stufe.** Aus, Warnungen (Standard), Info, Debug oder Trace. Die Wahl gilt sofort, ohne Neustart, und auch für ein Konsolenfenster desselben Laufs. Ab Debug werden große Scans langsamer und die Datei wird groß. Eine andere Stufe als der Standard **fällt nach 24 Stunden von selbst auf den Standard zurück**, damit ein vergessenes Trace die Platte nicht füllt; der Reiter zeigt die verbleibende Zeit. Nach einem Neustart gilt wieder der Standard (oder `CODESKIMR_LOG`, wenn Sie es gesetzt haben).
+- **Datei.** Das Protokoll wird zusätzlich in `logs/codeskimr.log` im Datenordner geschrieben (siehe [Installation](installation.md#wo-die-daten-liegen)). Bei 10 MB wird die Datei umbenannt und eine neue beginnt; es bleiben höchstens fünf Dateien, also höchstens 50 MB. Zugangsdaten, Tokens und Quelltext stehen nicht darin: Sie werden vor dem Schreiben entfernt.
+- **Knöpfe.** „Protokoll kopieren“ kopiert die letzten 2000 Zeilen (für eine Fehlermeldung), „Ordner öffnen“ öffnet den Ordner mit dem Programm Ihres Systems (nur auf dem Rechner der App), „Datei leeren“ leert die Datei und entfernt die alten. Darunter sehen Sie die letzten Zeilen.
+
+Die Stufe entspricht der Umgebungsvariable `CODESKIMR_LOG`; der Reiter ersetzt dafür den Start aus einem Terminal.

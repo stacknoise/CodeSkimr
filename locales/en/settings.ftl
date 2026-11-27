@@ -160,3 +160,4 @@ settings-log-no-lines = Nothing has been logged at this level yet.
 settings-log-failed = The log could not be read or changed. Check that the data folder can be written.
 settings-log-fixed = Another program owns the log of this run, so the level cannot be changed here.
 settings-log-no-file = The log file could not be created in the data folder; the log goes to the console only.
+settings-log-copy-hint = The copied log can hold paths and names of your projects. Read it before you post it in a public issue.
