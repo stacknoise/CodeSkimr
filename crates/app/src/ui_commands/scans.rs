@@ -9,13 +9,16 @@ use std::sync::Arc;
 
 use codeskimr_application::access;
 use codeskimr_application::compare::ScanListAnswer;
-use codeskimr_application::compare::{ComparisonAnswer, ComparisonRequest, ScanDiffs};
+use codeskimr_application::compare::{
+    ComparisonAnswer, ComparisonRequest, MetricsAnswer, MetricsRequest, ScanDiffs,
+    parse_judged_metric, parse_level,
+};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{CodeIndex, ProjectRepository};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_cli::change_markdown;
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Permission, ProjectId, SnapshotId};
+use codeskimr_domain::{MetricLevel, Permission, ProjectId, SnapshotId};
 use codeskimr_i18n::{DEFAULT_LANGUAGE, Messages};
 use serde::{Deserialize, Serialize};
 
@@ -23,7 +26,7 @@ use super::consts::{
     SCANS_COMPARE, SCANS_COMPARE_DESCRIPTION, SCANS_COMPARE_TITLE, SCANS_IMPACT,
     SCANS_IMPACT_DESCRIPTION, SCANS_IMPACT_MARKDOWN, SCANS_IMPACT_MARKDOWN_DESCRIPTION,
     SCANS_IMPACT_MARKDOWN_TITLE, SCANS_IMPACT_TITLE, SCANS_LIST, SCANS_LIST_DESCRIPTION,
-    SCANS_LIST_TITLE,
+    SCANS_LIST_TITLE, SCANS_METRICS, SCANS_METRICS_DESCRIPTION, SCANS_METRICS_TITLE,
 };
 use super::preferences::PreferencesFile;
 
@@ -154,6 +157,75 @@ const fn diff_descriptor(
         shortcut: None,
         read_only: true,
         permission: Permission::Read,
+    }
+}
+
+/// The input of `scans.metrics`: the scans as for `scans.compare` and what to look at (ADR 0114).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct MetricsInput {
+    /// The scans to compare, as for `scans.compare`.
+    #[serde(flatten)]
+    pub compare: CompareInput,
+    /// `module`, `type` or `member`; `member` if left out.
+    #[serde(default)]
+    pub level: Option<String>,
+    /// Whether test code is looked at too; `false` if left out.
+    #[serde(default)]
+    pub include_tests: bool,
+    /// Only objects in which one of these metrics moved: `loc`, `cc`, `mi`, `ce` or
+    /// `instability`; every judged metric if left out.
+    #[serde(default)]
+    pub metrics: Vec<String>,
+}
+
+impl MetricsInput {
+    /// The request of the use case; `RequestInvalid` for a level or a metric that is not known.
+    fn request(&self) -> Result<MetricsRequest, CodedError> {
+        let invalid = || CodedError::new(ErrorCode::RequestInvalid);
+        let level = self
+            .level
+            .as_deref()
+            .map_or(Ok(MetricLevel::Member), |text| {
+                parse_level(text).ok_or_else(invalid)
+            })?;
+        let only = self
+            .metrics
+            .iter()
+            .map(|text| parse_judged_metric(text).ok_or_else(invalid))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(MetricsRequest {
+            project: ProjectId::new(self.compare.project),
+            base: self.compare.base.map(SnapshotId::new),
+            target: self.compare.target.map(SnapshotId::new),
+            level,
+            include_tests: self.include_tests,
+            only,
+        })
+    }
+}
+
+/// `scans.metrics`: which objects got worse and which got better by their metrics between two
+/// retained scans (ADR 0114); the same answer as `codeskimr compare --metrics --json`.
+pub struct ScansMetrics {
+    pub(super) ports: Arc<ComparePorts>,
+}
+
+impl Command for ScansMetrics {
+    type Input = MetricsInput;
+    type Output = MetricsAnswer;
+
+    const DESCRIPTOR: CommandDescriptor = diff_descriptor(
+        SCANS_METRICS,
+        SCANS_METRICS_TITLE,
+        SCANS_METRICS_DESCRIPTION,
+    );
+
+    fn execute(&self, request: Request<'_, Self>) -> Result<MetricsAnswer, CodedError> {
+        access::require(request.principal, Permission::Read)?;
+        let wanted = request.input.request()?;
+        self.ports.projects.project(wanted.project)?;
+        let found = self.ports.comparer.compare_metrics(&wanted)?;
+        Ok(MetricsAnswer::new(&found))
     }
 }
 

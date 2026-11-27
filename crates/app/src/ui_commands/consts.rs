@@ -460,6 +460,12 @@ pub const SCANS_IMPACT: &str = "scans.impact";
 pub const SCANS_IMPACT_TITLE: &str = i18n::COMMAND_SCANS_IMPACT_TITLE;
 /// Description key of `scans.impact`.
 pub const SCANS_IMPACT_DESCRIPTION: &str = i18n::COMMAND_SCANS_IMPACT_DESCRIPTION;
+/// Id of the command that lists which objects got worse or better by their metrics (ADR 0114).
+pub const SCANS_METRICS: &str = "scans.metrics";
+/// Title key of `scans.metrics`.
+pub const SCANS_METRICS_TITLE: &str = i18n::COMMAND_SCANS_METRICS_TITLE;
+/// Description key of `scans.metrics`.
+pub const SCANS_METRICS_DESCRIPTION: &str = i18n::COMMAND_SCANS_METRICS_DESCRIPTION;
 /// Id of the command that returns the impact as the Markdown of `change --markdown`.
 pub const SCANS_IMPACT_MARKDOWN: &str = "scans.impact_markdown";
 /// Title key of `scans.impact_markdown`.

@@ -149,7 +149,7 @@ use rules::{RulesHold, RulesShow};
 use rules_edit::{RulesPreview, RulesSet};
 use scans::{
     ComparePorts, MarkdownPorts, ScanListPorts, ScansCompare, ScansImpact, ScansImpactMarkdown,
-    ScansList,
+    ScansList, ScansMetrics,
 };
 pub(crate) use scope::{
     GetInput as ScopeGetInput, ScopeAnswer, ScopeGet, ScopeSet, SetInput as ScopeSetInput,
@@ -392,6 +392,12 @@ fn register_compare(
     add(
         registry,
         ScansImpact {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(
+        registry,
+        ScansMetrics {
             ports: Arc::clone(&ports),
         },
     )?;
