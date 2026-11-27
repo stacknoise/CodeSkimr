@@ -1,14 +1,16 @@
 //! `impact_of_diff`: what the difference between two scans of the project hits (ADR 0097).
 
 use codeskimr_application::access;
-use codeskimr_application::compare::{ComparisonAnswer, ComparisonRequest};
+use codeskimr_application::compare::{
+    ComparisonAnswer, ComparisonRequest, MetricsAnswer, MetricsWanted, metrics_request,
+};
 use codeskimr_codes::i18n::COMPARE_DIRECT_ONLY_NOTE;
-use codeskimr_domain::{Principal, SnapshotId};
+use codeskimr_domain::{Principal, ProjectId, SnapshotId};
 use serde_json::Value;
 
 use super::{Tools, to_json};
 use crate::args::DiffArgs;
-use crate::consts::READ_TOOL_PERMISSION;
+use crate::consts::{METRICS_KEY, READ_TOOL_PERMISSION};
 use crate::error::McpError;
 
 impl Tools {
@@ -34,9 +36,34 @@ impl Tools {
             target: args.target.map(SnapshotId::new),
             with_impact: true,
         })?;
-        to_json(&ComparisonAnswer::new(
+        let mut answer = to_json(&ComparisonAnswer::new(
             &comparison,
             Some(self.text(COMPARE_DIRECT_ONLY_NOTE)),
-        ))
+        ))?;
+        if args.metrics == Some(true) {
+            let metrics = self.metric_changes(project.id, args)?;
+            if let Some(object) = answer.as_object_mut() {
+                object.insert(METRICS_KEY.to_owned(), metrics);
+            }
+        }
+        Ok(answer)
+    }
+
+    /// The metric changes between the same two scans, as `scans.metrics` answers them (ADR 0114).
+    fn metric_changes(&self, project: ProjectId, args: &DiffArgs) -> Result<Value, McpError> {
+        let request = metrics_request(
+            project,
+            (
+                args.base.map(SnapshotId::new),
+                args.target.map(SnapshotId::new),
+            ),
+            MetricsWanted {
+                level: args.metrics_level.as_deref(),
+                only: &[],
+                include_tests: args.include_tests == Some(true),
+            },
+        )?;
+        let found = self.scan_diffs().compare_metrics(&request)?;
+        to_json(&MetricsAnswer::new(&found))
     }
 }

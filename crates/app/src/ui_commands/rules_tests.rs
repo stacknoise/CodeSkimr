@@ -217,3 +217,18 @@ fn a_broken_old_state_is_replaced_not_read() {
     hold(&fixture, id).unwrap();
     assert_eq!(show(&fixture, id)["new"], 0);
 }
+
+#[test]
+fn a_violation_names_the_symbols_the_explorer_can_open() {
+    let (fixture, id) = with_rules(FORBID);
+    let answer = show(&fixture, id);
+    let broken = &answer["rules"][0];
+    let violation = broken["violations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|violation| violation["to"] == "Demo.Calculator.Add")
+        .unwrap();
+    assert!(violation["from_symbol"]["id"].is_u64(), "{violation}");
+    assert_eq!(violation["to_symbol"]["kind"], "method", "{violation}");
+}

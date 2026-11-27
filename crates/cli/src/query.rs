@@ -5,30 +5,33 @@
 
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use codeskimr_codes::i18n::{
-    CLI_ARG_ASSESSMENT, CLI_ARG_BUDGET, CLI_ARG_COMPARE_BASE, CLI_ARG_COMPARE_PROJECT,
-    CLI_ARG_COMPARE_TARGET, CLI_ARG_DEPTH, CLI_ARG_DIRECTION, CLI_ARG_HOLD, CLI_ARG_INCLUDE_TESTS,
-    CLI_ARG_JSON, CLI_ARG_KIND_FILTER, CLI_ARG_LANGUAGE_FILTER, CLI_ARG_LIMIT, CLI_ARG_MARKDOWN,
-    CLI_ARG_MODULES_DEPTH, CLI_ARG_MODULES_FROM, CLI_ARG_MODULES_TO, CLI_ARG_QUERY_NEW_NAME,
-    CLI_ARG_QUERY_PROJECT, CLI_ARG_QUERY_SYMBOL, CLI_ARG_QUERY_TEXT, CLI_ARG_REASON,
-    CLI_ARG_UNUSED_KIND, CLI_CMD_CHANGE, CLI_CMD_COMPARE, CLI_CMD_CONTEXT, CLI_CMD_IMPACT,
-    CLI_CMD_MODULES, CLI_CMD_PREVIEW_RENAME, CLI_CMD_RULES, CLI_CMD_SCANS, CLI_CMD_SYMBOLS,
-    CLI_CMD_UNUSED, CLI_CMD_USAGES,
+    CLI_ARG_ASSESSMENT, CLI_ARG_BUDGET, CLI_ARG_COMPARE_BASE, CLI_ARG_COMPARE_METRICS,
+    CLI_ARG_COMPARE_PROJECT, CLI_ARG_COMPARE_TARGET, CLI_ARG_DEPTH, CLI_ARG_DIRECTION,
+    CLI_ARG_HOLD, CLI_ARG_INCLUDE_TESTS, CLI_ARG_JSON, CLI_ARG_KIND_FILTER,
+    CLI_ARG_LANGUAGE_FILTER, CLI_ARG_LIMIT, CLI_ARG_MARKDOWN, CLI_ARG_METRICS_BETTER,
+    CLI_ARG_METRICS_LEVEL, CLI_ARG_METRICS_METRIC, CLI_ARG_METRICS_WORSE, CLI_ARG_MODULES_DEPTH,
+    CLI_ARG_MODULES_FROM, CLI_ARG_MODULES_TO, CLI_ARG_QUERY_NEW_NAME, CLI_ARG_QUERY_PROJECT,
+    CLI_ARG_QUERY_SYMBOL, CLI_ARG_QUERY_TEXT, CLI_ARG_REASON, CLI_ARG_UNUSED_KIND, CLI_CMD_CHANGE,
+    CLI_CMD_COMPARE, CLI_CMD_CONTEXT, CLI_CMD_IMPACT, CLI_CMD_MODULES, CLI_CMD_PREVIEW_RENAME,
+    CLI_CMD_RULES, CLI_CMD_SCANS, CLI_CMD_SYMBOLS, CLI_CMD_UNUSED, CLI_CMD_USAGES,
 };
 
 use crate::args::{
-    CompareQuery, ContextQuery, ImpactQuery, ModulesQuery, QueryAction, QueryTarget, RenameQuery,
-    RulesQuery, ScansQuery, SymbolsQuery, UnusedQuery, UsagesQuery,
+    CompareQuery, ContextQuery, ImpactQuery, MetricsOptions, MetricsSide, ModulesQuery,
+    QueryAction, QueryTarget, RenameQuery, RulesQuery, ScansQuery, SymbolsQuery, UnusedQuery,
+    UsagesQuery,
 };
 use crate::consts::{
-    ARG_ASSESSMENT, ARG_BASE, ARG_BUDGET, ARG_DEPTH, ARG_DIRECTION, ARG_HOLD, ARG_INCLUDE_TESTS,
-    ARG_JSON, ARG_KIND, ARG_LANGUAGE, ARG_MARKDOWN, ARG_MODULE_FROM, ARG_MODULE_TO, ARG_PROJECT,
-    ARG_QUERY_NEW_NAME, ARG_QUERY_PROJECT, ARG_QUERY_SYMBOL, ARG_QUERY_TEXT, ARG_REASON, ARG_ROWS,
-    ARG_SCAN_TARGET, ASSESSMENTS, BUDGETS, COMMAND_CHANGE, COMMAND_COMPARE, COMMAND_CONTEXT,
+    ARG_ASSESSMENT, ARG_BASE, ARG_BETTER, ARG_BUDGET, ARG_DEPTH, ARG_DIRECTION, ARG_HOLD,
+    ARG_INCLUDE_TESTS, ARG_JSON, ARG_KIND, ARG_LANGUAGE, ARG_LEVEL, ARG_MARKDOWN, ARG_METRIC,
+    ARG_METRICS, ARG_MODULE_FROM, ARG_MODULE_TO, ARG_PROJECT, ARG_QUERY_NEW_NAME,
+    ARG_QUERY_PROJECT, ARG_QUERY_SYMBOL, ARG_QUERY_TEXT, ARG_REASON, ARG_ROWS, ARG_SCAN_TARGET,
+    ARG_WORSE, ASSESSMENTS, BUDGETS, COMMAND_CHANGE, COMMAND_COMPARE, COMMAND_CONTEXT,
     COMMAND_IMPACT, COMMAND_MODULES, COMMAND_PREVIEW_RENAME, COMMAND_RULES, COMMAND_SCANS,
-    COMMAND_SYMBOLS, COMMAND_UNUSED, COMMAND_USAGES, DIRECTIONS, REASONS, UNUSED_KINDS,
-    VALUE_ASSESSMENT, VALUE_BUDGET, VALUE_DIRECTION, VALUE_KIND, VALUE_LANGUAGE, VALUE_MODULE,
-    VALUE_QUERY_NEW_NAME, VALUE_QUERY_PROJECT, VALUE_QUERY_SYMBOL, VALUE_QUERY_TEXT, VALUE_REASON,
-    VALUE_ROWS, VALUE_SNAPSHOT,
+    COMMAND_SYMBOLS, COMMAND_UNUSED, COMMAND_USAGES, DIRECTIONS, METRIC_LIST_DELIMITER, REASONS,
+    UNUSED_KINDS, VALUE_ASSESSMENT, VALUE_BUDGET, VALUE_DIRECTION, VALUE_KIND, VALUE_LANGUAGE,
+    VALUE_LEVEL, VALUE_METRICS, VALUE_MODULE, VALUE_QUERY_NEW_NAME, VALUE_QUERY_PROJECT,
+    VALUE_QUERY_SYMBOL, VALUE_QUERY_TEXT, VALUE_REASON, VALUE_ROWS, VALUE_SNAPSHOT,
 };
 use crate::error::CliError;
 
@@ -266,12 +269,50 @@ fn two_scans(command: Command, say: Say<'_>) -> Result<Command, CliError> {
         .arg(scan_id(ARG_SCAN_TARGET, say(CLI_ARG_COMPARE_TARGET)?)))
 }
 
+/// The options of `compare --metrics`; all but the flag itself need it.
+fn metrics_options(command: Command, say: Say<'_>) -> Result<Command, CliError> {
+    let flag = |name: &'static str, help: &str| {
+        Arg::new(name)
+            .long(name)
+            .action(ArgAction::SetTrue)
+            .help(help.to_owned())
+    };
+    let needs_metrics = |arg: Arg| arg.requires(ARG_METRICS);
+    Ok(command
+        .arg(flag(ARG_METRICS, &say(CLI_ARG_COMPARE_METRICS)?))
+        .arg(
+            needs_metrics(flag(ARG_WORSE, &say(CLI_ARG_METRICS_WORSE)?)).conflicts_with(ARG_BETTER),
+        )
+        .arg(needs_metrics(flag(
+            ARG_BETTER,
+            &say(CLI_ARG_METRICS_BETTER)?,
+        )))
+        .arg(needs_metrics(
+            Arg::new(ARG_METRIC)
+                .long(ARG_METRIC)
+                .value_name(VALUE_METRICS)
+                .action(ArgAction::Append)
+                .value_delimiter(METRIC_LIST_DELIMITER)
+                .help(say(CLI_ARG_METRICS_METRIC)?),
+        ))
+        .arg(needs_metrics(
+            Arg::new(ARG_LEVEL)
+                .long(ARG_LEVEL)
+                .value_name(VALUE_LEVEL)
+                .help(say(CLI_ARG_METRICS_LEVEL)?),
+        ))
+        .arg(needs_metrics(flag(
+            ARG_INCLUDE_TESTS,
+            &say(CLI_ARG_INCLUDE_TESTS)?,
+        ))))
+}
+
 fn compare_command(say: Say<'_>) -> Result<Command, CliError> {
     let command = two_scans(
         Command::new(COMMAND_COMPARE).about(say(CLI_CMD_COMPARE)?),
         say,
     )?;
-    project_and_output(command, say, false)
+    metrics_options(project_and_output(command, say, false)?, say)
 }
 
 fn change_command(say: Say<'_>) -> Result<Command, CliError> {
@@ -362,8 +403,35 @@ fn rename_action(matches: &ArgMatches) -> QueryAction {
     })
 }
 
+/// The flag `name` of a command that may not have it.
+fn flag(matches: &ArgMatches, name: &str) -> bool {
+    matches.try_get_one::<bool>(name).ok().flatten().copied() == Some(true)
+}
+
+/// The options of `compare --metrics`, `None` without the flag.
+fn metrics_query(matches: &ArgMatches) -> Option<MetricsOptions> {
+    if !flag(matches, ARG_METRICS) {
+        return None;
+    }
+    let side = match (flag(matches, ARG_WORSE), flag(matches, ARG_BETTER)) {
+        (true, _) => MetricsSide::Worse,
+        (_, true) => MetricsSide::Better,
+        _ => MetricsSide::Both,
+    };
+    Some(MetricsOptions {
+        side,
+        only: matches
+            .get_many::<String>(ARG_METRIC)
+            .map(|values| values.cloned().collect())
+            .unwrap_or_default(),
+        level: matches.get_one::<String>(ARG_LEVEL).cloned(),
+        include_tests: flag(matches, ARG_INCLUDE_TESTS),
+    })
+}
+
 fn compare_query(matches: &ArgMatches) -> CompareQuery {
     CompareQuery {
+        metrics: metrics_query(matches),
         base: matches.get_one::<u64>(ARG_BASE).copied(),
         newer: matches.get_one::<u64>(ARG_SCAN_TARGET).copied(),
         markdown: matches

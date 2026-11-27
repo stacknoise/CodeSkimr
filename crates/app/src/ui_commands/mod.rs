@@ -55,6 +55,7 @@ mod rules;
 mod rules_edit;
 #[cfg(test)]
 mod rules_edit_tests;
+mod rules_symbols;
 #[cfg(test)]
 mod rules_tests;
 mod scans;
@@ -153,7 +154,7 @@ use rules::{RulesHold, RulesShow};
 use rules_edit::{RulesPreview, RulesSet};
 use scans::{
     ComparePorts, MarkdownPorts, ScanListPorts, ScansCompare, ScansImpact, ScansImpactMarkdown,
-    ScansList,
+    ScansList, ScansMetrics,
 };
 pub(crate) use scope::{
     GetInput as ScopeGetInput, ScopeAnswer, ScopeGet, ScopeSet, SetInput as ScopeSetInput,
@@ -412,6 +413,12 @@ fn register_compare(
     )?;
     add(
         registry,
+        ScansMetrics {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(
+        registry,
         ScansImpactMarkdown {
             ports: Arc::new(MarkdownPorts {
                 compare: ports,
@@ -608,6 +615,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<StatsRanking>()?;
     api.expose::<ScansList>()?;
     api.expose::<ScansCompare>()?;
+    api.expose::<ScansMetrics>()?;
     api.expose::<ScansImpact>()?;
     api.expose::<ScansImpactMarkdown>()?;
     api.expose::<GetPreferences>()?;
