@@ -105,6 +105,16 @@ export interface ScanEntry {
   duration_ms: number | null;
   /** Files the scan changed against the one before; `null` for the first scan and for old ones. */
   files_changed: number | null;
+  /** How long each step of writing the snapshot took, in the order of the write; empty for a scan
+   * that wrote nothing and for one stored before the times were kept. */
+  steps: StepTime[];
+}
+
+/** The time one step of writing a snapshot took. */
+export interface StepTime {
+  /** Label of the step (`PersistStep` in crates/application). */
+  step: string;
+  duration_ms: number;
 }
 
 /** The output of `scans.list`. */

@@ -1303,6 +1303,7 @@ fn scan_entry(id: u64) -> codeskimr_application::ports::ScanEntry {
         symbols: 9,
         duration_ms: Some(120),
         files_changed: Some(1),
+        steps: Vec::new(),
     }
 }
 

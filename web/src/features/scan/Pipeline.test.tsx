@@ -1,6 +1,7 @@
 import { render, screen } from "@solidjs/testing-library";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setLanguage } from "../../shared/i18n/i18n";
+import { answer, serve, useServerSession } from "../../tests/commands";
 import { Pipeline } from "./Pipeline";
 import { applyEvent } from "./run";
 import type { Run, WireEvent } from "./types";
@@ -47,5 +48,60 @@ describe("Pipeline while the snapshot is written", () => {
     );
     render(() => <Pipeline run={run[0]} />);
     expect(screen.getByText("SQLite, Suchindex")).toBeTruthy();
+  });
+});
+
+describe("Pipeline after the scan", () => {
+  useServerSession();
+
+  beforeEach(() => {
+    setLanguage("en");
+  });
+
+  it("lists the time of each step of saving under the stages once the scan is over", async () => {
+    serve({
+      "scans.list": () =>
+        answer({
+          keep: 5,
+          average_ms: null,
+          scans: [
+            {
+              snapshot: 5,
+              scan: 5,
+              created: 1,
+              commit: null,
+              mode: "full",
+              files: 1,
+              symbols: 1,
+              duration_ms: 900,
+              files_changed: 1,
+              steps: [
+                { step: "references", duration_ms: 400 },
+                { step: "reference_indexes", duration_ms: 1500 },
+              ],
+            },
+          ],
+        }),
+    });
+    const events: WireEvent[] = [
+      { type: "scan_progressed", project: 1, stage: "persist", done: 1, total: 1 },
+      { type: "snapshot_created", project: 1, snapshot: 5 },
+    ];
+    const run = events.reduce<Run[]>((runs, event) => applyEvent(runs, event, STARTED), []);
+    render(() => <Pipeline run={run[0]} />);
+    expect(await screen.findByText("Time per step of saving")).toBeTruthy();
+    expect(screen.getByText("Build reference indexes")).toBeTruthy();
+    expect(screen.getByText("1.9 s")).toBeTruthy();
+  });
+
+  it("offers no list for a scan that found nothing changed", () => {
+    serve({ "scans.list": () => answer({ keep: 5, average_ms: null, scans: [] }) });
+    const events: WireEvent[] = [
+      { type: "scan_progressed", project: 1, stage: "persist", done: 1, total: 1 },
+      { type: "snapshot_created", project: 1, snapshot: 5, unchanged: true },
+    ];
+    const run = events.reduce<Run[]>((runs, event) => applyEvent(runs, event, STARTED), []);
+    render(() => <Pipeline run={run[0]} />);
+    expect(screen.queryByText("Time per step of saving")).toBeNull();
   });
 });

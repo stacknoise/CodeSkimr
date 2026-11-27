@@ -539,3 +539,28 @@ fn the_text_of_modules_says_when_there_are_none() {
     let text = query_text(&messages, "en", QueryKind::Modules, (&none, None)).unwrap();
     assert_eq!(text, "No modules found.");
 }
+
+#[test]
+fn the_scan_list_names_how_long_each_step_of_saving_took() {
+    let answer = json!({
+        "keep": 5, "average_ms": 900,
+        "scans": [{
+            "snapshot": 3, "created": 1_700_000_000, "mode": "full", "files": 4,
+            "files_changed": 4, "duration_ms": 900, "commit": null,
+            "steps": [
+                {"step": "references", "duration_ms": 120},
+                {"step": "reference_indexes", "duration_ms": 640}
+            ]
+        }, {
+            "snapshot": 3, "created": 1_700_000_100, "mode": "incremental", "files": 4,
+            "files_changed": 0, "duration_ms": 10, "commit": null, "steps": []
+        }],
+    });
+    let messages = Messages::load().unwrap();
+    let text = query_text(&messages, "en", QueryKind::Scans, (&answer, None)).unwrap();
+    assert!(
+        text.contains("Saving took: references 120 ms, reference_indexes 640 ms"),
+        "{text}"
+    );
+    assert_eq!(text.matches("Saving took").count(), 1, "{text}");
+}

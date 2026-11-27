@@ -77,6 +77,15 @@ pub const SCAN_HISTORY: &str = "SELECT l.id, l.snapshot_id, l.commit_hash, l.cre
     s.files, s.symbols, s.refs, l.duration_ms, l.files_changed FROM scan_log l \
     JOIN snapshots s ON s.id = l.snapshot_id WHERE s.project_id = ?1 AND NOT EXISTS \
     (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1) ORDER BY l.id DESC";
+/// The times of the steps of the scans of a project: project id.
+pub const SCAN_STEPS: &str = "SELECT t.scan_id, t.step, t.duration_ms FROM scan_steps t \
+    JOIN scan_log l ON l.id = t.scan_id JOIN snapshots s ON s.id = l.snapshot_id \
+    WHERE s.project_id = ?1";
+/// Stores the time of one step of the write of a scan: scan id, step label, milliseconds.
+pub const SCAN_STEP_INSERT: &str =
+    "INSERT OR REPLACE INTO scan_steps (scan_id, step, duration_ms) VALUES (?1, ?2, ?3)";
+/// The scan that wrote a snapshot (its oldest row): snapshot id.
+pub const SCAN_LOG_WRITER: &str = "SELECT MIN(id) FROM scan_log WHERE snapshot_id = ?1";
 /// Records a scan: snapshot id, time, commit, mode, duration in milliseconds, changed files.
 pub const SCAN_LOG_INSERT: &str = "INSERT INTO scan_log (snapshot_id, created, commit_hash, mode, \
     duration_ms, files_changed) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";

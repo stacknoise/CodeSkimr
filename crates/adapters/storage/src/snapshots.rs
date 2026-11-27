@@ -4,13 +4,15 @@ use std::collections::HashMap;
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    Confirmation, Confirmed, Level2Replacement, SnapshotData, SnapshotStore, SymbolFingerprints,
+    Confirmation, Confirmed, Level2Replacement, SnapshotData, SnapshotStore, StepTime,
+    SymbolFingerprints,
 };
 use codeskimr_application::stage::PersistStep;
 use codeskimr_domain::{
     CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats, SourceFile,
     SymbolId,
 };
+use std::cell::RefCell;
 use std::time::{Duration, Instant};
 
 use rusqlite::{Connection, params};
@@ -46,12 +48,13 @@ impl SnapshotStore for ProjectDb {
     ) -> Result<Snapshot, CodedError> {
         let started = Instant::now();
         let mut inside = Duration::ZERO;
+        let clock = StepClock::new(step);
         let stored = self
             .write(|tx| {
-                let stored = write_snapshot(tx, &data, self.retention().get(), step)?;
+                let stored = write_snapshot(tx, &data, self.retention().get(), &clock)?;
                 self.forget_builds();
                 inside = started.elapsed();
-                step(PersistStep::Commit);
+                clock.begin(PersistStep::Commit);
                 Ok(stored)
             })
             .map_err(CodedError::from)?;
@@ -64,6 +67,9 @@ impl SnapshotStore for ProjectDb {
             step = PersistStep::Commit.label(),
             elapsed_ms
         );
+        // The commit is over only now, so its time is stored with the scan afterwards.
+        self.write(|tx| crate::scan_log::record_commit(tx, stored.id, elapsed_ms))
+            .map_err(CodedError::from)?;
         Ok(stored)
     }
 
@@ -119,7 +125,7 @@ pub(crate) fn write_snapshot(
     conn: &Connection,
     data: &SnapshotData,
     keep: u32,
-    steps: &dyn Fn(PersistStep),
+    clock: &StepClock<'_>,
 ) -> StorageResult<Snapshot> {
     let header = &data.snapshot;
     let project = column_int(header.project.get())?;
@@ -129,23 +135,23 @@ pub(crate) fn write_snapshot(
     }
     conn.pragma_update(None, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON)?;
     let _cache = LoadCache::raise(conn, data.references.len())?;
-    timed(PersistStep::Header, steps, || insert_header(conn, header))?;
-    let pruned = timed(PersistStep::PruneBeforeLoad, steps, || {
+    timed(PersistStep::Header, clock, || insert_header(conn, header))?;
+    let pruned = timed(PersistStep::PruneBeforeLoad, clock, || {
         prune_before_load(conn, data, keep)
     })?;
-    timed(PersistStep::Facts, steps, || {
-        insert_facts(conn, data, pruned, steps)
+    timed(PersistStep::Facts, clock, || {
+        insert_facts(conn, data, pruned, clock)
     })?;
-    timed(PersistStep::Details, steps, || insert_details(conn, data))?;
-    timed(PersistStep::Integrity, steps, || {
+    timed(PersistStep::Details, clock, || insert_details(conn, data))?;
+    timed(PersistStep::Integrity, clock, || {
         integrity::check(conn, data)
     })?;
-    let stats = timed(PersistStep::ReadModels, steps, || {
+    let stats = timed(PersistStep::ReadModels, clock, || {
         finish_read_models(conn, data)
     })?;
-    timed(PersistStep::Prune, steps, || prune(conn, project, keep))?;
+    timed(PersistStep::Prune, clock, || prune(conn, project, keep))?;
     record_scan(conn, data)?;
-    crate::scan_log::record_written(conn, data)?;
+    crate::scan_log::record_written(conn, data, &clock.times())?;
     Ok(Snapshot {
         stats,
         ..header.clone()
@@ -227,18 +233,49 @@ fn insert_details(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
     Ok(())
 }
 
-/// Tells `steps` that `step` of the write begins, runs it and logs how long it took
+/// Tells the caller that a step of the write begins and keeps how long each step took, so that
+/// the times can be stored with the scan.
+pub(crate) struct StepClock<'a> {
+    report: &'a dyn Fn(PersistStep),
+    times: RefCell<Vec<StepTime>>,
+}
+
+impl<'a> StepClock<'a> {
+    /// A clock that tells `report` about each step.
+    pub(crate) fn new(report: &'a dyn Fn(PersistStep)) -> Self {
+        Self {
+            report,
+            times: RefCell::new(Vec::new()),
+        }
+    }
+
+    /// Tells the caller that `step` begins.
+    pub(crate) fn begin(&self, step: PersistStep) {
+        (self.report)(step);
+    }
+
+    /// The times of the steps that are over, in the order they ended.
+    pub(crate) fn times(&self) -> Vec<StepTime> {
+        self.times.borrow().clone()
+    }
+}
+
+/// Tells `clock` that `step` of the write begins, runs it, keeps how long it took and logs it
 /// (`CODESKIMR_LOG=info`), so that the slow step of a large write can be found on real data.
 fn timed<T>(
     step: PersistStep,
-    steps: &dyn Fn(PersistStep),
+    clock: &StepClock<'_>,
     run: impl FnOnce() -> StorageResult<T>,
 ) -> StorageResult<T> {
-    steps(step);
+    clock.begin(step);
     let started = Instant::now();
     let result = run();
     let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
     tracing::info!(event = LOG_PERSIST_STEP, step = step.label(), elapsed_ms);
+    clock.times.borrow_mut().push(StepTime {
+        step,
+        duration_ms: elapsed_ms,
+    });
     result
 }
 
@@ -331,7 +368,7 @@ fn insert_facts(
     conn: &Connection,
     data: &SnapshotData,
     indexes_dropped: bool,
-    steps: &dyn Fn(PersistStep),
+    clock: &StepClock<'_>,
 ) -> StorageResult<()> {
     let snapshot = column_int(data.snapshot.id.get())?;
     for file in &data.files {
@@ -346,18 +383,18 @@ fn insert_facts(
         insert_symbol(conn, symbol, hashes.get(&symbol.id).copied())?;
     }
     let bulk = indexes_dropped || bulk_load_starts(conn, data.references.len())?;
-    timed(PersistStep::References, steps, || {
+    timed(PersistStep::References, clock, || {
         insert_references(conn, data, snapshot)
     })?;
     if bulk {
-        timed(PersistStep::ReferenceIndexes, steps, || {
+        timed(PersistStep::ReferenceIndexes, clock, || {
             with_sort_cache(conn, || create_reference_indexes(conn))
         })?;
     }
     for metric in &data.metrics {
         insert_metric(conn, snapshot, metric)?;
     }
-    timed(PersistStep::Fingerprints, steps, || {
+    timed(PersistStep::Fingerprints, clock, || {
         insert_fingerprints(conn, &data.fingerprints)
     })?;
     pending::insert_all(conn, &data.pending)?;

@@ -28,6 +28,7 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0024_project_scope.sql"),
     include_str!("../migrations/0025_scan_history.sql"),
     include_str!("../migrations/0026_scan_log.sql"),
+    include_str!("../migrations/0027_scan_steps.sql"),
 ];
 
 /// Files changed by a scan that found nothing changed (ADR 0093).

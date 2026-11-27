@@ -14,7 +14,8 @@ use codeskimr_codes::i18n::{
     COMPARE_CRITICAL, COMPARE_CRITICAL_LINE, COMPARE_CUT, COMPARE_CYCLES, COMPARE_DIRECT_ONLY_NOTE,
     COMPARE_DURATION, COMPARE_EDGE_LINE, COMPARE_HEAD, COMPARE_MOVED, COMPARE_MOVED_LINE,
     COMPARE_NARROWED, COMPARE_REMOVED, COMPARE_SCANS_HEAD, COMPARE_SCANS_LINE, COMPARE_SCANS_NONE,
-    COMPARE_SYMBOL_LINE, COMPARE_UNKNOWN, COMPARE_VIOLATIONS,
+    COMPARE_SCANS_STEP, COMPARE_SCANS_STEPS, COMPARE_SYMBOL_LINE, COMPARE_UNKNOWN,
+    COMPARE_VIOLATIONS,
 };
 use codeskimr_i18n::{FluentValue, I18nError, Messages};
 use serde_json::Value;
@@ -149,8 +150,35 @@ pub(crate) fn scans_lines(speak: &Speaker<'_>, answer: &Value) -> Result<Vec<Str
     let mut lines = vec![speak.say(COMPARE_SCANS_HEAD, &head)?];
     for scan in scans {
         lines.push([LIST_INDENT, scan_line(speak, scan)?.as_str()].concat());
+        if let Some(steps) = steps_line(speak, scan)? {
+            lines.push([LIST_INDENT, LIST_INDENT, steps.as_str()].concat());
+        }
     }
     Ok(lines)
+}
+
+/// The times of the steps of writing the snapshot of `scan`; `None` for a scan without them.
+fn steps_line(speak: &Speaker<'_>, scan: &Value) -> Result<Option<String>, I18nError> {
+    let times = entries(scan, field_name::STEPS);
+    if times.is_empty() {
+        return Ok(None);
+    }
+    let parts = times
+        .iter()
+        .map(|time| {
+            speak.say(
+                COMPARE_SCANS_STEP,
+                &[
+                    (name::STEP, text(field(time, field_name::STEP))),
+                    (name::MS, count(time, field_name::DURATION)),
+                ],
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let joined = parts.join(REASON_SEPARATOR);
+    speak
+        .say(COMPARE_SCANS_STEPS, &[(name::STEPS, text(joined))])
+        .map(Some)
 }
 
 /// A line about a symbol: kind, name and one more field (`last`: argument name, field name).

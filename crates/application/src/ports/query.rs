@@ -9,6 +9,7 @@ use codeskimr_domain::{
 
 use crate::error::CodedError;
 use crate::ports::SymbolLabel;
+use crate::stage::PersistStep;
 
 /// One result of a name search.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -109,6 +110,18 @@ pub struct ScanEntry {
     /// Files the scan changed against the previous snapshot, `0` for a scan that found nothing
     /// changed; `None` for the first scan and for a scan stored before it was kept.
     pub files_changed: Option<u32>,
+    /// How long each step of writing the snapshot took, in the order of the write; empty for a
+    /// scan that wrote nothing and for a scan stored before the times were kept.
+    pub steps: Vec<StepTime>,
+}
+
+/// The time one step of writing a snapshot took.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StepTime {
+    /// The step.
+    pub step: PersistStep,
+    /// Wall time of the step in milliseconds.
+    pub duration_ms: u64,
 }
 
 /// Queries on the newest snapshots.

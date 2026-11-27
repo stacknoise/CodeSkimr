@@ -4,7 +4,10 @@
 //! go with their snapshot (`ON DELETE CASCADE`), and a snapshot keeps at most the newest
 //! `snapshots.retention_count` rows besides the one of the scan that wrote it.
 
-use codeskimr_application::ports::{Confirmation, ScanEntry, SnapshotData};
+use std::collections::HashMap;
+
+use codeskimr_application::ports::{Confirmation, ScanEntry, SnapshotData, StepTime};
+use codeskimr_application::stage::PersistStep;
 use codeskimr_domain::{CommitHash, ProjectId, ScanMode, SnapshotId, Timestamp};
 use rusqlite::{Connection, params};
 use std::time::Instant;
@@ -29,7 +32,8 @@ struct Logged<'a> {
     files_changed: Option<u32>,
 }
 
-fn insert(conn: &Connection, scan: &Logged<'_>) -> StorageResult<()> {
+/// Inserts the row of `scan` and returns its id.
+fn insert(conn: &Connection, scan: &Logged<'_>) -> StorageResult<i64> {
     conn.prepare_cached(sql::SCAN_LOG_INSERT)?.execute(params![
         column_int(scan.snapshot.get())?,
         scan.created.0,
@@ -38,13 +42,17 @@ fn insert(conn: &Connection, scan: &Logged<'_>) -> StorageResult<()> {
         scan.began.map(elapsed_ms),
         scan.files_changed.map(i64::from),
     ])?;
-    Ok(())
+    Ok(conn.last_insert_rowid())
 }
 
-/// Logs the scan that wrote the snapshot of `data`.
-pub(crate) fn record_written(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
+/// Logs the scan that wrote the snapshot of `data`, with the times of the steps of the write.
+pub(crate) fn record_written(
+    conn: &Connection,
+    data: &SnapshotData,
+    steps: &[StepTime],
+) -> StorageResult<()> {
     let header = &data.snapshot;
-    insert(
+    let scan = insert(
         conn,
         &Logged {
             snapshot: header.id,
@@ -53,6 +61,42 @@ pub(crate) fn record_written(conn: &Connection, data: &SnapshotData) -> StorageR
             mode: header.mode,
             began: data.began,
             files_changed: data.files_changed,
+        },
+    )?;
+    for time in steps {
+        insert_step(conn, scan, time)?;
+    }
+    Ok(())
+}
+
+fn insert_step(conn: &Connection, scan: i64, time: &StepTime) -> StorageResult<()> {
+    conn.prepare_cached(sql::SCAN_STEP_INSERT)?
+        .execute(params![
+            scan,
+            time.step.label(),
+            column_int(time.duration_ms)?,
+        ])?;
+    Ok(())
+}
+
+/// Stores the time of the commit with the scan that wrote `snapshot`: the commit ends after the
+/// transaction that holds the other steps, so its time is known only afterwards.
+pub(crate) fn record_commit(
+    conn: &Connection,
+    snapshot: SnapshotId,
+    duration_ms: u64,
+) -> StorageResult<()> {
+    let scan: i64 = conn.query_row(
+        sql::SCAN_LOG_WRITER,
+        params![column_int(snapshot.get())?],
+        |row| row.get(0),
+    )?;
+    insert_step(
+        conn,
+        scan,
+        &StepTime {
+            step: PersistStep::Commit,
+            duration_ms,
         },
     )
 }
@@ -96,7 +140,42 @@ pub(crate) fn history(conn: &Connection, project: ProjectId) -> StorageResult<Ve
             timing: (cols.take()?, cols.take()?),
         })
     })?;
-    rows.map(|row| entry(row?)).collect()
+    let stored = rows.collect::<Result<Vec<_>, _>>()?;
+    let mut steps = steps_of(conn, project)?;
+    stored
+        .into_iter()
+        .map(|row| {
+            let times = steps.remove(&row.scan).unwrap_or_default();
+            entry(row, times)
+        })
+        .collect()
+}
+
+/// The times of the steps of the scans of `project`, by scan, each list in the order of the write.
+fn steps_of(conn: &Connection, project: ProjectId) -> StorageResult<HashMap<i64, Vec<StepTime>>> {
+    let mut statement = conn.prepare_cached(sql::SCAN_STEPS)?;
+    let rows = statement.query_map(params![column_int(project.get())?], |row| {
+        Ok((
+            row.get::<_, i64>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, i64>(2)?,
+        ))
+    })?;
+    let mut by_scan: HashMap<i64, Vec<StepTime>> = HashMap::new();
+    for row in rows {
+        let (scan, label, millis) = row?;
+        // A step that this version does not know came from a newer one; it is left out.
+        if let Some(step) = PersistStep::ALL.iter().find(|step| step.label() == label) {
+            by_scan.entry(scan).or_default().push(StepTime {
+                step: *step,
+                duration_ms: id_from(millis)?,
+            });
+        }
+    }
+    for times in by_scan.values_mut() {
+        times.sort_by_key(|time| time.step);
+    }
+    Ok(by_scan)
 }
 
 /// A row of the history as stored.
@@ -112,7 +191,7 @@ struct Stored {
     timing: (Option<i64>, Option<i64>),
 }
 
-fn entry(row: Stored) -> StorageResult<ScanEntry> {
+fn entry(row: Stored, steps: Vec<StepTime>) -> StorageResult<ScanEntry> {
     Ok(ScanEntry {
         scan: id_from(row.scan)?,
         snapshot: SnapshotId::new(id_from(row.snapshot)?),
@@ -123,5 +202,6 @@ fn entry(row: Stored) -> StorageResult<ScanEntry> {
         symbols: small_from(row.totals.1)?,
         duration_ms: row.timing.0.map(id_from).transpose()?,
         files_changed: row.timing.1.map(small_from).transpose()?,
+        steps,
     })
 }
