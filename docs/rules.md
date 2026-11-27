@@ -20,6 +20,8 @@ A prefix equals a name or lies above it up to a separator (`.` or `::`), the sam
 
 A violation is the symbol that refers and the symbol it must not reach, with every place of the reference. Its identity is the rule and the two names, never the line.
 
+On the screen both names are buttons that show the symbol in the explorer (a type or member where the quick search would show it, a namespace as its row of the tree); a ring has a button "Show in the explorer" for the end of its weakest edge. `rules.show` names the symbols (`from_symbol`, `to_symbol`: id and kind) of the newest scan; a name that scan does not know is shown as a button that is off, with the reason. The screen of the convention check follows with the same jump.
+
 ## The cycle rule
 
 `cycles = "deny"` makes every ring of modules a violation (ADR 0105). A module is a node of the namespace graph of the scan, not collapsed; the detection is `find_cycles` of the module graph (ADR 0108). The rule is the first one in every answer, with the id `cycles`, and it is judged on the certain references only, like the others.

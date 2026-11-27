@@ -1,7 +1,9 @@
 import { createSignal, For, type JSX, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { activeProject } from "../../shared/project/active";
 import { showModuleInGraph } from "../graph/show";
+import { showInExplorer } from "./jump";
 import {
   ARROW,
   INTERNAL_JOIN,
@@ -17,7 +19,7 @@ import {
   VISIBLE_PLACES,
   VISIBLE_VIOLATIONS,
 } from "./consts";
-import type { PlaceOut, RingOut, RuleOut, ViolationOut } from "./types";
+import type { PlaceOut, RingOut, RuleOut, SymbolRef, ViolationOut } from "./types";
 import styles from "./RulesScreen.module.css";
 
 /** `path:line` of a place, as an editor takes it. */
@@ -40,11 +42,53 @@ function Age(props: { old: boolean }) {
   );
 }
 
+/** A name of a violation. It opens the symbol in the explorer; a name the last scan does not know
+ * is a button that is off, with the reason. */
+function SymbolLink(props: { name: string; symbol: SymbolRef | null }) {
+  const project = () => activeProject();
+  return (
+    <Show when={props.symbol && project() !== null} fallback={<GoneName name={props.name} />}>
+      <button
+        type="button"
+        class={styles.link}
+        title={t(I18N_KEYS.RULES_SYMBOL_EXPLORER, { name: props.name })}
+        onClick={() =>
+          void showInExplorer(project() as number, props.name, props.symbol as SymbolRef)
+        }
+      >
+        {props.name}
+      </button>
+    </Show>
+  );
+}
+
+/** A name that the explorer cannot show: off, with the reason as its tooltip. */
+function GoneName(props: { name: string }) {
+  return (
+    <button type="button" class={styles.link} disabled title={t(I18N_KEYS.RULES_SYMBOL_GONE)}>
+      {props.name}
+    </button>
+  );
+}
+
 /** One cycle: the way round the ring, its size, the weakest edge and where to cut it. */
 function CycleRow(props: { violation: ViolationOut; ring: RingOut }) {
   return (
     <li class={styles.violation}>
       <span class={styles.symbol}>{props.ring.chain.join(` ${ARROW} `)}</span>
+      <Show when={props.violation.from_symbol}>
+        {(symbol) => (
+          <button
+            type="button"
+            class={styles.show}
+            onClick={() =>
+              void showInExplorer(activeProject() as number, props.violation.from, symbol())
+            }
+          >
+            {t(I18N_KEYS.RULES_RING_EXPLORER)}
+          </button>
+        )}
+      </Show>
       <span class={styles.advice}>
         {t(I18N_KEYS.RULES_RING_ADVICE, {
           edges: props.ring.resolution_edges,
@@ -76,11 +120,11 @@ function ViolationRow(props: { violation: ViolationOut }) {
 function ReferenceRow(props: { violation: ViolationOut }) {
   return (
     <li class={styles.violation}>
-      <span class={styles.symbol}>{props.violation.from}</span>
+      <SymbolLink name={props.violation.from} symbol={props.violation.from_symbol} />
       <span class={styles.arrow} aria-hidden="true">
         {ARROW}
       </span>
-      <span class={styles.symbol}>{props.violation.to}</span>
+      <SymbolLink name={props.violation.to} symbol={props.violation.to_symbol} />
       <span class={styles.count}>
         {t(I18N_KEYS.RULES_PLACES, { count: props.violation.places.length })}
       </span>

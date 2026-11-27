@@ -4,6 +4,7 @@ import { graphLevel, wantedLayer } from "../graph/graph";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, useServerSession } from "../../tests/commands";
+import { pendingFocus } from "../../shared/navigation/navigation";
 import { resetRules } from "./rules";
 import { RulesScreen } from "./RulesScreen";
 import type { RulesOut, ViolationOut } from "./types";
@@ -27,6 +28,8 @@ function violation(index: number, old: boolean): ViolationOut {
       { path: `Reports/Job${index}.cs`, line: 40, column: 9 },
     ],
     ring: null,
+    from_symbol: { id: 100 + index, kind: "class" },
+    to_symbol: null,
   };
 }
 
@@ -101,6 +104,16 @@ describe("RulesScreen", () => {
     expect(screen.getByText("Only through the public interface")).toBeInTheDocument();
     expect(screen.getAllByText("kept")).toHaveLength(2);
     expect(screen.getByText("Shop.Data.Internal.* only within Shop.Data")).toBeInTheDocument();
+  });
+
+  it("opens the referring symbol in the explorer and switches off a name the scan does not know", async () => {
+    serve();
+    render(() => <RulesScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Shop.Reports.Job1.Run" }));
+    expect(pendingFocus()).toEqual({ type: 101, member: null, kind: null });
+    const gone = screen.getAllByRole("button", { name: "Shop.Checkout.Cart.Total" })[0];
+    expect(gone).toBeDisabled();
+    expect(gone).toHaveAttribute("title", expect.stringContaining("Scan again"));
   });
 
   it("shows the layer rule first, says what each layer may use and gives it no new-kind badge", async () => {
@@ -233,6 +246,8 @@ describe("RulesScreen", () => {
                 weakest_count: 1,
                 resolution_edges: 1,
               },
+              from_symbol: { id: 7, kind: "namespace" },
+              to_symbol: null,
             },
           ],
         },
