@@ -74,8 +74,8 @@ fn module_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> 
     speak.say(CLI_QUERY_MODULES_LINE, &numbers)
 }
 
-fn edge_arguments(edge: &Value) -> [(&'static str, FluentValue<'static>); 3] {
-    [
+fn edge_arguments(edge: &Value) -> Vec<(&'static str, FluentValue<'static>)> {
+    vec![
         (arg::FROM, text(field(edge, key::FROM))),
         (arg::TO, text(field(edge, key::TO))),
         (arg::COUNT, count(edge, key::COUNT)),
@@ -103,7 +103,7 @@ fn cycle_lines(speak: &Speaker<'_>, ring: &Value) -> Result<Vec<String>, I18nErr
 
 fn violation_line(speak: &Speaker<'_>, found: &Value) -> Result<String, I18nError> {
     let edge = child(found, key::EDGE);
-    let mut named = edge_arguments(&edge).to_vec();
+    let mut named = edge_arguments(&edge);
     named.push((arg::FROM_LAYER, text(field(found, key::FROM_LAYER))));
     named.push((arg::TO_LAYER, text(field(found, key::TO_LAYER))));
     speak.say(CLI_QUERY_MODULES_VIOLATION, &named)
