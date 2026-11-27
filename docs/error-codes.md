@@ -19,6 +19,8 @@ Owner: `codeskimr`
 | APP-603 | `tray_start_failed` | error | yes | 0.1.0 | The program could not start itself in the background or show its tray icon. |
 | APP-604 | `confirm_window_failed` | error | yes | 0.9.0 | The console window for the level 2 confirmation could not be started; the screen shows the command instead. |
 | APP-605 | `project_file_open_failed` | error | yes | 1.2.0 | The system did not start a program for the project file. |
+| APP-606 | `log_folder_open_failed` | error | yes | 1.2.0 | The system did not open the folder of the log files. |
+| APP-607 | `log_file_unavailable` | error | yes | 1.2.0 | The log file does not exist, cannot be read or cannot be emptied. |
 
 ## CFG – Configuration
 

@@ -533,3 +533,34 @@ pub const RENAME_PREVIEW_LIMIT: usize = 500;
 /// The bits of a Unix file mode that make a file executable (owner, group, other).
 #[cfg(unix)]
 pub(super) const EXECUTE_BITS: u32 = 0o111;
+
+/// Id of the command `log.status`.
+pub const LOG_STATUS: &str = "log.status";
+/// Title key of `log.status`.
+pub const LOG_STATUS_TITLE: &str = i18n::COMMAND_LOG_STATUS_TITLE;
+/// Description key of `log.status`.
+pub const LOG_STATUS_DESCRIPTION: &str = i18n::COMMAND_LOG_STATUS_DESCRIPTION;
+/// Id of the command `log.set_level`.
+pub const LOG_SET_LEVEL: &str = "log.set_level";
+/// Title key of `log.set_level`.
+pub const LOG_SET_LEVEL_TITLE: &str = i18n::COMMAND_LOG_SET_LEVEL_TITLE;
+/// Description key of `log.set_level`.
+pub const LOG_SET_LEVEL_DESCRIPTION: &str = i18n::COMMAND_LOG_SET_LEVEL_DESCRIPTION;
+/// Id of the command `log.tail`.
+pub const LOG_TAIL: &str = "log.tail";
+/// Title key of `log.tail`.
+pub const LOG_TAIL_TITLE: &str = i18n::COMMAND_LOG_TAIL_TITLE;
+/// Description key of `log.tail`.
+pub const LOG_TAIL_DESCRIPTION: &str = i18n::COMMAND_LOG_TAIL_DESCRIPTION;
+/// Id of the command `log.clear`.
+pub const LOG_CLEAR: &str = "log.clear";
+/// Title key of `log.clear`.
+pub const LOG_CLEAR_TITLE: &str = i18n::COMMAND_LOG_CLEAR_TITLE;
+/// Description key of `log.clear`.
+pub const LOG_CLEAR_DESCRIPTION: &str = i18n::COMMAND_LOG_CLEAR_DESCRIPTION;
+/// Id of the command `log.open_folder`.
+pub const LOG_OPEN_FOLDER: &str = "log.open_folder";
+/// Title key of `log.open_folder`.
+pub const LOG_OPEN_FOLDER_TITLE: &str = i18n::COMMAND_LOG_OPEN_FOLDER_TITLE;
+/// Description key of `log.open_folder`.
+pub const LOG_OPEN_FOLDER_DESCRIPTION: &str = i18n::COMMAND_LOG_OPEN_FOLDER_DESCRIPTION;

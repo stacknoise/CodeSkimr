@@ -42,6 +42,8 @@ mod level2_runs;
 mod level2_switch_tests;
 mod local_http;
 mod locations;
+mod log_control;
+mod log_file;
 mod log_writer;
 mod logging;
 mod mcp;
