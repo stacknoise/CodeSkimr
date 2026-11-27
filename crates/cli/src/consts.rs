@@ -271,6 +271,24 @@ pub mod arg {
     pub const RULE: &str = "rule";
     /// `{ $chain }`: the way round a ring of modules.
     pub const CHAIN: &str = "chain";
+    /// `{ $incoming }`: places in other modules that use a module.
+    pub const INCOMING: &str = "incoming";
+    /// `{ $outgoing }`: places in a module that use other modules.
+    pub const OUTGOING: &str = "outgoing";
+    /// `{ $whole }`: the part of a stability before the separator.
+    pub const WHOLE: &str = "whole";
+    /// `{ $hundredths }`: the two digits of a stability after the separator.
+    pub const HUNDREDTHS: &str = "hundredths";
+    /// `{ $stability }`: the stability of a module as text.
+    pub const STABILITY: &str = "stability";
+    /// `{ $layer }`: the layer that owns a module, as text with its brackets.
+    pub const LAYER: &str = "layer";
+    /// `{ $flags }`: what stands out about a module, as text.
+    pub const FLAGS: &str = "flags";
+    /// `{ $other }`: the module a risky module depends on.
+    pub const OTHER: &str = "other";
+    /// `{ $otherStability }`: the stability of that module as text.
+    pub const OTHER_STABILITY: &str = "otherStability";
     /// `{ $modules }`: how many modules a ring has.
     pub const MODULES: &str = "modules";
     /// `{ $weakest }`: how many references the weakest edge of a ring has.
@@ -419,6 +437,8 @@ pub const COMMAND_CONTEXT: &str = "context";
 pub const COMMAND_UNUSED: &str = "unused";
 /// Sub-command that judges the architecture rules of the project.
 pub const COMMAND_RULES: &str = "rules";
+/// Sub-command that shows the modules of the project with cycles, coupling and stability.
+pub const COMMAND_MODULES: &str = "modules";
 /// Sub-command that shows what a new name for a symbol would hit.
 pub const COMMAND_PREVIEW_RENAME: &str = "preview-rename";
 /// Argument id of the new name of `preview-rename`.
@@ -599,6 +619,34 @@ pub mod key {
     pub const TITLE: &str = "title";
     /// The text of an annotation.
     pub const TEXT: &str = "text";
+    /// Field of the answer about modules: places in other modules that use one.
+    pub const INCOMING: &str = "incoming";
+    /// Field of the answer about modules: places in a module that use other modules.
+    pub const OUTGOING: &str = "outgoing";
+    /// Field of the answer about modules: stability in thousandths, `null` without a dependency.
+    pub const STABILITY: &str = "stability";
+    /// Field of the answer about modules: whether a module is part of a cycle.
+    pub const IN_CYCLE: &str = "in_cycle";
+    /// Field of the answer about modules: the rings.
+    pub const CYCLES: &str = "cycles";
+    /// Field of the answer about modules: the modules that stand out.
+    pub const RISKS: &str = "risks";
+    /// Field of a ring: the dependencies to remove to end it.
+    pub const RESOLUTION: &str = "resolution";
+    /// Field of a violation: the dependency.
+    pub const EDGE: &str = "edge";
+    /// Field of a risk: the risky module.
+    pub const MODULE: &str = "module";
+    /// Field of a risk: the less stable module it depends on.
+    pub const DEPENDS_ON: &str = "depends_on";
+    /// Field of a risk: the stability of that module.
+    pub const DEPENDS_ON_STABILITY: &str = "depends_on_stability";
+    /// Field of a violation: the layer of the depending module.
+    pub const FROM_LAYER: &str = "from_layer";
+    /// Field of a violation: the layer of the module it depends on.
+    pub const TO_LAYER: &str = "to_layer";
+    /// Field of a module: its name.
+    pub const NAME: &str = "name";
 }
 
 /// The first line of `change --markdown`: a script that updates one comment on a pull request
@@ -625,6 +673,20 @@ pub const JSON_NULL_TEXT: &str = "null";
 pub const CONTROL_REPLACEMENT: char = ' ';
 /// Puts the entries of a list below its heading.
 pub const LIST_INDENT: &str = "  ";
+/// Between the flags of one module in the text of `modules`.
+pub const FLAG_JOIN: &str = ", ";
+/// Before the flags of a module in the text of `modules`.
+pub const FLAG_PREFIX: &str = "  ";
+/// Before the layer of a module in the text of `modules`.
+pub const LAYER_PREFIX: &str = " ";
+/// Thousandths in one hundredth, the step the text of `modules` shows.
+pub const STABILITY_STEP: u64 = 10;
+/// Half a step, added before the division so that the hundredths are rounded like in the UI.
+pub const STABILITY_HALF_STEP: u64 = 5;
+/// Hundredths in one whole.
+pub const STABILITY_HUNDRED: u64 = 100;
+/// Digits after the separator in the text of a stability.
+pub const STABILITY_DIGITS: usize = 2;
 /// Joins the modules of the way round a ring in a line of the terminal.
 pub const CHAIN_JOIN: &str = " -> ";
 /// Separates the title of an annotation from its text.

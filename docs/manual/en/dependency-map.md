@@ -20,6 +20,16 @@ The layout is calculated by CodeSkimr (layered drawing), so the same project alw
 - The switch "all connections weak" shows or hides the lines that do not belong to the selection; "violations only" hides every line that does not break the layering.
 - `Enter` with a layer selected opens the explorer for the project.
 
+## Modules
+
+The level "Modules" in the toolbar shows the namespaces of the project as modules, one box per module in the row of its layer (ADR 0108). The panel at the right has a table and three lists:
+
+- **Table.** For every module: how many places in other modules use it (`in`), how many places in it use other modules (`out`), its **stability** `out / (in + out)` and its number of types. A stability of 0 means many depend on the module and it depends on little, so it should change rarely; 1 means the opposite. A module without any dependency has none. The unit is places in the code, not distinct modules or types.
+- **Cycles.** Modules that depend on each other in a ring. Each cycle names the dependencies to take away to end it, the one with the fewest places first; this is a suggestion by the number of places to change, not a statement about which direction is right.
+- **Against the layering** and **Stands out.** Dependencies between modules that the layers do not allow, and modules that many places use and that depend on a clearly less stable module.
+
+More modules than `graph.max_modules` are not drawn or listed (the most referenced stay); cycles and the two lists always count all modules. The same numbers are available on the command line (`codeskimr modules`, `--json` for scripts) and for agents (`get_dependencies` with `level` `module`).
+
 ## Known limits
 
 The map shows layer relations only. A line counts as "against the layering" when its source layer has a `may_use` list that does not name the target layer ([Projects and scan](projects-and-scan.md#layers)); a layer without `may_use` has no limit. Use the map as a hint, not as a verdict.
