@@ -77,12 +77,3 @@ export const ICON = { pen: "pen", bin: "bin" } as const;
 export const ICON_SIZE = 16;
 /** How many lines the field for the inside of a module shows. */
 export const INSIDE_ROWS = 3;
-
-/** The tabs of the screen Rules. */
-export const RULES_TAB = { rules: "rules", layers: "layers" } as const;
-export type RulesTab = (typeof RULES_TAB)[keyof typeof RULES_TAB];
-/** The tabs in their order, with the text of each. */
-export const RULES_TABS = [
-  { id: RULES_TAB.rules, label: I18N_KEYS.RULES_TAB_RULES },
-  { id: RULES_TAB.layers, label: I18N_KEYS.RULES_TAB_LAYERS },
-] as const;
