@@ -411,7 +411,7 @@ mod tests {
             answer.added.total + answer.removed.total + answer.changed.total,
             0
         );
-        assert!(answer.layers.new_violations.is_empty());
+        assert_eq!(answer.layers.new_violations.len(), 0);
     }
 
     #[test]
