@@ -654,4 +654,54 @@ describe("ProjectsScreen", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Projekt shop entfernen" }));
     expect(screen.getByRole("button", { name: "Endgültig entfernen" })).toBeInTheDocument();
   });
+  it("tells that a typed folder is an abapGit repository before it is added", async () => {
+    serve({
+      "projects.list": () => answer([]),
+      "projects.suggest_name": () => answer({ name: "abap" }),
+      "scope.inspect": () =>
+        answer({
+          abapgit: {
+            starting_folder: "src",
+            folder_logic: "prefix",
+            configured: true,
+            kinds: [
+              { kind: "CLAS", objects: 5 },
+              { kind: "INTF", objects: 2 },
+            ],
+            packages: 3,
+            source_files: 9,
+          },
+        }),
+    });
+    render(() => <ProjectsScreen />);
+    const field = await screen.findByPlaceholderText(/Paste a folder path/);
+    fireEvent.input(field, { target: { value: "/work/abap" } });
+    expect(await screen.findByText("This is an abapGit repository")).toBeInTheDocument();
+    expect(
+      screen.getByText(/7 objects in 3 packages, below src \(prefix folder logic\)/),
+    ).toBeInTheDocument();
+  });
+
+  it("shows no abapGit hint for another folder, and asks nothing for a Git address", async () => {
+    serve({
+      "projects.list": () => answer([]),
+      "projects.suggest_name": () => answer({ name: "x" }),
+      "scope.inspect": () => answer({ abapgit: null }),
+    });
+    render(() => <ProjectsScreen />);
+    const field = await screen.findByPlaceholderText(/Paste a folder path/);
+    fireEvent.input(field, { target: { value: "/work/shop" } });
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith("scope.inspect"))).toBe(
+        true,
+      ),
+    );
+    expect(screen.queryByText("This is an abapGit repository")).toBeNull();
+    fetchMock.mockClear();
+    fireEvent.input(field, { target: { value: "https://example.com/team/shop.git" } });
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith("scope.inspect"))).toBe(
+      false,
+    );
+  });
 });

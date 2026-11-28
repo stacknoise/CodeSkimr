@@ -27,6 +27,8 @@ import {
   type SourceKind,
 } from "./consts";
 import { openProject } from "../../shared/project/active";
+import { AbapGitHint } from "./AbapGitHint";
+import { useInspected } from "./inspect";
 import { OverlapHint } from "./OverlapHint";
 import { overlapOf, type Overlap } from "./overlap";
 import { selectProject } from "./page";
@@ -350,6 +352,10 @@ function Body(props: {
   overlap: ReturnType<typeof useOverlap>;
 }) {
   const browse = useBrowse(props.form);
+  const inspected = useInspected(
+    () => props.form.source,
+    () => props.kind === SOURCE_KIND.folder,
+  );
   return (
     <div class={styles.body}>
       <SourceField {...props.form} onSource={browse.typed} kind={props.kind}>
@@ -368,6 +374,7 @@ function Body(props: {
           <OverlapHint overlap={found()} own={props.overlap.own()} onOwn={props.overlap.setOwn} />
         )}
       </Show>
+      <Show when={inspected()}>{(info) => <AbapGitHint info={info()} />}</Show>
       <Messages notice={props.form.notice} />
     </div>
   );

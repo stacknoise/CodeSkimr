@@ -22,11 +22,12 @@ use codeskimr_storage::SqliteStore;
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
-    SCOPE_GET, SCOPE_GET_DESCRIPTION, SCOPE_GET_TITLE, SCOPE_SET, SCOPE_SET_DESCRIPTION,
-    SCOPE_SET_TITLE,
+    SCOPE_GET, SCOPE_GET_DESCRIPTION, SCOPE_GET_TITLE, SCOPE_INSPECT, SCOPE_INSPECT_DESCRIPTION,
+    SCOPE_INSPECT_TITLE, SCOPE_SET, SCOPE_SET_DESCRIPTION, SCOPE_SET_TITLE,
 };
 use crate::consts::ABAPGIT_CONFIG_MAX_BYTES;
 use crate::locations::Locations;
+use crate::source_arg::classify;
 use crate::wiring::{ScopeTools, scope_tools};
 
 /// The input of `scope.get`.
@@ -276,6 +277,65 @@ impl Command for ScopeGet {
             (&scope, live),
             (scope_view(&scope, counted), abapgit),
         ))
+    }
+}
+
+/// The input of `scope.inspect`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct InspectInput {
+    /// The folder or Git address that the user typed in the window "New project".
+    pub source: String,
+}
+
+/// The answer of `scope.inspect`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Inspected {
+    /// What the folder holds if it is an abapGit repository (it has a `.abapgit.xml`), else `null`.
+    pub abapgit: Option<AbapGitOut>,
+}
+
+/// Looks into a folder before it becomes a project, so that the window "New project" can say what
+/// it is (an abapGit repository, ADR 0113). Only a folder with a `.abapgit.xml` is looked into;
+/// every other text, a Git address and a missing folder included, gets an empty answer.
+pub struct ScopeInspect {
+    pub(super) config: Config,
+    pub(super) locations: Locations,
+}
+
+impl Command for ScopeInspect {
+    type Input = InspectInput;
+    type Output = Inspected;
+
+    const DESCRIPTOR: CommandDescriptor = CommandDescriptor {
+        id: CommandId::new(SCOPE_INSPECT),
+        title_key: SCOPE_INSPECT_TITLE,
+        description_key: SCOPE_INSPECT_DESCRIPTION,
+        shortcut: None,
+        // Not "read only": it looks the folder up on disk, like `projects.suggest_name`.
+        read_only: false,
+        permission: Permission::RegisterProject,
+    };
+
+    /// # Errors
+    /// `AUTH-401` without the right to register projects, `SRC-201` if the folder cannot be
+    /// listed, `PRS` failures if the language packs cannot be loaded.
+    fn execute(&self, request: Request<'_, Self>) -> Result<Inspected, CodedError> {
+        access::require(request.principal, Permission::RegisterProject)?;
+        let none = Inspected { abapgit: None };
+        let Ok(spec) = classify(request.input.source.trim(), None) else {
+            return Ok(none);
+        };
+        let ProjectSource::Folder(root) = &spec.source else {
+            return Ok(none);
+        };
+        let Some(config) = read_config(Path::new(root.as_str())) else {
+            return Ok(none);
+        };
+        let tools = scope_tools(&self.config, &self.locations)?;
+        let files = tools.lister.list(root, &CancelToken::new())?;
+        Ok(Inspected {
+            abapgit: summarize(&files, Some(&config)).map(abapgit_out),
+        })
     }
 }
 

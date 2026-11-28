@@ -226,3 +226,59 @@ fn a_folder_without_abapgit_has_none() {
         .unwrap();
     assert_eq!(answer["abapgit"], Value::Null);
 }
+
+/// The path of the demo folder as the window "New project" would send it.
+fn typed(fixture: &Fixture) -> String {
+    fixture
+        .root
+        .path()
+        .join("app")
+        .to_string_lossy()
+        .into_owned()
+}
+
+#[test]
+fn a_folder_is_inspected_before_it_is_a_project() {
+    let fixture = Fixture::installed(None);
+    let app = fixture.root.path().join("app");
+    fs::create_dir_all(app.join("code")).unwrap();
+    fs::write(app.join(".abapgit.xml"), CONFIG).unwrap();
+    fs::write(app.join("code/zcl_a.clas.abap"), CLASS).unwrap();
+    let answer = fixture
+        .call("scope.inspect", json!({ "source": typed(&fixture) }))
+        .unwrap();
+    assert_eq!(answer["abapgit"]["starting_folder"], "code");
+    assert_eq!(answer["abapgit"]["folder_logic"], "full");
+    assert_eq!(
+        answer["abapgit"]["kinds"][0],
+        json!({ "kind": "CLAS", "objects": 1 })
+    );
+    assert_eq!(answer["abapgit"]["packages"], 1);
+}
+
+#[test]
+fn text_that_is_no_abapgit_folder_gets_an_empty_answer() {
+    let fixture = Fixture::installed(None);
+    for source in [
+        typed(&fixture),
+        "https://example.com/team/repo.git".to_owned(),
+        "no such folder".to_owned(),
+        String::new(),
+    ] {
+        let answer = fixture
+            .call("scope.inspect", json!({ "source": source }))
+            .unwrap();
+        assert_eq!(answer, json!({ "abapgit": null }));
+    }
+}
+
+#[test]
+fn a_reader_may_not_inspect_a_folder() {
+    let fixture = Fixture::installed(None);
+    let refused = fixture.call_as(
+        principal::reader(),
+        "scope.inspect",
+        json!({ "source": typed(&fixture) }),
+    );
+    assert_eq!(refused, Err("AUTH-401"));
+}
