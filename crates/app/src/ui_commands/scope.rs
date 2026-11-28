@@ -25,6 +25,7 @@ use super::consts::{
     SCOPE_GET, SCOPE_GET_DESCRIPTION, SCOPE_GET_TITLE, SCOPE_INSPECT, SCOPE_INSPECT_DESCRIPTION,
     SCOPE_INSPECT_TITLE, SCOPE_SET, SCOPE_SET_DESCRIPTION, SCOPE_SET_TITLE,
 };
+use super::folder_languages;
 use crate::consts::ABAPGIT_CONFIG_MAX_BYTES;
 use crate::locations::Locations;
 use crate::source_arg::classify;
@@ -103,6 +104,10 @@ pub struct ScopeAnswer {
     pub root_project_files: Vec<String>,
     /// What the project holds if it is an abapGit repository (ADR 0113), else `null`.
     pub abapgit: Option<AbapGitOut>,
+    /// Whether the project has files of a language whose pack takes the folders as namespaces
+    /// (ABAP) but no abapGit layout was recognised: no `.abapgit.xml` and no objects below `src/`
+    /// (issue #845). The files are read, without packages.
+    pub abapgit_unrecognised: bool,
 }
 
 /// The number of objects of one type in an abapGit repository.
@@ -149,7 +154,7 @@ fn abapgit_out(summary: AbapGitSummary) -> AbapGitOut {
 
 /// The configuration in `.abapgit.xml` of a project folder, if the file is there and is a regular
 /// file; it is read through `fsguard` and not further than `ABAPGIT_CONFIG_MAX_BYTES`.
-fn read_config(root: &Path) -> Option<AbapGitConfig> {
+pub(super) fn read_config(root: &Path) -> Option<AbapGitConfig> {
     let file = codeskimr_fsguard::open_regular(&root.join(CONFIG_FILE)).ok()?;
     let mut text = String::new();
     file.take(ABAPGIT_CONFIG_MAX_BYTES)
@@ -194,7 +199,7 @@ fn folder_out(entry: FolderEntry) -> FolderOut {
 fn answer(
     project: ProjectId,
     (scope, live): (&Scope, bool),
-    (view, abapgit): (ScopeView, Option<AbapGitSummary>),
+    (view, abapgit, unrecognised): (ScopeView, Option<AbapGitSummary>, bool),
 ) -> ScopeAnswer {
     ScopeAnswer {
         project: project.get(),
@@ -205,6 +210,7 @@ fn answer(
         folders_more: view.folders_more,
         root_project_files: view.root_project_files,
         abapgit: abapgit.map(abapgit_out),
+        abapgit_unrecognised: unrecognised,
     }
 }
 
@@ -236,6 +242,17 @@ impl ScopeGet {
                 Ok((listed.collect(), false))
             }
         }
+    }
+}
+
+impl ScopeGet {
+    /// Whether any of `files` is of a language whose pack takes the folders as namespaces.
+    fn has_folder_language(&self, files: &[ListedFile]) -> bool {
+        let languages = folder_languages(&self.locations.languages_dir);
+        files
+            .iter()
+            .filter_map(|file| file.language.as_ref())
+            .any(|language| languages.contains(language))
     }
 }
 
@@ -272,10 +289,11 @@ impl Command for ScopeGet {
             ProjectSource::Git { .. } => None,
         };
         let abapgit = summarize(&files, config.as_ref());
+        let unrecognised = abapgit.is_none() && self.has_folder_language(&files);
         Ok(answer(
             id,
             (&scope, live),
-            (scope_view(&scope, counted), abapgit),
+            (scope_view(&scope, counted), abapgit, unrecognised),
         ))
     }
 }

@@ -78,10 +78,39 @@ for (const theme of THEMES) {
       // The explorer: the packages are the folders of the files.
       await openInExplorer(page);
       await expect(page.getByRole("tree")).toBeVisible();
-      await expect(page.getByText(/zcore$/)).toBeVisible();
-      await expect(page.getByText(/zui$/)).toBeVisible();
-      await page.getByText(/zcore$/).click();
+      await expect(page.getByText("zcore", { exact: true })).toBeVisible();
+      await expect(page.getByText("zui", { exact: true })).toBeVisible();
+      await page.getByText("zcore", { exact: true }).click();
       await shot(page, SHOTS, `abapgit-explorer-${theme}`, info);
+    });
+  });
+
+  test.describe(`ABAP files without an abapGit layout (1440 x 900, ${theme})`, () => {
+    test.use({ viewport: VIEWPORT });
+
+    test(`the tab "Scope" says that no layout was recognised, ${theme}`, async ({
+      page,
+      harness,
+    }, info) => {
+      await page.addInitScript((value) => localStorage.setItem("codeskimr.theme", value), theme);
+      const name = `abapmiss${theme}`;
+      const folder = path.join(mkdtempSync(path.join(tmpdir(), "codeskimr-e2e-")), name);
+      mkdirSync(path.join(folder, "lib"), { recursive: true });
+      writeFileSync(path.join(folder, "lib/zcl_order.clas.abap"), ORDER);
+      const { copy } = keepLaunchFile(await harness.launchFile());
+      await page.goto(`file://${copy}`);
+      await openNewForm(page);
+      await page.getByLabel(SOURCE_LABEL).fill(folder);
+      // Without `.abapgit.xml` the window has no hint.
+      await page.getByRole("button", { name: "Add and scan" }).click();
+      const row = await listedProject(page, name);
+      await row.click({ position: { x: 4, y: 4 } });
+      await showTab(page, "Scope");
+      await expect(
+        page.getByRole("heading", { name: "ABAP files found, no abapGit layout recognised" }),
+      ).toBeVisible();
+      await expect(page.getByRole("heading", { name: "abapGit repository" })).toHaveCount(0);
+      await shot(page, SHOTS, `abapgit-missed-${theme}`, info);
     });
   });
 }

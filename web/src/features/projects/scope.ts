@@ -49,6 +49,8 @@ export interface ScopeAnswer {
   folders_more: number;
   root_project_files: string[];
   abapgit: AbapGitInfo | null;
+  /** ABAP files without a recognised abapGit layout (issue #845). */
+  abapgit_unrecognised: boolean;
 }
 
 /** The folder that is left out and contains `path` (or is it), if any. */

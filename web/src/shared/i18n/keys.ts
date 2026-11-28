@@ -1399,6 +1399,8 @@ export const I18N_KEYS = {
   PROJECTS_ABAPGIT_LIMITS: "projects-abapgit-limits",
   PROJECTS_ABAPGIT_HINT_TITLE: "projects-abapgit-hint-title",
   PROJECTS_ABAPGIT_HINT_TEXT: "projects-abapgit-hint-text",
+  PROJECTS_ABAPGIT_MISSED_TITLE: "projects-abapgit-missed-title",
+  PROJECTS_ABAPGIT_MISSED_TEXT: "projects-abapgit-missed-text",
   RENAME_ACTION: "rename-action",
   RENAME_TITLE: "rename-title",
   RENAME_SUBTITLE: "rename-subtitle",

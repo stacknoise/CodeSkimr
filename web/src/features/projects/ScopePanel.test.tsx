@@ -61,6 +61,7 @@ const SCOPE: ScopeAnswer = {
   folders_more: 0,
   root_project_files: ["package.json"],
   abapgit: null,
+  abapgit_unrecognised: false,
 };
 
 useServerSession();
@@ -117,6 +118,17 @@ describe("the scope of a project", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/No \.abapgit\.xml was read/)).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Objects by type" })).toHaveTextContent("CLAS101");
+  });
+
+  it("says that ABAP files were found but no abapGit layout was recognised", async () => {
+    await openScope({ ...SCOPE, abapgit_unrecognised: true });
+    expect(
+      screen.getByRole("heading", { name: "ABAP files found, no abapGit layout recognised" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/the abapGit layout \(starting folder, folder logic\) is not applied/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "abapGit repository" })).toBeNull();
   });
 
   it("shows no abapGit card for other projects", async () => {

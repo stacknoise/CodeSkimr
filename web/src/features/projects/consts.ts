@@ -24,6 +24,8 @@ export const SCOPE_PATH_SEPARATOR = "/";
 export const SCOPE_HEADING_ID = { languages: "scope-languages", folders: "scope-folders" } as const;
 /** The id of the heading of the abapGit card (ADR 0113). */
 export const ABAPGIT_HEADING_ID = "abapgit-heading";
+/** The id of the heading of the card for ABAP files without a recognised layout. */
+export const ABAPGIT_MISSED_HEADING_ID = "abapgit-missed-heading";
 /** The custom property that carries the depth of a folder in the tree to the style sheet. */
 export const SCOPE_DEPTH_VAR = "--scope-depth";
 /** The name of the radio group of the hint in the window "New project". */

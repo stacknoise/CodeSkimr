@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests {
     use codeskimr_application::abapgit::{
-        AbapGitConfig, FolderLogic, object_of, parse_config, summarize,
+        AbapGitConfig, FolderLogic, object_of, package_of, parse_config, summarize,
     };
     use codeskimr_application::ports::ListedFile;
     use codeskimr_domain::{LanguageId, RelativePath};
@@ -125,5 +125,16 @@ mod tests {
         let summary = summarize(&listed, Some(&config)).unwrap();
         assert_eq!(summary.objects, [("CLAS".to_owned(), 2)]);
         assert_eq!(summary.packages, 2);
+    }
+
+    #[test]
+    fn a_package_is_shown_relative_to_the_starting_folder() {
+        assert_eq!(package_of("src/zfoo/zbar", "src"), "zfoo/zbar");
+        assert_eq!(package_of("src/zfoo", "src"), "zfoo");
+        assert_eq!(package_of("src", "src"), "");
+        assert_eq!(package_of("zfoo/zbar", ""), "zfoo/zbar");
+        // A folder outside the starting folder, or one that only starts with its name, stays.
+        assert_eq!(package_of("lib/zfoo", "src"), "lib/zfoo");
+        assert_eq!(package_of("srcx/zfoo", "src"), "srcx/zfoo");
     }
 }

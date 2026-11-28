@@ -4,6 +4,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
+use codeskimr_application::abapgit::{AbapGitConfig, package_of};
 use codeskimr_application::access;
 use codeskimr_application::config::MetricThresholds;
 use codeskimr_application::error::CodedError;
@@ -12,10 +13,13 @@ use codeskimr_application::ports::{
 };
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Layer, Permission, Project, ProjectId, Snapshot, SymbolId, SymbolKind};
+use codeskimr_domain::{
+    Layer, Permission, Project, ProjectId, ProjectSource, Snapshot, SymbolId, SymbolKind,
+};
 use serde::{Deserialize, Serialize};
 
 use super::consts::{EXPLORER_OUTLINE, OUTLINE_DESCRIPTION, OUTLINE_TITLE, QUALIFIED_SEPARATOR};
+use super::scope::read_config;
 
 /// What the explorer reads: the project repository for the layers, the index for one symbol, the
 /// outline for the tree and the project folder for the source of a declaration.
@@ -402,6 +406,28 @@ pub(super) fn build(layers: &[Layer], nodes: &[OutlineNode]) -> Vec<LayerNode> {
     layer_nodes(layers, groups)
 }
 
+/// The folder below which the objects of an abapGit project lie: the one `.abapgit.xml` names in a
+/// folder project, else the default (a Git project cannot read the file).
+fn starting_folder(project: &Project) -> String {
+    let config = match &project.source {
+        ProjectSource::Folder(root) => read_config(std::path::Path::new(root.as_str())),
+        ProjectSource::Git { .. } => None,
+    };
+    config
+        .unwrap_or_else(AbapGitConfig::default)
+        .starting_folder
+}
+
+/// Turns the folders of the packages into names relative to the starting folder.
+fn relative_packages(nodes: &mut [OutlineNode], starting_folder: &str) {
+    for node in nodes {
+        node.folder = node
+            .folder
+            .take()
+            .map(|folder| package_of(&folder, starting_folder));
+    }
+}
+
 /// The tree of layers, namespaces and types of the newest snapshot.
 pub struct ExplorerOutline {
     pub(super) ports: Arc<ExplorerPorts>,
@@ -431,9 +457,12 @@ impl Command for ExplorerOutline {
                 thresholds: Thresholds::from(&ports.thresholds),
             });
         };
-        let nodes = ports
+        let mut nodes = ports
             .outline
             .outline(snapshot.id, &ports.folder_languages)?;
+        if nodes.iter().any(in_package) {
+            relative_packages(&mut nodes, &starting_folder(&project));
+        }
         Ok(Outline {
             snapshot: Some(snapshot.id.get()),
             layers: build(&project.layers, &nodes),
