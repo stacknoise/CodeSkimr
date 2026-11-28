@@ -78,7 +78,36 @@ export const EFFECTIVE_COLUMNS = [
   { id: "key", label: I18N_KEYS.SETTINGS_EFFECTIVE_COLUMN_KEY },
   { id: "value", label: I18N_KEYS.SETTINGS_EFFECTIVE_COLUMN_VALUE },
   { id: "origin", label: I18N_KEYS.SETTINGS_EFFECTIVE_COLUMN_ORIGIN },
+  { id: "actions", label: I18N_KEYS.SETTINGS_EFFECTIVE_COLUMN_ACTIONS },
 ] as const;
+
+/** The command that saves or forgets one number or switch (ADR 0118). */
+export const SET_VALUE_COMMAND = "ui_settings.set_value";
+
+/** Whether and how a setting can be changed, as `settings.effective` says: `scan` and `start` can
+ * be changed (the value counts from the next scan or the next start), `cli` is set with a flag
+ * and `locked` is for the configuration file only. */
+export const EDIT = {
+  scan: "scan",
+  start: "start",
+  cli: "cli",
+  locked: "locked",
+} as const;
+
+/** The kinds of value the dialog edits. */
+export const VALUE_KIND = { switch: "switch", int: "int", float: "float" } as const;
+/** The words of a switch value in the answer. */
+export const SWITCH_ON = "true";
+export const SWITCH_OFF = "false";
+/** A whole number, and a number with an optional fraction, as the field may hold them. */
+export const INT_PATTERN = /^-?\d+$/;
+export const FLOAT_PATTERN = /^-?\d+(\.\d+)?$/;
+/** Ids that tie the dialog to its title and its field. */
+export const SETTING_DIALOG_TITLE_ID = "setting-dialog-title";
+export const SETTING_DIALOG_FIELD_ID = "setting-dialog-field";
+/** The key that confirms the field and the key that closes the dialog. */
+export const SETTING_SUBMIT_KEY = "Enter";
+export const SETTING_CANCEL_KEY = "Escape";
 
 /** The tables of `config/default.toml` in the order the screen shows them; a table that is not
  * listed here comes after them under its own name. */
@@ -186,3 +215,8 @@ export const SECONDS_PER_MINUTE = 60;
 export const MINUTES_PER_HOUR = 60;
 /** The line break of the copied log. */
 export const LOG_LINE_BREAK = "\n";
+
+/** The code of a refused value (a key or kind the server does not accept). */
+export const VALUE_REFUSED_CODE = "API-101";
+/** What stands between the kind of a value and its default in the hint under the field. */
+export const HINT_SEPARATOR = " · ";

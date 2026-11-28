@@ -10,6 +10,7 @@ use codeskimr_application::error::CodedError;
 use codeskimr_cli::GlobalOptions;
 use codeskimr_codes::ErrorCode;
 
+use crate::consts::LOG_SAVED_SETTINGS_IGNORED;
 use crate::locations::Locations;
 use crate::ui_settings::UiSettingsFile;
 
@@ -39,11 +40,32 @@ pub fn layers(
     global: &GlobalOptions,
     project_dir: Option<&Path>,
 ) -> Result<Vec<ConfigLayer>, CodedError> {
+    let saved = UiSettingsFile::in_dir(&locations.data_dir).layer();
+    let with = layers_with(locations, global, project_dir, saved)?;
+    if Config::resolve(&with).is_ok() {
+        return Ok(with);
+    }
+    tracing::warn!(event = LOG_SAVED_SETTINGS_IGNORED);
+    // Saved values that together break a rule of the configuration (a default above its maximum)
+    // must not keep the program from starting: they are left out, as an invalid file is.
+    layers_with(locations, global, project_dir, None)
+}
+
+/// The layers of [`layers`] with `saved` as the layer of the values the UI saved.
+///
+/// # Errors
+/// The same as [`layers`].
+pub fn layers_with(
+    locations: &Locations,
+    global: &GlobalOptions,
+    project_dir: Option<&Path>,
+    saved: Option<ConfigLayer>,
+) -> Result<Vec<ConfigLayer>, CodedError> {
     let mut layers = Vec::new();
     if let Some(user) = &locations.user_config {
         layers.extend(read_layer(LayerSource::User, &user.path, user.required)?);
     }
-    layers.extend(UiSettingsFile::in_dir(&locations.data_dir).layer());
+    layers.extend(saved);
     if let Some(folder) = project_dir {
         let file = folder.join(PROJECT_CONFIG_FILE);
         layers.extend(read_layer(LayerSource::Project, &file, false)?);

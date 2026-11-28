@@ -430,6 +430,8 @@ pub const CARRIAGE_RETURN: char = '\r';
 pub const MAX_SECRET_BYTES: u64 = 65_536;
 /// Log event: the check of the tools of a project failed; the scan goes on.
 pub const LOG_TOOL_CHECK_FAILED: &str = "tool_check_failed";
+/// Log event: the settings saved in the app break a rule of the configuration and are left out.
+pub const LOG_SAVED_SETTINGS_IGNORED: &str = "saved_settings_ignored";
 
 /// Largest file that is read for the version a project requires (`global.json`, `.nvmrc` and so
 /// on), in bytes.
@@ -603,6 +605,31 @@ pub const UI_LAYER_HEADER: &str = "[level2.indexer_memory_mb]";
 pub const UI_LAYER_ASSIGN: &str = " = ";
 /// Ending of a line of that layer.
 pub const UI_LAYER_NEWLINE: &str = "\n";
+/// Around the name of a table in the text of that layer.
+pub const UI_LAYER_TABLE: (&str, &str) = ("[", "]");
+/// Separates a table from its key in the dotted path of a setting.
+pub const UI_KEY_SEPARATOR: char = '.';
+/// The tables of the configuration whose numbers and switches the UI may save, and that every
+/// scan, check and export reads again (ADR 0118): they count from the next one.
+pub const UI_EDIT_SCAN_TABLES: [&str; 4] = ["scan", "conventions", "similarity", "export"];
+/// The tables the UI may save that the running program reads when it starts.
+pub const UI_EDIT_START_TABLES: [&str; 8] = [
+    "metrics",
+    "mcp",
+    "snapshots",
+    "watcher",
+    "annotations",
+    "graph",
+    "compare",
+    "keys",
+];
+
+/// Values the UI never changes although they are numbers in an editable table: they delete kept
+/// data (old scans, dismissed alerts), so they stay with the configuration file (ADR 0118).
+pub const UI_EDIT_LOCKED_KEYS: [&str; 2] = [
+    "snapshots.retention_count",
+    "annotations.dismissed_retention_days",
+];
 
 /// The field of the answer of `rules` that counts the violations the held state does not have.
 pub const NEW_VIOLATIONS: &str = "new";

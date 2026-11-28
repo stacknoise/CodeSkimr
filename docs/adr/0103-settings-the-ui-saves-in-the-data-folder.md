@@ -33,4 +33,4 @@ Option 1.
 - A value saved while the program runs counts from the next scan. If the files cannot be read at that moment, the run keeps the value the program started with.
 - Whoever has the permission `manage` can change the memory limit of this computer. That is the same person who could edit the user file, so nothing is lifted. A team edition (ADR 0019) has to decide in its own ADR who may do it.
 - `ui_settings.set_indexer_memory` reads the file, changes one entry and writes it back without a lock. Two calls at the same moment can overwrite each other: the last writer wins. One user with one page makes this a rare case, so it is accepted.
-- The same file can hold more settings that the UI may change (ADR 0092), each added with its own check at the write and at the read.
+- The same file can hold more settings that the UI may change (ADR 0092), each added with its own check at the write and at the read. Numbers and switches of the tuning tables follow in ADR 0118.

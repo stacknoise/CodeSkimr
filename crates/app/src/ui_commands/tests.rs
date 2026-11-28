@@ -186,7 +186,7 @@ impl Fixture {
 }
 
 /// Every command of the registry, in the order the API lists them.
-const COMMAND_IDS: [&str; 70] = [
+const COMMAND_IDS: [&str; 71] = [
     "alerts.dismiss",
     "alerts.dismiss_all",
     "alerts.list",
@@ -253,6 +253,7 @@ const COMMAND_IDS: [&str; 70] = [
     "tools.indexers",
     "ui_settings.get",
     "ui_settings.set_indexer_memory",
+    "ui_settings.set_value",
     "unused.keep",
     "unused.lift",
     "usages.code",
@@ -1348,14 +1349,14 @@ fn the_preferences_are_kept_on_the_server_and_checked() {
 fn the_memory_limit_of_an_indexer_is_saved_checked_and_forgotten() {
     let fixture = Fixture::new();
     let none = fixture.call("ui_settings.get", json!(null)).unwrap();
-    assert_eq!(none, json!({"indexer_memory_mb": {}}));
+    assert_eq!(none, json!({"indexer_memory_mb": {}, "values": {}}));
     let set = |indexer: &str, megabytes: Value| {
         fixture.call(
             "ui_settings.set_indexer_memory",
             json!({"indexer": indexer, "megabytes": megabytes}),
         )
     };
-    let saved = json!({"indexer_memory_mb": {"scip-typescript": 8192}});
+    let saved = json!({"indexer_memory_mb": {"scip-typescript": 8192}, "values": {}});
     assert_eq!(set("scip-typescript", json!(8192)).unwrap(), saved);
     assert_eq!(fixture.call("ui_settings.get", json!(null)).unwrap(), saved);
     assert_eq!(set("made-up", json!(1)), Err("API-101"));

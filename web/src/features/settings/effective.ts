@@ -3,12 +3,14 @@ import { runCommand } from "../../shared/api/commands";
 import { t, type MessageKey } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import {
+  EDIT,
   EFFECTIVE_COMMAND,
   GROUP_TEXTS,
   KEY_SEPARATOR,
   LIST_SEPARATOR,
   NO_VALUE,
   ORIGIN,
+  SET_VALUE_COMMAND,
   UNIT_SUFFIXES,
 } from "./consts";
 
@@ -20,6 +22,12 @@ export interface EffectiveSetting {
   value: string;
   origin: (typeof ORIGIN)[keyof typeof ORIGIN];
   hidden: boolean;
+  /** The value of the shipped default, as TOML text. */
+  default: string;
+  /** Whether the value can be changed here and from when it would count. */
+  edit: (typeof EDIT)[keyof typeof EDIT];
+  /** A saved value that counts from the next start; `null` if there is none. */
+  pending: string | null;
 }
 
 /** The answer of `settings.effective`. */
@@ -57,6 +65,16 @@ export async function loadEffectiveSettings(): Promise<void> {
   } catch {
     setFailed(true);
   }
+}
+
+/** Saves a number or a switch of one setting, or forgets the saved value with `null`, and reads
+ * the settings again.
+ *
+ * @throws ApiError if the server refuses the value or cannot write it.
+ */
+export async function saveSettingValue(key: string, value: number | boolean | null): Promise<void> {
+  await runCommand(SET_VALUE_COMMAND, { key, value });
+  await loadEffectiveSettings();
 }
 
 /** The table a key belongs to: its first part. */

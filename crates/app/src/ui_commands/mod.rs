@@ -167,7 +167,7 @@ use source::ExplorerSource;
 use stats::{StatsOverview, StatsPorts, StatsRanking};
 use status::{BudgetTargets, StatusInfo};
 use symbol::ExplorerSymbol;
-use ui_settings::{GetUiSettings, SetIndexerMemory};
+use ui_settings::{GetUiSettings, SetIndexerMemory, SetSettingValue};
 use unused_keep::{UnusedKeep, UnusedLift};
 use usages::{UsagesPorts, UsagesQuery};
 use usages_code::UsagesCode;
@@ -373,7 +373,7 @@ fn register_views(
     add(registry, status_info(config))?;
     register_explorer(registry, catalog, config.metrics.clone(), locations)?;
     register_preferences(registry, locations)?;
-    register_ui_settings(registry, locations)?;
+    register_ui_settings(registry, (locations, global))?;
     register_log(registry, locations)?;
     add(
         registry,
@@ -525,11 +525,22 @@ fn register_preferences(registry: &mut Registry, locations: &Locations) -> Resul
     add(registry, SetPreferences { file })
 }
 
-/// The two commands that keep the settings the UI saves in the data folder (ADR 0103).
-fn register_ui_settings(registry: &mut Registry, locations: &Locations) -> Result<(), CodedError> {
+/// The commands that keep the settings the UI saves in the data folder (ADR 0103, ADR 0118).
+fn register_ui_settings(
+    registry: &mut Registry,
+    (locations, global): (&Locations, &GlobalOptions),
+) -> Result<(), CodedError> {
     let file = UiSettingsFile::in_dir(&locations.data_dir);
     add(registry, GetUiSettings { file: file.clone() })?;
-    add(registry, SetIndexerMemory { file })
+    add(registry, SetIndexerMemory { file: file.clone() })?;
+    add(
+        registry,
+        SetSettingValue {
+            file,
+            locations: locations.clone(),
+            global: global.clone(),
+        },
+    )
 }
 
 /// The commands of the tab Diagnosis: the log level and the log file in the data folder (ADR 0115).
@@ -590,6 +601,17 @@ fn expose_log(api: &mut CommandApi) -> Result<(), CodedError> {
     Ok(())
 }
 
+/// Makes the commands of the saved preferences and settings reachable over REST.
+fn expose_settings(api: &mut CommandApi) -> Result<(), CodedError> {
+    api.expose::<GetPreferences>()?;
+    api.expose::<SetPreferences>()?;
+    api.expose::<GetUiSettings>()?;
+    api.expose::<SetIndexerMemory>()?;
+    api.expose::<SetSettingValue>()?;
+    api.expose::<EffectiveSettings>()?;
+    Ok(())
+}
+
 /// Makes every registered command of the UI reachable over REST.
 fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ListProjects>()?;
@@ -624,12 +646,8 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ScansImpact>()?;
     api.expose::<ScansImpactMarkdown>()?;
     api.expose::<ScansMetricsMarkdown>()?;
-    api.expose::<GetPreferences>()?;
-    api.expose::<SetPreferences>()?;
-    api.expose::<GetUiSettings>()?;
-    api.expose::<SetIndexerMemory>()?;
+    expose_settings(api)?;
     expose_log(api)?;
-    api.expose::<EffectiveSettings>()?;
     api.expose::<HtmlExport>()?;
     expose_annotations(api)
 }
