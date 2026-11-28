@@ -42,6 +42,7 @@ import { KindBadge } from "./KindBadge";
 import { tipFor } from "./metrics";
 import { pressColumn, tableRows } from "./memberSort";
 import { ratingClass } from "./ratingClass";
+import { Code } from "../../shared/code/Code";
 import type { MemberRow, SymbolInfo, Thresholds } from "./types";
 import styles from "./MemberTable.module.css";
 
@@ -130,7 +131,7 @@ function MeasureCells(props: { row: MemberRow }) {
   );
 }
 
-function Row(props: { row: MemberRow; onPick: (row: MemberRow) => void }) {
+function Row(props: { row: MemberRow; path: string; onPick: (row: MemberRow) => void }) {
   const row = () => props.row;
   const critical = () => countersFor(memberTarget(row()))?.critical ?? false;
   return (
@@ -146,7 +147,11 @@ function Row(props: { row: MemberRow; onPick: (row: MemberRow) => void }) {
         <Show when={annotationsAvailable() !== false}>
           <Notes row={row()} />
         </Show>
-        <td class={styles.signature}>{row().signature ?? MISSING}</td>
+        <td class={styles.signature}>
+          <Show when={row().signature} fallback={MISSING}>
+            {(signature) => <Code path={props.path} text={signature()} />}
+          </Show>
+        </td>
         <MeasureCells row={row()} />
       </tr>
       <Under row={row()} />
@@ -260,7 +265,9 @@ export function MemberTable(props: {
             <ColumnWidths columns={columns()} />
             <Head thresholds={props.thresholds} />
             <tbody>
-              <For each={rows()}>{(row) => <Row row={row} onPick={props.onPick} />}</For>
+              <For each={rows()}>
+                {(row) => <Row row={row} path={props.info.path} onPick={props.onPick} />}
+              </For>
             </tbody>
           </table>
         </div>

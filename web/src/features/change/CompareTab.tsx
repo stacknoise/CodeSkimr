@@ -4,8 +4,9 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import { createTableColumns } from "../../shared/table/columns";
 import { ColumnWidths } from "../../shared/table/ResizableHead";
 import { cx } from "../../shared/ui/cx";
+import { Code } from "../../shared/code/Code";
 import { Pill } from "../../shared/ui/Pill";
-import { COMPARE_COLUMNS, COMPARE_TABLE_KEY, REASON, TITLE_JOIN } from "./consts";
+import { COMPARE_COLUMNS, COMPARE_TABLE_KEY, REASON, SIGNATURE_GAP, TITLE_JOIN } from "./consts";
 import { ChangeFilterBar, FilterEmpty } from "./ChangeFilter";
 import { changeFilter, kindsOf, passes } from "./filter";
 import { Figure } from "./Figure";
@@ -76,7 +77,12 @@ function Row(props: { row: CompareRow }) {
       <td class={styles.symbol} title={titleOf(props.row)}>
         <span class={parts.name}>{props.row.name}</span>
         <Show when={props.row.signature}>
-          {(signature) => <span class={parts.sig}> {signature()}</span>}
+          {(signature) => (
+            <>
+              {SIGNATURE_GAP}
+              <Code path={props.row.path} text={signature()} class={parts.sig} />
+            </>
+          )}
         </Show>
       </td>
       <td class={styles.where} title={props.row.where}>

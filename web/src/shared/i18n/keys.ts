@@ -723,6 +723,8 @@ export const I18N_KEYS = {
   COMMAND_CONVENTIONS_CHECK_DESCRIPTION: "command-conventions-check-description",
   COMMAND_SCANS_METRICS_MARKDOWN_TITLE: "command-scans-metrics-markdown-title",
   COMMAND_SCANS_METRICS_MARKDOWN_DESCRIPTION: "command-scans-metrics-markdown-description",
+  COMMAND_CODE_HIGHLIGHT_TITLE: "command-code-highlight-title",
+  COMMAND_CODE_HIGHLIGHT_DESCRIPTION: "command-code-highlight-description",
   COMPARE_DIRECT_ONLY_NOTE: "compare-direct-only-note",
   COMPARE_SCANS_HEAD: "compare-scans-head",
   COMPARE_SCANS_NONE: "compare-scans-none",

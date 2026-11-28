@@ -9,6 +9,7 @@ import {
   KIND_SEPARATOR,
   MISSING,
 } from "./consts";
+import { Code } from "../../shared/code/Code";
 import { Breakable } from "../../shared/ui/Breakable";
 import { accuracyNote } from "./accuracyNote";
 import { approximationNote, isApproximate } from "./approximation";
@@ -111,6 +112,19 @@ function Accuracy(props: { answer: UsagesAnswer }) {
   );
 }
 
+/** The signature of the symbol under its name, with the syntax colours of its file. */
+function Signature(props: { answer: UsagesAnswer }) {
+  return (
+    <Show when={props.answer.signature}>
+      {(signature) => (
+        <div class={styles.signature}>
+          <Code path={props.answer.path} text={signature()} />
+        </div>
+      )}
+    </Show>
+  );
+}
+
 /** The right column of screen 6: the symbol, the counts, the impact and the accuracy. */
 export function SidePanel(props: { answer: UsagesAnswer; onOpen: () => void }) {
   const symbol = () => props.answer.symbol;
@@ -127,9 +141,7 @@ export function SidePanel(props: { answer: UsagesAnswer; onOpen: () => void }) {
         <h2 aria-label={shortName(symbol().qualified_name)}>
           <Breakable text={shortName(symbol().qualified_name)} />
         </h2>
-        <Show when={props.answer.signature}>
-          {(signature) => <div class={styles.signature}>{signature()}</div>}
-        </Show>
+        <Signature answer={props.answer} />
       </div>
       <div class={styles.tiles}>
         <Tile value={props.answer.summary.places} label={t(I18N_KEYS.USAGES_PLACES)} accent />

@@ -156,6 +156,8 @@ export const KIND_JOIN = " · ";
 export const FILTER_FIELD_ID = "change-filter-query";
 /** Joins the name of a symbol and its signature in a tooltip. */
 export const TITLE_JOIN = " ";
+/** The gap between a name and its signature in a row of the list. */
+export const SIGNATURE_GAP = " ";
 
 /** The columns of the list of the comparison by id, with their head texts, and the key the widths
  * are kept under. */

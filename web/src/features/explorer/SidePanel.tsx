@@ -12,12 +12,15 @@ import { panelWidth, sourceWidth } from "./layout";
 import { SourcePane } from "./SourcePane";
 import type { Target } from "../annotations/types";
 import type { MemberRow, SymbolInfo } from "./types";
+import { Code } from "../../shared/code/Code";
 import styles from "./SidePanel.module.css";
 
 /** One fact of the first tab. */
 interface Fact {
   label: string;
   value: string;
+  /** The value is code of this file and is shown with the syntax colours. */
+  codeOf?: string;
 }
 
 /** What the first tab says about a selected member, whose source the middle column shows. */
@@ -27,7 +30,11 @@ function factsOf(info: SymbolInfo, member: MemberRow): Fact[] {
     { label: t(I18N_KEYS.ANNOTATIONS_INFO_KIND), value: member.kind },
     member.signature === null
       ? null
-      : { label: t(I18N_KEYS.ANNOTATIONS_INFO_SIGNATURE), value: member.signature },
+      : {
+          label: t(I18N_KEYS.ANNOTATIONS_INFO_SIGNATURE),
+          value: member.signature,
+          codeOf: info.path,
+        },
     {
       label: t(I18N_KEYS.ANNOTATIONS_INFO_LOCATION),
       value: [info.path, lineRange(member.first_line, member.last_line)].join(LOCATION_SEPARATOR),
@@ -45,7 +52,11 @@ function MemberFacts(props: { info: SymbolInfo; member: MemberRow }) {
         {(fact) => (
           <>
             <dt>{fact.label}</dt>
-            <dd>{fact.value}</dd>
+            <dd>
+              <Show when={fact.codeOf} fallback={fact.value}>
+                {(path) => <Code path={path()} text={fact.value} />}
+              </Show>
+            </dd>
           </>
         )}
       </For>

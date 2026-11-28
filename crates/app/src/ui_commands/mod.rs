@@ -26,6 +26,7 @@ mod graph_module_places;
 mod graph_modules;
 mod graph_types;
 mod graph_wrap;
+mod highlight;
 mod indexers;
 mod layers;
 #[cfg(test)]
@@ -136,6 +137,7 @@ pub(crate) use export::{ExportInput, HtmlExport};
 use graph::{GraphLayers, GraphPorts};
 use graph_module_places::GraphModulePlaces;
 use graph_modules::GraphModules;
+use highlight::CodeHighlight;
 use indexers::ListIndexers;
 use layers::{LayersGet, LayersSet};
 use level2::Level2StatusCommand;
@@ -638,6 +640,7 @@ fn expose_index_views(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ExplorerOutline>()?;
     api.expose::<ExplorerSymbol>()?;
     api.expose::<ExplorerSource>()?;
+    api.expose::<CodeHighlight>()?;
     api.expose::<SearchQuery>()?;
     api.expose::<UsagesQuery>()?;
     api.expose::<UsagesCode>()?;
@@ -920,6 +923,12 @@ fn register_explorer(
     add(
         registry,
         ExplorerSource {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(
+        registry,
+        CodeHighlight {
             ports: Arc::clone(&ports),
         },
     )?;
