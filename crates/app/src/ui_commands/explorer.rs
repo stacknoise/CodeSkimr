@@ -8,16 +8,14 @@ use codeskimr_application::access;
 use codeskimr_application::config::MetricThresholds;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    CodeIndex, CodeOutline, OutlineNode, SourceText, SyntaxHighlighter,
+    CodeIndex, CodeOutline, FOLDER_NAMESPACE_LANGUAGES, OutlineNode, SourceText, SyntaxHighlighter,
 };
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Layer, Permission, Project, ProjectId, Snapshot, SymbolId, SymbolKind};
 use serde::{Deserialize, Serialize};
 
-use super::consts::{
-    EXPLORER_OUTLINE, OUTLINE_DESCRIPTION, OUTLINE_TITLE, PACKAGE_LANGUAGE, QUALIFIED_SEPARATOR,
-};
+use super::consts::{EXPLORER_OUTLINE, OUTLINE_DESCRIPTION, OUTLINE_TITLE, QUALIFIED_SEPARATOR};
 
 /// What the explorer reads: the project repository for the layers, the index for one symbol, the
 /// outline for the tree and the project folder for the source of a declaration.
@@ -223,7 +221,7 @@ pub(super) fn namespace_of(
 /// Whether the namespace of a symbol is the folder of its file: the package of an abapGit
 /// repository. Its file module is no row of the tree then.
 fn in_package(node: &OutlineNode) -> bool {
-    node.language.as_str() == PACKAGE_LANGUAGE
+    FOLDER_NAMESPACE_LANGUAGES.contains(&node.language.as_str())
 }
 
 fn layer_index(layers: &[Layer], node: &OutlineNode) -> usize {

@@ -28,6 +28,11 @@ pub struct OutlineNode {
     pub folder: String,
 }
 
+/// The languages whose namespaces are the folders of their files: the packages of an abapGit
+/// repository (ADR 0113). `OutlineNode::folder` is filled for them only. A first step; a setting
+/// of the language pack replaces it (addendum of the ADR).
+pub const FOLDER_NAMESPACE_LANGUAGES: [&str; 1] = ["abap"];
+
 /// One row of the member table of a symbol.
 #[derive(Debug, Clone, PartialEq)]
 pub struct MemberRow {

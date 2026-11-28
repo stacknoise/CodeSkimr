@@ -250,3 +250,38 @@ fn the_namespace_of_an_abap_type_is_the_folder_of_its_file() {
             .all(|space| space.module.is_none() && !space.file)
     );
 }
+
+#[test]
+fn the_functions_of_an_abap_program_hang_on_its_package() {
+    let nodes = [
+        counted(
+            abap(1, SymbolKind::Module, "zprog.prog", "zprog.prog", "src/sub"),
+            2,
+        ),
+        abap(2, SymbolKind::Class, "zcl_a", "zcl_a", "src/sub"),
+    ];
+    let space = &build(&[], &nodes)[0].namespaces[0];
+    assert_eq!(space.name, "src/sub");
+    assert_eq!(space.holders.len(), 1);
+    assert_eq!(space.holders[0].name, "zprog.prog");
+    assert_eq!(space.holders[0].members, 2);
+    assert!(!space.file);
+}
+
+#[test]
+fn an_abap_file_in_the_project_folder_has_the_namespace_without_a_name() {
+    let nodes = [abap(1, SymbolKind::Class, "zroot", "zroot", "")];
+    let spaces = &build(&[], &nodes)[0].namespaces;
+    assert_eq!(spaces.len(), 1);
+    assert_eq!(spaces[0].name, "");
+}
+
+#[test]
+fn another_language_keeps_its_namespace_whatever_the_folder() {
+    let nodes = [OutlineNode {
+        folder: "src/sub".to_owned(),
+        ..node(1, SymbolKind::Class, "A", "pkg.A", None)
+    }];
+    let spaces = &build(&[], &nodes)[0].namespaces;
+    assert_eq!(spaces[0].name, "pkg");
+}
