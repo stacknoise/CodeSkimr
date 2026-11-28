@@ -166,6 +166,21 @@ describe("StatsScreen: overview", () => {
     await waitFor(() => expect(inputs("stats.overview")).toHaveLength(2));
   });
 
+  it("asks once for the overview when another project is opened", async () => {
+    const scanned = (id: number, snapshot: number) => ({
+      ...PROJECT_ROW,
+      id,
+      scan: { snapshot, created: 1, mode: "full" as const, files: 1, symbols: 1, references: 1 },
+    });
+    served(RANKING, OVERVIEW, { "projects.list": () => answer([scanned(1, 5), scanned(2, 3)]) });
+    render(() => <StatsScreen />);
+    await waitFor(() => expect(inputs("stats.overview")).toHaveLength(1));
+    openProject(2);
+    await waitFor(() => expect(inputs("stats.overview")).toHaveLength(2));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(inputs("stats.overview")).toHaveLength(2);
+  });
+
   it("tells a failed load", async () => {
     serve({ "projects.list": () => answer([PROJECT_ROW]) });
     render(() => <StatsScreen />);

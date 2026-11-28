@@ -298,7 +298,7 @@ function useLoading(project: () => number | null) {
   reloadAfterScan(project);
 }
 
-/** Loads again when a scan ends: the newest scan of the open project is another one than before. */
+/** Loads again when a scan ends: the open project stays and its newest scan is another one. */
 function reloadAfterScan(project: () => number | null) {
   const newest = () => {
     const row = projects().find((entry) => entry.id === project());
@@ -306,10 +306,10 @@ function reloadAfterScan(project: () => number | null) {
   };
   createEffect(
     on(
-      newest,
-      (now, before) => {
-        const id = project();
-        if (id !== null && before !== undefined && now !== undefined && now !== before) {
+      () => [project(), newest()] as const,
+      ([id, now], before) => {
+        const [was, scan] = before ?? [];
+        if (id !== null && id === was && scan !== undefined && now !== undefined && now !== scan) {
           void loadStats(id);
         }
       },
