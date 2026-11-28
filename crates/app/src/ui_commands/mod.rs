@@ -601,6 +601,17 @@ fn expose_log(api: &mut CommandApi) -> Result<(), CodedError> {
     Ok(())
 }
 
+/// Makes the commands of the saved preferences and settings reachable over REST.
+fn expose_settings(api: &mut CommandApi) -> Result<(), CodedError> {
+    api.expose::<GetPreferences>()?;
+    api.expose::<SetPreferences>()?;
+    api.expose::<GetUiSettings>()?;
+    api.expose::<SetIndexerMemory>()?;
+    api.expose::<SetSettingValue>()?;
+    api.expose::<EffectiveSettings>()?;
+    Ok(())
+}
+
 /// Makes every registered command of the UI reachable over REST.
 fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ListProjects>()?;
@@ -635,13 +646,8 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ScansImpact>()?;
     api.expose::<ScansImpactMarkdown>()?;
     api.expose::<ScansMetricsMarkdown>()?;
-    api.expose::<GetPreferences>()?;
-    api.expose::<SetPreferences>()?;
-    api.expose::<GetUiSettings>()?;
-    api.expose::<SetIndexerMemory>()?;
-    api.expose::<SetSettingValue>()?;
+    expose_settings(api)?;
     expose_log(api)?;
-    api.expose::<EffectiveSettings>()?;
     api.expose::<HtmlExport>()?;
     expose_annotations(api)
 }

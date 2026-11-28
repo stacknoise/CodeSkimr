@@ -57,7 +57,7 @@ fn no_shipped_setting_is_hidden() {
     );
 }
 
-fn save(fixture: &Fixture, key: &str, value: Value) -> Result<Value, &'static str> {
+fn save(fixture: &Fixture, key: &str, value: &Value) -> Result<Value, &'static str> {
     fixture.call("ui_settings.set_value", json!({"key": key, "value": value}))
 }
 
@@ -67,11 +67,11 @@ fn a_saved_number_shows_up_as_the_value_of_the_next_scan() {
     let shown = fixture.call("settings.effective", Value::Null).unwrap();
     assert_eq!(setting(&shown, "scan.max_workers")["edit"], "scan");
     assert_eq!(setting(&shown, "scan.max_workers")["default"], "0");
-    save(&fixture, "scan.max_workers", json!(3)).unwrap();
+    save(&fixture, "scan.max_workers", &json!(3)).unwrap();
     let shown = fixture.call("settings.effective", Value::Null).unwrap();
     assert_eq!(setting(&shown, "scan.max_workers")["value"], "3");
     assert_eq!(setting(&shown, "scan.max_workers")["origin"], "ui");
-    save(&fixture, "scan.max_workers", json!(null)).unwrap();
+    save(&fixture, "scan.max_workers", &json!(null)).unwrap();
     let shown = fixture.call("settings.effective", Value::Null).unwrap();
     assert_eq!(setting(&shown, "scan.max_workers")["value"], "2");
 }
@@ -83,7 +83,7 @@ fn values_read_at_start_keep_showing_the_running_value_until_a_restart() {
     let started = setting(&before, "watcher.debounce_ms");
     assert_eq!(started["edit"], "start");
     assert!(started["pending"].is_null());
-    save(&fixture, "watcher.debounce_ms", json!(500)).unwrap();
+    save(&fixture, "watcher.debounce_ms", &json!(500)).unwrap();
     let after = fixture.call("settings.effective", Value::Null).unwrap();
     let shown = setting(&after, "watcher.debounce_ms");
     assert_eq!(shown["value"], started["value"]);
@@ -101,7 +101,7 @@ fn only_numbers_and_switches_of_the_allowed_tables_can_be_saved() {
         ("scan.max_workers", json!("many")),
         ("scan.max_workers", json!(1.5)),
     ] {
-        assert_eq!(save(&fixture, key, value), Err("API-101"), "{key}");
+        assert_eq!(save(&fixture, key, &value), Err("API-101"), "{key}");
     }
     let shown = fixture.call("settings.effective", Value::Null).unwrap();
     assert_eq!(setting(&shown, "level2.enabled")["edit"], "locked");
@@ -112,7 +112,7 @@ fn only_numbers_and_switches_of_the_allowed_tables_can_be_saved() {
 fn a_value_that_makes_the_configuration_invalid_is_not_saved() {
     let fixture = Fixture::new();
     assert_eq!(
-        save(&fixture, "similarity.ngram_size", json!(0)),
+        save(&fixture, "similarity.ngram_size", &json!(0)),
         Err("CFG-101")
     );
     let shown = fixture.call("settings.effective", Value::Null).unwrap();

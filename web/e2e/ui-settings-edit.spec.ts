@@ -3,11 +3,12 @@
 // default; a value that is security relevant keeps a grey button with the reason.
 // `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/settings-edit/ (`ui-*.png`).
 import path from "node:path";
-import { expect, shot, test } from "./fixtures";
+import { addScannedProject, expect, shot, test, type Harness } from "./fixtures";
 
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/settings-edit");
 const THEMES = ["hell", "petrol", "dunkel"];
 const KEY = "scan.max_workers";
+const SOURCE = "namespace Shop;\npublic class Item {}\n";
 const LOCKED = "level2.enabled";
 
 for (const theme of THEMES) {
@@ -17,8 +18,9 @@ for (const theme of THEMES) {
   }, info) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.addInitScript((value) => localStorage.setItem("codeskimr.theme", value), theme);
-    await page.goto(`${harness.url}/`);
-    await page.getByRole("link", { name: "Settings" }).click();
+    const added = await addScannedProject(page, harness as Harness, `settings${theme}`, SOURCE);
+    await added.click({ position: { x: 4, y: 4 } });
+    await page.locator('a[aria-label="Settings"]').click();
     await page.getByRole("tab", { name: "Effective settings" }).click();
     const row = page.getByRole("row").filter({ hasText: KEY });
     await expect(row).toBeVisible();
