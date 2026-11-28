@@ -4,7 +4,8 @@
 #[cfg(test)]
 mod tests {
     use codeskimr_application::abapgit::{
-        AbapGitConfig, FolderLogic, object_of, package_of, parse_config, summarize,
+        AbapGitConfig, FolderLogic, object_of, package_description, package_of, parse_config,
+        summarize,
     };
     use codeskimr_application::ports::ListedFile;
     use codeskimr_domain::{LanguageId, RelativePath};
@@ -136,5 +137,21 @@ mod tests {
         // A folder outside the starting folder, or one that only starts with its name, stays.
         assert_eq!(package_of("lib/zfoo", "src"), "lib/zfoo");
         assert_eq!(package_of("srcx/zfoo", "src"), "srcx/zfoo");
+    }
+
+    #[test]
+    fn the_description_of_a_package_is_read_from_its_file() {
+        let xml = "<abapGit><DEVC><CTEXT>Order &amp; Billing &lt;core&gt;</CTEXT></DEVC></abapGit>";
+        assert_eq!(
+            package_description(xml).as_deref(),
+            Some("Order & Billing <core>")
+        );
+        assert_eq!(package_description("<DEVC><CTEXT></CTEXT></DEVC>"), None);
+        assert_eq!(package_description("<DEVC></DEVC>"), None);
+        // An escaped escape stays one: `&amp;lt;` is the text `&lt;`.
+        assert_eq!(
+            package_description("<CTEXT>&amp;lt;</CTEXT>").as_deref(),
+            Some("&lt;")
+        );
     }
 }

@@ -7,17 +7,20 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::consts::{
-    ABAPGIT_CONFIG_FILE, ABAPGIT_DEFAULT_STARTING_FOLDER, ABAPGIT_FOLDER_LOGIC_FULL,
-    ABAPGIT_FOLDER_LOGIC_TAG, ABAPGIT_LOGIC_FULL_LABEL, ABAPGIT_LOGIC_PREFIX_LABEL,
-    ABAPGIT_METADATA_EXTENSION, ABAPGIT_NAME_SEPARATOR, ABAPGIT_NAMESPACE_MARK,
-    ABAPGIT_NAMESPACE_SLASH, ABAPGIT_PACKAGE_FILE, ABAPGIT_PACKAGE_TYPE, ABAPGIT_ROOT_FOLDER,
-    ABAPGIT_SOURCE_EXTENSIONS, ABAPGIT_STARTING_FOLDER_TAG, ABAPGIT_TAG_CLOSE, ABAPGIT_TAG_END,
-    ABAPGIT_TAG_OPEN, PATH_SEPARATOR,
+    ABAPGIT_CONFIG_FILE, ABAPGIT_DEFAULT_STARTING_FOLDER, ABAPGIT_DESCRIPTION_TAG,
+    ABAPGIT_FOLDER_LOGIC_FULL, ABAPGIT_FOLDER_LOGIC_TAG, ABAPGIT_LOGIC_FULL_LABEL,
+    ABAPGIT_LOGIC_PREFIX_LABEL, ABAPGIT_METADATA_EXTENSION, ABAPGIT_NAME_SEPARATOR,
+    ABAPGIT_NAMESPACE_MARK, ABAPGIT_NAMESPACE_SLASH, ABAPGIT_PACKAGE_FILE, ABAPGIT_PACKAGE_TYPE,
+    ABAPGIT_ROOT_FOLDER, ABAPGIT_SOURCE_EXTENSIONS, ABAPGIT_STARTING_FOLDER_TAG, ABAPGIT_TAG_CLOSE,
+    ABAPGIT_TAG_END, ABAPGIT_TAG_OPEN, ABAPGIT_XML_ESCAPES, PATH_SEPARATOR,
 };
 use crate::ports::ListedFile;
 
 /// The name of the file that marks an abapGit repository, in the project folder.
 pub const CONFIG_FILE: &str = ABAPGIT_CONFIG_FILE;
+
+/// The name of the file that describes a package, in the folder of the package.
+pub const PACKAGE_FILE: &str = ABAPGIT_PACKAGE_FILE;
 
 /// How abapGit turns the name of a package into a folder.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -107,6 +110,19 @@ pub fn package_of(folder: &str, starting_folder: &str) -> String {
         .and_then(|rest| rest.strip_prefix(PATH_SEPARATOR))
         .unwrap_or(folder)
         .to_owned()
+}
+
+/// The description of a package in the text of its `package.devc.xml` (the tag `CTEXT`), with the
+/// XML escapes undone; `None` if the file has none or an empty one.
+#[must_use]
+pub fn package_description(text: &str) -> Option<String> {
+    let found = tag_text(text, ABAPGIT_DESCRIPTION_TAG)?;
+    let plain = ABAPGIT_XML_ESCAPES
+        .iter()
+        .fold(found.to_owned(), |text, (escaped, plain)| {
+            text.replace(escaped, plain)
+        });
+    (!plain.is_empty()).then_some(plain)
 }
 
 /// An object that a file of the repository belongs to.

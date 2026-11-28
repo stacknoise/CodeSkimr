@@ -301,6 +301,17 @@ pub const ABAPGIT_TAG_OPEN: &str = "<";
 pub const ABAPGIT_TAG_CLOSE: &str = "</";
 /// The end of a tag in `.abapgit.xml`.
 pub const ABAPGIT_TAG_END: &str = ">";
+/// Tag of the description of a package in `package.devc.xml`.
+pub const ABAPGIT_DESCRIPTION_TAG: &str = "CTEXT";
+/// The XML escapes of a text in `package.devc.xml` and what they stand for; `&amp;` comes last so
+/// that `&amp;lt;` stays the text `&lt;`.
+pub const ABAPGIT_XML_ESCAPES: [(&str, &str); 5] = [
+    ("&lt;", "<"),
+    ("&gt;", ">"),
+    ("&quot;", "\""),
+    ("&apos;", "'"),
+    ("&amp;", "&"),
+];
 /// The folder name of files directly below the starting folder.
 pub const ABAPGIT_ROOT_FOLDER: &str = "";
 /// Tag of the folder below which abapGit keeps the objects.

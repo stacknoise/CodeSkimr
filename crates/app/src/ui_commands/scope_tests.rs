@@ -341,3 +341,30 @@ fn abap_files_outside_an_abapgit_layout_are_reported_as_not_recognised() {
         .unwrap();
     assert_eq!(answer["abapgit_unrecognised"], false);
 }
+
+#[test]
+fn the_explorer_names_a_package_by_the_description_of_its_file() {
+    let fixture = Fixture::installed(None);
+    let app = abapgit_layout(&fixture);
+    fs::write(app.join("code/sub/zcl_b.clas.abap"), CLASS).unwrap();
+    fs::write(
+        app.join("code/sub/package.devc.xml"),
+        "<abapGit><DEVC><CTEXT>Order &amp; Billing</CTEXT></DEVC></abapGit>",
+    )
+    .unwrap();
+    // The root package has a file too; its row is named by the tree, so it gets no description.
+    fs::write(
+        app.join("code/package.devc.xml"),
+        "<abapGit><DEVC><CTEXT>Root</CTEXT></DEVC></abapGit>",
+    )
+    .unwrap();
+    let project = fixture.scanned();
+    let outline = fixture
+        .call("explorer.outline", json!({ "project": project }))
+        .unwrap();
+    let spaces = outline["layers"][0]["namespaces"].as_array().unwrap();
+    let sub = spaces.iter().find(|space| space["name"] == "sub").unwrap();
+    assert_eq!(sub["description"], "Order & Billing");
+    let root = spaces.iter().find(|space| space["name"] == "").unwrap();
+    assert!(root.get("description").is_none());
+}

@@ -26,6 +26,8 @@ const ORDER =
   "CLASS zcl_order DEFINITION PUBLIC.\n  PUBLIC SECTION.\n    METHODS total RETURNING VALUE(result) TYPE i.\nENDCLASS.\n\nCLASS zcl_order IMPLEMENTATION.\n  METHOD total.\n    result = 1.\n  ENDMETHOD.\nENDCLASS.\n";
 const VIEW =
   "CLASS zcl_view DEFINITION PUBLIC.\n  PUBLIC SECTION.\n    METHODS show.\nENDCLASS.\n\nCLASS zcl_view IMPLEMENTATION.\n  METHOD show.\n  ENDMETHOD.\nENDCLASS.\n";
+const PACKAGE =
+  '<?xml version="1.0" encoding="utf-8"?>\n<abapGit version="v1.0.0"><asx:abap xmlns:asx="http://www.sap.com/abapxml"><asx:values><DEVC><CTEXT>Order core</CTEXT></DEVC></asx:values></asx:abap></abapGit>\n';
 const INTERFACE = "INTERFACE zif_order PUBLIC.\nENDINTERFACE.\n";
 
 /** A folder in the layout of abapGit: two packages below `src/`. */
@@ -33,6 +35,7 @@ function abapGitFolder(name: string): string {
   const folder = path.join(mkdtempSync(path.join(tmpdir(), "codeskimr-e2e-")), name);
   for (const [file, text] of Object.entries({
     ".abapgit.xml": CONFIG,
+    "src/zcore/package.devc.xml": PACKAGE,
     "src/zcore/zcl_order.clas.abap": ORDER,
     "src/zcore/zif_order.intf.abap": INTERFACE,
     "src/zui/zcl_view.clas.abap": VIEW,
@@ -80,6 +83,7 @@ for (const theme of THEMES) {
       await expect(page.getByRole("tree")).toBeVisible();
       await expect(page.getByText("zcore", { exact: true })).toBeVisible();
       await expect(page.getByText("zui", { exact: true })).toBeVisible();
+      await expect(page.getByText("Order core", { exact: true })).toBeVisible();
       await page.getByText("zcore", { exact: true }).click();
       await shot(page, SHOTS, `abapgit-explorer-${theme}`, info);
     });

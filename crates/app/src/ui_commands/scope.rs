@@ -6,7 +6,8 @@ use std::path::Path;
 use std::sync::Arc;
 
 use codeskimr_application::abapgit::{
-    AbapGitConfig, AbapGitSummary, CONFIG_FILE, parse_config, summarize,
+    AbapGitConfig, AbapGitSummary, CONFIG_FILE, PACKAGE_FILE, package_description, parse_config,
+    summarize,
 };
 use codeskimr_application::access;
 use codeskimr_application::cancel::CancelToken;
@@ -152,15 +153,28 @@ fn abapgit_out(summary: AbapGitSummary) -> AbapGitOut {
     }
 }
 
-/// The configuration in `.abapgit.xml` of a project folder, if the file is there and is a regular
-/// file; it is read through `fsguard` and not further than `ABAPGIT_CONFIG_MAX_BYTES`.
-pub(super) fn read_config(root: &Path) -> Option<AbapGitConfig> {
-    let file = codeskimr_fsguard::open_regular(&root.join(CONFIG_FILE)).ok()?;
+/// The text of a regular file below `root`, read through `fsguard` and not further than
+/// `ABAPGIT_CONFIG_MAX_BYTES`; `None` if there is no such file or it is no text.
+fn read_text(path: &Path) -> Option<String> {
+    let file = codeskimr_fsguard::open_regular(path).ok()?;
     let mut text = String::new();
     file.take(ABAPGIT_CONFIG_MAX_BYTES)
         .read_to_string(&mut text)
         .ok()?;
-    Some(parse_config(&text))
+    Some(text)
+}
+
+/// The configuration in `.abapgit.xml` of a project folder, if the file is there and is a regular
+/// file; it is read through `fsguard` and not further than `ABAPGIT_CONFIG_MAX_BYTES`.
+pub(super) fn read_config(root: &Path) -> Option<AbapGitConfig> {
+    read_text(&root.join(CONFIG_FILE)).map(|text| parse_config(&text))
+}
+
+/// The description of the package whose folder is `folder` (relative to `root`), from its
+/// `package.devc.xml`; read like `.abapgit.xml`.
+pub(super) fn read_package_description(root: &Path, folder: &str) -> Option<String> {
+    let text = read_text(&root.join(folder).join(PACKAGE_FILE))?;
+    package_description(&text)
 }
 
 fn scope_out(scope: &Scope) -> ScopeOut {
