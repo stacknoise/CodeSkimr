@@ -43,6 +43,14 @@ beforeEach(() => {
 });
 afterEach(cancelRename);
 
+/** Opens the screen without projects and types the path of a folder into the source field. */
+async function typeShopSource() {
+  render(() => <ProjectsScreen />);
+  const field = await screen.findByPlaceholderText(/Paste a folder path/);
+  fireEvent.input(field, { target: { value: "/work/shop/src" } });
+  return { field, name: await screen.findByLabelText(/^Display name/) };
+}
+
 describe("ProjectsScreen", () => {
   it("says how a first project gets here when there is none", async () => {
     serve({ "projects.list": () => answer([]) });
@@ -173,10 +181,7 @@ describe("ProjectsScreen", () => {
           tools: UNCHECKED,
         }),
     });
-    render(() => <ProjectsScreen />);
-    const field = await screen.findByPlaceholderText(/Paste a folder path/);
-    fireEvent.input(field, { target: { value: "/work/shop/src" } });
-    const name = await screen.findByLabelText(/^Display name/);
+    const { field, name } = await typeShopSource();
     await waitFor(() => expect((name as HTMLInputElement).value).toBe("shop/src"));
     fireEvent.click(screen.getByRole("button", { name: "Add and scan" }));
     await waitFor(() => expect((field as HTMLInputElement).value).toBe(""));
@@ -193,10 +198,7 @@ describe("ProjectsScreen", () => {
         return calls === 1 ? answer({ code: "API-502" }, 502) : answer({ name: "shop/src" });
       },
     });
-    render(() => <ProjectsScreen />);
-    const field = await screen.findByPlaceholderText(/Paste a folder path/);
-    fireEvent.input(field, { target: { value: "/work/shop/src" } });
-    const name = await screen.findByLabelText(/^Display name/);
+    const { field, name } = await typeShopSource();
     await waitFor(() => expect((name as HTMLInputElement).value).toBe("shop/src"), {
       timeout: 3000,
     });
