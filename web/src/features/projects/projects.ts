@@ -7,7 +7,7 @@ import { navigate } from "../../app/router";
 import { PROJECTS_ROUTE } from "../../app/consts";
 import { closeProject } from "../../shared/project/active";
 import { pollUnanswered } from "../../shared/api/poll";
-import { COMMAND, POLL_MS } from "./consts";
+import { COMMAND, POLL_MS, SUGGEST_RETRIES, SUGGEST_RETRY_MS } from "./consts";
 import { byName } from "./order";
 import { showScan } from "./page";
 import { forgetLevel2 } from "./level2";
@@ -80,13 +80,32 @@ export async function saveRename(): Promise<boolean> {
   }
 }
 
-/** The name that a source would get, or `null` if the text is no source (yet) or unanswered. */
+/** The name that a source would get, or `null` if the text is no source (yet).
+ *
+ * @throws ApiError or TypeError if the server did not answer (busy, not reachable): that is not
+ * the same as "no source", so the caller can ask again.
+ */
 export async function suggestName(source: string): Promise<string | null> {
-  try {
-    const answer = await runCommand<{ name: string | null }>(COMMAND.suggestName, { source });
-    return answer.name;
-  } catch {
-    return null;
+  const answer = await runCommand<{ name: string | null }>(COMMAND.suggestName, { source });
+  return answer.name;
+}
+
+/** Like [`suggestName`], but asks again after a pause while the server does not answer and
+ * `current` still holds, so a busy server (a scan runs) never leaves the field empty for good.
+ * Gives up with `null` after `SUGGEST_RETRIES` more tries. */
+export async function suggestNameRetrying(
+  source: string,
+  current: () => boolean,
+): Promise<string | null> {
+  for (let retry = 0; ; retry++) {
+    try {
+      return await suggestName(source);
+    } catch {
+      if (retry >= SUGGEST_RETRIES || !current()) {
+        return null;
+      }
+      await new Promise((resolve) => setTimeout(resolve, SUGGEST_RETRY_MS));
+    }
   }
 }
 
