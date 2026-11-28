@@ -331,4 +331,4 @@ projects-abapgit-limits = ABAP is read as an approximation (basic stage): no vis
 projects-abapgit-hint-title = This is an abapGit repository
 projects-abapgit-hint-text = It will be read as ABAP: { $objects } objects in { $packages } packages, below { $folder } ({ $logic } folder logic). In the explorer, every package is a folder of its own.
 projects-abapgit-missed-title = ABAP files found, no abapGit layout recognised
-projects-abapgit-missed-text = The project has ABAP files, but there is no .abapgit.xml and no object below src/. The files are read as usual, but the explorer shows no packages. Put an .abapgit.xml in the project folder to get them.
+projects-abapgit-missed-text = The project has ABAP files, but there is no .abapgit.xml and no object below src/. The files are read as usual and the explorer shows the folder of each file as its package, but the abapGit layout (starting folder, folder logic) is not applied. Put an .abapgit.xml in the project folder to get it.

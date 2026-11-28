@@ -125,7 +125,9 @@ describe("the scope of a project", () => {
     expect(
       screen.getByRole("heading", { name: "ABAP files found, no abapGit layout recognised" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/the explorer shows no packages/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/the abapGit layout \(starting folder, folder logic\) is not applied/),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "abapGit repository" })).toBeNull();
   });
 

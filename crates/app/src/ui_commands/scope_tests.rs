@@ -179,13 +179,20 @@ const CONFIG: &str =
     "<DATA><STARTING_FOLDER>/code/</STARTING_FOLDER><FOLDER_LOGIC>FULL</FOLDER_LOGIC></DATA>";
 const CLASS: &str = "CLASS zcl_a DEFINITION PUBLIC.\nENDCLASS.\nCLASS zcl_a IMPLEMENTATION.\n  METHOD run.\n  ENDMETHOD.\nENDCLASS.\n";
 
-#[test]
-fn an_abapgit_folder_is_recognised_and_counted() {
-    let fixture = Fixture::installed(None);
+/// The demo folder as an abapGit repository: `.abapgit.xml` for the starting folder `code`, a class in
+/// it and one in `code/sub`. Returns the project folder.
+fn abapgit_layout(fixture: &Fixture) -> std::path::PathBuf {
     let app = fixture.root.path().join("app");
     fs::create_dir_all(app.join("code/sub")).unwrap();
     fs::write(app.join(".abapgit.xml"), CONFIG).unwrap();
     fs::write(app.join("code/zcl_a.clas.abap"), CLASS).unwrap();
+    app
+}
+
+#[test]
+fn an_abapgit_folder_is_recognised_and_counted() {
+    let fixture = Fixture::installed(None);
+    let app = abapgit_layout(&fixture);
     fs::write(app.join("code/zcl_a.clas.xml"), "<x/>").unwrap();
     fs::write(app.join("code/sub/zcl_b.clas.abap"), CLASS).unwrap();
     fs::write(
@@ -286,10 +293,7 @@ fn a_reader_may_not_inspect_a_folder() {
 #[test]
 fn the_explorer_shows_a_package_relative_to_the_starting_folder() {
     let fixture = Fixture::installed(None);
-    let app = fixture.root.path().join("app");
-    fs::create_dir_all(app.join("code/sub")).unwrap();
-    fs::write(app.join(".abapgit.xml"), CONFIG).unwrap();
-    fs::write(app.join("code/zcl_a.clas.abap"), CLASS).unwrap();
+    let app = abapgit_layout(&fixture);
     fs::write(app.join("code/sub/zcl_b.clas.abap"), CLASS).unwrap();
     let project = fixture.scanned();
     let outline = fixture
@@ -324,6 +328,12 @@ fn abap_files_outside_an_abapgit_layout_are_reported_as_not_recognised() {
         .unwrap();
     assert_eq!(answer["abapgit"], serde_json::Value::Null);
     assert_eq!(answer["abapgit_unrecognised"], true);
+    // The explorer still shows the folder of the file as its package.
+    let outline = fixture
+        .call("explorer.outline", json!({ "project": project }))
+        .unwrap();
+    let spaces = outline["layers"][0]["namespaces"].as_array().unwrap();
+    assert!(spaces.iter().any(|space| space["name"] == "lib"));
 
     fs::write(app.join(".abapgit.xml"), CONFIG).unwrap();
     let answer = fixture
