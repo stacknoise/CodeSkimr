@@ -189,6 +189,7 @@ fn the_log_needs_the_token(url: &str, token: &str) {
             "log.set_level",
             "log.clear",
             "conventions.check",
+            "ui_settings.set_value",
         ] {
             let answer = command_request(url, id, &headers, &json!({ "lines": 1 }));
             assert_eq!(status(&answer), 401, "{id}, token {wrong:?}");
