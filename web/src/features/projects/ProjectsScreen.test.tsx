@@ -184,6 +184,25 @@ describe("ProjectsScreen", () => {
     expect(JSON.parse(call?.[1].body)).toEqual({ source: "/work/shop/src", branch: "main" });
   });
 
+  it("asks again for the display name when the server is busy and does not leave the field empty", async () => {
+    let calls = 0;
+    serve({
+      "projects.list": () => answer([]),
+      "projects.suggest_name": () => {
+        calls += 1;
+        return calls === 1 ? answer({ code: "API-502" }, 502) : answer({ name: "shop/src" });
+      },
+    });
+    render(() => <ProjectsScreen />);
+    const field = await screen.findByPlaceholderText(/Paste a folder path/);
+    fireEvent.input(field, { target: { value: "/work/shop/src" } });
+    const name = await screen.findByLabelText(/^Display name/);
+    await waitFor(() => expect((name as HTMLInputElement).value).toBe("shop/src"), {
+      timeout: 3000,
+    });
+    expect(calls).toBe(2);
+  });
+
   it("asks for no name while a network path is typed", async () => {
     serve({
       "projects.list": () => answer([]),
