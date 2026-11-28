@@ -35,6 +35,7 @@ mod tools;
 mod usages;
 mod version;
 
+pub use crate::consts::FOLDER_NAMESPACE_LANGUAGES;
 pub use analysis::{
     AnalyzeRequest, FileAnalyzer, FileFacts, MetricsCalculator, PendingReference, Receiver,
     ReferenceResolver, Resolution, SnippetFingerprinter, SymbolFingerprints, SymbolHash,
@@ -60,7 +61,7 @@ pub use keys::{KeyEntry, KeyKind, KeySearch, ProjectKeys};
 pub use level2::{ImportRequest, Imported, ReferenceImporter};
 pub use memory::{MemoryGauge, MemoryLimit, MemoryWatch};
 pub use mentions::{Mention, MentionLimits, Mentions, NameMentions};
-pub use outline::{CodeOutline, FOLDER_NAMESPACE_LANGUAGES, MemberRow, OutlineNode};
+pub use outline::{CodeOutline, MemberRow, OutlineNode};
 pub use query::{
     CodeIndex, CodeSpan, FileHit, MemberRef, ScanEntry, SearchHit, StepTime, SymbolDetail,
     SymbolKey, TypeFocus, TypeNeighbour,
