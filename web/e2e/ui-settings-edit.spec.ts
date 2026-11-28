@@ -1,8 +1,9 @@
-// Changing a number of the configuration in the tab "Effective settings" (ADR 0117, mock 45
+// Changing a number of the configuration in the tab "Effective settings" (ADR 0118, mock 45
 // variant A): a value is saved in the file of the app, shows its source and can go back to the
 // default; a value that is security relevant keeps a grey button with the reason.
 // `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/settings-edit/ (`ui-*.png`).
 import path from "node:path";
+import type { Page } from "@playwright/test";
 import { addScannedProject, expect, shot, test, type Harness } from "./fixtures";
 
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/settings-edit");
@@ -11,17 +12,22 @@ const KEY = "scan.max_workers";
 const SOURCE = "namespace Shop;\npublic class Item {}\n";
 const LOCKED = "level2.enabled";
 
+/** Opens the tab "Effective settings" in `theme`, with one scanned project so the screens are open. */
+async function openEffective(page: Page, harness: Harness, name: string): Promise<void> {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript((value) => localStorage.setItem("codeskimr.theme", value), name);
+  const added = await addScannedProject(page, harness, `settings${name}`, SOURCE);
+  await added.click({ position: { x: 4, y: 4 } });
+  await page.locator('a[aria-label="Settings"]').click();
+  await page.getByRole("tab", { name: "Effective settings" }).click();
+}
+
 for (const theme of THEMES) {
   test(`changes a number, shows its source and sets it back (${theme})`, async ({
     page,
     harness,
   }, info) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.addInitScript((value) => localStorage.setItem("codeskimr.theme", value), theme);
-    const added = await addScannedProject(page, harness as Harness, `settings${theme}`, SOURCE);
-    await added.click({ position: { x: 4, y: 4 } });
-    await page.locator('a[aria-label="Settings"]').click();
-    await page.getByRole("tab", { name: "Effective settings" }).click();
+    await openEffective(page, harness as Harness, theme);
     const row = page.getByRole("row").filter({ hasText: KEY });
     await expect(row).toBeVisible();
     const locked = page.getByRole("row").filter({ hasText: LOCKED });

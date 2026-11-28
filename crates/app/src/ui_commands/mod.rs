@@ -525,7 +525,7 @@ fn register_preferences(registry: &mut Registry, locations: &Locations) -> Resul
     add(registry, SetPreferences { file })
 }
 
-/// The commands that keep the settings the UI saves in the data folder (ADR 0103, ADR 0117).
+/// The commands that keep the settings the UI saves in the data folder (ADR 0103, ADR 0118).
 fn register_ui_settings(
     registry: &mut Registry,
     (locations, global): (&Locations, &GlobalOptions),

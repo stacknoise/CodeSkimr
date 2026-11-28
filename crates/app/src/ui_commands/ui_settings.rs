@@ -1,6 +1,8 @@
 //! The commands that read and write the settings the UI saved (ADR 0103). The file and the layer
 //! the configuration reads from it are in `crate::ui_settings`.
 
+use std::sync::{Mutex, MutexGuard, PoisonError};
+
 use codeskimr_application::access;
 use codeskimr_application::config::{Config, MAX_INDEXER_MEMORY_MB};
 use codeskimr_application::error::CodedError;
@@ -25,6 +27,15 @@ use crate::ui_settings::{UiSettings, UiSettingsFile, UiValue, editable, known_in
 ///
 /// # Errors
 /// `APP-201` if the data folder cannot be written.
+/// Holds the file of the saved settings for one change, so two calls at the same moment cannot
+/// overwrite each other's entry.
+static SAVE_LOCK: Mutex<()> = Mutex::new(());
+
+/// Takes the lock of a change; a call that panicked while holding it does not block the next one.
+fn lock_file() -> MutexGuard<'static, ()> {
+    SAVE_LOCK.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
 fn write(file: &UiSettingsFile, settings: &UiSettings) -> Result<(), CodedError> {
     let text = settings
         .to_file_text()
@@ -96,6 +107,7 @@ impl Command for SetIndexerMemory {
         if !acceptable {
             return Err(CodedError::new(ErrorCode::RequestInvalid));
         }
+        let _guard = lock_file();
         let mut settings = self.file.read();
         match megabytes {
             Some(value) => settings.indexer_memory_mb.insert(indexer, value),
@@ -117,7 +129,7 @@ pub struct SettingValue {
     pub value: Option<UiValue>,
 }
 
-/// Saves or forgets the value of one number or switch (ADR 0117). Only keys that
+/// Saves or forgets the value of one number or switch (ADR 0118). Only keys that
 /// [`editable`] names are accepted, and the whole configuration with the new value must still be
 /// valid, so a saved value can never keep the program from starting.
 pub struct SetSettingValue {
@@ -148,6 +160,7 @@ impl Command for SetSettingValue {
         access::require(request.principal, Permission::Manage)?;
         let SettingValue { key, value } = request.input;
         let allowed = editable(&key).ok_or_else(|| CodedError::new(ErrorCode::RequestInvalid))?;
+        let _guard = lock_file();
         let mut settings = self.file.read();
         match value {
             Some(given) => {

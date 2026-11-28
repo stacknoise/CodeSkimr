@@ -97,6 +97,8 @@ fn only_numbers_and_switches_of_the_allowed_tables_can_be_saved() {
         ("level2.enabled", json!(true)),
         ("server.port", json!(80)),
         ("ui.dir", json!(1)),
+        ("snapshots.retention_count", json!(1)),
+        ("annotations.dismissed_retention_days", json!(1)),
         ("made.up", json!(1)),
         ("scan.max_workers", json!("many")),
         ("scan.max_workers", json!(1.5)),

@@ -170,6 +170,21 @@ describe("EffectivePanel", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
+  it("offers the saved value and Back to default for a value that waits for the next start", async () => {
+    serve({
+      "settings.effective": () =>
+        answer({
+          ...LISTING,
+          settings: [{ ...LISTING.settings[0]!, edit: "start", pending: "500" }],
+        }),
+    });
+    render(() => <EffectivePanel />);
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Change" })).toHaveLength(1));
+    fireEvent.click(screen.getByRole("button", { name: "Change" }));
+    expect(screen.getByLabelText("New value")).toHaveValue("500");
+    expect(screen.getByRole("button", { name: "Back to default" })).toBeEnabled();
+  });
+
   it("notes a value that is saved and waits for the next start", async () => {
     serve({
       "settings.effective": () =>

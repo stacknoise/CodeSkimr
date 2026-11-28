@@ -91,7 +91,7 @@ function Field(props: {
 function dialogState(setting: () => EffectiveSetting, onClose: () => void) {
   const kind = () => kindOf(setting().default);
   const kindText = () => t(KIND_TEXTS[kind()]);
-  const [text, setText] = createSignal(setting().value);
+  const [text, setText] = createSignal(setting().pending ?? setting().value);
   const [failure, setFailure] = createSignal<string | null>(null);
   const run = async (value: number | boolean | null) => {
     try {
@@ -146,7 +146,7 @@ function Actions(props: {
   state: ReturnType<typeof dialogState>;
   onClose: () => void;
 }) {
-  const saved = () => props.setting.origin === ORIGIN.ui;
+  const saved = () => props.setting.origin === ORIGIN.ui || props.setting.pending !== null;
   return (
     <div class={styles.actions}>
       <button type="button" class={styles.secondary} onClick={props.onClose}>
@@ -168,7 +168,7 @@ function Actions(props: {
   );
 }
 
-/** The dialog "Change value" (mock 45 variant A, ADR 0117): the key, a field for the new value,
+/** The dialog "Change value" (mock 45 variant A, ADR 0118): the key, a field for the new value,
  * from when it counts, and the buttons to cancel, go back to the default and save. Enter in the
  * field saves, Esc closes the dialog. */
 export function SettingDialog(props: { setting: EffectiveSetting; onClose: () => void }) {

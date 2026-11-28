@@ -1,4 +1,4 @@
-//! The settings the UI saves in the data folder (ADR 0103, ADR 0117): the memory limit per indexer
+//! The settings the UI saves in the data folder (ADR 0103, ADR 0118): the memory limit per indexer
 //! and the numbers and switches of the tables that `UI_EDIT_*_TABLES` name.
 //!
 //! They sit in one small file beside the preferences. The configuration reads the file as a layer
@@ -16,8 +16,9 @@ use codeskimr_application::config::{Config, ConfigLayer, LayerSource, MAX_INDEXE
 use serde::{Deserialize, Serialize};
 
 use crate::consts::{
-    UI_EDIT_SCAN_TABLES, UI_EDIT_START_TABLES, UI_KEY_SEPARATOR, UI_LAYER_ASSIGN, UI_LAYER_HEADER,
-    UI_LAYER_NEWLINE, UI_LAYER_TABLE, UI_SETTINGS_FILE, UI_SETTINGS_MAX_BYTES,
+    UI_EDIT_LOCKED_KEYS, UI_EDIT_SCAN_TABLES, UI_EDIT_START_TABLES, UI_KEY_SEPARATOR,
+    UI_LAYER_ASSIGN, UI_LAYER_HEADER, UI_LAYER_NEWLINE, UI_LAYER_TABLE, UI_SETTINGS_FILE,
+    UI_SETTINGS_MAX_BYTES,
 };
 
 /// A value the UI saves for a setting: a switch or a number.
@@ -100,6 +101,9 @@ pub struct Editable {
 /// texts) stays with the configuration file.
 #[must_use]
 pub fn editable(key: &str) -> Option<Editable> {
+    if UI_EDIT_LOCKED_KEYS.contains(&key) {
+        return None;
+    }
     let table = key.split(UI_KEY_SEPARATOR).next()?;
     let applies = if UI_EDIT_SCAN_TABLES.contains(&table) {
         Applies::Scan

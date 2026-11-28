@@ -118,7 +118,7 @@ function RowActions(props: {
       >
         {t(I18N_KEYS.SETTINGS_EFFECTIVE_CHANGE)}
       </button>
-      <Show when={props.setting.origin === ORIGIN.ui}>
+      <Show when={props.setting.origin === ORIGIN.ui || props.setting.pending !== null}>
         <button
           type="button"
           class={styles.rowButton}
@@ -256,7 +256,7 @@ export function ConfigSourcesPanel() {
 
 /** The settings in effect: each value with the layer that set it (default, configuration file or
  * command line), narrowed by the search of the tab bar and by a switch to the values that differ
- * from the default. "Change" saves a number or a switch in the file of the app (mock 45, ADR 0117). */
+ * from the default. "Change" saves a number or a switch in the file of the app (mock 45, ADR 0118). */
 export function EffectivePanel() {
   onMount(() => void loadEffectiveSettings());
   return (

@@ -81,7 +81,7 @@ export const EFFECTIVE_COLUMNS = [
   { id: "actions", label: I18N_KEYS.SETTINGS_EFFECTIVE_COLUMN_ACTIONS },
 ] as const;
 
-/** The command that saves or forgets one number or switch (ADR 0117). */
+/** The command that saves or forgets one number or switch (ADR 0118). */
 export const SET_VALUE_COMMAND = "ui_settings.set_value";
 
 /** Whether and how a setting can be changed, as `settings.effective` says: `scan` and `start` can

@@ -324,7 +324,7 @@ pub const UI_SETTINGS_SET_INDEXER_MEMORY_TITLE: &str =
 /// Description key of `ui_settings.set_indexer_memory`.
 pub const UI_SETTINGS_SET_INDEXER_MEMORY_DESCRIPTION: &str =
     i18n::COMMAND_UI_SETTINGS_SET_INDEXER_MEMORY_DESCRIPTION;
-/// Id of the command that saves or forgets the value of one setting (ADR 0117).
+/// Id of the command that saves or forgets the value of one setting (ADR 0118).
 pub const UI_SETTINGS_SET_VALUE: &str = "ui_settings.set_value";
 /// Title key of `ui_settings.set_value`.
 pub const UI_SETTINGS_SET_VALUE_TITLE: &str = i18n::COMMAND_UI_SETTINGS_SET_VALUE_TITLE;

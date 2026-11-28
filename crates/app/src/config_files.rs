@@ -10,6 +10,7 @@ use codeskimr_application::error::CodedError;
 use codeskimr_cli::GlobalOptions;
 use codeskimr_codes::ErrorCode;
 
+use crate::consts::LOG_SAVED_SETTINGS_IGNORED;
 use crate::locations::Locations;
 use crate::ui_settings::UiSettingsFile;
 
@@ -44,6 +45,7 @@ pub fn layers(
     if Config::resolve(&with).is_ok() {
         return Ok(with);
     }
+    tracing::warn!(event = LOG_SAVED_SETTINGS_IGNORED);
     // Saved values that together break a rule of the configuration (a default above its maximum)
     // must not keep the program from starting: they are left out, as an invalid file is.
     layers_with(locations, global, project_dir, None)
