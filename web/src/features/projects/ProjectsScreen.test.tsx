@@ -11,6 +11,7 @@ import {
   addProject,
   cancelRename,
   noteScanReport,
+  projectAdding as projectsAddingNow,
   refreshProjects,
   renamingProject,
 } from "./projects";
@@ -49,6 +50,14 @@ async function typeShopSource() {
   const field = await screen.findByPlaceholderText(/Paste a folder path/);
   fireEvent.input(field, { target: { value: "/work/shop/src" } });
   return { field, name: await screen.findByLabelText(/^Display name/) };
+}
+
+/** Opens the window "New project" and types a folder path into it; returns the source field. */
+async function typeIntoNewWindow(path: string) {
+  fireEvent.click(screen.getByRole("button", { name: "New" }));
+  const field = await screen.findByPlaceholderText(/Paste a folder path/);
+  fireEvent.input(field, { target: { value: path } });
+  return field;
 }
 
 describe("ProjectsScreen", () => {
@@ -203,6 +212,43 @@ describe("ProjectsScreen", () => {
       timeout: 3000,
     });
     expect(calls).toBe(2);
+  });
+
+  it("keeps a window opened after the first one closed while its add was still running", async () => {
+    let finishAdd: (response: Response) => void = () => undefined;
+    serve({
+      "projects.list": () => answer([ROW]),
+      "projects.suggest_name": () => answer({ name: "x" }),
+    });
+    const served = fetchMock.getMockImplementation();
+    fetchMock.mockImplementation((path: string) =>
+      path.endsWith("projects.add")
+        ? new Promise<Response>((resolve) => (finishAdd = resolve))
+        : served?.(path),
+    );
+    render(() => <ProjectsScreen />);
+    await screen.findByRole("button", { name: "Open shop" });
+    await typeIntoNewWindow("/work/first");
+    fireEvent.click(screen.getByRole("button", { name: "Add and scan" }));
+    // The scan report selects the new project, which closes the window while the add runs on.
+    selectProject(2);
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New project" })).toBeNull());
+    const second = await typeIntoNewWindow("/work/second");
+    finishAdd(
+      answer({
+        project: 2,
+        snapshot: 5,
+        files: 3,
+        symbols: 9,
+        references: 4,
+        seconds: 1,
+        tools: UNCHECKED,
+      }),
+    );
+    await waitFor(() => expect(projectsAddingNow()).toBe(false));
+    // The add reads the list once more before it answers the form.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect((second as HTMLInputElement).value).toBe("/work/second");
   });
 
   it("asks for no name while a network path is typed", async () => {

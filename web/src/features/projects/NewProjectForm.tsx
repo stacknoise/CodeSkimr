@@ -264,6 +264,25 @@ function NameField(props: { value: string; onType: (value: string) => void }) {
   );
 }
 
+/** Whether the window that calls this is still there. The window can close while the add runs on
+ * (the first scan report of the new project selects it, which closes the window). A window opened
+ * since then is another one and keeps what the user types; only a window that is still the one
+ * that sent the form closes after it. */
+function useAlive(): () => boolean {
+  let alive = true;
+  onCleanup(() => (alive = false));
+  return () => alive;
+}
+
+/** The folder lies in a project that covers it: nothing is added, the tab Scope of that project
+ * opens. */
+function showCovering(props: NewProjectFormProps, inside: Overlap): void {
+  props.onSource("");
+  props.onClose?.();
+  openProject(inside.project.id);
+  selectProject(inside.project.id, PROJECT_TAB.scope);
+}
+
 /** Sends the form: the source, and for a Git source the branch and the stored login. */
 function useSubmit(
   props: NewProjectFormProps,
@@ -272,6 +291,7 @@ function useSubmit(
   covered: () => Overlap | null,
 ) {
   let branch = DEFAULT_BRANCH;
+  const alive = useAlive();
   const [credential, setCredential] = createSignal("");
   const submit = async (event: SubmitEvent) => {
     event.preventDefault();
@@ -280,19 +300,13 @@ function useSubmit(
     }
     const inside = covered();
     if (inside !== null) {
-      // Covered in the project that holds the folder: nothing is added, its tab Scope opens.
-      props.onSource("");
-      props.onClose?.();
-      openProject(inside.project.id);
-      selectProject(inside.project.id, PROJECT_TAB.scope);
+      showCovering(props, inside);
       return;
     }
     const git = kind() === SOURCE_KIND.git;
-    const source = props.source.trim();
-    const given = name();
-    if (
-      await addProject(source, git ? branch.trim() : DEFAULT_BRANCH, git ? credential() : "", given)
-    ) {
+    const [wanted, login] = git ? [branch.trim(), credential()] : [DEFAULT_BRANCH, ""];
+    const added = await addProject(props.source.trim(), wanted, login, name());
+    if (added && alive()) {
       // The window closes (and empties the field) once the project is added.
       props.onSource("");
       props.onClose?.();
