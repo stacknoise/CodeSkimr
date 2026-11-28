@@ -140,3 +140,5 @@ command-conventions-check-title = Konventionen prüfen
 command-conventions-check-description = Prüft die Dateien eines Projektordners gegen die Code-Regeln (Länge, Komplexität, Parameter, Literale, Doppelungen) im heutigen Stand, ohne Scan, und speichert nichts. Dieselbe Prüfung wie `codeskimr check`.
 command-scans-metrics-markdown-title = Kennzahlen-Änderungen als Markdown zeigen
 command-scans-metrics-markdown-description = Erzeugt die Kennzahlen-Änderungen zwischen zwei aufbewahrten Scans (dieselbe Antwort wie beim Zeigen, welche Objekte schlechter oder besser wurden) als Markdown-Text, den `codeskimr compare --metrics --markdown` ausgibt: die Zahlen und die beiden Listen mit den Bewegungen jedes Objekts. Der Text steht in der angegebenen oder in der gespeicherten Sprache des Nutzers.
+command-code-highlight-title = Code einfärben
+command-code-highlight-description = Färbt kurze Codestücke wie Signaturen mit den Syntaxfarben ihrer Sprache ein.

@@ -104,36 +104,6 @@
     font: inherit;
 }
 
-/* Colours of the syntax: tokens of design/tokens.toml, one per class of explorer.source. */
-.comment {
-    color: var(--syn-comment);
-    font-style: italic;
-}
-
-.string {
-    color: var(--syn-string);
-}
-
-.number {
-    color: var(--syn-number);
-}
-
-.keyword {
-    color: var(--syn-keyword);
-}
-
-.type {
-    color: var(--syn-type);
-}
-
-.function {
-    color: var(--syn-function);
-}
-
-.attribute {
-    color: var(--syn-attribute);
-}
-
 .note {
     margin: 0;
     padding: var(--space-12);

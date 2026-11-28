@@ -15,6 +15,7 @@ import { explorerPlace } from "./explorer";
 import { sourceError, sourceInfo, sourceLoading } from "./source";
 import type { SourceInfo } from "./types";
 import { ErrorDetails } from "../../shared/ui/ErrorDetails";
+import syntax from "../../shared/code/Syntax.module.css";
 import styles from "./SourcePane.module.css";
 
 function Note(props: { text: string; alert?: boolean; code?: ErrorCode | null }) {
@@ -38,7 +39,7 @@ function onNameClick(event: MouseEvent): void {
 
 /** The class of the colour of a piece; plain code has none (`styles.plain` is no rule). */
 function colourOf(piece: Segment): string | undefined {
-  return piece.tokenClass === null ? undefined : styles[piece.tokenClass];
+  return piece.tokenClass === null ? undefined : syntax[piece.tokenClass];
 }
 
 /** The button "Copy code", the usual icon of two sheets. It turns into a tick for a moment when the

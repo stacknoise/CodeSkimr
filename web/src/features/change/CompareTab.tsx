@@ -4,10 +4,12 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import { createTableColumns } from "../../shared/table/columns";
 import { ColumnWidths } from "../../shared/table/ResizableHead";
 import { cx } from "../../shared/ui/cx";
+import { Code } from "../../shared/code/Code";
 import { Pill } from "../../shared/ui/Pill";
-import { COMPARE_COLUMNS, COMPARE_TABLE_KEY, REASON, TITLE_JOIN } from "./consts";
+import { COMPARE_COLUMNS, COMPARE_TABLE_KEY, REASON, SIGNATURE_GAP, TITLE_JOIN } from "./consts";
 import { ChangeFilterBar, FilterEmpty } from "./ChangeFilter";
-import { changeFilter, kindsOf, passes } from "./filter";
+import { changeKinds } from "./change";
+import { changeFilter, isFiltering, passes } from "./filter";
 import { Figure } from "./Figure";
 import { Notes } from "./Notes";
 import { Selectors } from "./Selectors";
@@ -76,7 +78,12 @@ function Row(props: { row: CompareRow }) {
       <td class={styles.symbol} title={titleOf(props.row)}>
         <span class={parts.name}>{props.row.name}</span>
         <Show when={props.row.signature}>
-          {(signature) => <span class={parts.sig}> {signature()}</span>}
+          {(signature) => (
+            <>
+              {SIGNATURE_GAP}
+              <Code path={props.row.path} text={signature()} class={parts.sig} />
+            </>
+          )}
         </Show>
       </td>
       <td class={styles.where} title={props.row.where}>
@@ -126,7 +133,7 @@ function SymbolList(props: { answer: ChangeAnswer }) {
   return (
     <div class={cx(parts.card, styles.list)}>
       <ChangeFilterBar
-        kinds={kindsOf(rows().map((row) => row.facts))}
+        kinds={changeKinds()}
         withOpen={false}
         count={{
           shown: visible().length,
@@ -153,7 +160,7 @@ export function CompareTab(props: { project: number; answer: ChangeAnswer | null
           <>
             <Figures answer={answer()} />
             <Show
-              when={compareRows(answer()).length > 0}
+              when={compareRows(answer()).length > 0 || isFiltering(changeFilter(), false)}
               fallback={
                 <>
                   <p class={parts.plain}>

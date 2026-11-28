@@ -2,7 +2,8 @@
 
 use codeskimr_application::access;
 use codeskimr_application::compare::{
-    ComparisonAnswer, ComparisonRequest, MetricsAnswer, MetricsWanted, metrics_request,
+    ComparisonAnswer, ComparisonRequest, FilterWanted, MetricsAnswer, MetricsWanted, change_filter,
+    metrics_request,
 };
 use codeskimr_codes::i18n::COMPARE_DIRECT_ONLY_NOTE;
 use codeskimr_domain::{Principal, ProjectId, SnapshotId};
@@ -35,6 +36,13 @@ impl Tools {
             base: args.base.map(SnapshotId::new),
             target: args.target.map(SnapshotId::new),
             with_impact: true,
+            filter: change_filter(FilterWanted {
+                name: args.name.as_deref(),
+                cause: args.cause.as_deref(),
+                kind: args.kind.as_deref(),
+                public_only: args.public_only == Some(true),
+                only_open: args.only_open == Some(true),
+            })?,
         })?;
         let mut answer = to_json(&ComparisonAnswer::new(
             &comparison,

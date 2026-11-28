@@ -11,8 +11,8 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::compare::{
-    ComparisonAnswer, ComparisonRequest, MetricsAnswer, MetricsWanted, ScanListAnswer,
-    metrics_request,
+    ComparisonAnswer, ComparisonRequest, FilterWanted, MetricsAnswer, MetricsWanted,
+    ScanListAnswer, change_filter, metrics_request,
 };
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{Clock, CodeIndex, FileDiscovery, ProjectRepository};
@@ -145,6 +145,13 @@ fn compare_answer(
             base: query.base.map(SnapshotId::new),
             target: query.newer.map(SnapshotId::new),
             with_impact,
+            filter: change_filter(FilterWanted {
+                name: query.filter.name.as_deref(),
+                cause: query.filter.cause.as_deref(),
+                kind: query.filter.kind.as_deref(),
+                public_only: query.filter.public_only,
+                only_open: query.filter.only_open,
+            })?,
         })?;
     let note = around
         .messages

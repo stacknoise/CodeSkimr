@@ -198,6 +198,7 @@ const COMMAND_IDS: [&str; 70] = [
     "annotations.mark_critical",
     "annotations.summary",
     "annotations.update",
+    "code.highlight",
     "conventions.check",
     "credentials.delete",
     "credentials.list",
@@ -846,6 +847,71 @@ fn the_source_of_a_type_and_of_a_member_comes_from_the_project_folder() {
         line["lines"],
         json!(["    public int Add(int a, int b) { return a + b; }"])
     );
+}
+
+#[test]
+fn short_pieces_of_code_are_coloured_by_the_language_of_their_file() {
+    let fixture = Fixture::new();
+    let shown = fixture
+        .call(
+            "code.highlight",
+            json!({ "pieces": [
+                { "path": "Calculator.cs", "text": "public int Add(int a, int b)" },
+                { "path": "notes.unknownext", "text": "public int Add" },
+                { "path": "../escape", "text": "public int Add" },
+            ] }),
+        )
+        .unwrap();
+    let pieces = shown["pieces"].as_array().unwrap();
+    assert_eq!(pieces.len(), 3);
+    assert!(
+        pieces[0]["tokens"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|token| token["line"] == 0
+                && token["start"] == 0
+                && token["end"] == 6
+                && token["class"] == "keyword")
+    );
+    assert_eq!(pieces[1]["tokens"], json!([]));
+    assert_eq!(pieces[2]["tokens"], json!([]));
+}
+
+#[test]
+fn code_highlight_colours_only_what_its_limits_allow() {
+    let fixture = Fixture::new();
+    let piece = |text: &str| json!({ "path": "Calculator.cs", "text": text });
+    let mut pieces: Vec<Value> = (0..201).map(|_| piece("public int Add")).collect();
+    pieces.push(piece(&"public ".repeat(100)));
+    let shown = fixture
+        .call("code.highlight", json!({ "pieces": pieces }))
+        .unwrap();
+    let out = shown["pieces"].as_array().unwrap();
+    assert_ne!(out[199]["tokens"], json!([]));
+    assert_eq!(out[200]["tokens"], json!([]));
+    assert_eq!(out[201]["tokens"], json!([]));
+    let exact = "a".repeat(593);
+    let long = "a".repeat(594);
+    let pieces =
+        json!({ "pieces": [piece(&format!("public {exact}")), piece(&format!("public {long}"))] });
+    let shown = fixture.call("code.highlight", pieces).unwrap();
+    assert_eq!(shown["pieces"][1]["tokens"], json!([]));
+    assert!(
+        fixture
+            .call("code.highlight", json!({ "pieces": [], "extra": 1 }))
+            .is_err()
+    );
+}
+
+#[test]
+fn the_web_batch_size_is_the_limit_of_code_highlight() {
+    let consts = include_str!("../../../../web/src/shared/code/consts.ts");
+    let batch = consts
+        .lines()
+        .find_map(|line| line.strip_prefix("export const HIGHLIGHT_BATCH = "))
+        .map(|rest| rest.trim_end_matches(';').parse::<usize>().unwrap());
+    assert_eq!(batch, Some(super::consts::HIGHLIGHT_MAX_PIECES));
 }
 
 #[test]

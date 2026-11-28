@@ -592,6 +592,17 @@ pub const LOG_OPEN_FOLDER_TITLE: &str = i18n::COMMAND_LOG_OPEN_FOLDER_TITLE;
 /// Description key of `log.open_folder`.
 pub const LOG_OPEN_FOLDER_DESCRIPTION: &str = i18n::COMMAND_LOG_OPEN_FOLDER_DESCRIPTION;
 
+/// Id of the command that colours short pieces of code, such as signatures.
+pub const CODE_HIGHLIGHT: &str = "code.highlight";
+/// Title key of `code.highlight`.
+pub const HIGHLIGHT_TITLE: &str = i18n::COMMAND_CODE_HIGHLIGHT_TITLE;
+/// Description key of `code.highlight`.
+pub const HIGHLIGHT_DESCRIPTION: &str = i18n::COMMAND_CODE_HIGHLIGHT_DESCRIPTION;
+/// Most pieces one call of `code.highlight` colours; the rest comes back plain.
+pub const HIGHLIGHT_MAX_PIECES: usize = 200;
+/// Most characters of one piece that `code.highlight` colours; a longer piece comes back plain.
+pub const HIGHLIGHT_MAX_CHARS: usize = 600;
+
 /// Id of the command that checks the code of a folder project against the code rules.
 pub const CONVENTIONS_CHECK: &str = "conventions.check";
 /// Title key of `conventions.check`.
@@ -604,3 +615,6 @@ pub const CONVENTIONS_FINDINGS: &str = "findings";
 pub const CONVENTIONS_SYMBOL: &str = "symbol";
 /// Member that `conventions.check` adds to a finding: the symbol of the newest scan, or `null`.
 pub const CONVENTIONS_SYMBOL_REF: &str = "symbol_ref";
+/// The most bytes one character takes in UTF-8; a text longer than the limit in characters times this
+/// is refused before its characters are counted.
+pub const UTF8_MAX_BYTES: usize = 4;

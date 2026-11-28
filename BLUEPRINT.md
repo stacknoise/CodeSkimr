@@ -476,8 +476,8 @@ codeskimr check <path>            run the convention checks (for CI)
 codeskimr symbols|usages|impact|context <query|symbol>, codeskimr unused, codeskimr rules, codeskimr modules, codeskimr preview-rename <symbol> <new-name>   the questions of the MCP tools `search_symbols`, `find_usages`, `impact_of_change`, `get_context`, `find_unused`, `check_rules`, `get_dependencies` with `level` `module`, `preview_rename` for scripts and CI (`--json` with `schema` and `stale`, ADR 0099); `rules` exits with 1 only for new violations (ADR 0104)
 codeskimr codes [<code>]          list error codes / explain one code
 codeskimr scans <project>         list the retained scans with duration (ADR 0097, from 1.1)
-codeskimr compare <project>       compare two scans: added, removed, changed, moved (ADR 0097, from 1.1)
-codeskimr change <project>        usages that a change between two scans hits, with the ones not touched (ADR 0097, from 1.1)
+codeskimr compare <project>       compare two scans: added, removed, changed, moved; --match/--cause/--kind/--public filter before the cut (ADR 0097, ADR 0117, from 1.1)
+codeskimr change <project>        usages that a change between two scans hits, with the ones not touched; same filter and --only-open (ADR 0097, ADR 0117, from 1.1)
 ```
 
 Everything the command line can do has a counterpart in the UI; the exceptions (the consent to level 2, the start options, `--json`) and the gaps still open are listed in ADR 0092.
@@ -518,7 +518,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | `rescan` | paths? | incremental update, returns the id of the newest snapshot (a new one if something changed, ADR 0093) |
 | `list_annotations` | symbol? or project, kind? | notes, tasks and critical marks with target and status (ADR 0068, read-only) |
 | `get_alerts` | project, state? | open alerts for critical symbols: kind, what changed, symbol (ADR 0068, read-only) |
-| `impact_of_diff` | project, base?, target? | symbols added, removed, changed and moved between two scans, per changed symbol the usages with "adapted" or "not touched" (ADR 0097, from 1.1, read-only) |
+| `impact_of_diff` | project, base?, target?, name?, cause?, kind?, public_only?, only_open? (filter before the cut, ADR 0117) | symbols added, removed, changed and moved between two scans, per changed symbol the usages with "adapted" or "not touched" (ADR 0097, from 1.1, read-only) |
 
 **Resources:** `codeskimr://<project>/architecture`, `codeskimr://<project>/conventions`, `codeskimr://<project>/errors`.
 

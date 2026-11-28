@@ -155,6 +155,8 @@ export function reasonCount(answer: ChangeAnswer, reason: string): number {
 export interface DiffLine {
   sign: string;
   text: string;
+  /** The file the code belongs to; its extension tells the language for the colours. */
+  path: string;
 }
 
 /** The text a symbol is shown with: its signature, or its name if it has none. */
@@ -167,21 +169,25 @@ function signatureOf(symbol: SymbolOut): string {
  * none. */
 export function diffLines(row: ImpactRow): DiffLine[] {
   if (row.cause === CAUSE.removed) {
-    return [{ sign: SIGN.before, text: signatureOf(row.symbol) }];
+    return [{ sign: SIGN.before, text: signatureOf(row.symbol), path: row.symbol.path }];
   }
   if (row.cause === CAUSE.added) {
-    return [{ sign: SIGN.after, text: signatureOf(row.symbol) }];
+    return [{ sign: SIGN.after, text: signatureOf(row.symbol), path: row.symbol.path }];
   }
   const before = row.before;
   const lines: DiffLine[] = [];
   if (before !== null && row.reasons.includes(REASON.signature)) {
-    lines.push({ sign: SIGN.before, text: signatureOf(before) });
-    lines.push({ sign: SIGN.after, text: signatureOf(row.symbol) });
+    lines.push({ sign: SIGN.before, text: signatureOf(before), path: before.path });
+    lines.push({ sign: SIGN.after, text: signatureOf(row.symbol), path: row.symbol.path });
   }
   const wasVisible = before?.visibility ?? null;
   if (wasVisible !== null && row.reasons.includes(REASON.visibility)) {
-    lines.push({ sign: SIGN.before, text: wasVisible });
-    lines.push({ sign: SIGN.after, text: row.symbol.visibility ?? wasVisible });
+    lines.push({ sign: SIGN.before, text: wasVisible, path: row.symbol.path });
+    lines.push({
+      sign: SIGN.after,
+      text: row.symbol.visibility ?? wasVisible,
+      path: row.symbol.path,
+    });
   }
   return lines;
 }
@@ -215,6 +221,8 @@ export interface CompareRow {
   pills: PillSpec[];
   name: string;
   signature: string | null;
+  /** The file of the symbol, for the colours of its signature. */
+  path: string;
   where: string;
   /** What the filter looks at. */
   facts: RowFacts;
@@ -257,6 +265,7 @@ function plainRow(cause: PlainCause, symbol: SymbolOut): CompareRow {
     pills: causePill(cause),
     name: symbol.qualified_name,
     signature: symbol.signature,
+    path: symbol.path,
     where: symbol.path,
     facts: compareFacts(cause, symbol),
   };
@@ -269,6 +278,7 @@ function matchedRow(kind: MatchedCause, matched: MatchedOut): CompareRow {
     pills: [...(moved ? causePill(CAUSE_MOVED) : []), ...reasonPills(matched.reasons)],
     name: matched.target.qualified_name,
     signature: matched.target.signature,
+    path: matched.target.path,
     where: moved ? `${matched.base.path}${MOVE_ARROW}${matched.target.path}` : matched.target.path,
     facts: compareFacts(kind, matched.target),
   };

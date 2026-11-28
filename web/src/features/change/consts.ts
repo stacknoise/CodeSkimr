@@ -143,6 +143,8 @@ export const NOT_FOUND = -1;
 export const VISIBILITY_PUBLIC = "public";
 /** The value of a choice of the filter that lets everything pass. */
 export const FILTER_ALL = "all";
+/** How long the screen waits after the last change of the filter before it asks the server. */
+export const FILTER_DELAY_MS = 250;
 /** The kinds of change the filter offers, in the order of the table, with their texts. */
 export const CAUSE_CHOICES = [
   { id: CAUSE.removed, label: I18N_KEYS.CHANGE_VIEW_FILTER_CAUSE_REMOVED },
@@ -156,6 +158,8 @@ export const KIND_JOIN = " · ";
 export const FILTER_FIELD_ID = "change-filter-query";
 /** Joins the name of a symbol and its signature in a tooltip. */
 export const TITLE_JOIN = " ";
+/** The gap between a name and its signature in a row of the list. */
+export const SIGNATURE_GAP = " ";
 
 /** The columns of the list of the comparison by id, with their head texts, and the key the widths
  * are kept under. */

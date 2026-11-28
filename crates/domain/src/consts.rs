@@ -61,6 +61,14 @@ pub const KIND_TYPE_ALIAS: &str = "type_alias";
 
 /// Label of `Visibility::Public`.
 pub const VISIBILITY_PUBLIC: &str = "public";
+/// Label of the cause `added` of a change (#826).
+pub const CAUSE_ADDED: &str = "added";
+/// Label of the cause `changed` of a change.
+pub const CAUSE_CHANGED: &str = "changed";
+/// Label of the cause `removed` of a change.
+pub const CAUSE_REMOVED: &str = "removed";
+/// Label of the cause `moved` of a change.
+pub const CAUSE_MOVED: &str = "moved";
 /// Label of `Visibility::Protected`.
 pub const VISIBILITY_PROTECTED: &str = "protected";
 /// Label of `Visibility::Internal`.
