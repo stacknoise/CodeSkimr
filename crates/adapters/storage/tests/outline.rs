@@ -28,7 +28,7 @@ fn store() -> codeskimr_storage::ProjectDb {
 
 #[test]
 fn the_outline_holds_containers_and_types_but_no_members() {
-    let nodes = store().outline(SNAPSHOT).unwrap();
+    let nodes = store().outline(SNAPSHOT, &[]).unwrap();
     let names: Vec<_> = nodes.iter().map(|n| n.qualified_name.as_str()).collect();
     assert_eq!(names, ["Shop", "Shop.Cart", "Shop.Cart.Line", "Shop.IItem"]);
 }
@@ -52,22 +52,22 @@ fn the_outline_is_the_same_next_to_another_project() {
         symbol(2101, 2001, SymbolKind::Class, "Other.Thing", Some(2100)),
     ];
     store.persist(scan).unwrap();
-    let nodes = store.outline(SNAPSHOT).unwrap();
+    let nodes = store.outline(SNAPSHOT, &[]).unwrap();
     let names: Vec<_> = nodes.iter().map(|n| n.qualified_name.as_str()).collect();
     assert_eq!(names, ["Shop", "Shop.Cart", "Shop.Cart.Line", "Shop.IItem"]);
-    let other = store.outline(SnapshotId::new(20)).unwrap();
+    let other = store.outline(SnapshotId::new(20), &[]).unwrap();
     assert_eq!(other.len(), 2);
 }
 
 #[test]
 fn a_node_names_the_language_of_its_file() {
-    let nodes = store().outline(SNAPSHOT).unwrap();
+    let nodes = store().outline(SNAPSHOT, &[]).unwrap();
     assert!(nodes.iter().all(|node| node.language.as_str() == "csharp"));
 }
 
 #[test]
 fn a_node_knows_its_parent_and_its_member_count() {
-    let nodes = store().outline(SNAPSHOT).unwrap();
+    let nodes = store().outline(SNAPSHOT, &[]).unwrap();
     let cart = nodes.iter().find(|n| n.name.as_str() == "Cart").unwrap();
     assert_eq!(cart.parent, Some(SymbolId::new(40)));
     assert_eq!(cart.members, 3);
@@ -116,14 +116,16 @@ fn only_a_folder_namespace_language_gets_the_folder_of_its_file() {
         symbol(2102, 2003, SymbolKind::Class, "Other", None),
     ];
     store.persist(scan).unwrap();
-    let nodes = store.outline(SnapshotId::new(20)).unwrap();
+    let nodes = store
+        .outline(SnapshotId::new(20), &[LanguageId::new("abap").unwrap()])
+        .unwrap();
     let folder = |name: &str| {
         nodes
             .iter()
             .find(|node| node.name.as_str() == name)
-            .map(|node| node.folder.as_str())
+            .map(|node| node.folder.as_deref())
     };
-    assert_eq!(folder("zcl_a"), Some("src/sub"));
-    assert_eq!(folder("zroot"), Some(""));
-    assert_eq!(folder("Other"), Some(""));
+    assert_eq!(folder("zcl_a"), Some(Some("src/sub")));
+    assert_eq!(folder("zroot"), Some(Some("")));
+    assert_eq!(folder("Other"), Some(None));
 }

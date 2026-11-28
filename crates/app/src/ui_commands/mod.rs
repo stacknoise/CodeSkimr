@@ -100,7 +100,7 @@ use codeskimr_application::registry::{Command, Registry};
 use codeskimr_cli::GlobalOptions;
 use codeskimr_domain::{Author, LanguageId};
 use codeskimr_i18n::Messages;
-use codeskimr_parsing::{Blake3Digest, TreeSitterHighlighter};
+use codeskimr_parsing::{Blake3Digest, LanguagePacks, TreeSitterHighlighter};
 use codeskimr_server::CommandApi;
 use codeskimr_source::{FolderMentions, FolderText};
 
@@ -1018,7 +1018,22 @@ fn explorer_ports(
         highlighter: Arc::new(TreeSitterHighlighter::new(&locations.languages_dir)),
         thresholds,
         references: store.clone(),
+        folder_languages: folder_languages(&locations.languages_dir),
     })
+}
+
+/// The languages whose packs show the folder of a file as the namespace of its symbols. A folder
+/// of packs that cannot be read gives none: the tree then shows the namespaces of the code.
+fn folder_languages(languages_dir: &std::path::Path) -> Vec<LanguageId> {
+    LanguagePacks::load(languages_dir)
+        .map(|packs| {
+            packs
+                .iter()
+                .filter(|pack| pack.namespace_from_folder())
+                .map(|pack| pack.id().clone())
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 /// The HTML export: it reads through the commands of the explorer, the usages and the map, so its

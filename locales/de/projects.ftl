@@ -321,6 +321,8 @@ projects-scope-hint-inside-note = Nichts wird doppelt gelesen. Empfohlen, wenn d
 projects-scope-hint-own-note = Eigene Datenbank, eigene Scans. Der Code wird ein zweites Mal gelesen und gespeichert.
 
 projects-abapgit-title = abapGit-Repository
+projects-abapgit-logic-prefix = Präfix
+projects-abapgit-logic-full = voll
 projects-abapgit-found = Die Objekte liegen in { $folder } (Ordnerlogik { $logic }): { $packages } Pakete, { $files } Dateien mit Quelltext.
 projects-abapgit-folder-root = dem Projektordner
 projects-abapgit-defaults = Es wurde keine .abapgit.xml gelesen, deshalb gelten die Voreinstellungen (Ordner src, Logik prefix).

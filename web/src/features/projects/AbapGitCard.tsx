@@ -12,6 +12,10 @@ export function AbapGitCard(props: { info: AbapGitInfo }) {
     props.info.starting_folder === ""
       ? t(I18N_KEYS.PROJECTS_ABAPGIT_FOLDER_ROOT)
       : props.info.starting_folder;
+  const logic = () =>
+    props.info.folder_logic === "full"
+      ? t(I18N_KEYS.PROJECTS_ABAPGIT_LOGIC_FULL)
+      : t(I18N_KEYS.PROJECTS_ABAPGIT_LOGIC_PREFIX);
   return (
     <section class={styles.card} aria-labelledby={ABAPGIT_HEADING_ID}>
       <h3 id={ABAPGIT_HEADING_ID} class={styles.heading}>
@@ -20,7 +24,7 @@ export function AbapGitCard(props: { info: AbapGitInfo }) {
       <p class={styles.line}>
         {t(I18N_KEYS.PROJECTS_ABAPGIT_FOUND, {
           folder: folder(),
-          logic: props.info.folder_logic,
+          logic: logic(),
           packages: props.info.packages,
           files: props.info.source_files,
         })}

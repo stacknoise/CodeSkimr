@@ -112,7 +112,9 @@ describe("the scope of a project", () => {
       },
     });
     expect(screen.getByRole("heading", { name: "abapGit repository" })).toBeInTheDocument();
-    expect(screen.getByText(/9 packages, 120 files with source/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/\(prefix folder logic\): 9 packages, 120 files with source/),
+    ).toBeInTheDocument();
     expect(screen.getByText(/No \.abapgit\.xml was read/)).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Objects by type" })).toHaveTextContent("CLAS101");
   });

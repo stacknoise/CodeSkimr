@@ -21,6 +21,17 @@ pub enum NameCase {
     Lower,
 }
 
+/// What the explorer shows as the namespace of the symbols of a language (ADR 0113).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum NamespaceSource {
+    /// The namespace of the code (most languages).
+    #[default]
+    Code,
+    /// The folder of the file: the package of an abapGit repository (ABAP).
+    Folder,
+}
+
 /// How much a language pack delivers (blueprint 8.2).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -134,6 +145,11 @@ pub struct PackManifest {
     /// languages with their own namespaces (ADR 0036).
     #[serde(default = "file_in_names_default")]
     pub file_in_names: bool,
+    /// Where the explorer takes the namespace of a symbol from: `folder` is the folder of its
+    /// file, so the tree reads package, type, member (the packages of an abapGit repository,
+    /// ADR 0113).
+    #[serde(default)]
+    pub namespace: NamespaceSource,
     /// How names are compared: `lower` folds every name of a declaration and of a reference to
     /// lower case, so `PERFORM Do_It` finds `FORM do_it` (ABAP, ADR 0113).
     #[serde(default)]

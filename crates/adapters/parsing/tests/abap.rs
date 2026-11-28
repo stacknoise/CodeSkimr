@@ -73,6 +73,17 @@ mod tests {
     }
 
     #[test]
+    fn only_the_abap_pack_shows_the_folder_as_the_namespace() {
+        let packs = LanguagePacks::load(&languages()).unwrap();
+        let from_folder: Vec<_> = packs
+            .iter()
+            .filter(|pack| pack.namespace_from_folder())
+            .map(|pack| pack.id().as_str().to_owned())
+            .collect();
+        assert_eq!(from_folder, ["abap"]);
+    }
+
+    #[test]
     fn when_others_is_no_decision() {
         let facts = analyze(
             "FORM f.\n  CASE x.\n    WHEN 1.\n      a = 1.\n    WHEN 2 OR 3.\n      a = 2.\n    WHEN OTHERS.\n      a = 3.\n  ENDCASE.\nENDFORM.\n",

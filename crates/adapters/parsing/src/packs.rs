@@ -18,7 +18,7 @@ use crate::consts::{
     NAMING_RULES_SEPARATOR, NAMING_TESTS,
 };
 use crate::error::ParsingError;
-use crate::manifest::{PackManifest, Tier};
+use crate::manifest::{NamespaceSource, PackManifest, Tier};
 use crate::pack::LanguagePack;
 
 /// Runs `work` for every index below `count` on at most one thread per core, so that the number of
@@ -129,6 +129,7 @@ pub struct PackSummary {
     tier: Tier,
     extensions: Vec<String>,
     file_in_names: bool,
+    namespace_from_folder: bool,
     test_patterns: Vec<String>,
     indexer: Option<IndexerSpec>,
 }
@@ -162,6 +163,12 @@ impl PackSummary {
     #[must_use]
     pub const fn file_in_names(&self) -> bool {
         self.file_in_names
+    }
+
+    /// Whether the explorer shows the folder of a file as the namespace of its symbols.
+    #[must_use]
+    pub const fn namespace_from_folder(&self) -> bool {
+        self.namespace_from_folder
     }
 
     /// File extensions the pack claims, without the dot.
@@ -202,6 +209,7 @@ impl Slot {
             tier: manifest.tier,
             extensions: manifest.extensions,
             file_in_names: manifest.file_in_names,
+            namespace_from_folder: manifest.namespace == NamespaceSource::Folder,
             test_patterns: manifest.test_patterns,
             indexer,
         };

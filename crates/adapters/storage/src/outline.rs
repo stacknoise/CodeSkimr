@@ -1,9 +1,7 @@
 //! The `CodeOutline` port: the tree and the member tables of the explorer.
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{
-    CodeOutline, FOLDER_NAMESPACE_LANGUAGES, MemberRow, OutlineNode,
-};
+use codeskimr_application::ports::{CodeOutline, MemberRow, OutlineNode};
 use codeskimr_domain::{LanguageId, MetricKind, QualifiedName, SnapshotId, SymbolId, SymbolName};
 use rusqlite::{Connection, Row, params};
 
@@ -48,12 +46,11 @@ impl NodeRow {
         })
     }
 
-    fn node(self) -> StorageResult<OutlineNode> {
-        let folder = if FOLDER_NAMESPACE_LANGUAGES.contains(&self.language.as_str()) {
-            folder_of(&self.path)
-        } else {
-            String::new()
-        };
+    fn node(self, folder_languages: &[LanguageId]) -> StorageResult<OutlineNode> {
+        let folder = folder_languages
+            .iter()
+            .any(|language| language.as_str() == self.language)
+            .then(|| folder_of(&self.path));
         Ok(OutlineNode {
             id: SymbolId::new(id_from(self.id)?),
             name: SymbolName::new(self.name)?,
@@ -70,7 +67,11 @@ impl NodeRow {
     }
 }
 
-fn outline(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<OutlineNode>> {
+fn outline(
+    conn: &Connection,
+    snapshot: SnapshotId,
+    folder_languages: &[LanguageId],
+) -> StorageResult<Vec<OutlineNode>> {
     let raw = column_int(snapshot.get())?;
     let kinds = json_labels(
         CONTAINER_KINDS
@@ -81,7 +82,7 @@ fn outline(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<Outline
     let mut statement = conn.prepare_cached(sql::OUTLINE_OF_KINDS)?;
     let mut nodes = Vec::new();
     for row in statement.query_map(params![raw, kinds], NodeRow::from_row)? {
-        nodes.push(row?.node()?);
+        nodes.push(row?.node(folder_languages)?);
     }
     nodes.sort_by(|a, b| {
         a.qualified_name
@@ -158,8 +159,12 @@ fn member_rows(
 }
 
 impl CodeOutline for ProjectDb {
-    fn outline(&self, snapshot: SnapshotId) -> Result<Vec<OutlineNode>, CodedError> {
-        self.read_apart(|conn| outline(conn, snapshot))
+    fn outline(
+        &self,
+        snapshot: SnapshotId,
+        folder_languages: &[LanguageId],
+    ) -> Result<Vec<OutlineNode>, CodedError> {
+        self.read_apart(|conn| outline(conn, snapshot, folder_languages))
             .map_err(CodedError::from)
     }
 

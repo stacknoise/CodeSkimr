@@ -352,8 +352,3 @@ pub const DIRECTION_GREW: &str = "grew";
 pub const CROSSING_INTO_POOR: &str = "into_poor";
 /// A value that was rated poor and is not any more.
 pub const CROSSING_OUT_OF_POOR: &str = "out_of_poor";
-
-/// The languages whose namespaces are the folders of their files: the packages of an abapGit
-/// repository (ADR 0113). `OutlineNode::folder` is filled for them only. A first step; a setting
-/// of the language pack replaces it (addendum of the ADR).
-pub const FOLDER_NAMESPACE_LANGUAGES: [&str; 1] = ["abap"];
