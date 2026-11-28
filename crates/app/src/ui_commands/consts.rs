@@ -541,6 +541,12 @@ pub const SCOPE_GET: &str = "scope.get";
 pub const SCOPE_GET_TITLE: &str = i18n::COMMAND_SCOPE_GET_TITLE;
 /// Description key of `scope.get`.
 pub const SCOPE_GET_DESCRIPTION: &str = i18n::COMMAND_SCOPE_GET_DESCRIPTION;
+/// Id of the command that inspects a folder for abapGit before it becomes a project.
+pub const SCOPE_INSPECT: &str = "scope.inspect";
+/// Title key of `scope.inspect`.
+pub const SCOPE_INSPECT_TITLE: &str = i18n::COMMAND_SCOPE_INSPECT_TITLE;
+/// Description key of `scope.inspect`.
+pub const SCOPE_INSPECT_DESCRIPTION: &str = i18n::COMMAND_SCOPE_INSPECT_DESCRIPTION;
 /// Id of the command that stores what a project leaves out.
 pub const SCOPE_SET: &str = "scope.set";
 /// Title key of `scope.set`.

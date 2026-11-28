@@ -13,7 +13,11 @@ export const COMMAND = {
 } as const;
 
 /** Ids of the commands of the scope of a project (crates/app/src/ui_commands/consts.rs). */
-export const SCOPE_COMMAND = { get: "scope.get", set: "scope.set" } as const;
+export const SCOPE_COMMAND = {
+  get: "scope.get",
+  inspect: "scope.inspect",
+  set: "scope.set",
+} as const;
 /** Separates the parts of the path of a folder in the scope. */
 export const SCOPE_PATH_SEPARATOR = "/";
 /** Ids of the headings of the scope page, which name their sections. */

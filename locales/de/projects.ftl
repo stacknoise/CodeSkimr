@@ -328,3 +328,5 @@ projects-abapgit-folder-root = dem Projektordner
 projects-abapgit-defaults = Es wurde keine .abapgit.xml gelesen, deshalb gelten die Voreinstellungen (Ordner src, Logik prefix).
 projects-abapgit-kinds = Objekte nach Art
 projects-abapgit-limits = ABAP wird als Näherung gelesen (Basisstufe): ohne Sichtbarkeit, ohne genaue Verwendungen, Namen in Kleinschreibung und noch ohne die genaue Prüfung der Stufe 2.
+projects-abapgit-hint-title = Das ist ein abapGit-Repository
+projects-abapgit-hint-text = Es wird als ABAP gelesen: { $objects } Objekte in { $packages } Paketen, unterhalb von { $folder } (Ordnerlogik { $logic }). Im Explorer ist jedes Paket ein eigener Ordner.

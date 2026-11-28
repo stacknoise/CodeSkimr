@@ -159,7 +159,8 @@ use scans::{
     ScansList, ScansMetrics, ScansMetricsMarkdown,
 };
 pub(crate) use scope::{
-    GetInput as ScopeGetInput, ScopeAnswer, ScopeGet, ScopeSet, SetInput as ScopeSetInput,
+    GetInput as ScopeGetInput, ScopeAnswer, ScopeGet, ScopeInspect, ScopeSet,
+    SetInput as ScopeSetInput,
 };
 use search::{SearchPorts, SearchQuery};
 use settings::EffectiveSettings;
@@ -621,6 +622,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<RenameProject>()?;
     api.expose::<SuggestName>()?;
     api.expose::<ScopeGet>()?;
+    api.expose::<ScopeInspect>()?;
     api.expose::<ScopeSet>()?;
     api.expose::<FolderDialogInfo>()?;
     api.expose::<PickFolder>()?;
@@ -717,7 +719,8 @@ fn register_projects(
     register_scans(registry, catalog, context)
 }
 
-/// The two commands of the scope of a project (ADR 0102).
+/// The commands of the scope of a project (ADR 0102) and the one that inspects a folder before
+/// it is a project (ADR 0113).
 pub(crate) fn register_scope(
     registry: &mut Registry,
     catalog: &Arc<SqliteStore>,
@@ -727,6 +730,13 @@ pub(crate) fn register_scope(
         registry,
         ScopeGet {
             store: catalog.clone(),
+            config: config.clone(),
+            locations: locations.clone(),
+        },
+    )?;
+    add(
+        registry,
+        ScopeInspect {
             config: config.clone(),
             locations: locations.clone(),
         },

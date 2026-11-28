@@ -328,3 +328,5 @@ projects-abapgit-folder-root = the project folder
 projects-abapgit-defaults = No .abapgit.xml was read, so the defaults apply (folder src, logic prefix).
 projects-abapgit-kinds = Objects by type
 projects-abapgit-limits = ABAP is read as an approximation (basic stage): no visibility, no exact usages, names in lower case, and no check of the exact stage 2 yet.
+projects-abapgit-hint-title = This is an abapGit repository
+projects-abapgit-hint-text = It will be read as ABAP: { $objects } objects in { $packages } packages, below { $folder } ({ $logic } folder logic). In the explorer, every package is a folder of its own.

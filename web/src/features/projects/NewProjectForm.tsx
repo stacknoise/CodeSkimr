@@ -27,6 +27,8 @@ import {
   type SourceKind,
 } from "./consts";
 import { openProject } from "../../shared/project/active";
+import { AbapGitHint } from "./AbapGitHint";
+import { useInspected } from "./inspect";
 import { OverlapHint } from "./OverlapHint";
 import { overlapOf, type Overlap } from "./overlap";
 import { selectProject } from "./page";
@@ -348,6 +350,7 @@ function Body(props: {
   name: ReturnType<typeof useName>;
   gitFields: () => JSX.Element;
   overlap: ReturnType<typeof useOverlap>;
+  inspected: ReturnType<typeof useInspected>;
 }) {
   const browse = useBrowse(props.form);
   return (
@@ -368,6 +371,7 @@ function Body(props: {
           <OverlapHint overlap={found()} own={props.overlap.own()} onOwn={props.overlap.setOwn} />
         )}
       </Show>
+      <Show when={props.inspected()}>{(info) => <AbapGitHint info={info()} />}</Show>
       <Messages notice={props.form.notice} />
     </div>
   );
@@ -389,6 +393,10 @@ export function NewProjectForm(props: NewProjectFormProps) {
   const [kind, setKind] = useKind(() => props.source);
   const name = useName(() => props.source);
   const found = useOverlap(kind, () => props.source);
+  const inspected = useInspected(
+    () => props.source,
+    () => kind() === SOURCE_KIND.folder,
+  );
   const { submit, gitFields } = useSubmit(props, kind, name.sent, found.covered);
   onMount(() => {
     void refreshCredentials();
@@ -413,7 +421,14 @@ export function NewProjectForm(props: NewProjectFormProps) {
           </h2>
           <KindSwitch kind={kind()} onKind={setKind} />
         </div>
-        <Body form={props} kind={kind()} name={name} gitFields={gitFields} overlap={found} />
+        <Body
+          form={props}
+          kind={kind()}
+          name={name}
+          gitFields={gitFields}
+          overlap={found}
+          inspected={inspected}
+        />
         <Foot onClose={props.onClose} covered={found.covered() !== null} />
       </form>
     </Portal>
