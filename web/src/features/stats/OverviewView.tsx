@@ -73,7 +73,7 @@ function CardRow(props: {
       <button
         type="button"
         class={styles.row}
-        aria-label={t(I18N_KEYS.STATS_OPEN_EXPLORER_ROW, { name: props.row.name })}
+        title={t(I18N_KEYS.STATS_OPEN_EXPLORER_ROW, { name: props.row.name })}
         onClick={() => props.onOpen(props.row)}
       >
         <KindBadge kind={props.row.kind} />

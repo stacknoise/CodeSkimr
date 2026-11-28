@@ -100,7 +100,7 @@ stats-open-explorer = Im Explorer öffnen
 stats-open-explorer-row = { $name } im Explorer öffnen
 stats-open-usages = Verwendungen ansehen
 stats-select-hint = Wähle eine Zeile, um die Details zu sehen.
-stats-visibility-none = –
+stats-value-missing = –
 stats-left-out-title = Ausgenommen
 stats-left-out-note = { $count ->
     [one] 1 Symbol erscheint nicht in der Zahl oben: Die Projektdatei .codeskimr.toml nimmt es aus.

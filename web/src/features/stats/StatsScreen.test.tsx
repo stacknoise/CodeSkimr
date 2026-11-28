@@ -5,6 +5,7 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { PROJECT_ROW } from "../../tests/project-row";
+import { refreshProjects } from "../projects/projects";
 import { resetStats, selectedRow, statsTab } from "./stats";
 import { StatsScreen } from "./StatsScreen";
 import type { Overview, RankingAnswer, Row } from "./types";
@@ -123,7 +124,8 @@ describe("StatsScreen: overview", () => {
   it("opens a row of a card in the explorer", async () => {
     served();
     render(() => <StatsScreen />);
-    fireEvent.click(await screen.findByRole("button", { name: "Open checkout in the Explorer" }));
+    const [first] = await screen.findAllByTitle("Open checkout in the Explorer");
+    fireEvent.click(first as HTMLElement);
     expect(currentPath()).toBe("/explorer");
   });
 
@@ -148,6 +150,20 @@ describe("StatsScreen: overview", () => {
     render(() => <StatsScreen />);
     await waitFor(() => expect(inputs("projects.list")).toHaveLength(1));
     expect(inputs("stats.overview")).toHaveLength(0);
+  });
+
+  it("loads again when a scan of the open project ends", async () => {
+    const scanned = (snapshot: number) => ({
+      ...PROJECT_ROW,
+      scan: { snapshot, created: 1, mode: "full" as const, files: 1, symbols: 1, references: 1 },
+    });
+    let newest = scanned(5);
+    served(RANKING, OVERVIEW, { "projects.list": () => answer([newest]) });
+    render(() => <StatsScreen />);
+    await waitFor(() => expect(inputs("stats.overview")).toHaveLength(1));
+    newest = scanned(6);
+    await refreshProjects();
+    await waitFor(() => expect(inputs("stats.overview")).toHaveLength(2));
   });
 
   it("tells a failed load", async () => {
