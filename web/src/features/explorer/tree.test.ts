@@ -168,6 +168,25 @@ describe("the annotation targets of the rows", () => {
   });
 });
 
+describe("the description of a package", () => {
+  it("is shown after the name of the namespace row that has one", () => {
+    const first = OUTLINE.layers[0]?.namespaces[0];
+    if (!first) {
+      throw new Error("the sample outline has no namespace");
+    }
+    const described: Outline = {
+      ...OUTLINE,
+      layers: [
+        { name: "", namespaces: [{ ...first, name: "zcore", description: "Order & Billing" }] },
+      ],
+    };
+    const rows = buildRows(described, new Set(), new Map(), "", LABELS);
+    expect(rows.find((row) => row.label === "zcore")?.description).toBe("Order & Billing");
+    const plain = buildRows(OUTLINE, new Set(), new Map(), "", LABELS);
+    expect(plain.every((row) => row.description === undefined)).toBe(true);
+  });
+});
+
 describe("buildRows", () => {
   it("shows only the layers while everything is closed", () => {
     const rows = buildRows(OUTLINE, new Set(), new Map(), "", LABELS);

@@ -21,6 +21,8 @@ export interface NamespaceNode {
   holders?: TypeNode[];
   /** The name is the path of a file, not a namespace: one row, titled by the file. */
   file?: boolean;
+  /** The description of a package (abapGit `package.devc.xml`), if it has one. */
+  description?: string;
 }
 
 /** A layer with its namespaces; the name is empty for types that belong to no layer. */

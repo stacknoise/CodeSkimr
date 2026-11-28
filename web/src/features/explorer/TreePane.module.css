@@ -136,6 +136,15 @@
     font-size: 9px;
 }
 
+.description {
+    flex: 0 100 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .label {
     flex: 0 1 auto;
     min-width: 0;

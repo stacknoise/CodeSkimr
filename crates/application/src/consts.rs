@@ -301,6 +301,17 @@ pub const ABAPGIT_TAG_OPEN: &str = "<";
 pub const ABAPGIT_TAG_CLOSE: &str = "</";
 /// The end of a tag in `.abapgit.xml`.
 pub const ABAPGIT_TAG_END: &str = ">";
+/// Tag of the description of a package in `package.devc.xml`.
+pub const ABAPGIT_DESCRIPTION_TAG: &str = "CTEXT";
+/// The XML escapes of a text in `package.devc.xml` and what they stand for; `&amp;` comes last so
+/// that `&amp;lt;` stays the text `&lt;`.
+pub const ABAPGIT_XML_ESCAPES: [(&str, &str); 5] = [
+    ("&lt;", "<"),
+    ("&gt;", ">"),
+    ("&quot;", "\""),
+    ("&apos;", "'"),
+    ("&amp;", "&"),
+];
 /// The folder name of files directly below the starting folder.
 pub const ABAPGIT_ROOT_FOLDER: &str = "";
 /// Tag of the folder below which abapGit keeps the objects.
@@ -323,6 +334,8 @@ pub const ABAPGIT_NAMESPACE_MARK: char = '#';
 pub const ABAPGIT_NAMESPACE_SLASH: char = '/';
 /// Separator of the parts of an abapGit file name.
 pub const ABAPGIT_NAME_SEPARATOR: char = '.';
+/// Longest description of a package that is shown, in characters; a longer one is dropped.
+pub const ABAPGIT_DESCRIPTION_MAX_CHARS: usize = 120;
 /// File name that describes the package of a folder.
 pub const ABAPGIT_PACKAGE_FILE: &str = "package.devc.xml";
 /// Label of the prefix folder logic in answers.

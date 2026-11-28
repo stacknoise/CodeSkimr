@@ -100,6 +100,13 @@ function RowContent(props: { row: TreeRow }) {
       </Show>
       <Show when={row().symbolKind}>{(kind) => <KindBadge kind={kind()} />}</Show>
       <span class={styles.label}>{row().label}</span>
+      <Show when={row().description}>
+        {(text) => (
+          <span class={styles.description} title={text()}>
+            {text()}
+          </span>
+        )}
+      </Show>
       <span class={styles.tail}>
         <LanguageTag id={row().language} />
         <RowMarks

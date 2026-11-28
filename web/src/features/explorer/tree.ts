@@ -46,6 +46,8 @@ export interface TreeRow {
   names: readonly string[];
   /** The symbols to read when a namespace row opens: the ones that hold its members. */
   held: readonly number[];
+  /** The description of a package, shown after its name; absent for the other rows. */
+  description?: string;
 }
 
 /** The texts the tree needs that depend on the language. */
@@ -223,6 +225,8 @@ interface Segment {
   /** Other symbols that hold functions and constants of the namespace (a namespace symbol, the
    * module of a file without a namespace). */
   holders: TypeNode[];
+  /** The description of the package this segment is, if it has one. */
+  description?: string;
 }
 
 function segment(path: string, label: string): Segment {
@@ -279,6 +283,9 @@ export function segmentsOf(spaces: readonly NamespaceNode[]): Segment[] {
       current.module = space.module;
     }
     current?.holders.push(...(space.holders ?? []));
+    if (current && space.description) {
+      current.description = space.description;
+    }
   }
   return [...roots.values()];
 }
@@ -332,6 +339,7 @@ function segmentRows(layer: string, node: Segment, depth: number, ctx: Context):
     expandable:
       count > 0 || node.children.size > 0 || holdersOf(node).some((one) => one.members > 0),
     held: holdersOf(node).map((one) => one.id),
+    ...(node.description ? { description: node.description } : {}),
     open,
     target: node.path === "" ? null : { kind: NAMESPACE_KIND, name: node.path },
     scope: node.path === "" ? null : node.path,

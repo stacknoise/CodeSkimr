@@ -1,7 +1,7 @@
 //! The commands of the explorer: the tree of layers, namespaces and types, and one symbol with
 //! its members.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Arc;
 
 use codeskimr_application::abapgit::{AbapGitConfig, package_of};
@@ -19,7 +19,8 @@ use codeskimr_domain::{
 use serde::{Deserialize, Serialize};
 
 use super::consts::{EXPLORER_OUTLINE, OUTLINE_DESCRIPTION, OUTLINE_TITLE, QUALIFIED_SEPARATOR};
-use super::scope::read_config;
+use super::scope::{read_config, read_package_description};
+use crate::consts::ABAPGIT_PACKAGE_FILES_MAX;
 
 /// What the explorer reads: the project repository for the layers, the index for one symbol, the
 /// outline for the tree and the project folder for the source of a declaration.
@@ -110,6 +111,10 @@ pub struct NamespaceNode {
     /// Left out of the answer when it is false.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub file: bool,
+    /// The description of the package (abapGit: `package.devc.xml`); left out of the answer when
+    /// there is none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
 }
 
 /// A layer with its namespaces; the name is empty for types that belong to no layer.
@@ -324,6 +329,7 @@ fn namespaces(grouped: Grouped) -> Vec<NamespaceNode> {
                 module: space.module,
                 holders: space.holders,
                 file: space.file,
+                description: None,
             }
         })
         .collect()
@@ -418,6 +424,43 @@ fn starting_folder(project: &Project) -> String {
         .starting_folder
 }
 
+/// The descriptions of the packages, by the name the explorer shows for them: read from the
+/// `package.devc.xml` in the folder of each package, for a folder project only (a Git project does
+/// not hold the file). At most `ABAPGIT_PACKAGE_FILES_MAX` files are read.
+fn package_descriptions(
+    project: &Project,
+    nodes: &[OutlineNode],
+    starting_folder: &str,
+) -> HashMap<String, String> {
+    let ProjectSource::Folder(root) = &project.source else {
+        return HashMap::new();
+    };
+    let folders: BTreeSet<&str> = nodes
+        .iter()
+        .filter_map(|node| node.folder.as_deref())
+        .collect();
+    folders
+        .into_iter()
+        .take(ABAPGIT_PACKAGE_FILES_MAX)
+        .filter_map(|folder| {
+            let text = read_package_description(std::path::Path::new(root.as_str()), folder)?;
+            Some((package_of(folder, starting_folder), text))
+        })
+        .collect()
+}
+
+/// Puts the description on the namespaces that are packages with one. The unnamed root package
+/// gets none: its row is named by the tree.
+fn describe(layers: &mut [LayerNode], descriptions: &HashMap<String, String>) {
+    for space in layers
+        .iter_mut()
+        .flat_map(|layer| layer.namespaces.iter_mut())
+        .filter(|space| !space.name.is_empty())
+    {
+        space.description = descriptions.get(&space.name).cloned();
+    }
+}
+
 /// Turns the folders of the packages into names relative to the starting folder.
 fn relative_packages(nodes: &mut [OutlineNode], starting_folder: &str) {
     for node in nodes {
@@ -460,12 +503,17 @@ impl Command for ExplorerOutline {
         let mut nodes = ports
             .outline
             .outline(snapshot.id, &ports.folder_languages)?;
+        let mut descriptions = HashMap::new();
         if nodes.iter().any(in_package) {
-            relative_packages(&mut nodes, &starting_folder(&project));
+            let start = starting_folder(&project);
+            descriptions = package_descriptions(&project, &nodes, &start);
+            relative_packages(&mut nodes, &start);
         }
+        let mut layers = build(&project.layers, &nodes);
+        describe(&mut layers, &descriptions);
         Ok(Outline {
             snapshot: Some(snapshot.id.get()),
-            layers: build(&project.layers, &nodes),
+            layers,
             thresholds: Thresholds::from(&ports.thresholds),
         })
     }

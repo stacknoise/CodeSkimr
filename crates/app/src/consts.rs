@@ -670,3 +670,5 @@ pub const LOG_LEVELS: [tracing_subscriber::filter::LevelFilter; 5] = [
 
 /// Most bytes read from `.abapgit.xml`; the file is a few hundred bytes long.
 pub const ABAPGIT_CONFIG_MAX_BYTES: u64 = 65_536;
+/// Most `package.devc.xml` files the explorer reads for the descriptions of the packages.
+pub const ABAPGIT_PACKAGE_FILES_MAX: usize = 5_000;
