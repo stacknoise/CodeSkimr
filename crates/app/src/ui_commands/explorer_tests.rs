@@ -20,6 +20,7 @@ fn node(
         parent: parent.map(SymbolId::new),
         members: 0,
         language: LanguageId::new("python").unwrap(),
+        folder: String::new(),
     }
 }
 
@@ -215,4 +216,37 @@ fn the_answer_leaves_out_empty_lists_and_what_the_module_repeats() {
     assert!(module.get("qualified_name").is_none());
     assert!(module.get("language").is_none());
     assert_eq!(module["name"], "util");
+}
+
+/// A node of an ABAP file in a folder: a package of an abapGit repository.
+fn abap(id: u64, kind: SymbolKind, name: &str, qualified: &str, folder: &str) -> OutlineNode {
+    OutlineNode {
+        language: LanguageId::new("abap").unwrap(),
+        folder: folder.to_owned(),
+        ..node(id, kind, name, qualified, None)
+    }
+}
+
+#[test]
+fn the_namespace_of_an_abap_type_is_the_folder_of_its_file() {
+    let nodes = [
+        abap(1, SymbolKind::Module, "zcl_a.clas", "zcl_a.clas", "src"),
+        abap(2, SymbolKind::Class, "zcl_a", "zcl_a", "src"),
+        abap(3, SymbolKind::Class, "zcl_b", "zcl_b", "src/sub"),
+        abap(4, SymbolKind::Interface, "zif_a", "zif_a", "src"),
+    ];
+    let spaces = &build(&[], &nodes)[0].namespaces;
+    let names: Vec<_> = spaces.iter().map(|space| space.name.as_str()).collect();
+    assert_eq!(names, ["src", "src/sub"]);
+    let types: Vec<_> = spaces[0]
+        .types
+        .iter()
+        .map(|node| node.name.as_str())
+        .collect();
+    assert_eq!(types, ["zcl_a", "zif_a"]);
+    assert!(
+        spaces
+            .iter()
+            .all(|space| space.module.is_none() && !space.file)
+    );
 }

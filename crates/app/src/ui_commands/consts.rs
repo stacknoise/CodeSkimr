@@ -194,6 +194,9 @@ pub const DATABASE_REMOVING: &str = "removing";
 pub const DATABASE_UNREADABLE: &str = "unreadable";
 
 /// Title key of `explorer.outline`.
+/// The language whose namespaces are the folders of its files: the packages of an abapGit
+/// repository (ADR 0113).
+pub const PACKAGE_LANGUAGE: &str = "abap";
 pub const OUTLINE_TITLE: &str = i18n::COMMAND_EXPLORER_OUTLINE_TITLE;
 /// Description key of `explorer.outline`.
 pub const OUTLINE_DESCRIPTION: &str = i18n::COMMAND_EXPLORER_OUTLINE_DESCRIPTION;

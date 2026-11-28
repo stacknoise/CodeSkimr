@@ -168,6 +168,8 @@ pub const NAME_SEPARATOR: char = '\u{1f}';
 pub const SECONDS_PER_DAY: i64 = 86_400;
 /// Separates the labels of the changed parts of a symbol in the column `alert.changes`.
 pub const CHANGE_SEPARATOR: char = ',';
+/// Separates the folders of a file path.
+pub const FOLDER_SEPARATOR: char = '/';
 /// The id that a new annotation has in the check for a second critical mark (no annotation has it).
 pub const NO_ANNOTATION: i64 = 0;
 

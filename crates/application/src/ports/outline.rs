@@ -23,6 +23,9 @@ pub struct OutlineNode {
     pub members: u32,
     /// Language of the file that declares it.
     pub language: LanguageId,
+    /// Folder of the file that declares it, relative to the project folder, with `/`; empty for
+    /// the project folder itself. The package of an abapGit object (ADR 0113).
+    pub folder: String,
 }
 
 /// One row of the member table of a symbol.

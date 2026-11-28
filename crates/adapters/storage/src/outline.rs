@@ -6,7 +6,7 @@ use codeskimr_domain::{LanguageId, MetricKind, QualifiedName, SnapshotId, Symbol
 use rusqlite::{Connection, Row, params};
 
 use crate::codec::{Cols, column_int, id_from, json_labels, label_from, small_from};
-use crate::consts::{CONTAINER_KINDS, TYPE_KINDS};
+use crate::consts::{CONTAINER_KINDS, FOLDER_SEPARATOR, TYPE_KINDS};
 use crate::error::StorageResult;
 use crate::sql;
 use crate::store::ProjectDb;
@@ -20,6 +20,14 @@ struct NodeRow {
     parent: Option<i64>,
     members: i64,
     language: String,
+    path: String,
+}
+
+/// The folder of a file path: everything before the last `/`, empty for a file in the root.
+fn folder_of(path: &str) -> String {
+    path.rsplit_once(FOLDER_SEPARATOR)
+        .map(|(folder, _)| folder.to_owned())
+        .unwrap_or_default()
 }
 
 impl NodeRow {
@@ -34,6 +42,7 @@ impl NodeRow {
             parent: cols.take()?,
             members: cols.take()?,
             language: cols.take()?,
+            path: cols.take()?,
         })
     }
 
@@ -49,6 +58,7 @@ impl NodeRow {
                 .transpose()?,
             members: small_from(self.members)?,
             language: LanguageId::new(self.language)?,
+            folder: folder_of(&self.path),
         })
     }
 }
