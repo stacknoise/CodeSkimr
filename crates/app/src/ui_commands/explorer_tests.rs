@@ -20,7 +20,7 @@ fn node(
         parent: parent.map(SymbolId::new),
         members: 0,
         language: LanguageId::new("python").unwrap(),
-        folder: String::new(),
+        folder: None,
     }
 }
 
@@ -218,11 +218,12 @@ fn the_answer_leaves_out_empty_lists_and_what_the_module_repeats() {
     assert_eq!(module["name"], "util");
 }
 
-/// A node of an ABAP file in a folder: a package of an abapGit repository.
+/// A node of a file in a folder whose language shows folders as namespaces (ABAP: a package of
+/// an abapGit repository).
 fn abap(id: u64, kind: SymbolKind, name: &str, qualified: &str, folder: &str) -> OutlineNode {
     OutlineNode {
         language: LanguageId::new("abap").unwrap(),
-        folder: folder.to_owned(),
+        folder: Some(folder.to_owned()),
         ..node(id, kind, name, qualified, None)
     }
 }
@@ -274,14 +275,4 @@ fn an_abap_file_in_the_project_folder_has_the_namespace_without_a_name() {
     let spaces = &build(&[], &nodes)[0].namespaces;
     assert_eq!(spaces.len(), 1);
     assert_eq!(spaces[0].name, "");
-}
-
-#[test]
-fn another_language_keeps_its_namespace_whatever_the_folder() {
-    let nodes = [OutlineNode {
-        folder: "src/sub".to_owned(),
-        ..node(1, SymbolKind::Class, "A", "pkg.A", None)
-    }];
-    let spaces = &build(&[], &nodes)[0].namespaces;
-    assert_eq!(spaces[0].name, "pkg");
 }

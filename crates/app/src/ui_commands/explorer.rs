@@ -8,7 +8,7 @@ use codeskimr_application::access;
 use codeskimr_application::config::MetricThresholds;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    CodeIndex, CodeOutline, FOLDER_NAMESPACE_LANGUAGES, OutlineNode, SourceText, SyntaxHighlighter,
+    CodeIndex, CodeOutline, OutlineNode, SourceText, SyntaxHighlighter,
 };
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
@@ -27,6 +27,9 @@ pub struct ExplorerPorts {
     pub(super) highlighter: Arc<dyn SyntaxHighlighter>,
     pub(super) thresholds: MetricThresholds,
     pub(super) references: Arc<dyn codeskimr_application::ports::ReferencePlaces>,
+    /// The languages whose namespaces are the folders of their files (`namespace = "folder"`
+    /// of the pack, ADR 0113).
+    pub(super) folder_languages: Vec<codeskimr_domain::LanguageId>,
 }
 
 impl ExplorerPorts {
@@ -202,7 +205,7 @@ pub(super) fn namespace_of(
     names: &HashMap<SymbolId, &OutlineNode>,
 ) -> Option<String> {
     if in_package(node) {
-        return Some(node.folder.clone());
+        return node.folder.clone();
     }
     match node.parent {
         Some(parent) => names
@@ -221,7 +224,7 @@ pub(super) fn namespace_of(
 /// Whether the namespace of a symbol is the folder of its file: the package of an abapGit
 /// repository. Its file module is no row of the tree then.
 fn in_package(node: &OutlineNode) -> bool {
-    FOLDER_NAMESPACE_LANGUAGES.contains(&node.language.as_str())
+    node.folder.is_some()
 }
 
 fn layer_index(layers: &[Layer], node: &OutlineNode) -> usize {
@@ -387,11 +390,10 @@ pub(super) fn build(layers: &[Layer], nodes: &[OutlineNode]) -> Vec<LayerNode> {
         if let Some(group) = groups.get_mut(layer_index(layers, node)) {
             let mut shown = type_node(node);
             shown.members = own.get(&node.id).copied().unwrap_or_default();
-            let name = if in_package(node) {
-                node.folder.clone()
-            } else {
-                node.qualified_name.to_string()
-            };
+            let name = node
+                .folder
+                .clone()
+                .unwrap_or_else(|| node.qualified_name.to_string());
             let space = group.entry(name).or_default();
             space.file |= node.kind == SymbolKind::Module && !in_package(node);
             space.holders.push(shown);
@@ -429,7 +431,9 @@ impl Command for ExplorerOutline {
                 thresholds: Thresholds::from(&ports.thresholds),
             });
         };
-        let nodes = ports.outline.outline(snapshot.id)?;
+        let nodes = ports
+            .outline
+            .outline(snapshot.id, &ports.folder_languages)?;
         Ok(Outline {
             snapshot: Some(snapshot.id.get()),
             layers: build(&project.layers, &nodes),

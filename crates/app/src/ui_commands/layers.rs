@@ -120,7 +120,7 @@ impl Command for LayersGet {
         let ports = &self.ports;
         let (project, snapshot) = ports.project_and_newest(request.input.project)?;
         let namespaces = match &snapshot {
-            Some(snapshot) => namespaces_of(&project, &ports.outline.outline(snapshot.id)?),
+            Some(snapshot) => namespaces_of(&project, &ports.outline.outline(snapshot.id, &[])?),
             None => Vec::new(),
         };
         let files = project_files(&project.source)?;

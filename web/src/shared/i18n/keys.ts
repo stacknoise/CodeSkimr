@@ -1388,6 +1388,8 @@ export const I18N_KEYS = {
   PROJECTS_SCOPE_HINT_INSIDE_NOTE: "projects-scope-hint-inside-note",
   PROJECTS_SCOPE_HINT_OWN_NOTE: "projects-scope-hint-own-note",
   PROJECTS_ABAPGIT_TITLE: "projects-abapgit-title",
+  PROJECTS_ABAPGIT_LOGIC_PREFIX: "projects-abapgit-logic-prefix",
+  PROJECTS_ABAPGIT_LOGIC_FULL: "projects-abapgit-logic-full",
   PROJECTS_ABAPGIT_FOUND: "projects-abapgit-found",
   PROJECTS_ABAPGIT_FOLDER_ROOT: "projects-abapgit-folder-root",
   PROJECTS_ABAPGIT_DEFAULTS: "projects-abapgit-defaults",

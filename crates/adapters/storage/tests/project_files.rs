@@ -144,10 +144,10 @@ fn removing_a_project_deletes_its_file_and_nothing_of_the_others() {
         "PRJ-201"
     );
     assert_eq!(
-        code_of(&store.outline(gone_snapshot).unwrap_err()),
+        code_of(&store.outline(gone_snapshot, &[]).unwrap_err()),
         "PRJ-201"
     );
-    assert_eq!(store.outline(kept_snapshot).unwrap().len(), 1);
+    assert_eq!(store.outline(kept_snapshot, &[]).unwrap().len(), 1);
     assert_eq!(listed(&store, kept.id), 1);
     assert_eq!(listed(&store, gone.id), 0, "its notes went with its file");
 }

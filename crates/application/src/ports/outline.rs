@@ -24,8 +24,9 @@ pub struct OutlineNode {
     /// Language of the file that declares it.
     pub language: LanguageId,
     /// Folder of the file that declares it, relative to the project folder, with `/`; empty for
-    /// the project folder itself. The package of an abapGit object (ADR 0113).
-    pub folder: String,
+    /// the project folder itself. Only for the languages whose packs have `namespace = "folder"`
+    /// (the package of an abapGit object, ADR 0113), `None` for all others.
+    pub folder: Option<String>,
 }
 
 /// One row of the member table of a symbol.
@@ -55,11 +56,17 @@ pub struct MemberRow {
 
 /// Reads the structure of a snapshot.
 pub trait CodeOutline: Send + Sync {
-    /// All namespaces, modules and types of a snapshot, ordered by qualified name.
+    /// All namespaces, modules and types of a snapshot, ordered by qualified name. The folder of
+    /// the file is read for the symbols of `folder_languages` only (the languages whose packs
+    /// have `namespace = "folder"`); for the others it is empty.
     ///
     /// # Errors
     /// A coded failure of the `STO` group.
-    fn outline(&self, snapshot: SnapshotId) -> Result<Vec<OutlineNode>, CodedError>;
+    fn outline(
+        &self,
+        snapshot: SnapshotId,
+        folder_languages: &[LanguageId],
+    ) -> Result<Vec<OutlineNode>, CodedError>;
 
     /// The direct members of a symbol as table rows, in declaration order (by start line, then column).
     ///

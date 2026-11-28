@@ -20,10 +20,10 @@ use codeskimr_application::ports::{
 };
 use codeskimr_application::stage::PersistStep;
 use codeskimr_domain::{
-    Alert, AlertId, Annotation, AnnotationId, ContentHash, FileId, Fingerprints, LayerEdge,
-    MetricFact, NamespaceGraph, Project, ProjectId, QualifiedName, RankingQuery, Reference,
-    RelativePath, Scope, Snapshot, SnapshotId, SourceFile, Symbol, SymbolBaseline, SymbolFact,
-    SymbolFacts, SymbolId, SymbolName, SymbolPair, ToolReport, UsageQuery,
+    Alert, AlertId, Annotation, AnnotationId, ContentHash, FileId, Fingerprints, LanguageId,
+    LayerEdge, MetricFact, NamespaceGraph, Project, ProjectId, QualifiedName, RankingQuery,
+    Reference, RelativePath, Scope, Snapshot, SnapshotId, SourceFile, Symbol, SymbolBaseline,
+    SymbolFact, SymbolFacts, SymbolId, SymbolName, SymbolPair, ToolReport, UsageQuery,
 };
 
 use super::SqliteStore;
@@ -139,7 +139,7 @@ impl CodeIndex for SqliteStore {
 
 impl CodeOutline for SqliteStore {
     forward! { CodeOutline via of_snapshot:
-        fn outline(&self, snapshot: SnapshotId) -> Result<Vec<OutlineNode>, CodedError>;
+        fn outline(&self, snapshot: SnapshotId, folder_languages: &[LanguageId]) -> Result<Vec<OutlineNode>, CodedError>;
         fn member_rows(&self, snapshot: SnapshotId, symbol: SymbolId) -> Result<Vec<MemberRow>, CodedError>;
     }
 }
