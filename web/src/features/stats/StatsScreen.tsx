@@ -275,7 +275,7 @@ function useRankingKeys(project: () => number | null) {
   });
 }
 
-/** Loads the view again whenever the project, the tab or a filter changes. */
+/** Loads the view again whenever the project, its newest scan, the tab or a filter changes. */
 function useLoading(project: () => number | null) {
   const wanted = () => [
     project(),
@@ -294,6 +294,27 @@ function useLoading(project: () => number | null) {
         void loadStats(id);
       }
     }),
+  );
+  reloadAfterScan(project);
+}
+
+/** Loads again when a scan ends: the open project stays and its newest scan is another one. */
+function reloadAfterScan(project: () => number | null) {
+  const newest = () => {
+    const row = projects().find((entry) => entry.id === project());
+    return row === undefined ? undefined : (row.scan?.snapshot ?? null);
+  };
+  createEffect(
+    on(
+      () => [project(), newest()] as const,
+      ([id, now], before) => {
+        const [was, scan] = before ?? [];
+        if (id !== null && id === was && scan !== undefined && now !== undefined && now !== scan) {
+          void loadStats(id);
+        }
+      },
+      { defer: true },
+    ),
   );
 }
 

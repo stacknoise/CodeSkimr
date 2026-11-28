@@ -1923,7 +1923,7 @@ export const I18N_KEYS = {
   STATS_OPEN_EXPLORER_ROW: "stats-open-explorer-row",
   STATS_OPEN_USAGES: "stats-open-usages",
   STATS_SELECT_HINT: "stats-select-hint",
-  STATS_VISIBILITY_NONE: "stats-visibility-none",
+  STATS_VALUE_MISSING: "stats-value-missing",
   STATS_LEFT_OUT_TITLE: "stats-left-out-title",
   STATS_LEFT_OUT_NOTE: "stats-left-out-note",
   STATS_LEFT_OUT_PILL: "stats-left-out-pill",

@@ -23,7 +23,7 @@ const COLUMNS: Record<RankingName, MessageKey[]> = {
 };
 
 function number(value: number | null): string {
-  return value === null ? t(I18N_KEYS.STATS_VISIBILITY_NONE) : count(value, currentLanguage());
+  return value === null ? t(I18N_KEYS.STATS_VALUE_MISSING) : count(value, currentLanguage());
 }
 
 /** The usages of a row as text: "28 certain, up to 73", or only the certain ones if all are. */
@@ -36,7 +36,7 @@ export function usageText(row: Row): string {
 }
 
 function reasonText(row: Row): string {
-  return row.reason === null ? t(I18N_KEYS.STATS_VISIBILITY_NONE) : t(REASON_TEXT[row.reason]);
+  return row.reason === null ? t(I18N_KEYS.STATS_VALUE_MISSING) : t(REASON_TEXT[row.reason]);
 }
 
 /** The pill with the assessment of a row without usages. */
