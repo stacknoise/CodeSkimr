@@ -1,0 +1,66 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Mock 27: abapGit-Repository</title><style>
+.hell{--bg:#F6F7F9;--surface:#FFFFFF;--line:#E3E6EB;--soft:#EEF0F3;--ink:#14171C;--ink2:#3A414C;--muted:#5B6370;--accent:#2457D6;--accentbg:#EAF0FD;--fg:#fff;--good:#15803D;--goodbg:#EAF7EF;--warn:#B45309;--warnbg:#FFF4E5;--bad:#B91C1C;--badbg:#FDF2F2}
+.petrol{--bg:#F4F6F8;--surface:#FFFFFF;--line:#DDE3EA;--soft:#E8EDF2;--ink:#1B2430;--ink2:#3A4656;--muted:#5D6B7C;--accent:#0C727B;--accentbg:#DFF1F2;--fg:#fff;--good:#1F7A45;--goodbg:#DDF3E5;--warn:#8A5A00;--warnbg:#FBECCB;--bad:#A82D2D;--badbg:#F9DCDC}
+.dunkel{--bg:#12171D;--surface:#1A212A;--line:#2C3643;--soft:#232C37;--ink:#E6EBF1;--ink2:#C5CED9;--muted:#97A4B4;--accent:#3BB6C1;--accentbg:#16363B;--fg:#06222A;--good:#5FD18B;--goodbg:#173826;--warn:#F0BD5A;--warnbg:#3A2D10;--bad:#FF8C8C;--badbg:#401B1B}
+*{box-sizing:border-box}html,body{margin:0}
+.board{width:1440px;height:900px;overflow:hidden;background:var(--bg);color:var(--ink);font:13px Inter,system-ui,sans-serif;display:flex;flex-direction:column;position:relative}
+.mono{font-family:'JetBrains Mono','DejaVu Sans Mono',monospace;font-size:11.5px}
+.top{height:48px;flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.logo{width:24px;height:24px;border-radius:6px;background:var(--ink);color:var(--surface);display:grid;place-items:center;font-weight:700}
+.search{width:520px;border:1px solid var(--line);border-radius:8px;padding:6px 12px;color:var(--muted);background:var(--bg);margin-left:12px}
+.main{display:flex;flex:1;min-height:0}
+.rail{width:56px;flex:none;background:var(--surface);border-right:1px solid var(--line);padding:10px 8px;display:flex;flex-direction:column;gap:6px}
+.rail i{display:block;height:38px;border-radius:8px;background:var(--soft);opacity:.55}.rail i.on{background:var(--accentbg);opacity:1}
+.content{flex:1;min-width:0;padding:22px 28px;display:flex;gap:16px}
+.status{height:28px;flex:none;border-top:1px solid var(--line);background:var(--surface);display:flex;align-items:center;gap:18px;padding:0 16px;font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.list{width:300px;flex:none;padding:16px;display:flex;flex-direction:column;gap:10px}
+.li{padding:8px 10px;border-radius:6px;border-left:3px solid transparent}.li.sel{background:var(--accentbg);border-left-color:var(--accent)}.li b{display:block}
+.page{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+.head{display:flex;align-items:flex-end;gap:12px}h1{margin:0;font:600 22px Inter,system-ui,sans-serif}h2{margin:0;font:600 15px Inter,system-ui,sans-serif}
+.sp{flex:1}.muted{color:var(--muted)}.k{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:6px 12px;white-space:nowrap;display:inline-block}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--fg);font-weight:600}.btn.sm{font-size:12px;padding:4px 9px}
+.tabs{display:flex;gap:26px;padding:0 20px;border-bottom:1px solid var(--line)}.tabs span{padding:13px 0;color:var(--ink2)}.tabs .on{color:var(--accent);font-weight:600;box-shadow:inset 0 -2px 0 var(--accent)}
+.body{padding:18px 20px;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;border-radius:9px;padding:2px 9px;white-space:nowrap}
+.good{background:var(--goodbg);color:var(--good)}.warn{background:var(--warnbg);color:var(--warn)}.bad{background:var(--badbg);color:var(--bad)}.n{background:var(--soft);color:var(--ink2)}.acc{background:var(--accentbg);color:var(--accent)}
+.cols{display:flex;gap:16px}.col{flex:1;min-width:0}
+.tree{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.tr{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--soft)}.tr:last-child{border:0}
+.cb{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--muted);flex:none;display:grid;place-items:center;font-size:11px;line-height:1;color:var(--fg)}
+.cb.on{background:var(--accent);border-color:var(--accent)}.cb.part{background:var(--accentbg);border-color:var(--accent);color:var(--accent)}
+.num{margin-left:auto;font-family:'JetBrains Mono','DejaVu Sans Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap}
+.note{border-radius:8px;padding:10px 14px;line-height:1.45}.note.i{background:var(--accentbg);color:var(--ink)}.note.w{background:var(--warnbg);color:var(--ink)}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:16px;padding:4px 12px 4px 8px}
+.chip.off{opacity:.55}.scrim{position:absolute;inset:0;background:rgba(10,14,20,.45)}
+.dlg{position:absolute;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.dh{padding:18px 20px 8px}.db{padding:8px 20px 14px;display:flex;flex-direction:column;gap:10px}.df{padding:12px 20px;border-top:1px solid var(--soft);display:flex;gap:10px;align-items:center}
+.in{border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:var(--bg)}
+.pick{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;gap:10px}.pick.sel{border-color:var(--accent);background:var(--accentbg)}
+.rd{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--muted);flex:none;margin-top:1px}.pick.sel .rd{border-color:var(--accent);box-shadow:inset 0 0 0 3px var(--surface);background:var(--accent)}
+.rowx{display:flex;gap:12px;padding:10px 12px;border-bottom:1px solid var(--soft);align-items:flex-start}.rowx:last-child{border:0}
+.mark{position:absolute;right:20px;bottom:40px;background:var(--ink);color:var(--surface);padding:5px 12px;border-radius:6px;font-size:12px;opacity:.85}
+</style></head><body><div class="board" id="b"></div><script>
+const q=new URLSearchParams(location.search),v=q.get('v')||'a1',th=q.get('t')||'petrol';
+const cb=(s)=>`<span class="cb ${s}">${s==='on'?'✓':s==='part'?'–':''}</span>`;
+const tr=(s,ind,name,info,extra='')=>`<div class="tr" style="padding-left:${12+ind*22}px">${cb(s)}<span class="${ind||name.endsWith('/')?'mono':'mono'}" style="font-size:12.5px">${name}</span>${extra}<span class="num">${info}</span></div>`;
+const rail=`<div class="rail"><i class="on"></i><i></i><i></i><i></i><i></i></div>`;
+const list=`<div class="card list"><div style="display:flex;align-items:center"><h2 style="font-size:17px">Projekte</h2><span class="sp"></span><span class="btn pri sm">+ Neu</span></div><div class="in muted">Projekte filtern …</div><div class="li"><b>webshop-backend</b><span class="muted">C# · vor 12 Min.</span></div><div class="li sel"><b>sap-lager</b><span class="muted">ABAP · vor 2 Std.</span></div><div class="li"><b>lagerverwaltung</b><span class="muted">Java · gestern</span></div><div class="li"><b>docs-generator</b><span class="muted">Python · vor 3 Tagen</span></div></div>`;
+const tabs=(on)=>`<div class="tabs">${['Übersicht','Scan','Umfang','Genaue Prüfung (Stufe 2)','Werkzeuge'].map(t=>`<span class="${t===on?'on':''}">${t}${t==='Umfang'&&on!=='Umfang'?'':''}</span>`).join('')}</div>`;
+const head=`<div class="head"><h1>sap-lager</h1><span class="muted mono" style="padding-bottom:3px">Ordner · C:\\Users\\beispiel\\Code\\sap-lager</span><span class="sp"></span><span class="btn">Neu scannen</span><span class="btn pri">Im Explorer öffnen</span></div>`;
+const shell=(inner,over='')=>`<div class="top"><span class="logo">C</span><b style="font-size:14px">CodeSkimr</b><span class="search">Typ, Member oder Befehl …</span></div><div class="main">${rail}<div class="content">${list}<div class="page">${head}<div class="card" style="flex:1;display:flex;flex-direction:column;min-height:0">${inner}</div></div></div></div><div class="status"><span style="color:var(--good)">● Verbunden</span><span>4 Projekte · 3.107 Typen</span><span>RAM 118 MB</span></div>${over}`;
+const lang=(n,s,x,off)=>`<span class="chip ${off?'off':''}">${cb(s)}<b>${n}</b><span class="muted">${x}</span></span>`;
+const kind=(k,n)=>`<span class="chip" style="padding:3px 10px"><b class="mono">${k}</b><span class="muted">${n}</span></span>`;
+const card=`<div class="note i" style="display:flex;flex-direction:column;gap:8px"><div class="k">abapGit-Repository</div><div>Die Objekte liegen in <b>src</b> (Ordnerlogik Präfix): 9 Pakete, 120 Dateien mit Quelltext.</div><div style="display:flex;gap:8px;flex-wrap:wrap">${kind('CLAS',48)}${kind('INTF',12)}${kind('PROG',9)}${kind('FUGR',6)}${kind('TABL',14)}</div><div class="muted" style="font-size:12px">ABAP wird als Näherung gelesen (Basisstufe): ohne Sichtbarkeit, ohne genaue Verwendungen, Namen in Kleinschreibung und noch ohne die genaue Prüfung der Stufe 2.</div></div>`;
+let html='';
+if(v==='a1'){ // Neues Projekt: Hinweis auf abapGit
+const dlg=`<div class="scrim"></div><div class="dlg" style="left:380px;top:150px;width:680px"><div class="dh"><h2>Neues Projekt</h2></div><div class="db"><div class="in mono">C:\\Users\\beispiel\\Code\\sap-lager</div><div class="note i"><b>Das ist ein abapGit-Repository</b><div style="margin-top:4px">Es wird als ABAP gelesen: 120 Objekte in 9 Paketen, unterhalb von src (Ordnerlogik Präfix). Im Explorer ist jedes Paket ein eigener Ordner.</div></div></div><div class="df"><span class="muted">Esc schließt · Enter fügt hinzu</span><span class="sp"></span><span class="btn">Abbrechen</span><span class="btn pri">Hinzufügen und scannen</span></div></div>`;
+html=shell(tabs('Übersicht')+`<div class="body"><div class="muted">Projektübersicht im Hintergrund …</div></div>`,dlg);}
+if(v==='b1'){ // Reiter Umfang: Karte
+html=shell(tabs('Umfang')+`<div class="body"><div><h2>Was wird in diesem Projekt erfasst?</h2><div class="muted" style="margin-top:4px">Gilt für alle Scans dieses Projekts.</div></div>${card}<div><div class="k" style="margin-bottom:6px">Sprachen</div><div style="display:flex;gap:8px">${lang('ABAP','on','120 Dateien')}</div></div><div><div class="k" style="margin-bottom:6px">Ordner</div><div class="tree">${tr('on',0,'sap-lager/','3 von 3 Ordnern')}${tr('on',1,'src/','120 Dateien · ABAP')}${tr('on',2,'zcore/','74 Dateien · ABAP')}${tr('on',2,'zui/','46 Dateien · ABAP')}</div></div></div>`);}
+if(v==='c1'){ // Explorer: Pakete als Ordner
+const row=(ind,ic,name,n,open)=>`<div class="tr" style="padding-left:${12+ind*22}px"><span class="muted">${open===undefined?'':open?'▾':'▸'}</span>${ic?`<span class="pill acc">${ic}</span>`:''}<span class="mono" style="font-size:12.5px">${name}</span><span class="num">${n}</span></div>`;
+html=`<div class="top"><span class="logo">C</span><b style="font-size:14px">CodeSkimr</b><span class="search">Typ, Member oder Befehl …</span></div><div class="main">${rail}<div class="content"><div class="card" style="width:290px;flex:none;padding:12px 0;overflow:hidden"><div class="muted" style="padding:0 14px 10px">Filter …</div>${row(0,'','src/zcore',2,true)}${row(1,'C','zcl_order',1,false)}${row(1,'I','zif_order',0)}${row(0,'','src/zui',1,false)}</div><div class="card" style="flex:1;padding:18px 20px"><h2>Übersicht</h2><div class="muted" style="margin-top:6px">Explorer für ABAP: Paket, Klasse oder Schnittstelle, Methode. Das Paket ist der Ordner der Datei, die Datei als Modul ist keine Zeile.</div></div></div></div><div class="status"><span style="color:var(--good)">● Verbunden</span><span>4 Projekte · 3.107 Typen</span></div>`;}
+const b=document.getElementById('b');b.classList.add(th);b.innerHTML=html;const mark=document.createElement('span');mark.className='mark';mark.textContent='Mock 27 · '+v;b.appendChild(mark);
+</script></body></html>
