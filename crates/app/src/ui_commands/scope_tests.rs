@@ -282,3 +282,52 @@ fn a_reader_may_not_inspect_a_folder() {
     );
     assert_eq!(refused, Err("AUTH-401"));
 }
+
+#[test]
+fn the_explorer_shows_a_package_relative_to_the_starting_folder() {
+    let fixture = Fixture::installed(None);
+    let app = fixture.root.path().join("app");
+    fs::create_dir_all(app.join("code/sub")).unwrap();
+    fs::write(app.join(".abapgit.xml"), CONFIG).unwrap();
+    fs::write(app.join("code/zcl_a.clas.abap"), CLASS).unwrap();
+    fs::write(app.join("code/sub/zcl_b.clas.abap"), CLASS).unwrap();
+    let project = fixture.scanned();
+    let outline = fixture
+        .call("explorer.outline", json!({ "project": project }))
+        .unwrap();
+    let names: Vec<&str> = outline["layers"][0]["namespaces"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|space| space["name"].as_str().unwrap())
+        .collect();
+    // The starting folder `code` is the root package, `code/sub` is `sub`; "Demo" is the C# file
+    // of the fixture.
+    assert_eq!(names, ["", "Demo", "sub"]);
+}
+
+#[test]
+fn abap_files_outside_an_abapgit_layout_are_reported_as_not_recognised() {
+    let fixture = Fixture::installed(None);
+    let plain = fixture.scanned();
+    let answer = fixture
+        .call("scope.get", json!({ "project": plain }))
+        .unwrap();
+    assert_eq!(answer["abapgit_unrecognised"], false);
+
+    let app = fixture.root.path().join("app");
+    fs::create_dir_all(app.join("lib")).unwrap();
+    fs::write(app.join("lib/zcl_a.clas.abap"), CLASS).unwrap();
+    let project = fixture.scanned();
+    let answer = fixture
+        .call("scope.get", json!({ "project": project }))
+        .unwrap();
+    assert_eq!(answer["abapgit"], serde_json::Value::Null);
+    assert_eq!(answer["abapgit_unrecognised"], true);
+
+    fs::write(app.join(".abapgit.xml"), CONFIG).unwrap();
+    let answer = fixture
+        .call("scope.get", json!({ "project": project }))
+        .unwrap();
+    assert_eq!(answer["abapgit_unrecognised"], false);
+}

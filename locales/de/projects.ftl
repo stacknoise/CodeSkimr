@@ -330,3 +330,5 @@ projects-abapgit-kinds = Objekte nach Art
 projects-abapgit-limits = ABAP wird als Näherung gelesen (Basisstufe): ohne Sichtbarkeit, ohne genaue Verwendungen, Namen in Kleinschreibung und noch ohne die genaue Prüfung der Stufe 2.
 projects-abapgit-hint-title = Das ist ein abapGit-Repository
 projects-abapgit-hint-text = Es wird als ABAP gelesen: { $objects } Objekte in { $packages } Paketen, unterhalb von { $folder } (Ordnerlogik { $logic }). Im Explorer ist jedes Paket ein eigener Ordner.
+projects-abapgit-missed-title = ABAP-Dateien gefunden, aber kein abapGit-Aufbau erkannt
+projects-abapgit-missed-text = Das Projekt hat ABAP-Dateien, aber keine .abapgit.xml und keine Objekte unter src/. Die Dateien werden wie sonst gelesen, aber der Explorer zeigt keine Pakete. Mit einer .abapgit.xml im Projektordner erscheinen sie.

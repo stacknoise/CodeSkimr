@@ -1034,7 +1034,7 @@ fn explorer_ports(
 
 /// The languages whose packs show the folder of a file as the namespace of its symbols. A folder
 /// of packs that cannot be read gives none: the tree then shows the namespaces of the code.
-fn folder_languages(languages_dir: &std::path::Path) -> Vec<LanguageId> {
+pub(super) fn folder_languages(languages_dir: &std::path::Path) -> Vec<LanguageId> {
     LanguagePacks::load(languages_dir)
         .map(|packs| {
             packs

@@ -78,9 +78,9 @@ for (const theme of THEMES) {
       // The explorer: the packages are the folders of the files.
       await openInExplorer(page);
       await expect(page.getByRole("tree")).toBeVisible();
-      await expect(page.getByText(/zcore$/)).toBeVisible();
-      await expect(page.getByText(/zui$/)).toBeVisible();
-      await page.getByText(/zcore$/).click();
+      await expect(page.getByText("zcore", { exact: true })).toBeVisible();
+      await expect(page.getByText("zui", { exact: true })).toBeVisible();
+      await page.getByText("zcore", { exact: true }).click();
       await shot(page, SHOTS, `abapgit-explorer-${theme}`, info);
     });
   });

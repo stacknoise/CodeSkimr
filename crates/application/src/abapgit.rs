@@ -91,6 +91,24 @@ pub fn parse_config(text: &str) -> AbapGitConfig {
     }
 }
 
+/// The package that the explorer shows for files in `folder`: the folder relative to the starting
+/// folder, so `src/zfoo/zbar` below `src` is `zfoo/zbar` and a file directly in `src` is in the
+/// root package (empty). A folder that does not lie below the starting folder stays as it is.
+#[must_use]
+pub fn package_of(folder: &str, starting_folder: &str) -> String {
+    if starting_folder.is_empty() {
+        return folder.to_owned();
+    }
+    if folder == starting_folder {
+        return ABAPGIT_ROOT_FOLDER.to_owned();
+    }
+    folder
+        .strip_prefix(starting_folder)
+        .and_then(|rest| rest.strip_prefix(PATH_SEPARATOR))
+        .unwrap_or(folder)
+        .to_owned()
+}
+
 /// An object that a file of the repository belongs to.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ObjectRef {
