@@ -88,6 +88,9 @@ fn values_read_at_start_keep_showing_the_running_value_until_a_restart() {
     let shown = setting(&after, "watcher.debounce_ms");
     assert_eq!(shown["value"], started["value"]);
     assert_eq!(shown["pending"], "500");
+    save(&fixture, "watcher.debounce_ms", &json!(null)).unwrap();
+    let back = fixture.call("settings.effective", Value::Null).unwrap();
+    assert!(setting(&back, "watcher.debounce_ms")["pending"].is_null());
 }
 
 #[test]
