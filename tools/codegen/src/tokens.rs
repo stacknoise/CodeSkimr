@@ -76,6 +76,28 @@ const PAIRS: [(&str, &[&str]); 12] = [
     ("critical", &["critical-bg", "surface", "bg"]),
 ];
 
+/// Share in percent of `bad` or `good` in the tinted line of the view Change, laid over `surface`
+/// (`color-mix` in `web/src/features/change/UsagesPanel.module.css`; a test keeps both equal).
+pub const DIFF_TINT_PERCENT: u32 = 6;
+
+/// The tokens whose tint is laid under the code of removed and new lines.
+const DIFF_TINTS: [&str; 2] = ["bad", "good"];
+
+/// The syntax colours, which are read on `surface` and on the tinted lines of a diff.
+const SYNTAX: [&str; 7] = [
+    "syn-keyword",
+    "syn-string",
+    "syn-number",
+    "syn-comment",
+    "syn-type",
+    "syn-function",
+    "syn-attribute",
+];
+
+/// The backgrounds besides `surface` that the syntax colours are read on: the page, the selected
+/// and hovered row of a list, and the marked word of a hit.
+const SYNTAX_BACKGROUNDS: [&str; 3] = ["bg", "accent-bg", "warn-bg"];
+
 /// Further text tokens that are read on `surface`.
 const ON_SURFACE: [&str; 18] = [
     "kind-class",
@@ -219,8 +241,50 @@ impl Tokens {
         for text in ON_SURFACE {
             check(text, "surface");
         }
+        for text in SYNTAX {
+            for background in SYNTAX_BACKGROUNDS {
+                check(text, background);
+            }
+        }
+        problems.extend(diff_tint_problems(theme, colors));
         problems
     }
+}
+
+/// `tint` laid over `base` with `percent` of its own share, as `color-mix` in sRGB makes it.
+fn mixed(tint: [u8; 3], base: [u8; 3], percent: u32) -> [u8; 3] {
+    let channel = |tint: u8, base: u8| {
+        let value = (u32::from(tint) * percent + u32::from(base) * (100 - percent) + 50) / 100;
+        u8::try_from(value).unwrap_or(u8::MAX)
+    };
+    let ([tr, tg, tb], [br, bg, bb]) = (tint, base);
+    [channel(tr, br), channel(tg, bg), channel(tb, bb)]
+}
+
+/// The syntax colours must stay readable on the tinted lines of a diff (blueprint 15.3).
+fn diff_tint_problems(theme: &str, colors: &BTreeMap<String, String>) -> Vec<String> {
+    let Some(surface) = colors.get("surface").and_then(|c| rgb(c)) else {
+        return Vec::new();
+    };
+    let mut problems = Vec::new();
+    for tint in DIFF_TINTS {
+        let Some(tint_color) = colors.get(tint).and_then(|c| rgb(c)) else {
+            continue;
+        };
+        let background = mixed(tint_color, surface, DIFF_TINT_PERCENT);
+        for text in SYNTAX {
+            let ratio = colors
+                .get(text)
+                .and_then(|c| rgb(c))
+                .map(|c| contrast(c, background));
+            if let Some(ratio) = ratio.filter(|r| *r < MIN_CONTRAST) {
+                problems.push(format!(
+                    "themes.{theme}: {text} on the {tint} tint of a diff line has contrast {ratio:.2}, needs {MIN_CONTRAST}"
+                ));
+            }
+        }
+    }
+    problems
 }
 
 /// `#RRGGBB` as three channels.

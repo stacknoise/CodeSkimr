@@ -1,6 +1,7 @@
 import { createEffect, For, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { Code } from "../../shared/code/Code";
 import { ColumnHead } from "./ColumnHead";
 import { gridColumns } from "./columns";
 import { hitsHeight } from "./layout";
@@ -14,18 +15,25 @@ import { hitCode, hitFilter, selectedHit, setHitFilter, setSelectedHit } from ".
 import type { Hit, Place, UsagesAnswer } from "./types";
 import styles from "./HitList.module.css";
 
-/** The code line of a hit with the used symbol marked; empty while the code is not there. */
+/** The code line of a hit with the used symbol marked and the code in the syntax colours of its
+ * file; empty while the code is not there. */
 function CodeText(props: { hit: Hit }) {
   const text = () => hitCode().get(placeKey(props.hit.path, props.hit.line)) ?? "";
-  const parts = () => splitAt(text(), shortName(props.hit.to));
+  const mark = () => {
+    const parts = splitAt(text(), shortName(props.hit.to));
+    return parts.word === ""
+      ? undefined
+      : { start: parts.before.length, end: parts.before.length + parts.word.length };
+  };
   return (
-    <code class={styles.code} title={text()}>
-      {parts().before}
-      <Show when={parts().word !== ""}>
-        <mark class={styles.mark}>{parts().word}</mark>
-      </Show>
-      {parts().after}
-    </code>
+    <Code
+      path={props.hit.path}
+      text={text()}
+      class={styles.code}
+      title={text()}
+      mark={mark()}
+      markClass={styles.mark}
+    />
   );
 }
 
