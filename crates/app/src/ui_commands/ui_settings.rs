@@ -23,10 +23,6 @@ use crate::config_files::layers_with;
 use crate::locations::Locations;
 use crate::ui_settings::{UiSettings, UiSettingsFile, UiValue, editable, known_indexers};
 
-/// Replaces the file with `settings`.
-///
-/// # Errors
-/// `APP-201` if the data folder cannot be written.
 /// Holds the file of the saved settings for one change, so two calls at the same moment cannot
 /// overwrite each other's entry.
 static SAVE_LOCK: Mutex<()> = Mutex::new(());
@@ -36,6 +32,10 @@ fn lock_file() -> MutexGuard<'static, ()> {
     SAVE_LOCK.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
+/// Replaces the file with `settings`.
+///
+/// # Errors
+/// `APP-201` if the data folder cannot be written.
 fn write(file: &UiSettingsFile, settings: &UiSettings) -> Result<(), CodedError> {
     let text = settings
         .to_file_text()

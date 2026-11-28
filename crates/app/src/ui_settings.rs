@@ -254,6 +254,38 @@ impl UiSettingsFile {
 
 #[cfg(test)]
 mod tests {
+
+    /// The protective limits the UI lifts for the owner (ADR 0118): a new one in an editable table
+    /// must be a deliberate decision, so this list has to change with it.
+    #[test]
+    fn the_editable_protective_limits_are_a_decided_list() {
+        let mut found: Vec<String> = Config::effective(&[])
+            .unwrap()
+            .into_iter()
+            .map(|setting| setting.key)
+            .filter(|key| editable(key).is_some())
+            .filter(|key| {
+                key.starts_with("export.")
+                    || key.starts_with("scan.max_")
+                    || key.starts_with("scan.parse_timeout")
+            })
+            .collect();
+        found.sort();
+        assert_eq!(
+            found,
+            [
+                "export.max_references",
+                "scan.max_candidates",
+                "scan.max_left_out_listed",
+                "scan.max_memory_mb",
+                "scan.max_scope_entries",
+                "scan.max_signature_chars",
+                "scan.max_source_mb",
+                "scan.max_workers",
+                "scan.parse_timeout_ms",
+            ]
+        );
+    }
     use super::*;
 
     fn saved(entries: &[(&str, u32)]) -> UiSettings {
