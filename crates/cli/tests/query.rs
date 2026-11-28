@@ -1,10 +1,10 @@
 //! The query commands: their arguments, and the JSON and text they print.
 
 use codeskimr_cli::{
-    Action, CompareQuery, ContextQuery, ImpactQuery, MetricsSide, ModulesQuery, Parsed,
-    QueryAction, QueryKind, QueryTarget, RenameQuery, ScansQuery, SymbolsQuery, UnusedQuery,
-    UsagesQuery, change_markdown, metrics_markdown, parse, query_code_report, query_error_json,
-    query_json, query_text,
+    Action, ChangeFilterArgs, CompareQuery, ContextQuery, ImpactQuery, MetricsSide, ModulesQuery,
+    Parsed, QueryAction, QueryKind, QueryTarget, RenameQuery, ScansQuery, SymbolsQuery,
+    UnusedQuery, UsagesQuery, change_markdown, metrics_markdown, parse, query_code_report,
+    query_error_json, query_json, query_text,
 };
 use codeskimr_i18n::Messages;
 use serde_json::{Value, json};
@@ -295,6 +295,7 @@ fn scans_takes_the_project_as_its_first_argument() {
 #[test]
 fn compare_and_change_read_the_two_scans() {
     let expected = CompareQuery {
+        filter: ChangeFilterArgs::default(),
         base: Some(4),
         newer: Some(9),
         markdown: false,
@@ -333,6 +334,7 @@ fn change_without_options_takes_the_newest_scan_and_the_one_before() {
     assert_eq!(
         action(&["codeskimr", "change"]),
         QueryAction::Change(CompareQuery {
+            filter: ChangeFilterArgs::default(),
             base: None,
             newer: None,
             markdown: false,
@@ -670,4 +672,39 @@ fn markdown_is_a_flag_of_compare_metrics_that_needs_it_and_excludes_json() {
     for bad in [without, with_json] {
         assert!(parse(bad.iter().copied(), &messages, "en").is_err());
     }
+}
+
+#[test]
+fn the_filter_of_change_is_read_from_its_options() {
+    let QueryAction::Change(query) = action(&[
+        "codeskimr",
+        "change",
+        "--match",
+        "Pay",
+        "--cause",
+        "removed",
+        "--kind",
+        "method",
+        "--public",
+        "--only-open",
+    ]) else {
+        panic!("expected the query command change");
+    };
+    assert_eq!(
+        query.filter,
+        ChangeFilterArgs {
+            name: Some("Pay".to_owned()),
+            cause: Some("removed".to_owned()),
+            kind: Some("method".to_owned()),
+            public_only: true,
+            only_open: true,
+        }
+    );
+}
+
+#[test]
+fn an_unknown_cause_is_refused_by_the_parser() {
+    let messages = Messages::load().unwrap();
+    let arguments = ["codeskimr", "change", "--cause", "vanished"];
+    assert!(parse(arguments.iter().copied(), &messages, "en").is_err());
 }

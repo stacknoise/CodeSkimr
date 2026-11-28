@@ -143,6 +143,8 @@ export const NOT_FOUND = -1;
 export const VISIBILITY_PUBLIC = "public";
 /** The value of a choice of the filter that lets everything pass. */
 export const FILTER_ALL = "all";
+/** How long the screen waits after the last change of the filter before it asks the server. */
+export const FILTER_DELAY_MS = 250;
 /** The kinds of change the filter offers, in the order of the table, with their texts. */
 export const CAUSE_CHOICES = [
   { id: CAUSE.removed, label: I18N_KEYS.CHANGE_VIEW_FILTER_CAUSE_REMOVED },

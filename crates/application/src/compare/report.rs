@@ -1,11 +1,13 @@
 //! What a comparison of two scans answers (ADR 0097): the same result for the screen, the command
 //! line and the agent.
 
+use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
-    AnnotationId, ImpactSubject, LayerName, Matched, ProjectId, QualifiedName, Reference,
-    RelativePath, SnapshotId, SymbolFact, SymbolKind,
+    AnnotationId, ChangeFilter, ImpactSubject, LayerName, Matched, ProjectId, QualifiedName,
+    Reference, RelativePath, SnapshotId, SymbolFact, SymbolKind,
 };
 
+use crate::error::CodedError;
 use crate::ports::{ScanEntry, SymbolLabel};
 
 /// A list cut to a limit: the total tells how many there were before.
@@ -35,7 +37,7 @@ impl<T> Listed<T> {
 
 /// Which two scans of a project to compare. A snapshot left out is chosen: the target is the
 /// newest scan, the base the scan before the target.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ComparisonRequest {
     /// The project.
     pub project: ProjectId,
@@ -46,6 +48,46 @@ pub struct ComparisonRequest {
     /// Whether to read the usages of the symbols a change can break. Without them the answer is
     /// the plain comparison, which costs no usage reads.
     pub with_impact: bool,
+    /// Which symbols of the difference to list; it is applied before the lists are cut to
+    /// `compare.max_symbols` (#826).
+    pub filter: ChangeFilter,
+}
+
+/// The filter as a surface names it, in labels and text: `codeskimr change --match TEXT --cause ...`,
+/// the tool `impact_of_diff` and the commands `scans.compare` and `scans.impact` take the same.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct FilterWanted<'a> {
+    /// Text that the qualified name contains, ignoring case.
+    pub name: Option<&'a str>,
+    /// `added`, `changed`, `removed` or `moved`.
+    pub cause: Option<&'a str>,
+    /// The kind of the symbol, such as `method` or `class`.
+    pub kind: Option<&'a str>,
+    /// Only symbols that are visible everywhere.
+    pub public_only: bool,
+    /// Only symbols with places no change touches (with the usages only).
+    pub only_open: bool,
+}
+
+/// The filter of a request as the caller named it.
+///
+/// # Errors
+/// `API-101` for a cause or a kind that is not known.
+pub fn change_filter(wanted: FilterWanted<'_>) -> Result<ChangeFilter, CodedError> {
+    let invalid = || CodedError::new(ErrorCode::RequestInvalid);
+    Ok(ChangeFilter {
+        name: wanted.name.unwrap_or_default().to_owned(),
+        cause: wanted
+            .cause
+            .map(|text| text.parse().map_err(|_| invalid()))
+            .transpose()?,
+        kind: wanted
+            .kind
+            .map(|text| text.parse().map_err(|_| invalid()))
+            .transpose()?,
+        public_only: wanted.public_only,
+        only_open: wanted.only_open,
+    })
 }
 
 /// Whether a usage sits in a symbol that the comparison changes, moves or removes itself.

@@ -4,7 +4,8 @@
 use std::fs;
 
 use codeskimr_cli::{
-    CompareQuery, MetricsOptions, MetricsSide, QueryAction, QueryTarget, ScansQuery,
+    ChangeFilterArgs, CompareQuery, MetricsOptions, MetricsSide, QueryAction, QueryTarget,
+    ScansQuery,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::ScanMode;
@@ -48,6 +49,7 @@ fn change(json: bool, markdown: bool) -> QueryAction {
 
 fn query(json: bool, markdown: bool) -> CompareQuery {
     CompareQuery {
+        filter: ChangeFilterArgs::default(),
         base: None,
         newer: None,
         markdown,

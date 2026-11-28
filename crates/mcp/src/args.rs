@@ -189,6 +189,17 @@ pub struct DiffArgs {
     /// Whether test code counts in the metric changes; `false` if left out. Counts only with
     /// `metrics: true`.
     pub include_tests: Option<bool>,
+    /// Only symbols whose qualified name contains this text, ignoring case. The filters are
+    /// applied before the lists are cut, so they find every hit of a large difference.
+    pub name: Option<String>,
+    /// Only symbols to which this happened: `added`, `changed`, `removed` or `moved`.
+    pub cause: Option<String>,
+    /// Only symbols of this kind, such as `method`, `class` or `function`.
+    pub kind: Option<String>,
+    /// Only symbols that are visible everywhere; `false` if left out.
+    pub public_only: Option<bool>,
+    /// Only symbols with places that no change touches (the checklist); `false` if left out.
+    pub only_open: Option<bool>,
 }
 
 /// Arguments of `check_rules`.

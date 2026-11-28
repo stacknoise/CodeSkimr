@@ -5,9 +5,10 @@
 
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use codeskimr_codes::i18n::{
-    CLI_ARG_ASSESSMENT, CLI_ARG_BUDGET, CLI_ARG_COMPARE_BASE, CLI_ARG_COMPARE_METRICS,
-    CLI_ARG_COMPARE_PROJECT, CLI_ARG_COMPARE_TARGET, CLI_ARG_DEPTH, CLI_ARG_DIRECTION,
-    CLI_ARG_HOLD, CLI_ARG_INCLUDE_TESTS, CLI_ARG_JSON, CLI_ARG_KIND_FILTER,
+    CLI_ARG_ASSESSMENT, CLI_ARG_BUDGET, CLI_ARG_CHANGE_CAUSE, CLI_ARG_CHANGE_KIND,
+    CLI_ARG_CHANGE_MATCH, CLI_ARG_CHANGE_ONLY_OPEN, CLI_ARG_CHANGE_PUBLIC, CLI_ARG_COMPARE_BASE,
+    CLI_ARG_COMPARE_METRICS, CLI_ARG_COMPARE_PROJECT, CLI_ARG_COMPARE_TARGET, CLI_ARG_DEPTH,
+    CLI_ARG_DIRECTION, CLI_ARG_HOLD, CLI_ARG_INCLUDE_TESTS, CLI_ARG_JSON, CLI_ARG_KIND_FILTER,
     CLI_ARG_LANGUAGE_FILTER, CLI_ARG_LIMIT, CLI_ARG_MARKDOWN, CLI_ARG_METRICS_BETTER,
     CLI_ARG_METRICS_LEVEL, CLI_ARG_METRICS_METRIC, CLI_ARG_METRICS_WORSE, CLI_ARG_MODULES_DEPTH,
     CLI_ARG_MODULES_FROM, CLI_ARG_MODULES_TO, CLI_ARG_QUERY_NEW_NAME, CLI_ARG_QUERY_PROJECT,
@@ -17,21 +18,22 @@ use codeskimr_codes::i18n::{
 };
 
 use crate::args::{
-    CompareQuery, ContextQuery, ImpactQuery, MetricsOptions, MetricsSide, ModulesQuery,
-    QueryAction, QueryTarget, RenameQuery, RulesQuery, ScansQuery, SymbolsQuery, UnusedQuery,
-    UsagesQuery,
+    ChangeFilterArgs, CompareQuery, ContextQuery, ImpactQuery, MetricsOptions, MetricsSide,
+    ModulesQuery, QueryAction, QueryTarget, RenameQuery, RulesQuery, ScansQuery, SymbolsQuery,
+    UnusedQuery, UsagesQuery,
 };
 use crate::consts::{
-    ARG_ASSESSMENT, ARG_BASE, ARG_BETTER, ARG_BUDGET, ARG_DEPTH, ARG_DIRECTION, ARG_HOLD,
-    ARG_INCLUDE_TESTS, ARG_JSON, ARG_KIND, ARG_LANGUAGE, ARG_LEVEL, ARG_MARKDOWN, ARG_METRIC,
-    ARG_METRICS, ARG_MODULE_FROM, ARG_MODULE_TO, ARG_PROJECT, ARG_QUERY_NEW_NAME,
-    ARG_QUERY_PROJECT, ARG_QUERY_SYMBOL, ARG_QUERY_TEXT, ARG_REASON, ARG_ROWS, ARG_SCAN_TARGET,
-    ARG_WORSE, ASSESSMENTS, BUDGETS, COMMAND_CHANGE, COMMAND_COMPARE, COMMAND_CONTEXT,
-    COMMAND_IMPACT, COMMAND_MODULES, COMMAND_PREVIEW_RENAME, COMMAND_RULES, COMMAND_SCANS,
-    COMMAND_SYMBOLS, COMMAND_UNUSED, COMMAND_USAGES, DIRECTIONS, METRIC_LIST_DELIMITER, REASONS,
-    UNUSED_KINDS, VALUE_ASSESSMENT, VALUE_BUDGET, VALUE_DIRECTION, VALUE_KIND, VALUE_LANGUAGE,
-    VALUE_LEVEL, VALUE_METRICS, VALUE_MODULE, VALUE_QUERY_NEW_NAME, VALUE_QUERY_PROJECT,
-    VALUE_QUERY_SYMBOL, VALUE_QUERY_TEXT, VALUE_REASON, VALUE_ROWS, VALUE_SNAPSHOT,
+    ARG_ASSESSMENT, ARG_BASE, ARG_BETTER, ARG_BUDGET, ARG_CAUSE, ARG_DEPTH, ARG_DIRECTION,
+    ARG_HOLD, ARG_INCLUDE_TESTS, ARG_JSON, ARG_KIND, ARG_LANGUAGE, ARG_LEVEL, ARG_MARKDOWN,
+    ARG_MATCH, ARG_METRIC, ARG_METRICS, ARG_MODULE_FROM, ARG_MODULE_TO, ARG_ONLY_OPEN, ARG_PROJECT,
+    ARG_PUBLIC, ARG_QUERY_NEW_NAME, ARG_QUERY_PROJECT, ARG_QUERY_SYMBOL, ARG_QUERY_TEXT,
+    ARG_REASON, ARG_ROWS, ARG_SCAN_TARGET, ARG_WORSE, ASSESSMENTS, BUDGETS, CAUSES, COMMAND_CHANGE,
+    COMMAND_COMPARE, COMMAND_CONTEXT, COMMAND_IMPACT, COMMAND_MODULES, COMMAND_PREVIEW_RENAME,
+    COMMAND_RULES, COMMAND_SCANS, COMMAND_SYMBOLS, COMMAND_UNUSED, COMMAND_USAGES, DIRECTIONS,
+    METRIC_LIST_DELIMITER, REASONS, UNUSED_KINDS, VALUE_ASSESSMENT, VALUE_BUDGET, VALUE_CAUSE,
+    VALUE_DIRECTION, VALUE_KIND, VALUE_LANGUAGE, VALUE_LEVEL, VALUE_METRICS, VALUE_MODULE,
+    VALUE_QUERY_NEW_NAME, VALUE_QUERY_PROJECT, VALUE_QUERY_SYMBOL, VALUE_QUERY_TEXT, VALUE_REASON,
+    VALUE_ROWS, VALUE_SNAPSHOT,
 };
 use crate::error::CliError;
 
@@ -308,11 +310,44 @@ fn metrics_options(command: Command, say: Say<'_>) -> Result<Command, CliError> 
         .arg(needs_metrics(flag(ARG_MARKDOWN, &say(CLI_ARG_MARKDOWN)?)).conflicts_with(ARG_JSON)))
 }
 
+/// The filter of `compare` and `change`: which symbols of the difference to list (#826).
+fn filter_options(command: Command, say: Say<'_>) -> Result<Command, CliError> {
+    let toggle = |name: &'static str, help: String| {
+        Arg::new(name)
+            .long(name)
+            .action(ArgAction::SetTrue)
+            .help(help)
+    };
+    Ok(command
+        .arg(
+            Arg::new(ARG_MATCH)
+                .long(ARG_MATCH)
+                .value_name(VALUE_QUERY_TEXT)
+                .help(say(CLI_ARG_CHANGE_MATCH)?),
+        )
+        .arg(
+            Arg::new(ARG_CAUSE)
+                .long(ARG_CAUSE)
+                .value_name(VALUE_CAUSE)
+                .value_parser(CAUSES)
+                .help(say(CLI_ARG_CHANGE_CAUSE)?),
+        )
+        .arg(
+            Arg::new(ARG_KIND)
+                .long(ARG_KIND)
+                .value_name(VALUE_KIND)
+                .help(say(CLI_ARG_CHANGE_KIND)?),
+        )
+        .arg(toggle(ARG_PUBLIC, say(CLI_ARG_CHANGE_PUBLIC)?))
+        .arg(toggle(ARG_ONLY_OPEN, say(CLI_ARG_CHANGE_ONLY_OPEN)?)))
+}
+
 fn compare_command(say: Say<'_>) -> Result<Command, CliError> {
     let command = two_scans(
         Command::new(COMMAND_COMPARE).about(say(CLI_CMD_COMPARE)?),
         say,
     )?;
+    let command = filter_options(command, say)?;
     metrics_options(project_and_output(command, say, false)?, say)
 }
 
@@ -321,7 +356,7 @@ fn change_command(say: Say<'_>) -> Result<Command, CliError> {
         Command::new(COMMAND_CHANGE).about(say(CLI_CMD_CHANGE)?),
         say,
     )?;
-    project_and_output(command, say, true)
+    project_and_output(filter_options(command, say)?, say, true)
 }
 
 /// The eleven query commands.
@@ -430,8 +465,21 @@ fn metrics_query(matches: &ArgMatches) -> Option<MetricsOptions> {
     })
 }
 
+/// The filter of `compare` and `change`.
+fn filter_query(matches: &ArgMatches) -> ChangeFilterArgs {
+    let text = |name: &str| matches.get_one::<String>(name).cloned();
+    ChangeFilterArgs {
+        name: text(ARG_MATCH),
+        cause: text(ARG_CAUSE),
+        kind: text(ARG_KIND),
+        public_only: flag(matches, ARG_PUBLIC),
+        only_open: flag(matches, ARG_ONLY_OPEN),
+    }
+}
+
 fn compare_query(matches: &ArgMatches) -> CompareQuery {
     CompareQuery {
+        filter: filter_query(matches),
         metrics: metrics_query(matches),
         base: matches.get_one::<u64>(ARG_BASE).copied(),
         newer: matches.get_one::<u64>(ARG_SCAN_TARGET).copied(),
