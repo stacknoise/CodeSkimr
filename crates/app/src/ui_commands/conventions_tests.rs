@@ -21,6 +21,16 @@ fn long_method(lines: u32) -> String {
     )
 }
 
+/// The finding of the method that is over the limit of lines.
+fn long_finding(answer: &Value) -> &Value {
+    answer["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|finding| finding["code"] == "CHK-104")
+        .unwrap_or_else(|| panic!("a finding for the long method: {answer}"))
+}
+
 fn check(fixture: &Fixture, project: u64) -> Value {
     fixture
         .call("conventions.check", json!({ "project": project }))
@@ -34,12 +44,11 @@ fn a_function_over_the_limit_is_found_in_a_file_no_scan_has_seen() {
     let app = fixture.root.path().join("app");
     fs::write(app.join("Long.cs"), long_method(60)).unwrap();
     let answer = check(&fixture, project);
-    let found = answer["findings"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|finding| finding["code"] == "CHK-104")
-        .unwrap_or_else(|| panic!("a finding for the long method: {answer}"));
+    let found = long_finding(&answer);
+    assert!(
+        found["symbol_ref"].is_null(),
+        "a file no scan has seen: {found}"
+    );
     assert_eq!(found["path"], "Long.cs");
     assert_eq!(found["symbol"], "Demo.Long.Sum");
     assert!(found["lines"].as_u64().unwrap() > found["max_lines"].as_u64().unwrap());
@@ -92,4 +101,32 @@ fn a_project_is_checked_by_one_run_at_a_time() {
     assert!(runs.begin(8).is_ok(), "another project is not held up");
     drop(first);
     assert!(runs.begin(7).is_ok(), "the project is free again");
+}
+
+#[test]
+fn a_finding_in_a_scanned_file_names_its_symbol() {
+    let fixture = Fixture::new();
+    fs::write(
+        fixture.root.path().join("app").join("Long.cs"),
+        long_method(60),
+    )
+    .unwrap();
+    let project = fixture.scanned();
+    let answer = check(&fixture, project);
+    let found = long_finding(&answer);
+    assert!(found["symbol_ref"]["id"].is_u64(), "{found}");
+    assert_eq!(found["symbol_ref"]["kind"], "method", "{found}");
+}
+
+#[test]
+fn without_a_scan_every_finding_has_no_symbol_but_the_check_still_runs() {
+    let fixture = Fixture::new();
+    fs::write(
+        fixture.root.path().join("app").join("Long.cs"),
+        long_method(60),
+    )
+    .unwrap();
+    fixture.registered(9);
+    let answer = check(&fixture, 9);
+    assert!(long_finding(&answer)["symbol_ref"].is_null(), "{answer}");
 }
