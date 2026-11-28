@@ -254,6 +254,7 @@ impl UiSettingsFile {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
 
     /// The protective limits the UI lifts for the owner (ADR 0118): a new one in an editable table
     /// must be a deliberate decision, so this list has to change with it.
@@ -286,7 +287,6 @@ mod tests {
             ]
         );
     }
-    use super::*;
 
     fn saved(entries: &[(&str, u32)]) -> UiSettings {
         UiSettings {

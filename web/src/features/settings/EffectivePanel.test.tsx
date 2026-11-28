@@ -76,6 +76,18 @@ async function shown() {
   await screen.findByText("scan.max_workers");
 }
 
+/** Shows the panel for a value that is saved and waits for the next start. */
+function renderPending() {
+  serve({
+    "settings.effective": () =>
+      answer({
+        ...LISTING,
+        settings: [{ ...LISTING.settings[0]!, edit: "start", pending: "500" }],
+      }),
+  });
+  render(() => <EffectivePanel />);
+}
+
 describe("EffectivePanel", () => {
   it("shows each value in words with the layer that set it", async () => {
     await shown();
@@ -171,14 +183,7 @@ describe("EffectivePanel", () => {
   });
 
   it("offers the saved value and Back to default for a value that waits for the next start", async () => {
-    serve({
-      "settings.effective": () =>
-        answer({
-          ...LISTING,
-          settings: [{ ...LISTING.settings[0]!, edit: "start", pending: "500" }],
-        }),
-    });
-    render(() => <EffectivePanel />);
+    renderPending();
     await waitFor(() => expect(screen.getAllByRole("button", { name: "Change" })).toHaveLength(1));
     fireEvent.click(screen.getByRole("button", { name: "Change" }));
     expect(screen.getByLabelText("New value")).toHaveValue("500");
@@ -186,14 +191,7 @@ describe("EffectivePanel", () => {
   });
 
   it("notes a value that is saved and waits for the next start", async () => {
-    serve({
-      "settings.effective": () =>
-        answer({
-          ...LISTING,
-          settings: [{ ...LISTING.settings[0]!, edit: "start", pending: "500" }],
-        }),
-    });
-    render(() => <EffectivePanel />);
+    renderPending();
     expect(
       await screen.findByText("Saved: 500, applies from the next start of the app"),
     ).toBeInTheDocument();
