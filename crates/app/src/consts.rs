@@ -603,6 +603,24 @@ pub const UI_LAYER_HEADER: &str = "[level2.indexer_memory_mb]";
 pub const UI_LAYER_ASSIGN: &str = " = ";
 /// Ending of a line of that layer.
 pub const UI_LAYER_NEWLINE: &str = "\n";
+/// Around the name of a table in the text of that layer.
+pub const UI_LAYER_TABLE: (&str, &str) = ("[", "]");
+/// Separates a table from its key in the dotted path of a setting.
+pub const UI_KEY_SEPARATOR: char = '.';
+/// The tables of the configuration whose numbers and switches the UI may save, and that every
+/// scan, check and export reads again (ADR 0117): they count from the next one.
+pub const UI_EDIT_SCAN_TABLES: [&str; 4] = ["scan", "conventions", "similarity", "export"];
+/// The tables the UI may save that the running program reads when it starts.
+pub const UI_EDIT_START_TABLES: [&str; 8] = [
+    "metrics",
+    "mcp",
+    "snapshots",
+    "watcher",
+    "annotations",
+    "graph",
+    "compare",
+    "keys",
+];
 
 /// The field of the answer of `rules` that counts the violations the held state does not have.
 pub const NEW_VIOLATIONS: &str = "new";

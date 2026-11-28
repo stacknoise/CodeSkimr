@@ -2,9 +2,10 @@
 //! the configuration reads from it are in `crate::ui_settings`.
 
 use codeskimr_application::access;
-use codeskimr_application::config::MAX_INDEXER_MEMORY_MB;
+use codeskimr_application::config::{Config, MAX_INDEXER_MEMORY_MB};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
+use codeskimr_cli::GlobalOptions;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Permission;
 use serde::Deserialize;
@@ -12,10 +13,13 @@ use serde::Deserialize;
 use super::consts::{
     UI_SETTINGS_GET, UI_SETTINGS_GET_DESCRIPTION, UI_SETTINGS_GET_TITLE,
     UI_SETTINGS_SET_INDEXER_MEMORY, UI_SETTINGS_SET_INDEXER_MEMORY_DESCRIPTION,
-    UI_SETTINGS_SET_INDEXER_MEMORY_TITLE,
+    UI_SETTINGS_SET_INDEXER_MEMORY_TITLE, UI_SETTINGS_SET_VALUE, UI_SETTINGS_SET_VALUE_DESCRIPTION,
+    UI_SETTINGS_SET_VALUE_TITLE,
 };
 use super::preferences::write_private;
-use crate::ui_settings::{UiSettings, UiSettingsFile, known_indexers};
+use crate::config_files::layers_with;
+use crate::locations::Locations;
+use crate::ui_settings::{UiSettings, UiSettingsFile, UiValue, editable, known_indexers};
 
 /// Replaces the file with `settings`.
 ///
@@ -97,6 +101,67 @@ impl Command for SetIndexerMemory {
             Some(value) => settings.indexer_memory_mb.insert(indexer, value),
             None => settings.indexer_memory_mb.remove(&indexer),
         };
+        write(&self.file, &settings)?;
+        Ok(settings)
+    }
+}
+
+/// The value of one setting: `value` of `null` forgets the saved value, so the setting is back to
+/// what the files and flags say.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SettingValue {
+    /// The dotted key, for example `scan.max_workers`.
+    pub key: String,
+    /// The new value, a number or a switch.
+    pub value: Option<UiValue>,
+}
+
+/// Saves or forgets the value of one number or switch (ADR 0117). Only keys that
+/// [`editable`] names are accepted, and the whole configuration with the new value must still be
+/// valid, so a saved value can never keep the program from starting.
+pub struct SetSettingValue {
+    pub(super) file: UiSettingsFile,
+    pub(super) locations: Locations,
+    pub(super) global: GlobalOptions,
+}
+
+impl Command for SetSettingValue {
+    type Input = SettingValue;
+    type Output = UiSettings;
+
+    const DESCRIPTOR: CommandDescriptor = CommandDescriptor {
+        id: CommandId::new(UI_SETTINGS_SET_VALUE),
+        title_key: UI_SETTINGS_SET_VALUE_TITLE,
+        description_key: UI_SETTINGS_SET_VALUE_DESCRIPTION,
+        shortcut: None,
+        read_only: false,
+        permission: Permission::Manage,
+    };
+
+    /// # Errors
+    /// - `API-101` for a key the UI may not change or a value of another kind.
+    /// - `CFG-101` if the configuration with the value is invalid (a value out of range, a default
+    ///   above its maximum).
+    /// - `APP-201` if the data folder cannot be written.
+    fn execute(&self, request: Request<'_, Self>) -> Result<UiSettings, CodedError> {
+        access::require(request.principal, Permission::Manage)?;
+        let SettingValue { key, value } = request.input;
+        let allowed = editable(&key).ok_or_else(|| CodedError::new(ErrorCode::RequestInvalid))?;
+        let mut settings = self.file.read();
+        match value {
+            Some(given) => {
+                let fitted = allowed
+                    .fit(given)
+                    .ok_or_else(|| CodedError::new(ErrorCode::RequestInvalid))?;
+                settings.values.insert(key, fitted);
+            }
+            None => {
+                settings.values.remove(&key);
+            }
+        }
+        let layers = layers_with(&self.locations, &self.global, None, settings.to_layer())?;
+        Config::resolve(&layers).map_err(CodedError::caused_by)?;
         write(&self.file, &settings)?;
         Ok(settings)
     }

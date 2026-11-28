@@ -11,6 +11,9 @@ function effective(origin: "default" | "cli" = "default"): EffectiveSettings {
     value,
     origin: from,
     hidden: false,
+    default: value,
+    edit: "locked" as const,
+    pending: null,
   });
   return {
     user_file: null,

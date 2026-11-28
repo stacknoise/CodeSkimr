@@ -38,7 +38,7 @@ Oberfläche und Meldungen gibt es auf Deutsch und Englisch. Die Browser-Oberflä
 
 ## Aussehen der Oberfläche
 
-Die Einstellungen haben sechs Reiter: Darstellung, Analyse, Zugänge, Wirksame Einstellungen, Info und Diagnose. Das Suchfeld rechts neben den Reitern sucht in den wirksamen Einstellungen.
+Die Einstellungen haben sechs Reiter: Darstellung, Analyse, Zugänge, Wirksame Einstellungen, Info und Diagnose. Das Suchfeld rechts neben den Reitern sucht in den wirksamen Einstellungen. In diesem Reiter speichert „Ändern“ eine Zahl oder einen Schalter, der nicht sicherheitsrelevant ist, in der App; der Wert gilt ab dem nächsten Scan (oder ab dem nächsten Start, das sagt der Dialog), und „Standard“ nimmt einen gespeicherten Wert zurück.
 
 Es gibt drei Themes: Hell, Petrol (Standard) und Dunkel. Wählen Sie in den Einstellungen im Reiter **Darstellung**; die Karte zeigt eine Live-Vorschau. Beim ersten Start bekommt ein dunkles Betriebssystem das Theme Dunkel.
 

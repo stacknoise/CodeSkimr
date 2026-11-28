@@ -324,6 +324,20 @@ pub const UI_SETTINGS_SET_INDEXER_MEMORY_TITLE: &str =
 /// Description key of `ui_settings.set_indexer_memory`.
 pub const UI_SETTINGS_SET_INDEXER_MEMORY_DESCRIPTION: &str =
     i18n::COMMAND_UI_SETTINGS_SET_INDEXER_MEMORY_DESCRIPTION;
+/// Id of the command that saves or forgets the value of one setting (ADR 0117).
+pub const UI_SETTINGS_SET_VALUE: &str = "ui_settings.set_value";
+/// Title key of `ui_settings.set_value`.
+pub const UI_SETTINGS_SET_VALUE_TITLE: &str = i18n::COMMAND_UI_SETTINGS_SET_VALUE_TITLE;
+/// Description key of `ui_settings.set_value`.
+pub const UI_SETTINGS_SET_VALUE_DESCRIPTION: &str = i18n::COMMAND_UI_SETTINGS_SET_VALUE_DESCRIPTION;
+/// What a setting row of `settings.effective` says about changing it: counts from the next scan.
+pub const EDIT_SCAN: &str = "scan";
+/// Counts from the next start.
+pub const EDIT_START: &str = "start";
+/// Set by a command line flag, which wins; the UI cannot change it.
+pub const EDIT_CLI: &str = "cli";
+/// Only the configuration file may change it.
+pub const EDIT_LOCKED: &str = "locked";
 /// Ending of the file a content is written to before it replaces the real one.
 pub const TEMP_SUFFIX: &str = ".tmp";
 /// Longest name of a theme or a language that is stored.

@@ -38,7 +38,7 @@ The UI and the messages come in German and English. The browser UI has a switch 
 
 ## Look of the UI
 
-The settings have six tabs: Appearance, Analysis, Access, Effective settings, Info and Diagnosis. The search field at the right of the tabs searches the effective settings.
+The settings have six tabs: Appearance, Analysis, Access, Effective settings, Info and Diagnosis. The search field at the right of the tabs searches the effective settings. In that tab, "Change" saves a number or a switch that is not security relevant in the app; it counts from the next scan (or from the next start, which the dialog says), and "Default" takes a saved value back.
 
 Three themes exist: Hell, Petrol (default) and Dunkel. Choose one in the settings on the tab **Appearance**; the card shows a live preview. On first start a dark operating system gets Dunkel.
 
