@@ -334,6 +334,8 @@ pub const ABAPGIT_NAMESPACE_MARK: char = '#';
 pub const ABAPGIT_NAMESPACE_SLASH: char = '/';
 /// Separator of the parts of an abapGit file name.
 pub const ABAPGIT_NAME_SEPARATOR: char = '.';
+/// Longest description of a package that is shown, in characters; a longer one is dropped.
+pub const ABAPGIT_DESCRIPTION_MAX_CHARS: usize = 120;
 /// File name that describes the package of a folder.
 pub const ABAPGIT_PACKAGE_FILE: &str = "package.devc.xml";
 /// Label of the prefix folder logic in answers.

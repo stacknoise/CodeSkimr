@@ -154,4 +154,17 @@ mod tests {
             Some("&lt;")
         );
     }
+
+    #[test]
+    fn a_description_that_is_long_or_hides_text_is_dropped() {
+        let long = "x".repeat(121);
+        assert_eq!(package_description(&format!("<CTEXT>{long}</CTEXT>")), None);
+        let fits = "x".repeat(120);
+        assert_eq!(
+            package_description(&format!("<CTEXT>{fits}</CTEXT>")).as_deref(),
+            Some(fits.as_str())
+        );
+        assert_eq!(package_description("<CTEXT>a\u{202e}b</CTEXT>"), None);
+        assert_eq!(package_description("<CTEXT>a\nb</CTEXT>"), None);
+    }
 }
