@@ -678,6 +678,18 @@ pub const ARG_BASE: &str = "base";
 pub const ARG_SCAN_TARGET: &str = "target";
 /// Placeholder shown for the id of a scan.
 pub const VALUE_SNAPSHOT: &str = "SNAPSHOT";
+/// Option of `compare` and `change`: text the qualified name contains (#826).
+pub const ARG_MATCH: &str = "match";
+/// Option of `compare` and `change`: what happened to the symbols.
+pub const ARG_CAUSE: &str = "cause";
+/// Flag of `compare` and `change`: only symbols that are visible everywhere.
+pub const ARG_PUBLIC: &str = "public";
+/// Flag of `compare` and `change`: only symbols with places that no change touches.
+pub const ARG_ONLY_OPEN: &str = "only-open";
+/// Placeholder shown for the cause of a change.
+pub const VALUE_CAUSE: &str = "CAUSE";
+/// The causes of a change, as the filter takes them.
+pub const CAUSES: [&str; 4] = ["added", "changed", "removed", "moved"];
 /// Flag of `change`: the answer as Markdown.
 pub const ARG_MARKDOWN: &str = "markdown";
 /// Flag of `compare`: the metric changes instead of the changed symbols (ADR 0114).

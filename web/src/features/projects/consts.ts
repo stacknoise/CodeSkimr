@@ -53,6 +53,10 @@ export const FOLDER_PATH = /^(?:[/~\\]|[a-z]:[\\/])/i;
 export const NETWORK_PATH = /^(?:\\\\|\/\/)/;
 /** How long the form waits after the last key before it asks for a suggested name. */
 export const SUGGEST_DELAY_MS = 300;
+/** How long the form waits before it asks again after the server did not answer. */
+export const SUGGEST_RETRY_MS = 500;
+/** How many times the form asks again for a suggested name before it leaves the field empty. */
+export const SUGGEST_RETRIES = 5;
 /** A pasted text that is the address of a repository, not a path. */
 export const GIT_ADDRESS = /^(?:[a-z][a-z0-9+.-]*:\/\/|git@)/i;
 

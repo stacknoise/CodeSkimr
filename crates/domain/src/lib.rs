@@ -7,6 +7,7 @@ mod access;
 mod alert;
 mod annotation;
 mod compare;
+mod compare_filter;
 mod consts;
 mod coupling;
 mod error;
@@ -52,6 +53,7 @@ pub use compare::{
     ChangeReason, Comparison, ImpactCause, ImpactSubject, Matched, SymbolFact, SymbolIdentity,
     compare_symbols, compares_kind,
 };
+pub use compare_filter::{ChangeCause, ChangeFilter};
 pub use coupling::{SymbolPair, coupling, coupling_with};
 pub use error::ModelError;
 pub use file::{ContentHash, FileId, LanguageId, Loc, RelativePath, SourceFile};

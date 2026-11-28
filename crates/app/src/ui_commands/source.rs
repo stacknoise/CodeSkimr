@@ -110,7 +110,7 @@ fn span_outs(spans: &[CodeSpan], first_line: u32, lines: &[String]) -> Vec<SpanO
 }
 
 /// Turns the runs of the highlighter (bytes) into runs in the lines that were read (UTF-16 units).
-fn token_outs(tokens: &[TokenSpan], lines: &[String]) -> Vec<TokenOut> {
+pub(super) fn token_outs(tokens: &[TokenSpan], lines: &[String]) -> Vec<TokenOut> {
     tokens
         .iter()
         .filter_map(|token| {

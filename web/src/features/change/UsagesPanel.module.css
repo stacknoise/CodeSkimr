@@ -18,11 +18,47 @@
     overflow-wrap: anywhere;
 }
 
+.line {
+    display: flex;
+    gap: var(--space-8);
+    padding: 0 var(--space-6);
+    border-left: 3px solid transparent;
+    border-radius: var(--radius-button);
+}
+
+.sign {
+    flex: none;
+    width: 1ch;
+    user-select: none;
+    font-weight: 700;
+}
+
+/* The code keeps its indentation and its line breaks; a long line wraps. */
+.text {
+    min-width: 0;
+    color: var(--ink);
+    font: inherit;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    tab-size: 4;
+}
+
+/* The tint is 6 %: the syntax colours keep 4.5:1 on it in all three themes (blueprint 15.3). */
 .before {
+    border-left-color: var(--bad);
+    background: color-mix(in srgb, var(--bad) 6%, transparent);
+}
+
+.before .sign {
     color: var(--bad);
 }
 
 .after {
+    border-left-color: var(--good);
+    background: color-mix(in srgb, var(--good) 6%, transparent);
+}
+
+.after .sign {
     color: var(--good);
 }
 

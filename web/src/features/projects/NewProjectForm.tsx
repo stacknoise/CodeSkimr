@@ -39,7 +39,7 @@ import {
   projectAdding,
   projects,
   projectsFailure,
-  suggestName,
+  suggestNameRetrying,
   type Failure,
 } from "./projects";
 import styles from "./NewProjectForm.module.css";
@@ -225,7 +225,9 @@ function useName(source: () => string) {
     // typing; it gets its name when it is added.
     const wanted = text !== "" && !NETWORK_PATH.test(text);
     const timer = setTimeout(() => {
-      void (wanted ? suggestName(text) : Promise.resolve(null)).then((suggested) => {
+      void (
+        wanted ? suggestNameRetrying(text, () => ticket === asked) : Promise.resolve(null)
+      ).then((suggested) => {
         if (ticket === asked && !typed()) {
           setName(suggested ?? "");
         }

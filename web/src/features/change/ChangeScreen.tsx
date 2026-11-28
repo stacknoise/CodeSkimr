@@ -17,6 +17,7 @@ import {
   changeTab,
   enterChange,
   loadChange,
+  reloadForFilter,
   resetChange,
   showChangeTab,
 } from "./change";
@@ -25,6 +26,7 @@ import { CopyMarkdown } from "./CopyMarkdown";
 import {
   COMMAND,
   METRIC_ALL,
+  FILTER_DELAY_MS,
   MIN_SCANS,
   PANEL_ID,
   ROLE,
@@ -34,6 +36,7 @@ import {
   TAB_STOP,
   TABS,
 } from "./consts";
+import { changeFilter } from "./filter";
 import { ImpactTab } from "./ImpactTab";
 import { MetricsTab } from "./MetricsTab";
 import { chipText } from "./scans";
@@ -210,6 +213,26 @@ function CopyButtons() {
   );
 }
 
+/** Reads the comparison again a moment after the filter changed, so typing in the search does not
+ * ask the server for every letter. */
+function filterReads(): void {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  createEffect(
+    on(
+      changeFilter,
+      () => {
+        clearTimeout(timer);
+        const project = activeProject();
+        if (project !== null) {
+          timer = setTimeout(() => reloadForFilter(project), FILTER_DELAY_MS);
+        }
+      },
+      { defer: true },
+    ),
+  );
+  onCleanup(() => clearTimeout(timer));
+}
+
 /** The screen "Change": what the difference between two scans of the project hits (ADR 0097,
  * mocks 29 and erw-auswirkung). One call, `scans.impact`, serves both views. */
 export function ChangeScreen() {
@@ -222,6 +245,7 @@ export function ChangeScreen() {
     }),
   );
   onCleanup(resetChange);
+  filterReads();
   return (
     <section class={styles.screen}>
       <header class={styles.head}>

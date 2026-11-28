@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use codeskimr_domain::{Comparison, Direction, SnapshotId, SymbolId, UsageQuery};
+use codeskimr_domain::{Comparison, Direction, ImpactSubject, SnapshotId, SymbolId, UsageQuery};
 
 use super::CompareLimits;
 use super::report::{Impact, ImpactUsage, Listed, SymbolImpact, UsageStatus};
@@ -27,40 +27,72 @@ fn dress(entry: UsageEntry, touched: &HashSet<SymbolId>) -> ImpactUsage {
     }
 }
 
-/// The direct usages of the symbols whose usages a change can break, read in `base`.
+/// The direct usages of one subject in `base`, as adapted or not touched.
+fn usages_of(
+    usages: &dyn UsageIndex,
+    base: SnapshotId,
+    (subject, touched): (&ImpactSubject, &HashSet<SymbolId>),
+    max_usages: u32,
+) -> Result<Listed<ImpactUsage>, CodedError> {
+    let query = UsageQuery {
+        symbol: subject.symbol.id,
+        direction: Direction::Incoming,
+        depth: DIRECT,
+        include_tests: true,
+    };
+    let page = usages.usages(base, &query, max_usages)?;
+    Ok(Listed {
+        total: page.total,
+        items: page
+            .entries
+            .into_iter()
+            .map(|entry| dress(entry, touched))
+            .collect(),
+    })
+}
+
+/// Whether a list of usages has a place that no change touches: the symbol is on the checklist.
+fn has_open_place(listed: &Listed<ImpactUsage>) -> bool {
+    listed
+        .items
+        .iter()
+        .any(|usage| usage.status == UsageStatus::NotTouched)
+}
+
+/// The direct usages of the symbols whose usages a change can break, read in `base`. The symbols
+/// are those of `kept`, the part of `whole` that the filter kept; `whole` tells which usages count
+/// as adapted. With `only_open` a symbol without a place on the checklist is left out and the
+/// total counts only the symbols that stay, so every symbol is read before the cut. Without it only
+/// the symbols that are listed are read.
 ///
 /// # Errors
 /// A coded failure of the `STO` group.
 pub(super) fn read(
     usages: &dyn UsageIndex,
     base: SnapshotId,
-    comparison: &Comparison,
-    limits: &CompareLimits,
+    (whole, kept): (&Comparison, &Comparison),
+    (limits, only_open): (&CompareLimits, bool),
 ) -> Result<Impact, CodedError> {
-    let touched = comparison.touched_in_base();
-    let subjects = comparison.impact_subjects();
-    let total = subjects.len();
+    let touched = whole.touched_in_base();
+    let mut total = 0;
     let mut symbols = Vec::new();
-    for subject in subjects.into_iter().take(limits.max_symbols) {
-        let query = UsageQuery {
-            symbol: subject.symbol.id,
-            direction: Direction::Incoming,
-            depth: DIRECT,
-            include_tests: true,
-        };
-        let page = usages.usages(base, &query, limits.max_usages)?;
-        let items = page
-            .entries
-            .into_iter()
-            .map(|entry| dress(entry, &touched))
-            .collect();
-        symbols.push(SymbolImpact {
-            subject,
-            usages: Listed {
-                total: page.total,
-                items,
-            },
-        });
+    for subject in kept.impact_subjects() {
+        let listing = symbols.len() < limits.max_symbols;
+        if !listing && !only_open {
+            total += 1;
+            continue;
+        }
+        let listed = usages_of(usages, base, (&subject, &touched), limits.max_usages)?;
+        if only_open && !has_open_place(&listed) {
+            continue;
+        }
+        total += 1;
+        if listing {
+            symbols.push(SymbolImpact {
+                subject,
+                usages: listed,
+            });
+        }
     }
     Ok(Impact {
         symbols: Listed {

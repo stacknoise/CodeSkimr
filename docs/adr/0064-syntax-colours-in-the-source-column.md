@@ -29,3 +29,7 @@ Option 2.
 - The blueprint table of 15.3 and its contrast rule name the new tokens; a theme that misses one fails the `codegen` job.
 - The packs that already ship a `highlights.scm` are coloured without a change; a pack that wants more classes later needs an ADR, because the classes are part of the wire format and of the tokens.
 - The answer of `explorer.source` is larger by one run per token (the 400 line limit bounds it). The HTML export holds no source text and no tokens.
+
+## Addendum: colours outside the source column
+
+Code is shown in more places than the source column: signatures in the member table, the side panels of the explorer and of the usages, and the old and new signature in the view "Change". They get the same colours, from the same highlighter, through one read command, `code.highlight` (read right, no token). It takes `pieces` (`path`, `text`; the extension of `path` tells the language, nothing is read from the project folder) and returns, for each piece, the `tokens` as `explorer.source` does. At most 200 pieces of at most 600 characters; anything beyond, an invalid path or a language without `highlights.scm` comes back plain. The web UI has one component for it (`shared/code/Code.tsx`) that batches the pieces asked for in the same moment, caches the answers and shows the code plain until they arrive or when the call fails (the HTML export has no such command, so it stays plain). A signature is parsed as a fragment (point 4), so keywords and types are coloured, a name may stay plain.
