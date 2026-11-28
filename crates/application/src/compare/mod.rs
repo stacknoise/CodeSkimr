@@ -29,8 +29,8 @@ use crate::ports::{
 pub use metrics::{MetricComparison, MetricRules, MetricsRequest};
 pub use metrics_wire::{MetricChangeOut, MetricsAnswer, MetricsWanted, MoveOut, metrics_request};
 pub use report::{
-    ComparisonRequest, CriticalChange, CriticalOutcome, Impact, ImpactUsage, LayerChange,
-    LayerChanges, Listed, ScanComparison, SymbolImpact, UsageStatus,
+    ComparisonRequest, CriticalChange, CriticalOutcome, FilterWanted, Impact, ImpactUsage,
+    LayerChange, LayerChanges, Listed, ScanComparison, SymbolImpact, UsageStatus, change_filter,
 };
 pub use wire::{
     ComparisonAnswer, CriticalOut, HolderOut, LayerEdgeOut, LayersOut, ListedOut, MatchedOut,
@@ -128,14 +128,15 @@ impl ScanComparer {
             &self.ports.source.comparison_facts(base.snapshot)?,
             &self.ports.source.comparison_facts(target.snapshot)?,
         );
+        let kept = comparison.filtered(&request.filter);
         let impact = request
             .with_impact
             .then(|| {
                 impact::read(
                     &*self.ports.usages,
                     base.snapshot,
-                    &comparison,
-                    &self.limits,
+                    (&comparison, &kept),
+                    (&self.limits, request.filter.only_open),
                 )
             })
             .transpose()?;
@@ -145,7 +146,7 @@ impl ScanComparer {
         Ok(self.answer(
             request.project,
             (base, target),
-            comparison,
+            kept,
             (layers, critical, impact),
         ))
     }
@@ -197,7 +198,7 @@ impl ScanComparer {
         }
     }
 
-    /// The answer, with every list cut to `compare.max_symbols`.
+    /// The answer over the symbols the filter kept, with every list cut to `compare.max_symbols`.
     fn answer(
         &self,
         project: ProjectId,

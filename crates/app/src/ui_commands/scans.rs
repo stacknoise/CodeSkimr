@@ -10,8 +10,8 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::compare::ScanListAnswer;
 use codeskimr_application::compare::{
-    ComparisonAnswer, ComparisonRequest, MetricsAnswer, MetricsRequest, MetricsWanted, ScanDiffs,
-    metrics_request,
+    ComparisonAnswer, ComparisonRequest, FilterWanted, MetricsAnswer, MetricsRequest,
+    MetricsWanted, ScanDiffs, change_filter, metrics_request,
 };
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{CodeIndex, ProjectRepository};
@@ -40,7 +40,7 @@ pub struct ListInput {
 
 /// The input of `scans.compare` and `scans.impact`. Without `base` and `target` the newest scan is
 /// compared with the one before it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct CompareInput {
     /// Id of the project.
     pub project: u64,
@@ -50,6 +50,21 @@ pub struct CompareInput {
     /// Snapshot id of the newer scan; the newest scan if left out.
     #[serde(default)]
     pub target: Option<u64>,
+    /// Text that the qualified name contains, ignoring case (#826).
+    #[serde(default)]
+    pub name: Option<String>,
+    /// `added`, `changed`, `removed` or `moved`: only the symbols to which this happened.
+    #[serde(default)]
+    pub cause: Option<String>,
+    /// Only symbols of this kind, such as `method` or `class`.
+    #[serde(default)]
+    pub kind: Option<String>,
+    /// Only symbols that are visible everywhere.
+    #[serde(default)]
+    pub public_only: bool,
+    /// Only symbols with places that no change touches; counts in the usages of `scans.impact`.
+    #[serde(default)]
+    pub only_open: bool,
 }
 
 /// What the command reads.
@@ -106,6 +121,13 @@ fn answer(
         base: input.base.map(SnapshotId::new),
         target: input.target.map(SnapshotId::new),
         with_impact,
+        filter: change_filter(FilterWanted {
+            name: input.name.as_deref(),
+            cause: input.cause.as_deref(),
+            kind: input.kind.as_deref(),
+            public_only: input.public_only,
+            only_open: input.only_open,
+        })?,
     })?;
     Ok(ComparisonAnswer::new(&comparison, None))
 }

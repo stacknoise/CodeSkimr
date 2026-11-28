@@ -5,9 +5,9 @@ import { navigate } from "../../app/router";
 import { CHANGE_ROUTE } from "../../app/consts";
 import { failed, type Failure } from "../explorer/failure";
 import type { ScanHistoryAnswer } from "../scan/types";
-import { resetFilter } from "./filter";
+import { changeFilter, filterInput, kindsOf, resetFilter } from "./filter";
 import { COMMAND, METRIC_ALL, METRICS_LEVEL, MIN_SCANS, TAB } from "./consts";
-import { firstToSelect, impactRows } from "./rows";
+import { factsOf, firstToSelect, impactRows } from "./rows";
 import { metricAvailable } from "./metrics";
 import type { ChangeAnswer, MetricsAnswer, Selection } from "./types";
 
@@ -30,6 +30,10 @@ const [reading, setReading] = createSignal(false);
 const [picked, setPicked] = createSignal<Selection>(NO_SELECTION);
 const [rowKey, setRowKey] = createSignal<string | null>(null);
 const [onlyOpen, setOnlyOpen] = createSignal(true);
+const [kinds, setKinds] = createSignal<string[]>([]);
+/** The filter the answer that is shown was read with, as text; tells whether a change of the filter
+ * needs another read. */
+let loadedFilter = "";
 /** Counts the loads, so that an answer for a project or a pair that is no longer shown is dropped. */
 let latest = 0;
 /** The scan a button of the history asked to compare with the current one; the screen takes it
@@ -125,6 +129,10 @@ export const pickScans = setPicked;
 export const changeRowKey = rowKey;
 /** Selects a row of the table. */
 export const selectChangeRow = setRowKey;
+/** The kinds of symbol that any answer of this comparison had, for the choice in the filter: the
+ * server narrows the lists to the kind that is chosen, so the choice must not shrink with them. */
+export const changeKinds = kinds;
+
 /** Whether the list of usages shows only the places that were not touched. */
 export const changeOnlyOpen = onlyOpen;
 /** Switches the list of usages between the open places and all. */
@@ -149,9 +157,23 @@ function inputOf(project: number, list: ScanHistoryAnswer, wanted: Selection) {
   const target = snapshotOf(list, wanted.target);
   return {
     project,
+    ...filterInput(changeFilter()),
     ...(base === null ? {} : { base }),
     ...(target === null ? {} : { target }),
   };
+}
+
+/** Adds the kinds of the rows of `read` to the kinds the filter offers. */
+function rememberKinds(read: ChangeAnswer | null): void {
+  if (read === null) {
+    return;
+  }
+  setKinds((known) => kindsOf([...known.map(kindFacts), ...impactRows(read).map(factsOf)]));
+}
+
+/** What `kindsOf` needs of a kind that is already known. */
+function kindFacts(kind: string) {
+  return { cause: "", kind, name: "", visibility: null, open: 0 };
 }
 
 /** The scans the selectors show after a read: those the user picked, if the list still has them,
@@ -170,6 +192,7 @@ function shown(list: ScanHistoryAnswer, wanted: Selection, read: ChangeAnswer): 
  * both views). Without `wanted` the registry compares the newest scan with the one before it. */
 export async function loadChange(project: number, wanted: Selection = picked()): Promise<void> {
   const mine = ++latest;
+  loadedFilter = JSON.stringify(filterInput(changeFilter()));
   setReading(true);
   setFailure(null);
   try {
@@ -185,6 +208,7 @@ export async function loadChange(project: number, wanted: Selection = picked()):
     if (mine === latest) {
       forgetMetrics();
       setAnswer(read);
+      rememberKinds(read);
       setPicked(read === null ? NO_SELECTION : shown(list, wanted, read));
       keepRow(read);
       if (tab() === TAB.metrics) {
@@ -200,6 +224,15 @@ export async function loadChange(project: number, wanted: Selection = picked()):
     if (mine === latest) {
       setReading(false);
     }
+  }
+}
+
+/** Reads the comparison again if the filter holds back other symbols than the answer that is shown
+ * was read with. The server applies the filter before it cuts the lists, so a search also finds the
+ * symbols that a cut list leaves out (#826). */
+export function reloadForFilter(project: number): void {
+  if (JSON.stringify(filterInput(changeFilter())) !== loadedFilter) {
+    void loadChange(project);
   }
 }
 
@@ -221,6 +254,7 @@ export function enterChange(): Selection {
   setFailure(null);
   setReading(false);
   setRowKey(null);
+  setKinds([]);
   forgetMetrics();
   setMetricsMetric(METRIC_ALL);
   resetFilter();

@@ -526,9 +526,26 @@ pub struct MetricsOptions {
     pub include_tests: bool,
 }
 
+/// Which symbols `compare` and `change` list; empty fields let everything pass (#826).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ChangeFilterArgs {
+    /// Text that the qualified name contains, ignoring case.
+    pub name: Option<String>,
+    /// `added`, `changed`, `removed` or `moved`.
+    pub cause: Option<String>,
+    /// The kind of the symbol.
+    pub kind: Option<String>,
+    /// Only symbols that are visible everywhere.
+    pub public_only: bool,
+    /// Only symbols with places that no change touches.
+    pub only_open: bool,
+}
+
 /// Arguments of `codeskimr compare` and `codeskimr change`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompareQuery {
+    /// Which symbols to list.
+    pub filter: ChangeFilterArgs,
     /// Snapshot id of the older scan; the scan before the newer one if left out.
     pub base: Option<u64>,
     /// Snapshot id of the newer scan; the newest scan if left out.

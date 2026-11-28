@@ -7,7 +7,8 @@ import { cx } from "../../shared/ui/cx";
 import { Pill } from "../../shared/ui/Pill";
 import { COMPARE_COLUMNS, COMPARE_TABLE_KEY, REASON, TITLE_JOIN } from "./consts";
 import { ChangeFilterBar, FilterEmpty } from "./ChangeFilter";
-import { changeFilter, kindsOf, passes } from "./filter";
+import { changeKinds } from "./change";
+import { changeFilter, isFiltering, passes } from "./filter";
 import { Figure } from "./Figure";
 import { Notes } from "./Notes";
 import { Selectors } from "./Selectors";
@@ -126,7 +127,7 @@ function SymbolList(props: { answer: ChangeAnswer }) {
   return (
     <div class={cx(parts.card, styles.list)}>
       <ChangeFilterBar
-        kinds={kindsOf(rows().map((row) => row.facts))}
+        kinds={changeKinds()}
         withOpen={false}
         count={{
           shown: visible().length,
@@ -153,7 +154,7 @@ export function CompareTab(props: { project: number; answer: ChangeAnswer | null
           <>
             <Figures answer={answer()} />
             <Show
-              when={compareRows(answer()).length > 0}
+              when={compareRows(answer()).length > 0 || isFiltering(changeFilter(), false)}
               fallback={
                 <>
                   <p class={parts.plain}>

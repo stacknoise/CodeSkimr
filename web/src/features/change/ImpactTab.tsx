@@ -2,12 +2,12 @@ import { createEffect, createMemo, Show } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { cx } from "../../shared/ui/cx";
 import { I18N_KEYS } from "../../shared/i18n/keys";
-import { changeRowKey, selectChangeRow } from "./change";
+import { changeKinds, changeRowKey, selectChangeRow } from "./change";
 import { ChangeFilterBar, FilterEmpty } from "./ChangeFilter";
 import { MARK } from "./consts";
 import { Figure } from "./Figure";
 import { Notes } from "./Notes";
-import { changeFilter, kindsOf, passes } from "./filter";
+import { changeFilter, isFiltering, passes } from "./filter";
 import { impactOrder, impactValue, sortedBy } from "./order";
 import {
   affectedFiles,
@@ -95,7 +95,7 @@ export function ImpactTab(props: { answer: ChangeAnswer }) {
     <>
       <Figures answer={props.answer} />
       <Show
-        when={rows().length > 0}
+        when={rows().length > 0 || isFiltering(changeFilter(), true)}
         fallback={
           <p class={parts.plain}>
             {t(
@@ -109,7 +109,7 @@ export function ImpactTab(props: { answer: ChangeAnswer }) {
         <div class={styles.columns}>
           <div class={cx(parts.card, styles.list)}>
             <ChangeFilterBar
-              kinds={kindsOf(rows().map(factsOf))}
+              kinds={changeKinds()}
               withOpen
               count={{
                 shown: visible().length,

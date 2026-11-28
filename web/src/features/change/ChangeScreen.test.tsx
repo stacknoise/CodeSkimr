@@ -285,6 +285,52 @@ describe("ChangeScreen, filter of the symbols", () => {
     expect(screen.getByRole("grid", { name: "Symbols the change touches" })).toBeInTheDocument();
   });
 
+  it("asks the server for the filter after a pause, so a search also finds what a cut list left out", async () => {
+    serveChange();
+    render(() => <ChangeScreen />);
+    const search = await screen.findByRole("searchbox", { name: SEARCH });
+    expect(bodiesOf("scans.impact")).toEqual([{ project: 1 }]);
+    fireEvent.input(search, { target: { value: "legacy" } });
+    fireEvent.click(screen.getByRole("button", { name: "Only public" }));
+    await waitFor(() => expect(bodiesOf("scans.impact")).toHaveLength(2));
+    expect(bodiesOf("scans.impact")[1]).toMatchObject({
+      project: 1,
+      name: "legacy",
+      public_only: true,
+    });
+  });
+
+  it("keeps the filter row and the kinds to choose from when the server finds nothing", async () => {
+    const empty = { is_cut: false, total: 0, items: [] };
+    serveChange({
+      "scans.impact": () => {
+        const asked = bodiesOf("scans.impact").at(-1) as { name?: string };
+        return answer(
+          asked.name === undefined
+            ? ANSWER
+            : {
+                ...ANSWER,
+                added: empty,
+                removed: empty,
+                changed: empty,
+                moved: empty,
+                impact: empty,
+              },
+        );
+      },
+    });
+    render(() => <ChangeScreen />);
+    const search = await screen.findByRole("searchbox", { name: SEARCH });
+    fireEvent.input(search, { target: { value: "nothing like it" } });
+    expect(await screen.findByText("No symbol matches the filter.")).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: SEARCH })).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("combobox", { name: "Kind of symbol" })).getByRole("option", {
+        name: /method/,
+      }),
+    ).toBeInTheDocument();
+  });
+
   it("is honest about a cut answer: it counts the listed rows and names the total", async () => {
     serveChange({
       "scans.impact": () =>

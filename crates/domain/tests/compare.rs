@@ -3,8 +3,8 @@
 #[cfg(test)]
 mod tests {
     use codeskimr_domain::{
-        ChangeReason, ContentHash, ImpactCause, QualifiedName, RelativePath, SymbolFact, SymbolId,
-        SymbolKind, Visibility, compare_symbols,
+        ChangeCause, ChangeFilter, ChangeReason, ContentHash, ImpactCause, QualifiedName,
+        RelativePath, SymbolFact, SymbolId, SymbolKind, Visibility, compare_symbols,
     };
 
     fn fact(id: u64, kind: SymbolKind, name: &str, signature: Option<&str>) -> SymbolFact {
@@ -227,5 +227,95 @@ mod tests {
             .map(|fact| fact.qualified_name.as_str())
             .collect();
         assert_eq!(names, vec!["A.h", "B.g", "B.f"]);
+    }
+
+    /// Two removed, one added, one changed and one moved symbol, of kinds and visibilities that
+    /// the filter tells apart.
+    fn mixed() -> codeskimr_domain::Comparison {
+        let mut private = method(3, "Core.hidden", "void hidden()");
+        private.visibility = Some(Visibility::Private);
+        let base = vec![
+            method(1, "Core.Run", "void Run()"),
+            fact(2, SymbolKind::Class, "Core.Old", None),
+            private,
+            method(4, "Core.edit", "int edit()"),
+            method(5, "Core.mv", "void mv()"),
+        ];
+        let target = vec![
+            method(14, "Core.edit", "long edit()"),
+            in_file(method(15, "Core.mv", "void mv()"), "src/b.rs"),
+            method(16, "Core.Fresh", "void Fresh()"),
+        ];
+        compare_symbols(&base, &target)
+    }
+
+    fn names(found: &codeskimr_domain::Comparison) -> Vec<&str> {
+        let removed = found
+            .removed
+            .iter()
+            .map(|fact| fact.qualified_name.as_str());
+        let added = found.added.iter().map(|fact| fact.qualified_name.as_str());
+        let changed = found
+            .changed
+            .iter()
+            .map(|it| it.target.qualified_name.as_str());
+        let moved = found
+            .moved
+            .iter()
+            .map(|it| it.target.qualified_name.as_str());
+        removed.chain(added).chain(changed).chain(moved).collect()
+    }
+
+    #[test]
+    fn an_empty_filter_keeps_everything() {
+        let found = mixed();
+        assert_eq!(found.filtered(&ChangeFilter::default()), found);
+    }
+
+    #[test]
+    fn the_name_is_searched_anywhere_ignoring_case() {
+        let filter = ChangeFilter {
+            name: " ED ".to_owned(),
+            ..ChangeFilter::default()
+        };
+        assert_eq!(names(&mixed().filtered(&filter)), vec!["Core.edit"]);
+    }
+
+    #[test]
+    fn a_cause_keeps_only_that_list() {
+        let filter = ChangeFilter {
+            cause: Some(ChangeCause::Removed),
+            ..ChangeFilter::default()
+        };
+        assert_eq!(
+            names(&mixed().filtered(&filter)),
+            vec!["Core.Old", "Core.Run", "Core.hidden"]
+        );
+    }
+
+    #[test]
+    fn kind_and_visibility_narrow_every_list() {
+        let kind = ChangeFilter {
+            kind: Some(SymbolKind::Class),
+            ..ChangeFilter::default()
+        };
+        assert_eq!(names(&mixed().filtered(&kind)), vec!["Core.Old"]);
+        let public = ChangeFilter {
+            public_only: true,
+            ..ChangeFilter::default()
+        };
+        assert!(!names(&mixed().filtered(&public)).contains(&"Core.hidden"));
+    }
+
+    #[test]
+    fn the_whole_difference_still_tells_what_counts_as_adapted() {
+        let found = mixed();
+        let filter = ChangeFilter {
+            name: "Run".to_owned(),
+            ..ChangeFilter::default()
+        };
+        let kept = found.filtered(&filter);
+        assert_eq!(kept.impact_subjects().len(), 1);
+        assert!(found.touched_in_base().len() > kept.touched_in_base().len());
     }
 }

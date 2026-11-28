@@ -1346,37 +1346,54 @@ fn usage(
     }
 }
 
-fn sample_comparison(
-    request: &codeskimr_application::compare::ComparisonRequest,
-) -> codeskimr_application::compare::ScanComparison {
-    use codeskimr_application::compare::{Impact, LayerChanges, Listed, SymbolImpact, UsageStatus};
+/// The impact of the removed symbol: its two usages, one of them not touched.
+fn sample_impact(
+    removed: codeskimr_domain::SymbolFact,
+) -> codeskimr_application::compare::SymbolImpact {
+    use codeskimr_application::compare::{Listed, SymbolImpact, UsageStatus};
     use codeskimr_domain::{Confidence, ImpactCause, ImpactSubject};
-    let removed = method(7, "Shop.Checkout.Cart.Pay");
     let usages = vec![
         usage(10, UsageStatus::NotTouched, Confidence::Certain),
         usage(20, UsageStatus::Adapted, Confidence::Probable),
     ];
+    SymbolImpact {
+        subject: ImpactSubject {
+            symbol: removed,
+            cause: ImpactCause::Removed,
+        },
+        usages: Listed::cut(usages, 1),
+    }
+}
+
+fn sample_comparison(
+    request: &codeskimr_application::compare::ComparisonRequest,
+) -> codeskimr_application::compare::ScanComparison {
+    use codeskimr_application::compare::{Impact, LayerChanges, Listed};
+    let removed = method(7, "Shop.Checkout.Cart.Pay");
+    // The filter by name is the one part of the filter this stand-in honours, so that a test can
+    // see that the tool passes it on; the real filter is tested with the use case.
+    let wanted = request.filter.name.to_lowercase();
+    let kept: Vec<_> = std::iter::once(removed)
+        .filter(|symbol| {
+            symbol
+                .qualified_name
+                .as_str()
+                .to_lowercase()
+                .contains(&wanted)
+        })
+        .collect();
     codeskimr_application::compare::ScanComparison {
         project: PROJECT,
         base: scan_entry(request.base.map_or(1, SnapshotId::get)),
         target: scan_entry(request.target.map_or(2, SnapshotId::get)),
         added: Listed::cut(Vec::new(), 10),
-        removed: Listed::cut(vec![removed.clone()], 10),
+        removed: Listed::cut(kept.clone(), 10),
         changed: Listed::cut(Vec::new(), 10),
         moved: Listed::cut(Vec::new(), 10),
         critical: Vec::new(),
         layers: LayerChanges::default(),
         impact: request.with_impact.then(|| Impact {
-            symbols: Listed::cut(
-                vec![SymbolImpact {
-                    subject: ImpactSubject {
-                        symbol: removed,
-                        cause: ImpactCause::Removed,
-                    },
-                    usages: Listed::cut(usages, 1),
-                }],
-                10,
-            ),
+            symbols: Listed::cut(kept.into_iter().map(sample_impact).collect(), 10),
         }),
     }
 }
