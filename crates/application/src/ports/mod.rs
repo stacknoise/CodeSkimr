@@ -35,6 +35,7 @@ mod tools;
 mod usages;
 mod version;
 
+pub use crate::consts::FOLDER_NAMESPACE_LANGUAGES;
 pub use analysis::{
     AnalyzeRequest, FileAnalyzer, FileFacts, MetricsCalculator, PendingReference, Receiver,
     ReferenceResolver, Resolution, SnippetFingerprinter, SymbolFingerprints, SymbolHash,

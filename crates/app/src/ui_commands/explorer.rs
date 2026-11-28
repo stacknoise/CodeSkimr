@@ -8,7 +8,7 @@ use codeskimr_application::access;
 use codeskimr_application::config::MetricThresholds;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    CodeIndex, CodeOutline, OutlineNode, SourceText, SyntaxHighlighter,
+    CodeIndex, CodeOutline, FOLDER_NAMESPACE_LANGUAGES, OutlineNode, SourceText, SyntaxHighlighter,
 };
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
@@ -201,6 +201,9 @@ pub(super) fn namespace_of(
     node: &OutlineNode,
     names: &HashMap<SymbolId, &OutlineNode>,
 ) -> Option<String> {
+    if in_package(node) {
+        return Some(node.folder.clone());
+    }
     match node.parent {
         Some(parent) => names
             .get(&parent)
@@ -213,6 +216,12 @@ pub(super) fn namespace_of(
                 .to_owned(),
         ),
     }
+}
+
+/// Whether the namespace of a symbol is the folder of its file: the package of an abapGit
+/// repository. Its file module is no row of the tree then.
+fn in_package(node: &OutlineNode) -> bool {
+    FOLDER_NAMESPACE_LANGUAGES.contains(&node.language.as_str())
 }
 
 fn layer_index(layers: &[Layer], node: &OutlineNode) -> usize {
@@ -345,7 +354,7 @@ fn own_members(nodes: &[OutlineNode]) -> HashMap<SymbolId, u32> {
 /// namespace (ADR 0036) with members of its own.
 fn holds_members(node: &OutlineNode, own: &HashMap<SymbolId, u32>) -> bool {
     let holder = node.kind == SymbolKind::Namespace
-        || (node.kind == SymbolKind::Module && !is_namespace_module(node));
+        || (node.kind == SymbolKind::Module && (in_package(node) || !is_namespace_module(node)));
     holder && own.get(&node.id).is_some_and(|count| *count > 0)
 }
 
@@ -358,12 +367,15 @@ pub(super) fn build(layers: &[Layer], nodes: &[OutlineNode]) -> Vec<LayerNode> {
             && let Some(group) = groups.get_mut(layer_index(layers, node))
         {
             let space = group.entry(namespace).or_default();
-            space.file |= in_file_module(node, &by_id);
+            space.file |= !in_package(node) && in_file_module(node, &by_id);
             space.types.push(type_node(node));
         }
     }
     let own = own_members(nodes);
-    for node in nodes.iter().filter(|node| is_namespace_module(node)) {
+    for node in nodes
+        .iter()
+        .filter(|node| is_namespace_module(node) && !in_package(node))
+    {
         if let Some(group) = groups.get_mut(layer_index(layers, node)) {
             let name = node.qualified_name.to_string();
             let mut shown = type_node(node);
@@ -375,9 +387,13 @@ pub(super) fn build(layers: &[Layer], nodes: &[OutlineNode]) -> Vec<LayerNode> {
         if let Some(group) = groups.get_mut(layer_index(layers, node)) {
             let mut shown = type_node(node);
             shown.members = own.get(&node.id).copied().unwrap_or_default();
-            let name = node.qualified_name.to_string();
+            let name = if in_package(node) {
+                node.folder.clone()
+            } else {
+                node.qualified_name.to_string()
+            };
             let space = group.entry(name).or_default();
-            space.file |= node.kind == SymbolKind::Module;
+            space.file |= node.kind == SymbolKind::Module && !in_package(node);
             space.holders.push(shown);
         }
     }

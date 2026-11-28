@@ -1,12 +1,14 @@
 //! The `CodeOutline` port: the tree and the member tables of the explorer.
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{CodeOutline, MemberRow, OutlineNode};
+use codeskimr_application::ports::{
+    CodeOutline, FOLDER_NAMESPACE_LANGUAGES, MemberRow, OutlineNode,
+};
 use codeskimr_domain::{LanguageId, MetricKind, QualifiedName, SnapshotId, SymbolId, SymbolName};
 use rusqlite::{Connection, Row, params};
 
 use crate::codec::{Cols, column_int, id_from, json_labels, label_from, small_from};
-use crate::consts::{CONTAINER_KINDS, TYPE_KINDS};
+use crate::consts::{CONTAINER_KINDS, FOLDER_SEPARATOR, TYPE_KINDS};
 use crate::error::StorageResult;
 use crate::sql;
 use crate::store::ProjectDb;
@@ -20,6 +22,14 @@ struct NodeRow {
     parent: Option<i64>,
     members: i64,
     language: String,
+    path: String,
+}
+
+/// The folder of a file path: everything before the last `/`, empty for a file in the root.
+pub(crate) fn folder_of(path: &str) -> String {
+    path.rsplit_once(FOLDER_SEPARATOR)
+        .map(|(folder, _)| folder.to_owned())
+        .unwrap_or_default()
 }
 
 impl NodeRow {
@@ -34,10 +44,16 @@ impl NodeRow {
             parent: cols.take()?,
             members: cols.take()?,
             language: cols.take()?,
+            path: cols.take()?,
         })
     }
 
     fn node(self) -> StorageResult<OutlineNode> {
+        let folder = if FOLDER_NAMESPACE_LANGUAGES.contains(&self.language.as_str()) {
+            folder_of(&self.path)
+        } else {
+            String::new()
+        };
         Ok(OutlineNode {
             id: SymbolId::new(id_from(self.id)?),
             name: SymbolName::new(self.name)?,
@@ -49,6 +65,7 @@ impl NodeRow {
                 .transpose()?,
             members: small_from(self.members)?,
             language: LanguageId::new(self.language)?,
+            folder,
         })
     }
 }

@@ -90,3 +90,40 @@ fn an_unknown_symbol_has_no_member_rows() {
     let rows = store().member_rows(SNAPSHOT, SymbolId::new(999)).unwrap();
     assert!(rows.is_empty(), "{rows:?}");
 }
+
+/// A node knows the folder of its file for the languages whose namespaces are folders (the
+/// packages of an abapGit repository) and no other: the others stay empty so the tree of a big
+/// project costs nothing more.
+#[test]
+fn only_a_folder_namespace_language_gets_the_folder_of_its_file() {
+    use codeskimr_application::ports::SnapshotStore;
+    use codeskimr_domain::{LanguageId, ProjectId, ScanMode};
+    use common::{data, file, header, project};
+
+    let store = store();
+    store.save_project(&project(2, "/work/sap", &[])).unwrap();
+    let mut head = header(20, ScanMode::Full);
+    head.project = ProjectId::new(2);
+    let mut scan = data(head);
+    let mut abap = file(20, 2001, "src/sub/zcl_a.clas.abap", "h1");
+    abap.language = LanguageId::new("abap").unwrap();
+    let mut root = file(20, 2002, "zroot.prog.abap", "h2");
+    root.language = LanguageId::new("abap").unwrap();
+    scan.files = vec![abap, root, file(20, 2003, "src/other.cs", "h3")];
+    scan.symbols = vec![
+        symbol(2100, 2001, SymbolKind::Class, "zcl_a", None),
+        symbol(2101, 2002, SymbolKind::Class, "zroot", None),
+        symbol(2102, 2003, SymbolKind::Class, "Other", None),
+    ];
+    store.persist(scan).unwrap();
+    let nodes = store.outline(SnapshotId::new(20)).unwrap();
+    let folder = |name: &str| {
+        nodes
+            .iter()
+            .find(|node| node.name.as_str() == name)
+            .map(|node| node.folder.as_str())
+    };
+    assert_eq!(folder("zcl_a"), Some("src/sub"));
+    assert_eq!(folder("zroot"), Some(""));
+    assert_eq!(folder("Other"), Some(""));
+}
