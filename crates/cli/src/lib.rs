@@ -26,12 +26,13 @@ mod speech;
 mod warning;
 
 pub use args::{
-    Action, AddAnnotation, AlertsAction, AnnotationFields, AnnotationsAction, ById, CheckArgs,
-    Clears, CodesArgs, CompareQuery, ContextQuery, CredentialAction, DismissAlerts, ExportArgs,
-    GlobalOptions, ImpactQuery, Invocation, Level2Action, ListAlerts, ListAnnotations, McpArgs,
-    MetricsOptions, MetricsSide, ModulesQuery, OpenArgs, PageArgs, Parsed, ProviderChoice,
-    QueryAction, QueryTarget, RenameQuery, RulesQuery, ScanArgs, ScansQuery, ScopeArgs, ServeArgs,
-    StartArgs, SymbolArg, SymbolsQuery, UnusedQuery, UpdateAnnotation, UsagesQuery,
+    Action, AddAnnotation, AlertsAction, AnnotationFields, AnnotationsAction, ById,
+    ChangeFilterArgs, CheckArgs, Clears, CodesArgs, CompareQuery, ContextQuery, CredentialAction,
+    DismissAlerts, ExportArgs, GlobalOptions, ImpactQuery, Invocation, Level2Action, ListAlerts,
+    ListAnnotations, McpArgs, MetricsOptions, MetricsSide, ModulesQuery, OpenArgs, PageArgs,
+    Parsed, ProviderChoice, QueryAction, QueryTarget, RenameQuery, RulesQuery, ScanArgs,
+    ScansQuery, ScopeArgs, ServeArgs, StartArgs, SymbolArg, SymbolsQuery, UnusedQuery,
+    UpdateAnnotation, UsagesQuery,
 };
 pub use change_text::change_markdown;
 pub use check::{check_json, check_text};

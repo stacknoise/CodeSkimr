@@ -21,10 +21,10 @@ mod tests {
     };
     use codeskimr_codes::{Coded, ErrorCode};
     use codeskimr_domain::{
-        Confidence, ContentHash, FileId, LayerEdge, LayerName, MetricFact, MetricLevel,
-        MetricValues, NamespaceGraph, Position, ProjectId, QualifiedName, Reference, ReferenceId,
-        ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, Span, SymbolFact, SymbolId,
-        SymbolKind, Timestamp, UsageQuery, Visibility,
+        ChangeFilter, Confidence, ContentHash, FileId, LayerEdge, LayerName, MetricFact,
+        MetricLevel, MetricValues, NamespaceGraph, Position, ProjectId, QualifiedName, Reference,
+        ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, Span, SymbolFact,
+        SymbolId, SymbolKind, Timestamp, UsageQuery, Visibility,
     };
 
     use super::fakes::{MemoryAnnotations, PROJECT};
@@ -330,6 +330,7 @@ mod tests {
             base,
             target,
             with_impact: impact,
+            filter: ChangeFilter::default(),
         }
     }
 
@@ -533,6 +534,76 @@ mod tests {
         assert_eq!((impact.symbols.total, impact.symbols.items.len()), (2, 1));
         let gone = &impact.symbols.items[0];
         assert_eq!((gone.usages.total, gone.usages.items.len()), (2, 1));
+    }
+
+    fn filtered(filter: ChangeFilter) -> ComparisonRequest {
+        ComparisonRequest {
+            filter,
+            ..ask(None, None, true)
+        }
+    }
+
+    #[test]
+    fn a_filter_finds_a_symbol_beyond_the_cut_of_the_list() {
+        let limits = CompareLimits {
+            max_symbols: 1,
+            max_usages: 10,
+        };
+        let by_name = |name: &str| {
+            filtered(ChangeFilter {
+                name: name.to_owned(),
+                ..ChangeFilter::default()
+            })
+        };
+        let answer = comparer(&world(), limits)
+            .compare(&by_name("adapter"))
+            .unwrap();
+        assert_eq!(answer.changed.total, 1);
+        assert_eq!(
+            answer.changed.items[0].target.qualified_name.as_str(),
+            "App.Adapter"
+        );
+        assert!(!answer.changed.is_cut());
+        assert_eq!(answer.added.total, 0);
+        assert_eq!(answer.removed.total, 0);
+    }
+
+    #[test]
+    fn a_filter_does_not_change_which_usages_count_as_adapted() {
+        let answer = comparer(&world(), LIMITS)
+            .compare(&filtered(ChangeFilter {
+                name: "gone".to_owned(),
+                ..ChangeFilter::default()
+            }))
+            .unwrap();
+        let impact = answer.impact.unwrap();
+        assert_eq!(impact.symbols.total, 1);
+        let status: Vec<UsageStatus> = impact.symbols.items[0]
+            .usages
+            .items
+            .iter()
+            .map(|usage| usage.status)
+            .collect();
+        assert_eq!(status, vec![UsageStatus::NotTouched, UsageStatus::Adapted]);
+    }
+
+    #[test]
+    fn only_open_counts_the_symbols_that_stay_before_the_cut() {
+        let limits = CompareLimits {
+            max_symbols: 1,
+            max_usages: 10,
+        };
+        let world = world();
+        let answer = comparer(&world, limits)
+            .compare(&filtered(ChangeFilter {
+                only_open: true,
+                ..ChangeFilter::default()
+            }))
+            .unwrap();
+        let impact = answer.impact.unwrap();
+        assert_eq!((impact.symbols.total, impact.symbols.items.len()), (2, 1));
+        let asked = world.usages.asked.lock().unwrap().len();
+        assert_eq!(asked, 2, "every symbol is read to know which stay");
     }
 
     #[test]

@@ -17,6 +17,11 @@ fn args(base: Option<u64>, target: Option<u64>) -> DiffArgs {
         metrics: None,
         metrics_level: None,
         include_tests: None,
+        name: None,
+        cause: None,
+        kind: None,
+        public_only: None,
+        only_open: None,
     }
 }
 
@@ -113,4 +118,44 @@ fn an_unknown_level_of_the_metric_changes_is_refused() {
         .impact_of_diff(&Principal::local_owner(), &asked)
         .unwrap_err();
     assert_eq!(error.code(), ErrorCode::RequestInvalid);
+}
+
+#[test]
+fn a_filter_keeps_the_symbols_it_names_and_counts_only_those() {
+    let kept = DiffArgs {
+        name: Some("cart.PAY".to_owned()),
+        cause: Some("removed".to_owned()),
+        ..args(Some(5), Some(6))
+    };
+    let answer = tools()
+        .impact_of_diff(&Principal::local_owner(), &kept)
+        .unwrap();
+    assert_eq!(answer["impact"]["total"], 1);
+    let none = DiffArgs {
+        name: Some("no such symbol".to_owned()),
+        ..args(Some(5), Some(6))
+    };
+    let answer = tools()
+        .impact_of_diff(&Principal::local_owner(), &none)
+        .unwrap();
+    assert_eq!(answer["impact"]["total"], 0);
+}
+
+#[test]
+fn an_unknown_cause_or_kind_is_refused() {
+    for asked in [
+        DiffArgs {
+            cause: Some("vanished".to_owned()),
+            ..args(None, None)
+        },
+        DiffArgs {
+            kind: Some("galaxy".to_owned()),
+            ..args(None, None)
+        },
+    ] {
+        let error = tools()
+            .impact_of_diff(&Principal::local_owner(), &asked)
+            .unwrap_err();
+        assert_eq!(error.code(), ErrorCode::RequestInvalid);
+    }
 }

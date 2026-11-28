@@ -69,6 +69,19 @@ export function passes(facts: RowFacts, chosen: ChangeFilter, withOpen: boolean)
   );
 }
 
+/** What `scans.impact` takes of the filter: only the fields that hold rows back, so the server
+ * applies them before it cuts the lists (#826). */
+export function filterInput(chosen: ChangeFilter): Record<string, string | boolean> {
+  const name = chosen.query.trim();
+  return {
+    ...(name === "" ? {} : { name }),
+    ...(chosen.cause === FILTER_ALL ? {} : { cause: chosen.cause }),
+    ...(chosen.kind === FILTER_ALL ? {} : { kind: chosen.kind }),
+    ...(chosen.onlyPublic ? { public_only: true } : {}),
+    ...(chosen.onlyOpen ? { only_open: true } : {}),
+  };
+}
+
 /** The kinds the rows have, sorted, for the choice of the filter. */
 export function kindsOf(rows: readonly RowFacts[]): string[] {
   return [...new Set(rows.map((row) => row.kind))].sort();
