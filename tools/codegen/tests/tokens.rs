@@ -100,3 +100,27 @@ fn the_script_reads_the_mirror_and_the_system_and_needs_no_inline_code() {
     let ts = render_ts(&real());
     assert!(ts.contains("export const THEMES = [\"hell\", \"petrol\", \"dunkel\"] as const;"));
 }
+
+#[test]
+fn a_syntax_colour_that_is_too_light_for_the_tinted_diff_lines_is_found() {
+    let text = REAL.replacen("syn-comment = \"#5B6370\"", "syn-comment = \"#767676\"", 1);
+    let found = problems(&text);
+    assert_eq!(found.len(), 2, "{found:?}");
+    assert!(found[0].starts_with("themes.hell: syn-comment on the bad tint of a diff line"));
+    assert!(found[1].starts_with("themes.hell: syn-comment on the good tint of a diff line"));
+}
+
+#[test]
+fn the_tint_that_is_checked_is_the_tint_the_css_draws() {
+    let css = include_str!("../../../web/src/features/change/UsagesPanel.module.css");
+    for tint in ["bad", "good"] {
+        let rule = format!(
+            "color-mix(in srgb, var(--{tint}) {}%, transparent)",
+            codeskimr_codegen::tokens::DIFF_TINT_PERCENT
+        );
+        assert!(
+            css.contains(&rule),
+            "{rule} is not in UsagesPanel.module.css"
+        );
+    }
+}

@@ -19,4 +19,12 @@ export interface HighlightAnswer {
 export interface Part {
   text: string;
   syntax: SyntaxClass | null;
+  /** The part lies inside the stretch the caller asked to mark. */
+  marked?: boolean;
+}
+
+/** A stretch of the first line that the caller marks, in UTF-16 units. */
+export interface MarkRange {
+  start: number;
+  end: number;
 }

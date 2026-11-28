@@ -35,6 +35,21 @@ describe("linesOf", () => {
   });
 });
 
+describe("linesOf with a mark", () => {
+  it("cuts the parts at the borders of the mark and keeps the colours", () => {
+    const parts = linesOf("fn run(a)", [{ line: 0, start: 0, end: 5, class: "keyword" }], {
+      start: 3,
+      end: 6,
+    })[0];
+    expect(parts?.map((part) => part.text).join("")).toBe("fn run(a)");
+    expect(parts?.filter((part) => part.marked === true).map((part) => part.text)).toEqual([
+      "ru",
+      "n",
+    ]);
+    expect(parts?.find((part) => part.text === "ru")?.syntax).toBe("keyword");
+  });
+});
+
 describe("Code", () => {
   beforeEach(() => {
     run.mockReset();
