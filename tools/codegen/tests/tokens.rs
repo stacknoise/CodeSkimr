@@ -105,9 +105,13 @@ fn the_script_reads_the_mirror_and_the_system_and_needs_no_inline_code() {
 fn a_syntax_colour_that_is_too_light_for_the_tinted_diff_lines_is_found() {
     let text = REAL.replacen("syn-comment = \"#5B6370\"", "syn-comment = \"#767676\"", 1);
     let found = problems(&text);
-    assert_eq!(found.len(), 2, "{found:?}");
-    assert!(found[0].starts_with("themes.hell: syn-comment on the bad tint of a diff line"));
-    assert!(found[1].starts_with("themes.hell: syn-comment on the good tint of a diff line"));
+    for tint in ["bad", "good"] {
+        let wanted = format!("themes.hell: syn-comment on the {tint} tint of a diff line");
+        assert!(
+            found.iter().any(|line| line.starts_with(&wanted)),
+            "{found:?}"
+        );
+    }
 }
 
 #[test]
@@ -123,4 +127,16 @@ fn the_tint_that_is_checked_is_the_tint_the_css_draws() {
             "{rule} is not in UsagesPanel.module.css"
         );
     }
+}
+
+#[test]
+fn a_syntax_colour_that_is_too_light_for_a_selected_or_marked_row_is_found() {
+    let text = REAL.replacen("syn-keyword = \"#6D28D9\"", "syn-keyword = \"#8B5CF6\"", 1);
+    let found = problems(&text);
+    assert!(
+        found
+            .iter()
+            .any(|line| line.starts_with("themes.hell: syn-keyword on accent-bg")),
+        "{found:?}"
+    );
 }

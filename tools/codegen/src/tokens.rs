@@ -94,6 +94,10 @@ const SYNTAX: [&str; 7] = [
     "syn-attribute",
 ];
 
+/// The backgrounds besides `surface` that the syntax colours are read on: the page, the selected
+/// and hovered row of a list, and the marked word of a hit.
+const SYNTAX_BACKGROUNDS: [&str; 3] = ["bg", "accent-bg", "warn-bg"];
+
 /// Further text tokens that are read on `surface`.
 const ON_SURFACE: [&str; 18] = [
     "kind-class",
@@ -236,6 +240,11 @@ impl Tokens {
         }
         for text in ON_SURFACE {
             check(text, "surface");
+        }
+        for text in SYNTAX {
+            for background in SYNTAX_BACKGROUNDS {
+                check(text, background);
+            }
         }
         problems.extend(diff_tint_problems(theme, colors));
         problems

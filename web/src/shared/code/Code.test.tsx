@@ -108,4 +108,14 @@ describe("Code", () => {
     expect(screen.getByText("fn run()")).toBeInTheDocument();
     expect(cacheSize()).toBe(0);
   });
+
+  it("asks for all pieces of one moment in a single call", async () => {
+    run.mockImplementation((_id: string, input: { pieces: unknown[] }) =>
+      Promise.resolve({ pieces: input.pieces.map(() => ({ tokens: [] })) }),
+    );
+    const texts = Array.from({ length: 150 }, (_, index) => `fn row${index}()`);
+    render(() => <For each={texts}>{(text) => <Code path="a.rs" text={text} />}</For>);
+    await waitFor(() => expect(run).toHaveBeenCalledTimes(1));
+    expect(run.mock.calls[0]?.[1].pieces).toHaveLength(150);
+  });
 });
