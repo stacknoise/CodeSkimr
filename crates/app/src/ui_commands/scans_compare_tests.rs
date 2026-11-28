@@ -81,10 +81,11 @@ fn a_base_that_is_not_older_is_refused_with_its_code() {
     let id = two_scans(&fixture);
     let scans = ask(&fixture, "scans.list", json!({ "project": id })).unwrap();
     let newest = scans["scans"][0]["snapshot"].clone();
+    let oldest = scans["scans"][1]["snapshot"].clone();
     let refused = ask(
         &fixture,
         "scans.compare",
-        json!({ "project": id, "base": newest, "target": newest }),
+        json!({ "project": id, "base": newest, "target": oldest }),
     );
     assert_eq!(refused.unwrap_err(), "CMP-101");
 }
@@ -101,4 +102,113 @@ fn a_project_with_one_scan_has_nothing_to_compare() {
 fn an_unknown_project_is_refused() {
     let fixture = Fixture::installed(None);
     assert!(ask(&fixture, "scans.compare", json!({ "project": 999 })).is_err());
+}
+
+#[test]
+fn the_markdown_is_the_text_of_the_command_line_in_the_chosen_language() {
+    let fixture = Fixture::installed(None);
+    let id = two_scans(&fixture);
+    let english = ask(
+        &fixture,
+        "scans.impact_markdown",
+        json!({ "project": id, "language": "en" }),
+    )
+    .unwrap();
+    let german = ask(
+        &fixture,
+        "scans.impact_markdown",
+        json!({ "project": id, "language": "de" }),
+    )
+    .unwrap();
+    let text = english["markdown"].as_str().unwrap();
+    assert!(text.contains("Demo.Caller.Run"));
+    assert!(text.starts_with("<!-- codeskimr-change -->"));
+    assert_ne!(text, german["markdown"].as_str().unwrap());
+    let plain = ask(&fixture, "scans.impact_markdown", json!({ "project": id })).unwrap();
+    assert_eq!(plain["markdown"], english["markdown"]);
+}
+
+#[test]
+fn the_markdown_of_an_unknown_project_is_refused() {
+    let fixture = Fixture::installed(None);
+    assert!(ask(&fixture, "scans.impact_markdown", json!({ "project": 999 })).is_err());
+}
+
+#[test]
+fn the_metrics_answer_names_the_level_and_has_both_lists() {
+    let fixture = Fixture::installed(None);
+    let id = two_scans(&fixture);
+    let answer = ask(
+        &fixture,
+        "scans.metrics",
+        json!({ "project": id, "level": "type", "metrics": ["cc"] }),
+    )
+    .unwrap();
+    assert_eq!(answer["schema"], 1);
+    assert_eq!(answer["level"], "type");
+    assert!(answer["worse"]["items"].is_array());
+    assert!(answer["better"]["items"].is_array());
+}
+
+#[test]
+fn a_level_or_metric_that_is_not_known_is_refused() {
+    let fixture = Fixture::installed(None);
+    let id = two_scans(&fixture);
+    let level = json!({ "project": id, "level": "galaxy" });
+    assert_eq!(
+        ask(&fixture, "scans.metrics", level).unwrap_err(),
+        "API-101"
+    );
+    let metric = json!({ "project": id, "metrics": ["cc_max"] });
+    assert_eq!(
+        ask(&fixture, "scans.metrics", metric).unwrap_err(),
+        "API-101"
+    );
+}
+
+#[test]
+fn a_project_with_one_scan_has_no_metrics_to_compare() {
+    let fixture = Fixture::installed(None);
+    let id = fixture.scanned();
+    let refused = ask(&fixture, "scans.metrics", json!({ "project": id }));
+    assert_eq!(refused.unwrap_err(), "CMP-201");
+}
+
+#[test]
+fn the_metrics_markdown_is_the_text_of_the_command_line_in_the_chosen_language() {
+    let fixture = Fixture::installed(None);
+    let id = two_scans(&fixture);
+    let english = ask(
+        &fixture,
+        "scans.metrics_markdown",
+        json!({ "project": id, "language": "en" }),
+    )
+    .unwrap();
+    let text = english["markdown"].as_str().unwrap();
+    assert!(text.starts_with("<!-- codeskimr-metrics -->"), "{text}");
+    assert!(text.contains("metric changes from scan"), "{text}");
+    let german = ask(
+        &fixture,
+        "scans.metrics_markdown",
+        json!({ "project": id, "language": "de", "level": "type" }),
+    )
+    .unwrap();
+    assert!(
+        german["markdown"]
+            .as_str()
+            .unwrap()
+            .contains("Kennzahlen von Scan")
+    );
+}
+
+#[test]
+fn the_metrics_markdown_refuses_a_level_that_is_not_known() {
+    let fixture = Fixture::installed(None);
+    let id = two_scans(&fixture);
+    let refused = ask(
+        &fixture,
+        "scans.metrics_markdown",
+        json!({ "project": id, "level": "galaxy" }),
+    );
+    assert_eq!(refused.unwrap_err(), "API-101");
 }

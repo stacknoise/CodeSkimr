@@ -12,6 +12,28 @@ pub const STAGE_RESOLVE: &str = "resolve";
 pub const STAGE_MEASURE: &str = "measure";
 /// Label of `StageKind::Persist`.
 pub const STAGE_PERSIST: &str = "persist";
+/// Label of `PersistStep::Header`, also the `step` of the log event of the write.
+pub const STEP_HEADER: &str = "header";
+/// Label of `PersistStep::PruneBeforeLoad`.
+pub const STEP_PRUNE_BEFORE: &str = "prune_before_load";
+/// Label of `PersistStep::Facts`.
+pub const STEP_FACTS: &str = "facts";
+/// Label of `PersistStep::References`.
+pub const STEP_REFERENCES: &str = "references";
+/// Label of `PersistStep::ReferenceIndexes`.
+pub const STEP_REFERENCE_INDEXES: &str = "reference_indexes";
+/// Label of `PersistStep::Fingerprints`.
+pub const STEP_FINGERPRINTS: &str = "fingerprints";
+/// Label of `PersistStep::Details`.
+pub const STEP_DETAILS: &str = "details";
+/// Label of `PersistStep::Integrity`.
+pub const STEP_INTEGRITY: &str = "integrity";
+/// Label of `PersistStep::ReadModels`.
+pub const STEP_READ_MODELS: &str = "read_models";
+/// Label of `PersistStep::Prune`.
+pub const STEP_PRUNE: &str = "prune";
+/// Label of `PersistStep::Commit`.
+pub const STEP_COMMIT: &str = "commit";
 /// The stage labels in execution order, the same order as `StageKind::ALL`.
 pub const STAGE_LABELS: [&str; 6] = [
     STAGE_FETCH,
@@ -264,3 +286,69 @@ pub const OUTCOME_REMOVED: &str = "removed";
 pub const OUTCOME_MOVED: &str = "moved";
 /// Outcome for a critical symbol that changed.
 pub const OUTCOME_CHANGED: &str = "changed";
+
+/// Lines of a place are counted from 1 when shown, the stored ones from 0.
+pub const PLACE_LINE_OFFSET: u32 = 1;
+
+/// Thousandths in one: the thresholds of instability are configured in thousandths (ADR 0114).
+pub const PERMILLE: f64 = 1000.0;
+
+/// Name of the file that marks an abapGit repository, in the project folder (ADR 0113).
+pub const ABAPGIT_CONFIG_FILE: &str = ".abapgit.xml";
+/// The start of an opening tag in `.abapgit.xml`.
+pub const ABAPGIT_TAG_OPEN: &str = "<";
+/// The start of a closing tag in `.abapgit.xml`.
+pub const ABAPGIT_TAG_CLOSE: &str = "</";
+/// The end of a tag in `.abapgit.xml`.
+pub const ABAPGIT_TAG_END: &str = ">";
+/// The folder name of files directly below the starting folder.
+pub const ABAPGIT_ROOT_FOLDER: &str = "";
+/// Tag of the folder below which abapGit keeps the objects.
+pub const ABAPGIT_STARTING_FOLDER_TAG: &str = "STARTING_FOLDER";
+/// Tag of the rule that turns a package into a folder.
+pub const ABAPGIT_FOLDER_LOGIC_TAG: &str = "FOLDER_LOGIC";
+/// Value of the folder logic where the folder holds the full name of the package.
+pub const ABAPGIT_FOLDER_LOGIC_FULL: &str = "FULL";
+/// The starting folder of abapGit when the file does not name one.
+pub const ABAPGIT_DEFAULT_STARTING_FOLDER: &str = "src";
+/// Extensions of the files that hold the source of an abapGit object (code and CDS source).
+pub const ABAPGIT_SOURCE_EXTENSIONS: [&str; 2] = ["abap", "asddls"];
+/// Extension of the XML files that hold the metadata of an abapGit object.
+pub const ABAPGIT_METADATA_EXTENSION: &str = "xml";
+/// Object type of the description of a package (`package.devc.xml`), which is no object.
+pub const ABAPGIT_PACKAGE_TYPE: &str = "devc";
+/// abapGit writes the slash of a namespace as this character in a file name.
+pub const ABAPGIT_NAMESPACE_MARK: char = '#';
+/// The slash of a namespace, as ABAP writes it.
+pub const ABAPGIT_NAMESPACE_SLASH: char = '/';
+/// Separator of the parts of an abapGit file name.
+pub const ABAPGIT_NAME_SEPARATOR: char = '.';
+/// File name that describes the package of a folder.
+pub const ABAPGIT_PACKAGE_FILE: &str = "package.devc.xml";
+/// Label of the prefix folder logic in answers.
+pub const ABAPGIT_LOGIC_PREFIX_LABEL: &str = "prefix";
+/// Label of the full folder logic in answers.
+pub const ABAPGIT_LOGIC_FULL_LABEL: &str = "full";
+
+/// Label of the level `module` in the metric changes of a comparison (ADR 0114).
+pub const LEVEL_MODULE: &str = "module";
+/// Label of the level `type`.
+pub const LEVEL_TYPE: &str = "type";
+/// Label of the level `member`.
+pub const LEVEL_MEMBER: &str = "member";
+/// Verdict of an object whose metrics only got worse.
+pub const VERDICT_WORSE: &str = "worse";
+/// Verdict of an object whose metrics only got better.
+pub const VERDICT_BETTER: &str = "better";
+/// Verdict of an object whose metrics moved to both sides.
+pub const VERDICT_MIXED: &str = "mixed";
+/// A move of a metric to the worse.
+pub const DIRECTION_WORSE: &str = "worse";
+/// A move of a metric to the better.
+pub const DIRECTION_BETTER: &str = "better";
+/// Lines that grew by at least the growth limit.
+pub const DIRECTION_GREW: &str = "grew";
+/// A value that was not rated poor and is now.
+pub const CROSSING_INTO_POOR: &str = "into_poor";
+/// A value that was rated poor and is not any more.
+pub const CROSSING_OUT_OF_POOR: &str = "out_of_poor";

@@ -32,7 +32,6 @@ Option 3.
   - `level2 confirm`: the consent to level 2 is typed in a terminal (ADR 0033, decision 10 and addendum). The UI opens that console window on Windows and macOS and shows the command to copy elsewhere (ADR 0071, decision 6); it never confirms itself.
   - `serve`, `open`, `mcp`, `--console`, `--data-dir`, `--languages`, and `--config` and `--set` as start options: they decide how and where the program starts, before there is a UI. The UI may show them.
   - `--json`: output for scripts; the counterpart is the REST interface.
-  - `--markdown` of `change`: the same answer as `--json`, rendered for a comment on a pull request (ADR 0097); the counterpart is the screen "Change" and the REST command `scans.impact`.
   - `--help`: the counterpart is the manual.
 - **Before 1.0:** gap 1 (button "Full scan", `projects.rescan` with `full`), gap 5 (a screen with the list of error codes), of gap 6 the display of the settings in effect, read only, and gap 7 (the settings screen shows the version, issue #690; moved here from "after 1.0" on 2026-11-24).
 - **After 1.0:** gap 2 (with the background jobs and the live view), gap 3, gap 4 (the extension "Rules"), and changing settings in the UI (the rest of gap 6; `--set` at the start stays a start option). Each needs its own package; gaps 2 and 3 need their own ADR.

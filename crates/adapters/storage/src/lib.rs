@@ -34,6 +34,7 @@ mod reads_during_write_tests;
 mod references;
 mod replace;
 mod reports;
+mod scan_log;
 mod scope;
 mod set;
 mod similarity;

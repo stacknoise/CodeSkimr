@@ -18,11 +18,12 @@ use codeskimr_application::ports::{
     SymbolDetail, SymbolKey, SymbolState, SymbolStates, ToolReportStore, TypeFocus, UnusedCounts,
     UsageIndex, UsagePage,
 };
+use codeskimr_application::stage::PersistStep;
 use codeskimr_domain::{
     Alert, AlertId, Annotation, AnnotationId, ContentHash, FileId, Fingerprints, LayerEdge,
-    NamespaceGraph, Project, ProjectId, QualifiedName, RankingQuery, Reference, RelativePath,
-    Scope, Snapshot, SnapshotId, SourceFile, Symbol, SymbolBaseline, SymbolFact, SymbolFacts,
-    SymbolId, SymbolName, SymbolPair, ToolReport, UsageQuery,
+    MetricFact, NamespaceGraph, Project, ProjectId, QualifiedName, RankingQuery, Reference,
+    RelativePath, Scope, Snapshot, SnapshotId, SourceFile, Symbol, SymbolBaseline, SymbolFact,
+    SymbolFacts, SymbolId, SymbolName, SymbolPair, ToolReport, UsageQuery,
 };
 
 use super::SqliteStore;
@@ -93,6 +94,15 @@ impl SnapshotStore for SqliteStore {
     fn persist(&self, data: SnapshotData) -> Result<Snapshot, CodedError> {
         let db = self.of_project(data.snapshot.project)?;
         SnapshotStore::persist(&*db, data)
+    }
+
+    fn persist_with_steps(
+        &self,
+        data: SnapshotData,
+        step: &dyn Fn(PersistStep),
+    ) -> Result<Snapshot, CodedError> {
+        let db = self.of_project(data.snapshot.project)?;
+        SnapshotStore::persist_with_steps(&*db, data, step)
     }
 
     fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError> {
@@ -174,6 +184,7 @@ impl SymbolStates for SqliteStore {
 impl ComparisonSource for SqliteStore {
     forward! { ComparisonSource via of_snapshot:
         fn comparison_facts(&self, snapshot: SnapshotId) -> Result<Vec<SymbolFact>, CodedError>;
+        fn metric_facts(&self, snapshot: SnapshotId) -> Result<Vec<MetricFact>, CodedError>;
         fn snapshot_naming_rules(&self, snapshot: SnapshotId) -> Result<Option<String>, CodedError>;
     }
 }

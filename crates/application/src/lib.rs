@@ -4,6 +4,7 @@
 //! (pipes and filters), the event bus (observer), the command registry, the typestate of a
 //! scan job and the level-1 reference resolver. It knows no database, file system, network or parser.
 
+pub mod abapgit;
 pub mod access;
 pub mod alerts;
 pub mod annotations;
@@ -17,6 +18,7 @@ pub mod events;
 pub mod ids;
 pub mod level2;
 pub mod metrics;
+pub mod module_places;
 pub mod module_report;
 pub mod pipeline;
 pub mod ports;

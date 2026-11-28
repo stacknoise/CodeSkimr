@@ -122,12 +122,24 @@ pub mod keys {
     pub const GRAPH_RISK_MAX: &str = "graph.risk_max";
     /// `graph.max_modules`
     pub const GRAPH_MAX_MODULES: &str = "graph.max_modules";
+    /// `graph.max_places`
+    pub const GRAPH_MAX_PLACES: &str = "graph.max_places";
     /// `export.max_references`
     pub const EXPORT_MAX_REFERENCES: &str = "export.max_references";
     /// `compare.max_symbols`
     pub const COMPARE_MAX_SYMBOLS: &str = "compare.max_symbols";
     /// `compare.max_usages`
     pub const COMPARE_MAX_USAGES: &str = "compare.max_usages";
+    /// `compare.metric_min_cc`
+    pub const COMPARE_METRIC_MIN_CC: &str = "compare.metric_min_cc";
+    /// `compare.metric_min_mi`
+    pub const COMPARE_METRIC_MIN_MI: &str = "compare.metric_min_mi";
+    /// `compare.metric_min_ce`
+    pub const COMPARE_METRIC_MIN_CE: &str = "compare.metric_min_ce";
+    /// `compare.metric_min_instability`
+    pub const COMPARE_METRIC_MIN_INSTABILITY: &str = "compare.metric_min_instability";
+    /// `compare.metric_loc_growth`
+    pub const COMPARE_METRIC_LOC_GROWTH: &str = "compare.metric_loc_growth";
     /// `similarity.ngram_size`
     pub const NGRAM_SIZE: &str = "similarity.ngram_size";
     /// `similarity.window_size`
@@ -263,6 +275,12 @@ pub const LOWER_ONLY_SCAN_KEYS: [&str; 4] = [
 pub const LAYER_TABLE_HEADER: &str = "[[layers]]";
 /// Header of an entry of the exception list of the unused symbols.
 pub const UNUSED_TABLE_HEADER: &str = "[[unused.ignore]]";
+/// What may follow `[rules` or `[[rules` in a header: the end of the name or a sub-table.
+pub const RULES_NAME_END: [char; 2] = [']', '.'];
+/// Start of the header of the table `rules` and of its sub-tables, such as `[rules]`.
+pub const RULES_TABLE_HEADER: &str = "[rules";
+/// Start of the header of an array of tables below `rules`, such as `[[rules.forbid]]`.
+pub const RULES_ARRAY_HEADER: &str = "[[rules";
 /// First character of every table header line.
 pub const TABLE_HEADER_START: char = '[';
 /// Separates the kept part of the project file from the written layers.

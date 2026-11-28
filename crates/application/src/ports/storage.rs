@@ -10,6 +10,7 @@ use codeskimr_domain::{
 
 use super::{LeftOut, PendingReference, SkippedFile, SymbolFingerprints, SymbolHash};
 use crate::error::CodedError;
+use crate::stage::PersistStep;
 
 /// Everything one scan produced, written as one unit.
 ///
@@ -158,6 +159,8 @@ pub struct Confirmation {
     pub at: Timestamp,
     /// The commit the scan saw, if the source has one.
     pub commit: Option<CommitHash>,
+    /// When the discover stage of the scan began, for the duration the history shows (ADR 0097).
+    pub began: Option<Instant>,
 }
 
 /// A snapshot as a scan confirmed it.
@@ -326,6 +329,21 @@ pub trait SnapshotStore: Send + Sync {
     /// # Errors
     /// A coded failure such as `STO-302` or `STO-501`; nothing is written then.
     fn persist(&self, data: SnapshotData) -> Result<Snapshot, CodedError>;
+
+    /// Like [`Self::persist`], and calls `step` with each step of the write as it begins, so that
+    /// a screen can tell which one a long write is in. A store that does not report steps writes
+    /// the snapshot without calling `step`.
+    ///
+    /// # Errors
+    /// As [`Self::persist`].
+    fn persist_with_steps(
+        &self,
+        data: SnapshotData,
+        step: &dyn Fn(PersistStep),
+    ) -> Result<Snapshot, CodedError> {
+        let _ = step;
+        self.persist(data)
+    }
 
     /// Replaces the symbols of origin `index` and the references of the files of `replacement` in one transaction, updates the
     /// totals and the read models and returns the snapshot. Rows are shared between snapshots

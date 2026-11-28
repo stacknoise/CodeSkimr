@@ -19,6 +19,8 @@ Owner: `codeskimr`
 | APP-603 | `tray_start_failed` | error | yes | 0.1.0 | The program could not start itself in the background or show its tray icon. |
 | APP-604 | `confirm_window_failed` | error | yes | 0.9.0 | The console window for the level 2 confirmation could not be started; the screen shows the command instead. |
 | APP-605 | `project_file_open_failed` | error | yes | 1.2.0 | The system did not start a program for the project file. |
+| APP-606 | `log_folder_open_failed` | error | yes | 1.2.0 | The system did not open the folder of the log files. |
+| APP-607 | `log_file_unavailable` | error | yes | 1.2.0 | The log file does not exist, cannot be read or cannot be emptied. |
 
 ## CFG – Configuration
 
@@ -31,6 +33,7 @@ Owner: `codeskimr_application`
 | CFG-103 | `config_unknown_key` | error | no | 0.1.0 | A configuration file or flag sets a key that does not exist. |
 | CFG-104 | `project_file_not_writable` | error | no | 0.9.0 | The project file `.codeskimr.toml` could not be written. |
 | CFG-105 | `level2_switch_off` | error | no | 0.9.0 | Level 2 is not enabled in the user configuration; the program does not enable it itself. |
+| CFG-106 | `project_file_changed` | error | no | 1.1.0 | The project file `.codeskimr.toml` changed after the screen read it, so saving would overwrite that change. |
 
 ## PRJ – Projects and snapshots
 
@@ -45,6 +48,7 @@ Owner: `codeskimr_application`
 | PRJ-301 | `project_already_registered` | error | no | 0.1.0 | A project with the same source is already registered. |
 | PRJ-302 | `snapshot_in_progress` | error | no | 0.1.0 | A scan for this project is already running. |
 | PRJ-303 | `scan_cancelled` | info | yes | 0.1.0 | The scan was cancelled by the user; no snapshot was written. |
+| PRJ-304 | `check_in_progress` | error | yes | 1.2.0 | A convention check for this project is already running. |
 | PRJ-501 | `too_many_scans` | error | yes | 0.1.0 | As many scans run at the same time as the server allows; try again when one has ended. |
 | PRJ-502 | `scan_report_not_stored` | warning | no | 0.9.0 | The report of the scan (its level and what level 2 did per language) could not be stored; the scan and its snapshot are stored. |
 | PRJ-503 | `scan_memory_limit` | error | no | 1.0.0 | The scan added more memory than scan.max_memory_mb allows, or the program passed 70 % of the installed memory, and the scan was stopped before the machine ran out of memory; no snapshot was written (ADR 0087). |

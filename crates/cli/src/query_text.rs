@@ -24,6 +24,7 @@ use crate::consts::{
     CHAIN_JOIN, JSON_NULL_TEXT, KIND_DECLARATION, LINE_BREAK, LIST_INDENT, QUERY_SCHEMA_VERSION,
     TITLE_SEPARATOR, arg, key,
 };
+use crate::modules_text::modules_lines;
 use crate::speech::{
     Line, Speaker, child, count, entries, field, json_list, plain, section, text, usage_line,
 };
@@ -47,12 +48,21 @@ pub enum QueryKind {
     RulesHeld,
     /// `preview-rename`.
     Rename,
+    /// `modules`.
+    Modules,
     /// `scans`.
     Scans,
     /// `compare`.
     Compare,
     /// `change`.
     Change,
+    /// `compare --metrics`; says which lists are printed: the worse ones, the better ones.
+    Metrics {
+        /// Whether the list of what got worse is printed.
+        worse: bool,
+        /// Whether the list of what got better is printed.
+        better: bool,
+    },
 }
 
 /// The answer of a tool as the JSON of a command: the fields of the answer plus `schema` (the
@@ -435,9 +445,13 @@ fn body(speak: &Speaker<'_>, kind: QueryKind, answer: &Value) -> Result<Vec<Stri
         QueryKind::Rules => rules_lines(speak, answer),
         QueryKind::RulesHeld => held_lines(speak, answer),
         QueryKind::Rename => rename_lines(speak, answer),
+        QueryKind::Modules => modules_lines(speak, answer),
         QueryKind::Scans => scans_lines(speak, answer),
         QueryKind::Compare => compare_lines(speak, answer),
         QueryKind::Change => change_lines(speak, answer),
+        QueryKind::Metrics { worse, better } => {
+            crate::metrics_text::metrics_lines(speak, answer, (worse, better))
+        }
     }
 }
 

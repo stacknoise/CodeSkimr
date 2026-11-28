@@ -444,3 +444,7 @@ pub const PAD: &str = "0";
 pub const YEAR_DIGITS: usize = 4;
 /// Calendar arithmetic of `Timestamp::iso_date`: part digits.
 pub const PART_DIGITS: usize = 2;
+
+/// What a move may fall short of its threshold by and still count: differences of decimal values
+/// such as `0.6 - 0.5` come out a hair under `0.1` (ADR 0114, "at least").
+pub const MOVE_TOLERANCE: f64 = 1e-9;

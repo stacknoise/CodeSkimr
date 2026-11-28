@@ -581,6 +581,14 @@ pub mod scope_arg {
     pub const FILES: &str = "files";
     /// `{ $count }`: number of folders that are not listed.
     pub const COUNT: &str = "count";
+    /// `{ $folder }`: the starting folder of an abapGit project.
+    pub const FOLDER: &str = "folder";
+    /// `{ $logic }`: the folder logic of an abapGit project.
+    pub const LOGIC: &str = "logic";
+    /// `{ $objects }`: number of objects of an abapGit project.
+    pub const OBJECTS: &str = "objects";
+    /// `{ $packages }`: number of packages of an abapGit project.
+    pub const PACKAGES: &str = "packages";
 }
 
 /// Largest project file that is read; a bigger one is refused.
@@ -598,3 +606,40 @@ pub const UI_LAYER_NEWLINE: &str = "\n";
 
 /// The field of the answer of `rules` that counts the violations the held state does not have.
 pub const NEW_VIOLATIONS: &str = "new";
+
+/// The folder of the log files inside the data folder (ADR 0115).
+pub const LOG_DIR: &str = "logs";
+/// The active log file inside [`LOG_DIR`]; older ones carry `.1`, `.2` and so on behind it.
+pub const LOG_FILE: &str = "codeskimr.log";
+/// The size at which the active log file is renamed and a new one starts.
+pub const LOG_FILE_MAX_BYTES: u64 = 10 * 1024 * 1024;
+/// How many log files exist at most, the active one included.
+pub const LOG_FILES_KEPT: u32 = 5;
+/// How much of the end of the log file the UI can read at once.
+pub const LOG_TAIL_BYTES: u64 = 512 * 1024;
+/// The most lines one read of the log gives.
+pub const LOG_TAIL_MAX_LINES: usize = 2000;
+/// How long a level other than the default stays; then the default counts again.
+pub const LOG_LEVEL_HOLD: Duration = Duration::from_secs(24 * 60 * 60);
+/// Permission bits of a log file on Unix: the owner only.
+pub const LOG_FILE_MODE: u32 = 0o600;
+/// Separates the name of the log file from the number of an old one: `codeskimr.log.1`.
+pub const LOG_OLD_SEPARATOR: &str = ".";
+/// Name of the thread that takes the default log level back.
+pub const LOG_RESET_THREAD: &str = "log-level-reset";
+/// The start of the targets (crate names) the chosen log level applies to. Libraries stay at the
+/// default level, so that a level of Debug or Trace does not log their requests and headers.
+pub const LOG_TARGET_PREFIX: &str = "codeskimr";
+/// Permission bits of the folder of the log files on Unix: the owner only.
+pub const LOG_DIR_MODE: u32 = 0o700;
+/// The log levels the UI offers, from silent to everything.
+pub const LOG_LEVELS: [tracing_subscriber::filter::LevelFilter; 5] = [
+    tracing_subscriber::filter::LevelFilter::OFF,
+    tracing_subscriber::filter::LevelFilter::WARN,
+    tracing_subscriber::filter::LevelFilter::INFO,
+    tracing_subscriber::filter::LevelFilter::DEBUG,
+    tracing_subscriber::filter::LevelFilter::TRACE,
+];
+
+/// Most bytes read from `.abapgit.xml`; the file is a few hundred bytes long.
+pub const ABAPGIT_CONFIG_MAX_BYTES: u64 = 65_536;

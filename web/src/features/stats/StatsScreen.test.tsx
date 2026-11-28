@@ -308,9 +308,47 @@ describe("StatsScreen: rankings", () => {
     expect(
       within(table).getByText("public: users outside the project are possible"),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "very likely unused" }));
+    const filter = screen.getByRole("combobox", { name: "Assessment" });
+    expect(
+      within(filter)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual([
+      "All",
+      "Internal or protected",
+      "Private",
+      "Public: may be used from outside",
+      "Uncertain: usages are an approximation",
+      "Very likely unused",
+    ]);
+    setLanguage("de");
     await waitFor(() =>
-      expect(inputs("stats.ranking").at(-1)).toMatchObject({ assessment: "likely" }),
+      expect(
+        within(screen.getByRole("combobox", { name: "Einschätzung" }))
+          .getAllByRole("option")
+          .map((option) => option.textContent),
+      ).toEqual([
+        "Alle",
+        "Intern oder geschützt",
+        "Öffentlich: von außen möglich",
+        "Privat",
+        "Sehr wahrscheinlich ungenutzt",
+        "Unsicher: Verwendungen sind eine Näherung",
+      ]),
+    );
+    setLanguage("en");
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Assessment" })).toBeTruthy());
+    fireEvent.change(filter, { target: { value: "likely" } });
+    await waitFor(() =>
+      expect(inputs("stats.ranking").at(-1)).toMatchObject({ assessment: "likely", reason: null }),
+    );
+    fireEvent.change(filter, { target: { value: "private" } });
+    await waitFor(() =>
+      expect(inputs("stats.ranking").at(-1)).toMatchObject({ assessment: null, reason: "private" }),
+    );
+    fireEvent.change(filter, { target: { value: "" } });
+    await waitFor(() =>
+      expect(inputs("stats.ranking").at(-1)).toMatchObject({ assessment: null, reason: null }),
     );
   });
 

@@ -3,7 +3,9 @@
 
 use std::fs;
 
-use codeskimr_cli::{CompareQuery, QueryAction, QueryTarget, ScansQuery};
+use codeskimr_cli::{
+    CompareQuery, MetricsOptions, MetricsSide, QueryAction, QueryTarget, ScansQuery,
+};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::ScanMode;
 use serde_json::Value;
@@ -49,6 +51,7 @@ fn query(json: bool, markdown: bool) -> CompareQuery {
         base: None,
         newer: None,
         markdown,
+        metrics: None,
         target: target(json),
     }
 }
@@ -149,4 +152,40 @@ fn one_scan_has_nothing_to_compare() {
         target: target(false),
     }));
     assert!(scans.contains("1 kept"), "{scans}");
+}
+
+fn metrics(json: bool, level: &str) -> QueryAction {
+    let mut found = query(json, false);
+    found.metrics = Some(MetricsOptions {
+        side: MetricsSide::Both,
+        only: Vec::new(),
+        level: Some(level.to_owned()),
+        include_tests: false,
+    });
+    QueryAction::Compare(found)
+}
+
+#[test]
+fn compare_metrics_answers_in_json_and_text_and_refuses_an_unknown_level() {
+    let world = two_scans();
+    let answer = world.json(&metrics(true, "member"));
+    assert_eq!(answer["schema"], 1);
+    assert_eq!(answer["level"], "member");
+    assert!(answer["worse"]["items"].is_array());
+    let text = world.text(&metrics(false, "type"));
+    assert!(text.contains("worse"), "{text}");
+    let failure = world.run(&metrics(true, "galaxy"), "en").unwrap_err();
+    assert_eq!(failure.code(), ErrorCode::RequestInvalid);
+}
+
+#[test]
+fn compare_metrics_prints_the_markdown_for_a_comment() {
+    let world = two_scans();
+    let QueryAction::Compare(mut found) = metrics(false, "member") else {
+        panic!("not a compare");
+    };
+    found.markdown = true;
+    let text = world.text(&QueryAction::Compare(found));
+    assert!(text.starts_with("<!-- codeskimr-metrics -->"), "{text}");
+    assert!(text.contains("metric changes from scan"), "{text}");
 }

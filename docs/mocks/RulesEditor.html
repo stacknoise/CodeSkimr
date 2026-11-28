@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>Mock 41: Rules, create and edit (erw-regeln-bearbeiten)</title>
+<style>
+.hell{--bg:#F6F7F9;--surface:#FFFFFF;--line:#E3E6EB;--soft:#EEF0F3;--ink:#14171C;--ink2:#3A414C;--muted:#5B6370;--accent:#2457D6;--accentbg:#EAF0FD;--fg:#fff;--good:#15803D;--goodbg:#EAF7EF;--warn:#B45309;--warnbg:#FFF4E5;--bad:#B91C1C;--badbg:#FDF2F2;--hl:#FFF7D6;--k1:#2457D6;--k2:#7C3AED;--k3:#0F766E;--k5:#BE185D;--l1:#2457D6;--l2:#0F766E;--l3:#7C3AED;--shade:rgba(20,23,28,.32)}
+.petrol{--bg:#F4F6F8;--surface:#FFFFFF;--line:#DDE3EA;--soft:#E8EDF2;--ink:#1B2430;--ink2:#3A4656;--muted:#5D6B7C;--accent:#0C727B;--accentbg:#DFF1F2;--fg:#fff;--good:#1F7A45;--goodbg:#DDF3E5;--warn:#8A5A00;--warnbg:#FBECCB;--bad:#A82D2D;--badbg:#F9DCDC;--hl:#FFF7D6;--k1:#2457D6;--k2:#7C3AED;--k3:#0F766E;--k5:#BE185D;--l1:#2457D6;--l2:#0F766E;--l3:#7C3AED;--shade:rgba(27,36,48,.32)}
+.dunkel{--bg:#12171D;--surface:#1A212A;--line:#2C3643;--soft:#232C37;--ink:#E6EBF1;--ink2:#C5CED9;--muted:#97A4B4;--accent:#3BB6C1;--accentbg:#16363B;--fg:#06222A;--good:#5FD18B;--goodbg:#173826;--warn:#F0BD5A;--warnbg:#3A2D10;--bad:#FF8C8C;--badbg:#401B1B;--hl:#3A3413;--k1:#6E9BFF;--k2:#A78BFA;--k3:#2DD4BF;--k5:#F472B6;--l1:#6E9BFF;--l2:#2DD4BF;--l3:#A78BFA;--shade:rgba(0,0,0,.5)}
+*{box-sizing:border-box}html,body{margin:0;background:#888}
+.board{position:relative;width:1440px;height:900px;overflow:hidden;background:var(--bg);color:var(--ink);font:13px Inter,system-ui,sans-serif;display:flex;flex-direction:column;margin-bottom:24px}
+.mono{font-family:'JetBrains Mono','DejaVu Sans Mono',ui-monospace,monospace;font-size:12px}
+header{height:48px;flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.logo{width:24px;height:24px;border-radius:6px;background:var(--ink);color:var(--surface);display:grid;place-items:center;font-weight:700}
+.search{flex:1;max-width:440px;border:1px solid var(--line);border-radius:8px;padding:6px 12px;color:var(--muted);display:flex;justify-content:space-between;background:var(--bg)}
+.chip{font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:4px 9px;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.main{display:flex;flex:1;min-height:0}
+.rail{width:56px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:6px}
+.rb{width:40px;height:40px;border-radius:8px;display:grid;place-items:center;color:var(--ink2);position:relative}
+.rb svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.rb.on{background:var(--accentbg);color:var(--accent)}
+.rb.neu::after{content:"neu";position:absolute;right:-3px;top:-3px;font:700 8px Inter,sans-serif;background:var(--accent);color:var(--fg);border-radius:6px;padding:1px 3px}
+.spacer{flex:1}
+.content{flex:1;min-width:0;display:flex;flex-direction:column}
+.status{height:28px;flex:none;border-top:1px solid var(--line);background:var(--surface);display:flex;align-items:center;gap:18px;padding:0 16px;font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;color:var(--muted);white-space:nowrap}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--good);margin-right:6px}
+.btn{font:12px Inter,sans-serif;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:5px 10px;white-space:nowrap;display:inline-block}
+.btn.pri{background:var(--accent);color:var(--fg);border-color:var(--accent);font-weight:600}
+.btn.on{background:var(--accentbg);border-color:var(--accent);color:var(--accent);font-weight:600}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:0}
+.k{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.pill{display:inline-block;font-size:11px;font-weight:700;border-radius:9px;padding:2px 9px;white-space:nowrap}
+.pill.good{background:var(--goodbg);color:var(--good)}.pill.warn{background:var(--warnbg);color:var(--warn)}.pill.bad{background:var(--badbg);color:var(--bad)}.pill.n{background:var(--soft);color:var(--ink2)}.pill.acc{background:var(--accentbg);color:var(--accent)}
+.m{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:4px;font:700 12px 'JetBrains Mono','DejaVu Sans Mono',monospace;flex:none}
+.m.add{background:var(--goodbg);color:var(--good)}.m.chg{background:var(--warnbg);color:var(--warn)}.m.del{background:var(--badbg);color:var(--bad)}
+.kb{width:16px;height:16px;border-radius:4px;color:#fff;font:700 10px Inter,sans-serif;display:grid;place-items:center;flex:none}
+.page{padding:18px 26px;flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
+.head{display:flex;align-items:center;gap:10px}
+h1{margin:0;font:600 22px Inter,sans-serif}
+.sub{color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(5,1fr)}
+.tile{padding:10px 14px;border-right:1px solid var(--soft)}.tile:last-child{border:0}
+.tile .v{font:600 19px 'JetBrains Mono','DejaVu Sans Mono',monospace;display:flex;align-items:baseline;gap:6px}
+.tile .l{font-size:12px;color:var(--muted);margin-top:2px}
+.tile small{font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;color:var(--muted);font-weight:400}
+.cols{flex:1;min-height:0;display:flex;gap:12px}
+.th{display:flex;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:11px;font-weight:600;color:var(--muted);align-items:center}
+.row{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--soft);white-space:nowrap}
+.row:last-child{border:0}.row.sel{background:var(--accentbg);box-shadow:inset 3px 0 0 var(--accent)}.row.hl{background:var(--hl)}
+.name{font:500 13px 'JetBrains Mono','DejaVu Sans Mono',monospace}
+.gone{text-decoration:line-through;color:var(--muted)}
+.sig{color:var(--muted);font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;overflow:hidden;text-overflow:ellipsis}
+.num{font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;text-align:right}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line)}
+.tab{padding:9px 12px;border-bottom:2px solid transparent;color:var(--ink2);display:flex;gap:6px;align-items:center}
+.tab.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+.note{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--warn);background:var(--warnbg);color:var(--ink);border-radius:10px;padding:9px 14px;line-height:1.45}
+.note.info{border-color:var(--accent);background:var(--accentbg)}
+.pad{padding:12px 14px}
+.code{font:12px/1.6 'JetBrains Mono','DejaVu Sans Mono',monospace;white-space:pre;color:var(--ink2)}
+.code b{color:var(--accent);font-weight:500}.code i{color:var(--muted);font-style:normal}.code u{color:var(--k2);text-decoration:none}.code s{color:var(--good);text-decoration:none}
+.shade{position:absolute;inset:0;background:var(--shade)}
+.dlg{position:absolute;left:50%;top:70px;transform:translateX(-50%);width:900px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.3);line-height:1.5}
+.cap{position:absolute;right:16px;bottom:38px;max-width:560px;background:var(--ink);color:var(--surface);border-radius:8px;padding:8px 12px;font-size:12px;line-height:1.45}
+.grp{padding:6px 12px;background:var(--bg);border-bottom:1px solid var(--soft);font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;color:var(--ink2);display:flex;gap:8px;align-items:center}
+.bar{height:6px;border-radius:3px;background:var(--soft);overflow:hidden;flex:none}.bar i{display:block;height:100%;background:var(--accent)}
+.lens{color:var(--muted);font:11px Inter,sans-serif}
+.ln{display:inline-block;width:34px;color:var(--muted);opacity:.7;text-align:right;margin-right:14px}
+svg text{font:11px Inter,sans-serif;fill:var(--ink2)}
+.fld{display:flex;flex-direction:column;gap:4px;min-width:0}.fld label{font-size:11px;font-weight:600;color:var(--muted)}
+.inp{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:6px 10px;font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:30px}
+.inp.foc{border-color:var(--accent);box-shadow:0 0 0 2px var(--accentbg)}
+.cb{width:15px;height:15px;border-radius:4px;border:1px solid var(--muted);display:inline-grid;place-items:center;font:700 11px Inter,sans-serif;color:var(--fg);flex:none}.cb.on{background:var(--accent);border-color:var(--accent)}.cb.off{background:var(--surface)}
+.ib{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;color:var(--ink2);border:1px solid transparent}.ib svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.ib:hover,.ib.hot{border-color:var(--line);background:var(--bg)}
+.rc{background:var(--surface);border:1px solid var(--line);border-radius:10px}.rc .h{display:flex;align-items:center;gap:10px;padding:10px 12px}.rc .v{border-top:1px solid var(--soft);padding:8px 12px 8px 42px;display:flex;gap:10px;align-items:center}
+.mk{width:20px;height:20px;border-radius:5px;display:grid;place-items:center;font:700 12px Inter,sans-serif;flex:none}.mk.ok{background:var(--goodbg);color:var(--good)}.mk.no{background:var(--badbg);color:var(--bad)}
+.sw{width:34px;height:20px;border-radius:10px;background:var(--accent);position:relative;flex:none}.sw::after{content:"";position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:var(--fg)}.sw.off{background:var(--line)}.sw.off::after{right:auto;left:2px;background:var(--surface)}
+.dlg2{position:absolute;left:50%;top:90px;transform:translateX(-50%);width:640px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.3);line-height:1.5}
+.dlg2 .t{padding:14px 18px;border-bottom:1px solid var(--line);font:600 16px Inter,sans-serif}.dlg2 .b{padding:16px 18px;display:flex;flex-direction:column;gap:12px}.dlg2 .f{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;align-items:center}
+.mx{display:grid;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden}.mx>div{padding:7px 10px;border-bottom:1px solid var(--soft);border-right:1px solid var(--soft);display:flex;align-items:center;justify-content:center;font-size:12px}.mx>div.l{justify-content:flex-start;font:12px 'JetBrains Mono','DejaVu Sans Mono',monospace}.mx>div.hd{background:var(--bg);font-weight:600;color:var(--muted)}
+.menu{position:absolute;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.25);padding:4px;width:360px}.menu div{padding:7px 10px;border-radius:6px;display:flex;flex-direction:column}.menu div small{color:var(--muted);font-size:11px}.menu div.on{background:var(--accentbg)}
+</style></head><body><div id="root"></div>
+<script>
+const I={
+ folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+ list:'<path d="M5 5h14M5 10h8M5 15h14M5 20h8"/>',
+ graph:'<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8 7l8 1M7 8l4 8M17 10l-4 6"/>',
+ stats:'<path d="M5 20V10M12 20V4M19 20v-7"/>',
+ diff:'<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 9v9M18 15V9a3 3 0 0 0-3-3h-3l2-2m-2 2l2 2"/>',
+ rules:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+ trend:'<path d="M3 17l6-6 4 4 8-9M15 6h6v6"/>',
+ adr:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',
+ pen:'<path d="M4 20l4-1 11-11-3-3L5 16z"/>',
+ bin:'<path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"/>'
+};
+const ic=n=>`<svg viewBox="0 0 24 24">${I[n]}</svg>`;
+const pill=(c,t)=>`<span class="pill ${c}">${t}</span>`;
+const P='shop-backend';
+function frame(theme,o){
+  const rb=(n)=>`<div class="rb ${o.rail===n?'on':''}">${ic(n)}</div>`;
+  return `<div class="board ${theme}" data-name="${o.name}">
+  <header><div class="logo">C</div><b>CodeSkimr</b><span style="color:var(--muted)">/</span><b>${P}</b><span class="chip">Arbeitsordner · jetzt</span>
+   <div class="search"><span>Typ, Member oder Befehl …</span><span class="mono">Strg K</span></div><span class="spacer"></span></header>
+  <div class="main"><nav class="rail">${rb('folder')}${rb('list')}${rb('graph')}${rb('stats')}${rb('diff')}${rb('rules')}${rb('trend')}${rb('adr')}<div class="spacer"></div>${rb('gear')}</nav>
+   <div class="content">${o.body}<div class="status"><span><span class="dot"></span>Verbunden</span><span>412 Dateien · 6.180 Symbole</span><span style="margin-left:auto">DE | EN</span></div></div></div>
+  ${o.over??''}${o.cap?`<div class="cap">${o.cap}</div>`:''}</div>`;
+}
+const edit=(hot)=>`<span class="ib ${hot?'hot':''}" title="Bearbeiten">${ic('pen')}</span><span class="ib" title="Löschen">${ic('bin')}</span>`;
+const card=(ok,title,spec,badge,viol,acts=edit())=>`<div class="rc"><div class="h"><span class="mk ${ok?'ok':'no'}">${ok?'✓':'×'}</span><b>${title}</b><span class="mono" style="color:var(--muted)">${spec}</span><span class="spacer"></span>${badge}${acts}</div>${viol??''}</div>`;
+const viol=(a,b,n,age)=>`<div class="v"><span class="mono">${a}</span><span style="color:var(--muted)">→</span><span class="mono">${b}</span><span class="sub">${n} Stellen</span><span class="spacer"></span>${pill(age==='neu'?'bad':'n',age==='neu'?'neu':'Altlast')}</div>`;
+const tiles=`<div class="card tiles" style="grid-template-columns:repeat(3,1fr)"><div class="tile"><div class="v">3 erfüllt</div><div class="l">Regeln</div></div><div class="tile"><div class="v">1 neu</div><div class="l">Verstöße, die die CI brechen</div></div><div class="tile"><div class="v">4 Altlasten</div><div class="l">Stand vom 2026-11-25</div></div></div>`;
+const addBtn=(open)=>`<span class="btn pri">+ Regel hinzufügen ▾</span>`;
+const rules=(hot)=>`${card(0,'Schichten','Api → Domain · Data → nichts',pill('bad','1 neu'),viol('Shop.Api.OrdersController','Shop.Data.OrderRepository',2,'neu'),edit(hot==='layers'))}
+${card(1,'Keine Zyklen zwischen Modulen','cycles = "deny"',pill('good','erfüllt'),'',edit(hot==='cycles'))}
+${card(0,'Verbot: Shop.Reports darf Shop.Checkout nicht nutzen','',pill('n','3 Altlasten'),viol('Shop.Reports.Monthly','Shop.Checkout.Cart.Total',3,'alt'),edit(hot==='forbid'))}
+${card(1,'Nur über die öffentliche Schnittstelle','Shop.Data.Internal.* nur innerhalb Shop.Data',pill('good','erfüllt'),'',edit())}`;
+const head1=(extra='')=>`<div class="head"><h1>Regeln</h1><span class="sub">aus .codeskimr.toml · gegen den letzten Scan geprüft</span><span class="spacer"></span>${extra}<span class="btn">.codeskimr.toml öffnen</span><span class="btn">Stand festhalten</span></div>`;
+const fld=(l,v,foc,hint)=>`<div class="fld"><label>${l}</label><div class="inp ${foc?'foc':''}"><span>${v}</span><span style="color:var(--muted)">▾</span></div>${hint?`<span class="sub" style="font-size:11px">${hint}</span>`:''}</div>`;
+const dlg=(title,body,ok='Speichern')=>`<div class="shade"></div><div class="dlg2"><div class="t">${title}</div><div class="b">${body}</div><div class="f"><span class="sub" style="margin-right:auto">Schreibt in .codeskimr.toml, Kommentare bleiben.</span><span class="btn">Abbrechen</span><span class="btn pri">${ok}</span></div></div>`;
+const cb=(on)=>`<span class="cb ${on?'on':'off'}">${on?'✓':''}</span>`;
+
+/* a1: Liste mit Knöpfen + Menü */
+function a1(t){return frame(t,{name:'erw-regeln-bearbeiten-a1',rail:'rules',body:`<div class="page">${head1(addBtn())}${tiles}${rules()}</div>
+ <div class="menu" style="right:226px;top:112px"><div class="on"><b>Verbot</b><small>Modul A darf Modul B nicht nutzen</small></div><div><b>Nur über die öffentliche Schnittstelle</b><small>Inneres eines Moduls bleibt geschlossen</small></div><div><b>Zyklen verbieten</b><small>Schalter, keine neue Karte</small></div><div><b>Schichten</b><small>Öffnet den Schicht-Editor</small></div></div>`,
+ cap:'Variante A: jede Regel hat Stift und Papierkorb. Ein Dialog ändert genau eine Regel und schreibt sofort.'});}
+/* a2: Dialog Verbot */
+function a2(t){return frame(t,{name:'erw-regeln-bearbeiten-a2',rail:'rules',body:`<div class="page">${head1(addBtn())}${tiles}${rules('forbid')}</div>`,
+ over:dlg('Verbot ändern',`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${fld('Dieses Modul …','Shop.Reports',1,'aus den Namensräumen des Scans, 38 Treffer')}${fld('… darf dieses Modul nicht nutzen','Shop.Checkout',0,'Präfix, auch Eigenes eintippen')}</div>
+  <div class="fld"><label>Grund (optional, wird auf der Seite gezeigt)</label><div class="inp"><span style="font-family:Inter,sans-serif">Berichte lesen nur über die Reporting-Schnittstelle</span></div></div>
+  <div class="note info"><span><b>Vorschau:</b> mit dem letzten Scan wären das <b>3 Verstöße</b> (alle schon vorhanden). Stellen im Code: Shop.Reports.Monthly.</span></div>
+  <div class="code"><i># .codeskimr.toml</i>\n<b>[[rules.forbid]]</b>\nfrom = <s>"Shop.Reports"</s>\nto = <s>"Shop.Checkout"</s>\nreason = <s>"Berichte lesen nur über die Reporting-Schnittstelle"</s></div>`),
+ cap:'Der Dialog zeigt vorher, was herauskäme, und den Text, der in die Datei geschrieben wird.'});}
+/* a3: Dialog Schichten-Matrix */
+function a3(t){
+ const L=['Api','Domain','Data'],cells=[[0,1,0],[0,0,0],[0,1,0]];
+ const grid=`<div class="mx" style="grid-template-columns:140px repeat(3,1fr)"><div class="hd l">darf nutzen →</div>${L.map(x=>`<div class="hd">${x}</div>`).join('')}${L.map((r,i)=>`<div class="l">${r}</div>${L.map((c,j)=>i===j?'<div style="color:var(--muted)">–</div>':`<div>${cb(cells[i][j])}</div>`).join('')}`).join('')}</div>`;
+ return frame(t,{name:'erw-regeln-bearbeiten-a3',rail:'rules',body:`<div class="page">${head1(addBtn())}${tiles}${rules('layers')}</div>`,
+ over:dlg('Schichten: wer darf wen nutzen',`<div class="sub">Zeile nutzt Spalte. Ohne Häkchen in einer Zeile: kein Limit. Namensräume der Schichten ordnest du im <u>Schicht-Editor</u> zu.</div>${grid}<div class="sub">Hakenlose Zeile unterscheidet sich von „nichts“: Schalter „Schicht darf nichts nutzen“ je Zeile.</div>`),
+ cap:'Namen und Namensräume der Schichten bleiben im vorhandenen Schicht-Editor; hier nur „darf nutzen“.'});}
+/* b1: Bearbeiten-Modus */
+function b1(t){
+ const forbidRow=(a,b,r)=>`<div class="row" style="gap:8px"><div class="inp" style="width:230px"><span>${a}</span><span style="color:var(--muted)">▾</span></div><span>darf nicht</span><div class="inp" style="width:230px"><span>${b}</span><span style="color:var(--muted)">▾</span></div><div class="inp" style="flex:1"><span style="font-family:Inter,sans-serif;color:var(--muted)">${r||'Grund (optional)'}</span></div><span class="ib">${ic('bin')}</span></div>`;
+ return frame(t,{name:'erw-regeln-bearbeiten-b1',rail:'rules',body:`<div class="page"><div class="head"><h1>Regeln bearbeiten</h1><span class="sub">Änderungen werden erst mit „Speichern“ in .codeskimr.toml geschrieben</span><span class="spacer"></span><span class="btn">Verwerfen</span><span class="btn pri">Speichern · 2 Änderungen</span></div>
+ <div class="card"><div class="pad" style="display:flex;gap:12px;align-items:center"><span class="sw"></span><b>Zyklen zwischen Modulen verbieten</b><span class="sub">cycles = "deny"</span></div></div>
+ <div class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;align-items:center"><b>Verbote</b><span class="spacer"></span><span class="btn">+ Verbot</span></div>${forbidRow('Shop.Reports','Shop.Checkout','Berichte lesen nur über Reporting')}${forbidRow('Shop.Orders','Shop.Api','')}</div>
+ <div class="card"><div class="pad" style="border-bottom:1px solid var(--line);display:flex;align-items:center"><b>Nur über die öffentliche Schnittstelle</b><span class="spacer"></span><span class="btn">+ Modul</span></div><div class="row" style="gap:8px"><div class="inp" style="width:230px"><span>Shop.Data</span><span style="color:var(--muted)">▾</span></div><span>schließt</span><div class="inp" style="flex:1"><span>Shop.Data.Internal ✕</span></div><span class="ib">${ic('bin')}</span></div></div>
+ <div class="card"><div class="pad" style="display:flex;align-items:center;gap:10px"><b>Schichten</b><span class="sub">Api → Domain · Data → nichts</span><span class="spacer"></span><span class="btn">Schicht-Editor öffnen</span></div></div></div>`,
+ cap:'Variante B: eine Bearbeiten-Seite wie der Schicht-Editor, alles zusammen mit einem Speichern. Vorschau der Verstöße erst nach dem Speichern.'});}
+
+/* a4: Reiter Schichten */
+function a4(t){
+ const lay=(n,ns,u)=>`<div class="rc"><div class="h"><b>${n}</b><span class="mono" style="color:var(--muted)">${ns}</span><span class="spacer"></span>${pill('n',u)}<span class="ib">${ic('pen')}</span><span class="ib">${ic('bin')}</span></div></div>`;
+ return frame(t,{name:'erw-regeln-bearbeiten-a4',rail:'rules',body:`<div class="page"><div class="tabs"><span class="tab">Regeln</span><span class="tab on">Schichten</span></div>
+ <div class="head"><h1>Schichten</h1><span class="sub">Namensräume den Schichten zuordnen; die Reihenfolge gilt von außen nach innen</span><span class="spacer"></span><span class="btn">Darf nutzen …</span><span class="btn pri">+ Schicht</span></div>
+ ${lay('Api','Shop.Api, Shop.Orders','darf: Domain')}${lay('Domain','Shop.Domain, Shop.Pricing','kein Limit')}${lay('Data','Shop.Data','darf: nichts')}</div>`,
+ cap:'Die Schichten sind ein Reiter der Seite Regeln. „Schichten bearbeiten“ in den Einstellungen entfällt.'});}
+const V={a1,a2,a3,a4,b1},THEMES=['petrol','hell','dunkel'],q=new URLSearchParams(location.search),asked=q.get('t'),only=THEMES.find(x=>x===asked),want=q.get('v');
+const boards=Object.entries(V).filter(([k])=>want===null||k===want).map(([,f])=>f);
+document.getElementById('root').innerHTML=(boards.length?boards:Object.values(V)).map(f=>(only?[only]:THEMES).map(t=>f(t)).join('')).join('');
+</script></body></html>

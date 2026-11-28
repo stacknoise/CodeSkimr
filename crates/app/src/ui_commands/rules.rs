@@ -22,8 +22,9 @@ use super::consts::{
 };
 use super::explorer::ExplorerPorts;
 use super::layers::write_project_file;
+use super::rules_symbols::attach_symbols;
 use crate::clock::SystemClock;
-use crate::rules_check::{files_of, rules_of};
+use crate::rules_check::{project_file_state, project_files};
 
 /// The input of `rules.show`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -56,6 +57,19 @@ pub struct ViolationOut {
     pub places: Vec<PlaceOut>,
     /// For a cycle, the ring behind it; `from` and `to` are then the ends of its weakest edge.
     pub ring: Option<RingOut>,
+    /// The symbol `from` names in the newest scan, so the screen can show it in the explorer.
+    pub from_symbol: Option<SymbolRef>,
+    /// The symbol `to` names in the newest scan.
+    pub to_symbol: Option<SymbolRef>,
+}
+
+/// A symbol of the newest scan: what the explorer needs to open it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SymbolRef {
+    /// Id of the symbol.
+    pub id: u64,
+    /// Kind label.
+    pub kind: &'static str,
 }
 
 /// The ring of modules behind a cycle violation.
@@ -114,6 +128,9 @@ pub struct RulesOut {
     pub cycles: bool,
     /// The day the state was held, `None` if it never was.
     pub held_on: Option<String>,
+    /// The version of the project file as the rules were read; a client sends it back with a
+    /// change, and a file that changed meanwhile is not overwritten. Empty for a Git project.
+    pub file_version: String,
     /// The rules, in the order of the project file.
     pub rules: Vec<RuleOut>,
     /// Held violations that are gone.
@@ -143,6 +160,8 @@ fn violations_of(outcome: &Outcome) -> Vec<ViolationOut> {
             to: violation.to.to_string(),
             old: violation.old,
             ring: violation.ring.as_ref().map(ring_out),
+            from_symbol: None,
+            to_symbol: None,
             places: violation
                 .places
                 .iter()
@@ -273,39 +292,78 @@ impl Command for RulesShow {
     ///   invalid value: the screen fails instead of showing every rule as kept.
     fn execute(&self, request: Request<'_, Self>) -> Result<RulesOut, CodedError> {
         let (project, snapshot) = self.ports.project_and_newest(request.input.project)?;
-        let (rules, baseline) = files_of(&project.source)?;
-        let cycles = rules.cycles == CycleRule::Deny;
+        let snapshot_id = snapshot.map(|snapshot| snapshot.id);
+        let files = project_files(&project.source)?;
         let holdable = matches!(project.source, ProjectSource::Folder(_));
-        let Some(snapshot) = snapshot else {
-            return Ok(RulesOut {
-                scanned: false,
-                holdable,
-                cycles,
-                held_on: None,
-                rules: Vec::new(),
-                resolved: 0,
-                old: 0,
-                new: 0,
-            });
-        };
-        let answer = report(
-            &rules,
-            &project.layers,
-            baseline.as_ref(),
+        let shown = judged(
             self.ports.references.as_ref(),
-            snapshot.id,
+            &Candidate {
+                rules: &files.rules,
+                layers: files.layers.as_deref().unwrap_or(&project.layers),
+                baseline: files.baseline.as_ref(),
+                holdable,
+            },
+            snapshot_id,
         )?;
-        Ok(RulesOut {
-            scanned: true,
+        let mut shown = RulesOut {
+            file_version: files.version,
+            ..shown
+        };
+        if let Some(snapshot) = snapshot_id {
+            attach_symbols(self.ports.index.as_ref(), snapshot, &mut shown.rules);
+        }
+        Ok(shown)
+    }
+}
+
+/// The rules to judge, the layers they are judged with and the held state they are held against.
+pub(super) struct Candidate<'a> {
+    pub(super) rules: &'a Rules,
+    pub(super) layers: &'a [Layer],
+    pub(super) baseline: Option<&'a Baseline>,
+    pub(super) holdable: bool,
+}
+
+/// The answer of `rules.show` for `candidate` over the references of `snapshot`; without a scan
+/// there is nothing to judge.
+pub(super) fn judged(
+    references: &dyn ReferencePlaces,
+    candidate: &Candidate<'_>,
+    snapshot: Option<SnapshotId>,
+) -> Result<RulesOut, CodedError> {
+    let cycles = candidate.rules.cycles == CycleRule::Deny;
+    let holdable = candidate.holdable;
+    let Some(snapshot) = snapshot else {
+        return Ok(RulesOut {
+            scanned: false,
             holdable,
             cycles,
-            held_on: answer.held_on.clone(),
-            old: answer.old_burdens(),
-            new: answer.new_violations(),
-            resolved: answer.resolved.len(),
-            rules: rules_out(&answer.outcomes, &rules, &project.layers),
-        })
-    }
+            held_on: None,
+            file_version: String::new(),
+            rules: Vec::new(),
+            resolved: 0,
+            old: 0,
+            new: 0,
+        });
+    };
+    let answer = report(
+        candidate.rules,
+        candidate.layers,
+        candidate.baseline,
+        references,
+        snapshot,
+    )?;
+    Ok(RulesOut {
+        scanned: true,
+        holdable,
+        cycles,
+        held_on: answer.held_on.clone(),
+        file_version: String::new(),
+        old: answer.old_burdens(),
+        new: answer.new_violations(),
+        resolved: answer.resolved.len(),
+        rules: rules_out(&answer.outcomes, candidate.rules, candidate.layers),
+    })
 }
 
 /// What holding the state wrote.
@@ -333,8 +391,9 @@ pub(crate) fn hold(
     let ProjectSource::Folder(folder) = &project.source else {
         return Err(CodedError::new(ErrorCode::ProjectSourceInvalid));
     };
-    let rules = rules_of(&project.source)?;
-    let answer = report(&rules, &project.layers, None, references, snapshot)?;
+    let files = project_file_state(&project.source)?;
+    let layers = files.layers.as_deref().unwrap_or(&project.layers);
+    let answer = report(&files.rules, layers, None, references, snapshot)?;
     let held_on = now.iso_date();
     let state = Baseline::holding(&held_on, &answer.outcomes);
     write_project_file(

@@ -28,7 +28,9 @@ const LINE_OFFSET: u32 = 1;
 pub struct ScanOut {
     /// Id of the snapshot the scan wrote; two of them can be compared.
     pub snapshot: u64,
-    /// When the last scan that wrote or confirmed the snapshot ran, in seconds since the epoch.
+    /// Identifies the scan itself; several scans that found nothing changed share one snapshot.
+    pub scan: u64,
+    /// When the scan ended, in seconds since the epoch.
     pub created: i64,
     /// Commit, if the source is a Git repository.
     pub commit: Option<String>,
@@ -44,12 +46,25 @@ pub struct ScanOut {
     /// Files that scan changed against the previous snapshot; `None` for the first scan and for
     /// a snapshot written before this was stored.
     pub files_changed: Option<u32>,
+    /// How long each step of writing the snapshot took, in the order of the write; empty for a
+    /// scan that wrote nothing and for one stored before the times were kept.
+    pub steps: Vec<StepOut>,
+}
+
+/// The time one step of writing a snapshot took.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct StepOut {
+    /// Label of the step (`PersistStep::label`).
+    pub step: &'static str,
+    /// Wall time of the step in milliseconds.
+    pub duration_ms: u64,
 }
 
 impl From<&ScanEntry> for ScanOut {
     fn from(entry: &ScanEntry) -> Self {
         Self {
             snapshot: entry.snapshot.get(),
+            scan: entry.scan,
             created: entry.created.0,
             commit: entry.commit.as_ref().map(CommitHash::to_string),
             mode: entry.mode.label(),
@@ -57,6 +72,14 @@ impl From<&ScanEntry> for ScanOut {
             symbols: entry.symbols,
             duration_ms: entry.duration_ms,
             files_changed: entry.files_changed,
+            steps: entry
+                .steps
+                .iter()
+                .map(|time| StepOut {
+                    step: time.step.label(),
+                    duration_ms: time.duration_ms,
+                })
+                .collect(),
         }
     }
 }

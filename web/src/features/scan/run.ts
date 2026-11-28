@@ -10,10 +10,13 @@ import {
   PERCENT,
   STAGE_STATE,
   STAGES,
+  STEP_STAGE,
+  SECONDS_PER_MINUTE,
+  CLOCK_SECONDS_WIDTH,
   STATE,
   STOP,
 } from "./consts";
-import type { Run, Stage, StageRun, WireEvent } from "./types";
+import type { Run, Stage, StageRun, StepRun, StepTime, WireEvent } from "./types";
 
 type ProgressEvent = Extract<WireEvent, { type: typeof EVENT.progressed }>;
 
@@ -27,6 +30,21 @@ function closeStages(stages: Run["stages"], now: number): Run["stages"] {
     }
   }
   return closed;
+}
+
+/** The step that a report names, with the time it began: the time of the report when it is a new
+ * step, the earlier time while the same step goes on. `null` for a report without a step. */
+function stepOf(event: ProgressEvent, known: StageRun | undefined, now: number): StepRun | null {
+  if (event.step === undefined || event.step_number === undefined || event.steps === undefined) {
+    return null;
+  }
+  const before = known?.step;
+  return {
+    name: event.step,
+    number: event.step_number,
+    of: event.steps,
+    startedAt: before?.name === event.step ? before.startedAt : now,
+  };
 }
 
 /** The stage of `stage` after a report: earlier stages end when a later one starts. */
@@ -47,6 +65,7 @@ function advance(run: Run, event: ProgressEvent, now: number): Run {
         startedAt: known?.startedAt ?? now - (event.elapsed_ms ?? 0),
         endedAt: null,
         tookMs: Math.max(known?.tookMs ?? 0, event.elapsed_ms ?? 0) || null,
+        step: stepOf(event, known, now),
       };
     } else if (known) {
       stages[name] = known;
@@ -236,4 +255,38 @@ export function stagePercent(run: Run, stage: Stage): number | null {
  * instead of claiming a share. */
 export function isUnmeasured(run: Run, stage: Stage): boolean {
   return stageState(run, stage) === STAGE_STATE.running && stagePercent(run, stage) === null;
+}
+
+/** The step of the write that the stage `persist` is in right now, with the seconds it has taken
+ * so far; `null` while the scan is not in a step. */
+export function activeStep(run: Run, now: number): { step: StepRun; seconds: number } | null {
+  const report = run.stages[STEP_STAGE];
+  if (run.state !== STATE.running || report === undefined || report.endedAt !== null) {
+    return null;
+  }
+  const step = report.step;
+  return step === null
+    ? null
+    : { step, seconds: Math.max(0, now - step.startedAt) / MS_PER_SECOND };
+}
+
+/** A time as "4:12": minutes and seconds, the seconds with two digits. */
+export function minutesSeconds(value: number): string {
+  const whole = Math.floor(value);
+  const rest = String(whole % SECONDS_PER_MINUTE).padStart(CLOCK_SECONDS_WIDTH, "0");
+  return `${Math.floor(whole / SECONDS_PER_MINUTE)}:${rest}`;
+}
+
+/** The milliseconds of all steps together. */
+export function totalMs(steps: readonly StepTime[]): number {
+  return steps.reduce((sum, time) => sum + time.duration_ms, 0);
+}
+
+/** The step that took longest, `undefined` without steps. */
+export function slowestStep(steps: readonly StepTime[]): StepTime | undefined {
+  return steps.reduce<StepTime | undefined>(
+    (slowest, time) =>
+      slowest === undefined || time.duration_ms > slowest.duration_ms ? time : slowest,
+    undefined,
+  );
 }

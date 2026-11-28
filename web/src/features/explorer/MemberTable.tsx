@@ -4,6 +4,7 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import type { MessageKey } from "../../shared/i18n/i18n";
 import { cx } from "../../shared/ui/cx";
 import { createTableColumns } from "../../shared/table/columns";
+import { SortableTh } from "../../shared/table/SortableTh";
 import { ColumnWidths, ResizableTh, RestHead } from "../../shared/table/ResizableHead";
 import { showUsages } from "../../shared/navigation/navigation";
 import { showAnnotationText } from "../annotations/flags";
@@ -185,30 +186,16 @@ function SortHead(props: {
   tip?: string;
 }) {
   const current = () => memberSort();
-  const sorted = () => current()?.column === props.column;
-  const direction = () => current()?.direction;
   return (
-    <ResizableTh
+    <SortableTh
       columns={columns()}
       id={props.column}
-      name={t(props.label)}
+      label={t(props.label)}
       class={props.number ? styles.number : undefined}
       title={props.tip}
-      sort={direction()}
-    >
-      <button
-        type="button"
-        class={cx(styles.sort, sorted() && styles.sorted)}
-        onClick={() => setMemberSort(pressColumn(current(), props.column))}
-      >
-        {t(props.label)}
-        <Show when={sorted()}>
-          <span class={styles.mark} aria-hidden={true}>
-            {SORT_MARK[direction() ?? SORT_DIRECTION.ascending]}
-          </span>
-        </Show>
-      </button>
-    </ResizableTh>
+      direction={current()?.column === props.column ? current()?.direction : undefined}
+      onPress={() => setMemberSort(pressColumn(current(), props.column))}
+    />
   );
 }
 

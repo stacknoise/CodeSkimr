@@ -271,6 +271,24 @@ pub mod arg {
     pub const RULE: &str = "rule";
     /// `{ $chain }`: the way round a ring of modules.
     pub const CHAIN: &str = "chain";
+    /// `{ $incoming }`: places in other modules that use a module.
+    pub const INCOMING: &str = "incoming";
+    /// `{ $outgoing }`: places in a module that use other modules.
+    pub const OUTGOING: &str = "outgoing";
+    /// `{ $whole }`: the part of a stability before the separator.
+    pub const WHOLE: &str = "whole";
+    /// `{ $hundredths }`: the two digits of a stability after the separator.
+    pub const HUNDREDTHS: &str = "hundredths";
+    /// `{ $stability }`: the stability of a module as text.
+    pub const STABILITY: &str = "stability";
+    /// `{ $layer }`: the layer that owns a module, as text with its brackets.
+    pub const LAYER: &str = "layer";
+    /// `{ $flags }`: what stands out about a module, as text.
+    pub const FLAGS: &str = "flags";
+    /// `{ $other }`: the module a risky module depends on.
+    pub const OTHER: &str = "other";
+    /// `{ $otherStability }`: the stability of that module as text.
+    pub const OTHER_STABILITY: &str = "otherStability";
     /// `{ $modules }`: how many modules a ring has.
     pub const MODULES: &str = "modules";
     /// `{ $weakest }`: how many references the weakest edge of a ring has.
@@ -419,6 +437,8 @@ pub const COMMAND_CONTEXT: &str = "context";
 pub const COMMAND_UNUSED: &str = "unused";
 /// Sub-command that judges the architecture rules of the project.
 pub const COMMAND_RULES: &str = "rules";
+/// Sub-command that shows the modules of the project with cycles, coupling and stability.
+pub const COMMAND_MODULES: &str = "modules";
 /// Sub-command that shows what a new name for a symbol would hit.
 pub const COMMAND_PREVIEW_RENAME: &str = "preview-rename";
 /// Argument id of the new name of `preview-rename`.
@@ -435,6 +455,12 @@ pub const ARG_ASSESSMENT: &str = "assessment";
 pub const VALUE_ASSESSMENT: &str = "ASSESSMENT";
 /// The assessments the command line accepts.
 pub const ASSESSMENTS: [&str; 3] = ["likely", "public", "approximate"];
+/// Option of `unused`: only symbols with this reason.
+pub const ARG_REASON: &str = "reason";
+/// Placeholder shown for the reason.
+pub const VALUE_REASON: &str = "REASON";
+/// The reasons the command line accepts.
+pub const REASONS: [&str; 4] = ["private", "internal", "public", "approximate"];
 /// The groups of kinds `unused` accepts.
 pub const UNUSED_KINDS: [&str; 3] = ["all", "types", "functions"];
 /// Argument id of the search text of `symbols`.
@@ -457,6 +483,12 @@ pub const VALUE_DIRECTION: &str = "DIRECTION";
 pub const DIRECTIONS: [&str; 2] = ["incoming", "outgoing"];
 /// Option of `usages`: how many steps the walk goes.
 pub const ARG_DEPTH: &str = "depth";
+/// Option of `modules`: the depending module of the dependency whose places are listed.
+pub const ARG_MODULE_FROM: &str = "from";
+/// Option of `modules`: the module that is depended on.
+pub const ARG_MODULE_TO: &str = "to";
+/// Value name of the module options of `modules`.
+pub const VALUE_MODULE: &str = "MODULE";
 /// Flag of `usages`: references from tests count.
 pub const ARG_INCLUDE_TESTS: &str = "include-tests";
 /// Long flag of `rules` that holds the state.
@@ -599,11 +631,41 @@ pub mod key {
     pub const TITLE: &str = "title";
     /// The text of an annotation.
     pub const TEXT: &str = "text";
+    /// Field of the answer about modules: places in other modules that use one.
+    pub const INCOMING: &str = "incoming";
+    /// Field of the answer about modules: places in a module that use other modules.
+    pub const OUTGOING: &str = "outgoing";
+    /// Field of the answer about modules: stability in thousandths, `null` without a dependency.
+    pub const STABILITY: &str = "stability";
+    /// Field of the answer about modules: whether a module is part of a cycle.
+    pub const IN_CYCLE: &str = "in_cycle";
+    /// Field of the answer about modules: the rings.
+    pub const CYCLES: &str = "cycles";
+    /// Field of the answer about modules: the modules that stand out.
+    pub const RISKS: &str = "risks";
+    /// Field of a ring: the dependencies to remove to end it.
+    pub const RESOLUTION: &str = "resolution";
+    /// Field of a violation: the dependency.
+    pub const EDGE: &str = "edge";
+    /// Field of a risk: the risky module.
+    pub const MODULE: &str = "module";
+    /// Field of a risk: the less stable module it depends on.
+    pub const DEPENDS_ON: &str = "depends_on";
+    /// Field of a risk: the stability of that module.
+    pub const DEPENDS_ON_STABILITY: &str = "depends_on_stability";
+    /// Field of a violation: the layer of the depending module.
+    pub const FROM_LAYER: &str = "from_layer";
+    /// Field of a violation: the layer of the module it depends on.
+    pub const TO_LAYER: &str = "to_layer";
+    /// Field of a module: its name.
+    pub const NAME: &str = "name";
 }
 
 /// The first line of `change --markdown`: a script that updates one comment on a pull request
 /// finds its own comment by it.
 pub const MARKDOWN_MARKER: &str = "<!-- codeskimr-change -->";
+/// The first line of `compare --metrics --markdown`, so that a bot can find its own comment.
+pub const METRICS_MARKDOWN_MARKER: &str = "<!-- codeskimr-metrics -->";
 /// Sub-command that lists the retained scans of a project.
 pub const COMMAND_SCANS: &str = "scans";
 /// Sub-command that compares two scans of a project.
@@ -618,13 +680,93 @@ pub const ARG_SCAN_TARGET: &str = "target";
 pub const VALUE_SNAPSHOT: &str = "SNAPSHOT";
 /// Flag of `change`: the answer as Markdown.
 pub const ARG_MARKDOWN: &str = "markdown";
+/// Flag of `compare`: the metric changes instead of the changed symbols (ADR 0114).
+pub const ARG_METRICS: &str = "metrics";
+/// Flag of `compare --metrics`: only what got worse.
+pub const ARG_WORSE: &str = "worse";
+/// Flag of `compare --metrics`: only what got better.
+pub const ARG_BETTER: &str = "better";
+/// Option of `compare --metrics`: only objects in which one of these metrics moved.
+pub const ARG_METRIC: &str = "metric";
+/// Option of `compare --metrics`: the level to list.
+pub const ARG_LEVEL: &str = "level";
+/// Placeholder shown for the list of metrics.
+pub const VALUE_METRICS: &str = "METRICS";
+/// Placeholder shown for the level.
+pub const VALUE_LEVEL: &str = "LEVEL";
 
+/// The names the text of `compare --metrics` reads from the JSON of the answer and passes to the
+/// texts (ADR 0114).
+pub mod metrics {
+    /// The field of the answer that lists what got worse (a key of the JSON, not a verdict).
+    pub const WORSE: &str = "worse";
+    /// The field of the answer that lists what got better.
+    pub const BETTER: &str = "better";
+    /// The level of the answer.
+    pub const LEVEL: &str = "level";
+    /// How many objects the newer scan has on the level.
+    pub const LOOKED_AT: &str = "looked_at";
+    /// The moves of one object.
+    pub const MOVES: &str = "moves";
+    /// The metric of a move.
+    pub const METRIC: &str = "metric";
+    /// The value before a move.
+    pub const FROM: &str = "from";
+    /// The value after a move.
+    pub const TO: &str = "to";
+    /// Whether a move crossed the bound of the rating, and which way.
+    pub const CROSSING: &str = "crossing";
+    /// `{ $metric }` and the other arguments of the texts of a move.
+    pub const ARG_METRIC: &str = "metric";
+    /// `{ $from }`.
+    pub const ARG_FROM: &str = "from";
+    /// `{ $to }`.
+    pub const ARG_TO: &str = "to";
+    /// `{ $move }`.
+    pub const ARG_MOVE: &str = "move";
+    /// `{ $crossing }`.
+    pub const ARG_CROSSING: &str = "crossing";
+    /// `{ $moves }`.
+    pub const ARG_MOVES: &str = "moves";
+    /// `{ $level }`.
+    pub const ARG_LEVEL: &str = "level";
+    /// `{ $worse }`.
+    pub const ARG_WORSE: &str = "worse";
+    /// `{ $better }`.
+    pub const ARG_BETTER: &str = "better";
+    /// `{ $looked }`.
+    pub const ARG_LOOKED: &str = "looked";
+    /// Separates the moves of one object.
+    pub const MOVE_JOIN: &str = ", ";
+    /// Values are shown with this many hundredths of precision: the value is multiplied by it,
+    /// rounded and divided again.
+    pub const ROUNDING: f64 = 100.0;
+}
+
+/// Separates the names after `--metric`, so that `--metric cc,mi` names two metrics.
+pub const METRIC_LIST_DELIMITER: char = ',';
 /// What a missing `layer` or `signature` is in the JSON.
 pub const JSON_NULL_TEXT: &str = "null";
 /// What a control character in a text of the project becomes.
 pub const CONTROL_REPLACEMENT: char = ' ';
 /// Puts the entries of a list below its heading.
 pub const LIST_INDENT: &str = "  ";
+/// The indent of a list whose lines start at the left edge, as in Markdown.
+pub const NO_INDENT: &str = "";
+/// Between the flags of one module in the text of `modules`.
+pub const FLAG_JOIN: &str = ", ";
+/// Before the flags of a module in the text of `modules`.
+pub const FLAG_PREFIX: &str = "  ";
+/// Before the layer of a module in the text of `modules`.
+pub const LAYER_PREFIX: &str = " ";
+/// Thousandths in one hundredth, the step the text of `modules` shows.
+pub const STABILITY_STEP: u64 = 10;
+/// Half a step, added before the division so that the hundredths are rounded like in the UI.
+pub const STABILITY_HALF_STEP: u64 = 5;
+/// Hundredths in one whole.
+pub const STABILITY_HUNDRED: u64 = 100;
+/// Digits after the separator in the text of a stability.
+pub const STABILITY_DIGITS: usize = 2;
 /// Joins the modules of the way round a ring in a line of the terminal.
 pub const CHAIN_JOIN: &str = " -> ";
 /// Separates the title of an annotation from its text.
@@ -648,6 +790,8 @@ pub mod change {
         pub const DURATION: &str = "duration";
         pub const COMMIT: &str = "commit";
         pub const MS: &str = "ms";
+        pub const STEP: &str = "step";
+        pub const STEPS: &str = "steps";
         pub const BASE: &str = "base";
         pub const BASE_TIME: &str = "base_time";
         pub const TARGET: &str = "target";
@@ -684,6 +828,8 @@ pub mod change {
         pub const FILES: &str = "files";
         pub const FILES_CHANGED: &str = "files_changed";
         pub const DURATION: &str = "duration_ms";
+        pub const STEP: &str = "step";
+        pub const STEPS: &str = "steps";
         pub const COMMIT: &str = "commit";
         pub const BASE: &str = "base";
         pub const TARGET: &str = "target";

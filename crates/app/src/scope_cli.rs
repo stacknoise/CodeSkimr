@@ -7,8 +7,8 @@ use codeskimr_application::registry::Registry;
 use codeskimr_cli::ScopeArgs;
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
-    CLI_SCOPE_FOLDER, CLI_SCOPE_HEADING, CLI_SCOPE_LANGUAGE, CLI_SCOPE_MORE, CLI_SCOPE_SAVED,
-    CLI_SCOPE_UNCHANGED,
+    CLI_SCOPE_ABAPGIT, CLI_SCOPE_FOLDER, CLI_SCOPE_HEADING, CLI_SCOPE_LANGUAGE, CLI_SCOPE_MORE,
+    CLI_SCOPE_SAVED, CLI_SCOPE_UNCHANGED,
 };
 use codeskimr_i18n::{FluentArgs, FluentValue};
 
@@ -70,6 +70,16 @@ fn lines_of(answer: &ScopeAnswer, around: &Surroundings<'_>) -> Result<Vec<Strin
         let mut args = FluentArgs::new();
         args.set(scope_arg::COUNT, FluentValue::from(answer.folders_more));
         lines.push(say(around, CLI_SCOPE_MORE, &args)?);
+    }
+    if let Some(abapgit) = &answer.abapgit {
+        let objects: u64 = abapgit.kinds.iter().map(|kind| kind.objects).sum();
+        let mut args = FluentArgs::new();
+        args.set(scope_arg::FOLDER, abapgit.starting_folder.clone());
+        args.set(scope_arg::LOGIC, abapgit.folder_logic.clone());
+        args.set(scope_arg::OBJECTS, FluentValue::from(objects));
+        args.set(scope_arg::PACKAGES, FluentValue::from(abapgit.packages));
+        args.set(scope_arg::FILES, FluentValue::from(abapgit.source_files));
+        lines.push(say(around, CLI_SCOPE_ABAPGIT, &args)?);
     }
     Ok(lines)
 }

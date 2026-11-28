@@ -21,6 +21,7 @@ basic-grammars = [
     "dep:tree-sitter-cpp",
     "dep:tree-sitter-ruby",
     "dep:tree-sitter-php",
+    "dep:codeskimr_grammar_abap",
 ]
 
 [dependencies]
@@ -45,6 +46,7 @@ tree-sitter-c = { workspace = true, optional = true }
 tree-sitter-cpp = { workspace = true, optional = true }
 tree-sitter-ruby = { workspace = true, optional = true }
 tree-sitter-php = { workspace = true, optional = true }
+codeskimr_grammar_abap = { path = "../grammar_abap", optional = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }

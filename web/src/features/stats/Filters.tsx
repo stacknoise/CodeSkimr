@@ -1,10 +1,10 @@
-import { For, Show } from "solid-js";
-import { t } from "../../shared/i18n/i18n";
+import { For, Show, createMemo } from "solid-js";
+import { currentLanguage, t } from "../../shared/i18n/i18n";
 import type { MessageKey } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
 import { languageName } from "../projects/format";
-import { ASSESSMENTS, KINDS, LANGUAGE_ALL, ORDERS, ROLE, TAB } from "./consts";
+import { KINDS, LANGUAGE_ALL, ORDERS, ROLE, TAB, UNUSED_FILTERS } from "./consts";
 import {
   setStatsAssessment,
   setStatsKinds,
@@ -46,11 +46,47 @@ function Choice<Id extends string | null>(props: {
   );
 }
 
-/** The assessments as a choice, with "all" in front. */
-const ASSESSMENT_OPTIONS = [
-  { id: null, label: I18N_KEYS.STATS_ASSESSMENT_ALL },
-  ...ASSESSMENTS.map((entry) => ({ id: entry.id, label: entry.label })),
-];
+/** The text with a capital first letter, in the language of the screen. */
+function capital(text: string): string {
+  return text.charAt(0).toLocaleUpperCase(currentLanguage()) + text.slice(1);
+}
+
+/** The choices of the filter: "all" first, then the others sorted by their text in the language
+ * of the screen. */
+function unusedChoices(): { id: string; text: string }[] {
+  const choose = (id: string, label: MessageKey) => ({ id, text: capital(t(label)) });
+  const sorted = UNUSED_FILTERS.map((entry) => choose(entry.id, entry.label)).sort(
+    (first, second) => first.text.localeCompare(second.text, currentLanguage()),
+  );
+  return [choose(LANGUAGE_ALL, I18N_KEYS.STATS_ASSESSMENT_ALL), ...sorted];
+}
+
+/** The assessment or reason the unused symbols are cut to, as a list (it holds more choices than
+ * a row of buttons shows). */
+function UnusedFilterField() {
+  const choices = createMemo(unusedChoices);
+  return (
+    <label class={styles.field}>
+      <span class={styles.label}>{t(I18N_KEYS.STATS_FILTER_ASSESSMENT)}</span>
+      <select
+        value={statsAssessment() ?? LANGUAGE_ALL}
+        onChange={(event) =>
+          setStatsAssessment(
+            UNUSED_FILTERS.find((entry) => entry.id === event.currentTarget.value)?.id ?? null,
+          )
+        }
+      >
+        <For each={choices()}>
+          {(entry) => (
+            <option value={entry.id} selected={entry.id === (statsAssessment() ?? LANGUAGE_ALL)}>
+              {entry.text}
+            </option>
+          )}
+        </For>
+      </select>
+    </label>
+  );
+}
 
 function LanguageField(props: { languages: string[] }) {
   return (
@@ -100,12 +136,7 @@ export function Filters(props: { ranking: RankingName; languages: string[] }) {
         </span>
       </Show>
       <Show when={props.ranking === TAB.unused}>
-        <Choice
-          label={I18N_KEYS.STATS_FILTER_ASSESSMENT}
-          options={ASSESSMENT_OPTIONS}
-          current={statsAssessment()}
-          onChoose={setStatsAssessment}
-        />
+        <UnusedFilterField />
       </Show>
     </div>
   );

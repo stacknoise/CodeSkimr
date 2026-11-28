@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use codeskimr_application::compare::{CompareLimits, ComparePorts, ScanComparer};
+use codeskimr_application::compare::{CompareLimits, ComparePorts, MetricRules, ScanComparer};
 use codeskimr_application::config::Config;
 use codeskimr_storage::SqliteStore;
 
@@ -16,5 +16,6 @@ pub(crate) fn comparer(store: &Arc<SqliteStore>, config: &Config) -> ScanCompare
             annotations: store.clone(),
         },
         CompareLimits::from(&config.compare),
+        MetricRules::from_config(config),
     )
 }

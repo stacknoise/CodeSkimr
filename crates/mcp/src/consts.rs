@@ -60,6 +60,10 @@ pub const ARG_SYMBOL_OR_LAYER: &str = "symbol or layer";
 pub const ARG_LEVEL: &str = "level";
 /// Value of `level`: the modules (namespaces) of the project with rings and coupling (ADR 0108).
 pub const LEVEL_MODULE: &str = "module";
+/// Argument of `get_dependencies` that names the depending module of a dependency.
+pub const ARG_FROM_MODULE: &str = "from_module";
+/// Argument of `get_dependencies` that names the module that is depended on.
+pub const ARG_TO_MODULE: &str = "to_module";
 
 /// Value of `target.kind`: a symbol, namespace or type.
 pub const TARGET_SYMBOL: &str = "symbol";
@@ -97,6 +101,8 @@ pub const ARG_QUERY: &str = "query";
 pub const ARG_KIND: &str = "kind";
 /// Name of the argument that cuts `find_unused` to one assessment.
 pub const ARG_ASSESSMENT: &str = "assessment";
+/// Name of the argument that cuts `find_unused` to one reason.
+pub const ARG_REASON: &str = "reason";
 /// Argument name reported when its value is invalid: the new name of `preview_rename`.
 pub const ARG_NEW_NAME: &str = "new_name";
 /// Argument name reported when its value is invalid: the symbol.
@@ -154,3 +160,6 @@ pub const RULE_CYCLES: &str = "cycles";
 pub const RULE_FORBID: &str = "forbid";
 /// Value of `kind` of a rule that closes the inside of a module.
 pub const RULE_PUBLIC_API: &str = "public_api";
+
+/// Key under which `impact_of_diff` adds the metric changes when it is asked for them (ADR 0114).
+pub const METRICS_KEY: &str = "metrics";

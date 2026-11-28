@@ -24,6 +24,8 @@ fn of_symbol(symbol: &str) -> DependenciesArgs {
         layer: None,
         level: None,
         depth: None,
+        from_module: None,
+        to_module: None,
         direction: None,
         include_tests: None,
         project: None,
@@ -353,4 +355,63 @@ fn the_module_level_takes_no_other_target() {
         let error = tools().get_dependencies(&owner(), &args).unwrap_err();
         assert_eq!(error.code(), ErrorCode::ToolArgumentsInvalid);
     }
+}
+
+#[cfg(test)]
+fn of_places(from: &str, to: &str) -> DependenciesArgs {
+    DependenciesArgs {
+        from_module: Some(from.to_owned()),
+        to_module: Some(to.to_owned()),
+        limit: Some(3),
+        ..of_modules()
+    }
+}
+
+#[test]
+fn the_places_of_a_module_dependency_name_file_line_and_both_symbols() {
+    let args = of_places("App.Web", "App.Domain");
+    let answer = tools().get_dependencies(&owner(), &args).unwrap();
+    assert_eq!(answer["level"], "module");
+    assert_eq!(
+        (answer["from"].as_str(), answer["to"].as_str()),
+        (Some("App.Web"), Some("App.Domain"))
+    );
+    assert_eq!(answer["total"], 2);
+    let places = list(&answer, "places");
+    assert_eq!(places[0]["path"], "web/Page.cs");
+    assert_eq!(places[0]["line"], 8);
+    assert_eq!(places[1]["line"], 20);
+    assert_eq!(places[0]["from"], "App.Web.Page.Show");
+    assert_eq!(places[0]["to"], "App.Domain.Invoice.Total");
+    assert_eq!(answer["notice"], Value::Null);
+}
+
+#[test]
+fn a_limit_cuts_the_places_and_says_so() {
+    let mut args = of_places("App.Web", "App.Domain");
+    args.limit = Some(1);
+    let answer = tools().get_dependencies(&owner(), &args).unwrap();
+    assert_eq!(answer["total"], 2);
+    assert_eq!(list(&answer, "places").len(), 1);
+    assert_eq!(answer["notice"]["code"], "MCP-501");
+}
+
+#[test]
+fn one_module_alone_or_a_module_without_the_level_is_refused_by_name() {
+    let mut only_from = of_modules();
+    only_from.from_module = Some("App.Web".to_owned());
+    let mut only_to = of_modules();
+    only_to.to_module = Some("App.Domain".to_owned());
+    let mut no_level = of_places("App.Web", "App.Domain");
+    no_level.level = None;
+    no_level.symbol = Some("1".to_owned());
+    let details: Vec<String> = [only_from, only_to, no_level]
+        .iter()
+        .map(|args| {
+            let error = tools().get_dependencies(&owner(), args).unwrap_err();
+            assert_eq!(error.code(), ErrorCode::ToolArgumentsInvalid);
+            error.report().params["detail"].clone()
+        })
+        .collect();
+    assert_eq!(details, ["to_module", "from_module", "from_module"]);
 }

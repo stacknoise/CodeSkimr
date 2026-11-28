@@ -16,9 +16,10 @@ use codeskimr_application::ports::{
     FileDiscovery, FileFacts, FileHit, ImpactPage, ImpactedSymbol, KeyEntry, KeyKind, KeySearch,
     LanguageLine, LanguageOutcome, LanguageShare, LastScan, Level2Report, MemberRef, PathsReport,
     PreviousIndex, ProjectCatalog, ProjectKeys, ProjectOverview, ProjectRepository, ProjectScanner,
-    ProjectToolCheck, ReferenceSite, ReferenceSites, ReportWrite, Rescanned, ScanReport,
-    ScanReportStore, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex, SnippetFingerprinter,
-    SourceText, SymbolDetail, SymbolKey, SymbolLabel, TypeFocus, UsageEntry, UsageIndex, UsagePage,
+    ProjectToolCheck, ReferencePlace, ReferencePlaces, ReferenceSite, ReferenceSites, ReportWrite,
+    Rescanned, ScanReport, ScanReportStore, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex,
+    SnippetFingerprinter, SourceText, SymbolDetail, SymbolKey, SymbolLabel, TypeFocus, UsageEntry,
+    UsageIndex, UsagePage,
 };
 use codeskimr_application::unused::{Finding, Findings, UnusedSymbols};
 use codeskimr_codes::ErrorCode;
@@ -211,15 +212,7 @@ impl CodeIndex for FakeIndex {
     }
 
     fn namespace_graph(&self, _snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
-        let node = |name: &str| NamespaceNode {
-            name: QualifiedName::new(name).unwrap(),
-            types: 2,
-        };
-        let edge = |from, to, count| NamespaceEdge { from, to, count };
-        Ok(NamespaceGraph {
-            namespaces: vec![node("App.Domain"), node("App.Application"), node("App.Web")],
-            edges: vec![edge(0, 1, 2), edge(1, 0, 7), edge(2, 1, 3), edge(2, 0, 4)],
-        })
+        Ok(demo_graph())
     }
 
     fn type_focus(
@@ -228,6 +221,49 @@ impl CodeIndex for FakeIndex {
         _symbol: SymbolId,
     ) -> Result<Option<TypeFocus>, CodedError> {
         Ok(None)
+    }
+}
+
+/// Three modules: the domain and the application use each other, the Web uses both.
+fn demo_graph() -> NamespaceGraph {
+    let node = |name: &str| NamespaceNode {
+        name: QualifiedName::new(name).unwrap(),
+        types: 2,
+    };
+    let edge = |from, to, count| NamespaceEdge { from, to, count };
+    NamespaceGraph {
+        namespaces: vec![node("App.Domain"), node("App.Application"), node("App.Web")],
+        edges: vec![edge(0, 1, 2), edge(1, 0, 7), edge(2, 1, 3), edge(2, 0, 4)],
+    }
+}
+
+/// The places of the references of the three modules: two where the Web uses the domain.
+pub struct FakePlaces;
+
+impl ReferencePlaces for FakePlaces {
+    fn for_each_reference(
+        &self,
+        _snapshot: SnapshotId,
+        visit: &mut dyn FnMut(ReferencePlace),
+    ) -> Result<(), CodedError> {
+        for (path, line, to) in [
+            ("web/Page.cs", 7, "App.Domain.Invoice.Total"),
+            ("web/Page.cs", 19, "App.Domain.Invoice.Pay"),
+            ("web/Page.cs", 21, "App.Application.Billing.Run"),
+        ] {
+            let at = Position { line, column: 4 };
+            visit(ReferencePlace {
+                path: RelativePath::new(path).unwrap(),
+                span: Span::new(at, at).unwrap(),
+                from: QualifiedName::new("App.Web.Page.Show").unwrap(),
+                to: QualifiedName::new(to).unwrap(),
+            });
+        }
+        Ok(())
+    }
+
+    fn namespaces(&self, _snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
+        Ok(demo_graph())
     }
 }
 
@@ -782,6 +818,7 @@ fn assemble_with(
                 has_prints,
             }),
             references: Arc::new(FakeReferences),
+            places: Arc::new(FakePlaces),
             snippets: Arc::new(FakeSnippets),
             checker: checker(),
             clock: Arc::new(FixedClock),
@@ -1175,6 +1212,7 @@ pub fn tools_annotated(annotations: FakeAnnotations) -> Tools {
                 has_prints: true,
             }),
             references: Arc::new(FakeReferences),
+            places: Arc::new(FakePlaces),
             snippets: Arc::new(FakeSnippets),
             checker: checker(),
             clock: Arc::new(FixedClock),
@@ -1256,6 +1294,7 @@ pub struct FakeDiffs;
 
 fn scan_entry(id: u64) -> codeskimr_application::ports::ScanEntry {
     codeskimr_application::ports::ScanEntry {
+        scan: id,
         snapshot: SnapshotId::new(id),
         created: codeskimr_domain::Timestamp(1_700_000_000 + i64::try_from(id).unwrap()),
         commit: None,
@@ -1264,6 +1303,7 @@ fn scan_entry(id: u64) -> codeskimr_application::ports::ScanEntry {
         symbols: 9,
         duration_ms: Some(120),
         files_changed: Some(1),
+        steps: Vec::new(),
     }
 }
 
@@ -1352,5 +1392,54 @@ impl codeskimr_application::compare::ScanDiffs for FakeDiffs {
             ));
         }
         Ok(sample_comparison(request))
+    }
+
+    fn compare_metrics(
+        &self,
+        request: &codeskimr_application::compare::MetricsRequest,
+    ) -> Result<codeskimr_application::compare::MetricComparison, CodedError> {
+        Ok(sample_metrics(request))
+    }
+}
+
+/// One object that got worse between the two scans the request names.
+fn sample_metrics(
+    request: &codeskimr_application::compare::MetricsRequest,
+) -> codeskimr_application::compare::MetricComparison {
+    use codeskimr_application::compare::{Listed, MetricComparison};
+    use codeskimr_domain::{
+        Crossing, MetricChange, MetricFact, MetricKind, MetricMove, MetricValues, MoveDirection,
+        QualifiedName, RelativePath, SymbolKind, Verdict,
+    };
+    let fact = |cc| MetricFact {
+        kind: SymbolKind::Method,
+        qualified_name: QualifiedName::new("Shop.Checkout.Cart.Pay").unwrap(),
+        signature: None,
+        path: RelativePath::new("src/cart.cs").unwrap(),
+        values: MetricValues {
+            cc: Some(cc),
+            ..MetricValues::default()
+        },
+    };
+    let worse = MetricChange {
+        base: fact(6.0),
+        target: fact(14.0),
+        moves: vec![MetricMove {
+            kind: MetricKind::CyclomaticComplexity,
+            from: 6.0,
+            to: 14.0,
+            direction: MoveDirection::Worse,
+            crossing: Some(Crossing::IntoPoor),
+        }],
+        verdict: Verdict::Worse,
+    };
+    MetricComparison {
+        project: PROJECT,
+        base: scan_entry(request.base.map_or(1, SnapshotId::get)),
+        target: scan_entry(request.target.map_or(2, SnapshotId::get)),
+        level: request.level,
+        looked_at: 40,
+        worse: Listed::cut(vec![worse], 10),
+        better: Listed::cut(Vec::new(), 10),
     }
 }

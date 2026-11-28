@@ -6,7 +6,7 @@ One use case, `codeskimr_application::compare::ScanComparer`, compares two retai
 
 - `codeskimr_domain::compare_symbols` is the pure comparison. It takes the facts of the symbols of both snapshots (`SymbolFact`: id, kind, qualified name, signature, visibility, file, content hash) and returns a `Comparison` with the lists `added`, `removed`, `changed` and `moved`. It knows no database and no snapshot id.
 - `codeskimr_application::ports::ComparisonSource` reads the facts and the naming rules of one retained snapshot (adapter: `codeskimr_storage`, see [storage](storage.md)).
-- `codeskimr_application::compare::ScanComparer` chooses the two scans, checks that they can be compared, reads the facts, and adds the impact, the layer changes and the critical symbols. Its limits are `compare.max_symbols` and `compare.max_usages` of `config/default.toml`.
+- `codeskimr_application::compare::ScanComparer` chooses the two scans, checks that they can be compared, reads the facts, and adds the impact, the layer changes and the critical symbols. Its limits are `compare.max_symbols` and `compare.max_usages` of `config/default.toml`. `ScanComparer::compare_metrics` (ADR 0114) answers a second question with the same two scans: which objects got worse and which got better by their metrics. `codeskimr_domain::compare_metrics` pairs the objects by the key of the comparison and judges each metric against the thresholds of `MetricRules` (`compare.metric_*`, the rating bounds of `metrics.*`, `graph.risk_min_incoming` and the test folders of `conventions.test_folders`); the use case reads the facts through `ComparisonSource::metric_facts`, leaves out what the request does not ask for and sorts and cuts the two lists.
 
 ## Rules
 
@@ -17,12 +17,12 @@ One use case, `codeskimr_application::compare::ScanComparer`, compares two retai
 
 ## Choosing the scans
 
-`ComparisonRequest { project, base, target, with_impact }`. Without `target` the newest scan is the target, without `base` the scan before the target is the base. The base must be older than the target.
+`ComparisonRequest { project, base, target, with_impact }`. Without `target` the newest scan is the target, without `base` the scan before the target is the base. Every scan is an entry of the history, also one that found nothing changed (ADR 0093, addendum of 2026-11-27); such entries share the snapshot they confirmed, so the two newest entries can name the same snapshot, and the comparison is then empty ("nothing changed"). A named snapshot stands for its newest entry; a base equal to the target stands for its oldest entry. The base snapshot must not be newer than the target snapshot.
 
 | Code | When |
 | --- | --- |
 | `CMP-201` | a named scan is not retained, the project has fewer than two scans, or retention removed a scan while the comparison read it |
-| `CMP-101` | the base is not older than the target |
+| `CMP-101` | the base snapshot is newer than the target snapshot |
 | `CMP-301` | the two scans used other naming rules (retryable: a full scan makes them comparable); a scan without a record (written before ADR 0036) only matches another one without |
 
 A comparison that was cut (see below) is not an error: the answer says it.
@@ -48,7 +48,7 @@ All four call `ScanComparer` and print the same answer (`codeskimr_application::
 
 | Way in | Name | Impact |
 |---|---|---|
-| Registry command (REST, screen) | `scans.list`, `scans.compare`, `scans.impact` (`docs/server.md`) | `scans.compare` without, `scans.impact` with (a superset: it also holds the lists of `scans.compare`) |
+| Registry command (REST, screen) | `scans.list`, `scans.compare`, `scans.impact`, `scans.impact_markdown` (`docs/server.md`) | `scans.compare` without, `scans.impact` with (a superset: it also holds the lists of `scans.compare`); `scans.impact_markdown` gives the text of `change --markdown` |
 | Command line | `codeskimr scans`, `compare`, `change` (`docs/cli.md`) | `change` with; `change --markdown` for a comment on a pull request |
 | MCP | `impact_of_diff` (`docs/mcp.md`) | with |
 

@@ -243,6 +243,33 @@ function PanelPane(props: {
   );
 }
 
+/** The table of the level "Modules" with its splitter, once the numbers and the project are known. */
+function ModulesSide(props: { state: MapState }) {
+  return (
+    <Show when={modulesInfo()}>
+      {(info) => (
+        <Show when={props.state.project()}>
+          {(project) => (
+            <>
+              <Splitter
+                pane={modulesPanelWidth}
+                orientation={ORIENTATION.vertical}
+                side={SIDE.after}
+              />
+              <ModulesPanel
+                project={project()}
+                info={info()}
+                selected={props.state.selected()}
+                onSelect={props.state.setSelected}
+              />
+            </>
+          )}
+        </Show>
+      )}
+    </Show>
+  );
+}
+
 /** The panel beside the map: the table of the level "Modules", else the details of the selected
  * box. */
 function Panels(props: { state: MapState; actions: Actions; current: GraphData }) {
@@ -251,23 +278,7 @@ function Panels(props: { state: MapState; actions: Actions; current: GraphData }
     <Splitter pane={pane} orientation={ORIENTATION.vertical} side={SIDE.after} />
   );
   return (
-    <Show
-      when={graphLevel() !== LEVEL.modules}
-      fallback={
-        <Show when={modulesInfo()}>
-          {(info) => (
-            <>
-              {resizer(modulesPanelWidth)}
-              <ModulesPanel
-                info={info()}
-                selected={state.selected()}
-                onSelect={state.setSelected}
-              />
-            </>
-          )}
-        </Show>
-      }
-    >
+    <Show when={graphLevel() !== LEVEL.modules} fallback={<ModulesSide state={state} />}>
       <Show when={state.selected()}>
         {(layer) => (
           <>

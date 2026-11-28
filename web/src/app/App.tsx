@@ -6,10 +6,11 @@ import { CodesScreen } from "../features/codes/CodesScreen";
 import { BoardScreen } from "../features/annotations/BoardScreen";
 import { ConnectionScreen } from "../features/session/ConnectionScreen";
 import { GraphScreen } from "../features/graph/GraphScreen";
-import { LayersScreen } from "../features/layers/LayersScreen";
 import { ExplorerScreen } from "../features/explorer/ExplorerScreen";
 import { listenToScans } from "../features/scan/events";
 import { ChangeScreen } from "../features/change/ChangeScreen";
+import { ConventionsScreen } from "../features/conventions/ConventionsScreen";
+import { LayersScreen } from "../features/layers/LayersScreen";
 import { RulesScreen } from "../features/rules/RulesScreen";
 import { StatsScreen } from "../features/stats/StatsScreen";
 import { showScan } from "../features/projects/page";
@@ -34,12 +35,13 @@ import {
   FLUSH_PATHS,
   FOOTER_ROUTES,
   GRAPH_ROUTE,
-  LAYERS_ROUTE,
   MAIN_ROUTES,
   PROJECT_PATHS,
   PROJECTS_ROUTE,
   LEGACY_SCAN_PATH,
   CHANGE_ROUTE,
+  LAYERS_ROUTE,
+  CONVENTIONS_ROUTE,
   RULES_ROUTE,
   SETTINGS_ROUTE,
   STATS_ROUTE,
@@ -54,12 +56,13 @@ import { currentPath, navigate } from "./router";
 /** The screens of the app by their path; the projects screen answers every other path. */
 const SCREENS: ScreenTable = [
   [SETTINGS_ROUTE.path, SettingsScreen],
-  [LAYERS_ROUTE.path, LayersScreen],
   [CODES_ROUTE.path, CodesScreen],
   [GRAPH_ROUTE.path, GraphScreen],
   [STATS_ROUTE.path, StatsScreen],
   [CHANGE_ROUTE.path, ChangeScreen],
+  [LAYERS_ROUTE.path, LayersScreen],
   [RULES_ROUTE.path, RulesScreen],
+  [CONVENTIONS_ROUTE.path, ConventionsScreen],
   [EXPLORER_ROUTE.path, ExplorerScreen],
   [ANNOTATIONS_ROUTE.path, BoardScreen],
   [USAGES_ROUTE.path, UsagesScreen],

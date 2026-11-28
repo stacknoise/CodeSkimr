@@ -4,9 +4,10 @@ import { graphLevel, wantedLayer } from "../graph/graph";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, useServerSession } from "../../tests/commands";
+import { pendingFocus } from "../../shared/navigation/navigation";
 import { resetRules } from "./rules";
 import { RulesScreen } from "./RulesScreen";
-import type { RulesOut, ViolationOut } from "./types";
+import type { RuleOut, RulesOut, SymbolRef, ViolationOut } from "./types";
 
 useServerSession();
 
@@ -27,6 +28,38 @@ function violation(index: number, old: boolean): ViolationOut {
       { path: `Reports/Job${index}.cs`, line: 40, column: 9 },
     ],
     ring: null,
+    from_symbol: { id: 100 + index, kind: "class" },
+    to_symbol: null,
+  };
+}
+
+/** The rule that forbids cycles, with one ring whose weakest edge starts at `symbol`. */
+function cycleRule(symbol: SymbolRef | null): RuleOut {
+  return {
+    id: "cycles",
+    kind: "cycles",
+    from: "",
+    to: "",
+    internal: [],
+    reason: null,
+    allowed: [],
+    new: 1,
+    violations: [
+      {
+        from: "Shop.Data",
+        to: "Shop.Api",
+        old: false,
+        places: [{ path: "Data/R.cs", line: 6, column: 5 }],
+        ring: {
+          modules: ["Shop.Api", "Shop.Data"],
+          chain: ["Shop.Data", "Shop.Api", "Shop.Data"],
+          weakest_count: 1,
+          resolution_edges: 1,
+        },
+        from_symbol: symbol,
+        to_symbol: null,
+      },
+    ],
   };
 }
 
@@ -35,6 +68,7 @@ const ANSWER: RulesOut = {
   holdable: true,
   cycles: false,
   held_on: "2026-11-26",
+  file_version: "5",
   resolved: 1,
   old: 4,
   new: 1,
@@ -102,10 +136,37 @@ describe("RulesScreen", () => {
     expect(screen.getByText("Shop.Data.Internal.* only within Shop.Data")).toBeInTheDocument();
   });
 
+  it("opens the referring symbol in the explorer and switches off a name the scan does not know", async () => {
+    serve();
+    render(() => <RulesScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Shop.Reports.Job1.Run" }));
+    expect(pendingFocus()).toEqual({ type: 101, member: null, kind: null });
+    const gone = screen.getAllByRole("button", { name: "Shop.Checkout.Cart.Total" })[0];
+    expect(gone).toBeDisabled();
+    expect(gone).toHaveAttribute("title", expect.stringContaining("Scan again"));
+  });
+
+  it("shows the explorer button of a ring, off without a symbol of the scan", async () => {
+    const ring = (symbol: { id: number; kind: string } | null) =>
+      serve({ rules: [cycleRule(symbol)] });
+    ring({ id: 7, kind: "namespace" });
+    const first = render(() => <RulesScreen />);
+    const on = await screen.findByRole("button", { name: "Show in the explorer" });
+    expect(on).toBeEnabled();
+    fireEvent.click(on);
+    expect(pendingFocus()).toEqual({ namespace: "Shop.Data" });
+    first.unmount();
+    ring(null);
+    render(() => <RulesScreen />);
+    const off = await screen.findByRole("button", { name: "Show in the explorer" });
+    expect(off).toBeDisabled();
+    expect(off).toHaveAttribute("title", expect.stringContaining("Scan again"));
+  });
+
   it("shows the layer rule first, says what each layer may use and gives it no new-kind badge", async () => {
     serve();
     render(() => <RulesScreen />);
-    expect(await screen.findByText("Layers")).toBeInTheDocument();
+    expect(await screen.findByText("Api → Domain; Data → nothing")).toBeInTheDocument();
     expect(screen.getByText("Api → Domain; Data → nothing")).toBeInTheDocument();
     expect(screen.getAllByText("new rule kind")).toHaveLength(2);
   });
@@ -129,7 +190,7 @@ describe("RulesScreen", () => {
   it("switches the button off for a Git project and for a project without a scan", async () => {
     serve({ holdable: false });
     const first = render(() => <RulesScreen />);
-    await screen.findByText("Layers");
+    await screen.findByText("Api → Domain; Data → nothing");
     const button = screen.getByRole("button", { name: "Hold state" });
     expect(button).toBeDisabled();
     expect(button.getAttribute("title")).toMatch(/Folder projects only/);
@@ -148,7 +209,7 @@ describe("RulesScreen", () => {
       ),
     );
     render(() => <RulesScreen />);
-    await screen.findByText("Layers");
+    await screen.findByText("Api → Domain; Data → nothing");
     fireEvent.click(screen.getByRole("button", { name: "Hold state" }));
     expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
@@ -159,7 +220,7 @@ describe("RulesScreen", () => {
       Promise.resolve(path.endsWith("project_file.open") ? reply : answer(ANSWER)),
     );
     render(() => <RulesScreen />);
-    await screen.findByText("Layers");
+    await screen.findByText("Api → Domain; Data → nothing");
     fireEvent.click(screen.getByRole("button", { name: "Open .codeskimr.toml" }));
   }
 
@@ -176,7 +237,7 @@ describe("RulesScreen", () => {
   it("switches the open button off for a Git project", async () => {
     serve({ holdable: false });
     render(() => <RulesScreen />);
-    await screen.findByText("Layers");
+    await screen.findByText("Api → Domain; Data → nothing");
     expect(screen.getByRole("button", { name: "Open .codeskimr.toml" })).toBeDisabled();
   });
 
@@ -210,32 +271,7 @@ describe("RulesScreen", () => {
     serve({
       cycles: true,
       new: 1,
-      rules: [
-        {
-          id: "cycles",
-          kind: "cycles",
-          from: "",
-          to: "",
-          internal: [],
-          reason: null,
-          allowed: [],
-          new: 1,
-          violations: [
-            {
-              from: "Shop.Data",
-              to: "Shop.Api",
-              old: false,
-              places: [{ path: "Data/R.cs", line: 6, column: 5 }],
-              ring: {
-                modules: ["Shop.Api", "Shop.Data"],
-                chain: ["Shop.Data", "Shop.Api", "Shop.Data"],
-                weakest_count: 1,
-                resolution_edges: 1,
-              },
-            },
-          ],
-        },
-      ],
+      rules: [cycleRule({ id: 7, kind: "namespace" })],
     });
     render(() => <RulesScreen />);
     expect(await screen.findByText("No cycles between modules")).toBeInTheDocument();

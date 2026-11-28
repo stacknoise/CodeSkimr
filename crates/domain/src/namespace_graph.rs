@@ -47,8 +47,10 @@ pub fn name_parts(name: &str) -> Vec<&str> {
         .collect()
 }
 
-/// The first `depth` segments of `name`; the whole name if it has no more segments.
-fn leading_segments(name: &str, depth: usize) -> &str {
+/// The first `depth` segments of `name`; the whole name if it has no more segments or if `depth`
+/// is zero. This is the name of the module that [`NamespaceGraph::collapsed`] merges `name` into.
+#[must_use]
+pub fn leading_segments(name: &str, depth: usize) -> &str {
     let mut cuts: Vec<usize> = name
         .match_indices(NAME_SEPARATOR)
         .chain(name.match_indices(MODULE_NAME_SEPARATOR))

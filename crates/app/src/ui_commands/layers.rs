@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::io::Write;
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use codeskimr_application::access;
 use codeskimr_application::config::{LayerRule, PROJECT_CONFIG_FILE, with_layers};
@@ -13,7 +13,7 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::OutlineNode;
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Permission, Project, ProjectId, ProjectSource, SymbolId};
+use codeskimr_domain::{Layer, Permission, Project, ProjectId, ProjectSource, SymbolId};
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
@@ -22,7 +22,8 @@ use super::consts::{
 };
 use super::explorer::{ExplorerPorts, namespace_of};
 use crate::consts::PROJECT_FILE_MAX_BYTES;
-use crate::project_file::read_project_file;
+use crate::project_file::{read_project_file, require_version};
+use crate::rules_check::project_files;
 
 /// The input of `layers.get`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -62,6 +63,9 @@ pub struct LayersOut {
     pub layers: Vec<LayerEntry>,
     /// The namespaces of the newest scan, ordered by name.
     pub namespaces: Vec<NamespaceEntry>,
+    /// The version of the project file as the layers were read, to send back with `layers.set`.
+    /// Empty for a Git project.
+    pub file_version: String,
 }
 
 /// The type counts of the namespaces of an outline, each with the layer that owns it.
@@ -83,9 +87,8 @@ fn namespaces_of(project: &Project, nodes: &[OutlineNode]) -> Vec<NamespaceEntry
         .collect()
 }
 
-fn layer_entries(project: &Project) -> Vec<LayerEntry> {
-    project
-        .layers
+fn layer_entries(layers: &[Layer]) -> Vec<LayerEntry> {
+    layers
         .iter()
         .map(|layer| LayerEntry {
             name: layer.name.to_string(),
@@ -120,11 +123,13 @@ impl Command for LayersGet {
             Some(snapshot) => namespaces_of(&project, &ports.outline.outline(snapshot.id)?),
             None => Vec::new(),
         };
+        let files = project_files(&project.source)?;
         Ok(LayersOut {
             editable: matches!(project.source, ProjectSource::Folder(_)),
             scanned: snapshot.is_some(),
-            layers: layer_entries(&project),
+            layers: layer_entries(files.layers.as_deref().unwrap_or(&project.layers)),
             namespaces,
+            file_version: files.version,
         })
     }
 }
@@ -136,6 +141,9 @@ pub struct SetInput {
     pub project: u64,
     /// The layers the project file gets, outermost first; they replace the ones it has.
     pub layers: Vec<LayerEntry>,
+    /// The version `layers.get` answered; a file that changed since is refused with `CFG-106`.
+    /// Left out, the layers are written without that check.
+    pub file_version: Option<String>,
 }
 
 /// The answer of `layers.set`.
@@ -182,6 +190,24 @@ pub(super) fn write_project_file(path: &Path, text: &str) -> Result<(), CodedErr
     moved.map_err(|_| CodedError::new(ErrorCode::ProjectFileNotWritable))
 }
 
+/// Held while a project file is read, changed and written, so that two edits at the same time
+/// (two tabs, a dialog and a layer editor) do not overwrite each other without a trace.
+static PROJECT_FILE_LOCK: Mutex<()> = Mutex::new(());
+
+/// Reads the project file, lets `change` build the new text (and an answer) from it and writes
+/// that text, all under one process-wide lock (ADR 0112). A failed `change` writes nothing.
+pub(super) fn update_project_file<T>(
+    path: &Path,
+    change: impl FnOnce(&str) -> Result<(String, T), CodedError>,
+) -> Result<T, CodedError> {
+    let _held = PROJECT_FILE_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let (text, answer) = change(&read_project_file(path)?)?;
+    write_project_file(path, &text)?;
+    Ok(answer)
+}
+
 /// Writes the layers of a folder project into its `.codeskimr.toml`.
 pub struct LayersSet {
     pub(super) ports: Arc<ExplorerPorts>,
@@ -204,6 +230,7 @@ impl Command for LayersSet {
     /// - `PRJ-201` for an unknown project, `PRJ-101` for a Git project (it has no project file).
     /// - `CFG-101` if a layer is not valid, `CFG-102` if the file cannot be read or is not TOML.
     /// - `CFG-104` if the file cannot be written.
+    /// - `CFG-106` if the file changed since `layers.get` answered.
     fn execute(&self, request: Request<'_, Self>) -> Result<Saved, CodedError> {
         access::require(request.principal, Permission::Manage)?;
         let project = self
@@ -218,9 +245,11 @@ impl Command for LayersSet {
         let saved = Saved {
             layers: wanted.len(),
         };
-        let text =
-            with_layers(&read_project_file(&path)?, wanted).map_err(CodedError::caused_by)?;
-        write_project_file(&path, &text)?;
-        Ok(saved)
+        let version = request.input.file_version.as_deref();
+        update_project_file(&path, |text| {
+            require_version(text, version)?;
+            let text = with_layers(text, wanted).map_err(CodedError::caused_by)?;
+            Ok((text, saved))
+        })
     }
 }

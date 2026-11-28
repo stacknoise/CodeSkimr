@@ -5,6 +5,8 @@ compare-direct-only-note = Bekannt sind nur direkte Verwendungen; Reflection, Ze
 compare-scans-head = Scans des Projekts: { $count } aufbewahrt (bis zu { $keep }), durchschnittliche Dauer { $average }.
 compare-scans-none = Das Projekt hat noch keinen Scan.
 compare-scans-line = { $snapshot }  { $created }  { $mode }  { $files } Dateien, { $changed } geändert, { $duration }  { $commit }
+compare-scans-steps = Das Speichern dauerte: { $steps }
+compare-scans-step = { $step } { $ms } ms
 compare-duration = { $ms } ms
 compare-unknown = -
 
@@ -49,3 +51,25 @@ change-md-critical = ### Kritische Symbole, die die Änderung berührt
 change-md-critical-line = - { $kind } `{ $name }`: { $outcome }
 change-md-cut = Die Antwort wurde auf die eingestellte Grenze gekürzt; die Zahlen zählen die aufgelisteten Einträge.
 change-md-note = > { $note }
+
+metrics-head = Kennzahlen-Änderungen von Scan { $base } ({ $base_time }) zu Scan { $target } ({ $target_time }), Ebene { $level }: { $worse } schlechter, { $better } besser, { $looked } Objekte angesehen.
+metrics-worse = Schlechter ({ $shown } von { $total }):
+metrics-better = Besser ({ $shown } von { $total }):
+metrics-line = { $kind } { $name }  { $path }  { $moves }
+metrics-move = { $metric } { $from } -> { $to }
+metrics-move-crossing = { $move } ({ $crossing })
+metrics-name-loc = Zeilen
+metrics-name-cc = Komplexität
+metrics-name-mi = Wartbarkeit
+metrics-name-ce = Kopplung aus
+metrics-name-instability = Instabilität
+metrics-into-poor = jetzt als schlecht bewertet
+metrics-out-of-poor = nicht mehr als schlecht bewertet
+metrics-none = Kein Objekt hat sich um seine Schwelle bewegt.
+
+metrics-md-title = ## CodeSkimr: Kennzahlen von Scan { $base } zu Scan { $target }, Ebene { $level }
+metrics-md-counts = - Verschlechtert: { $worse }, verbessert: { $better }, betrachtete Objekte: { $looked }
+metrics-md-worse = ### Verschlechtert ({ $shown } von { $total })
+metrics-md-better = ### Verbessert ({ $shown } von { $total })
+metrics-md-line = - { $kind } `{ $name }` (`{ $path }`): { $moves }
+metrics-md-none = Kein Objekt hat sich über seine Schwelle hinaus bewegt.

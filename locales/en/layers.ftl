@@ -1,5 +1,6 @@
 # Setting layers: a choice from the detected namespaces (ADR 0065).
 
+nav-layers = Layers
 layers-title = Layers
 layers-subtitle = Build layers from the detected namespaces. The choice is saved in .codeskimr.toml in the project folder.
 layers-no-project = Pick a project first, the one whose layers you want to set.
@@ -41,6 +42,3 @@ layers-file-note = Saving only replaces the [[layers]] blocks of the file; the "
 layers-hint-title = No layers set yet
 layers-hint-text = Without layers everything stays ungrouped and the dependency map is empty.
 layers-hint-action = Set layers
-settings-layers-title = Layers
-settings-layers-note = Decide which namespaces belong to which layer. The explorer and the dependency map group by them.
-settings-layers-action = Edit layers

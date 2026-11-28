@@ -1,5 +1,6 @@
 # Schichten festlegen: Auswahl aus den erkannten Namensräumen (ADR 0065).
 
+nav-layers = Schichten
 layers-title = Schichten
 layers-subtitle = Stelle aus den erkannten Namensräumen Schichten zusammen. Die Auswahl wird in .codeskimr.toml im Projektordner gespeichert.
 layers-no-project = Wähle zuerst ein Projekt, dessen Schichten du festlegen willst.
@@ -41,6 +42,3 @@ layers-file-note = Beim Speichern werden nur die [[layers]]-Blöcke der Datei er
 layers-hint-title = Noch keine Schichten festgelegt
 layers-hint-text = Ohne Schichten bleibt alles ungruppiert und die Abhängigkeitskarte ist leer.
 layers-hint-action = Schichten festlegen
-settings-layers-title = Schichten
-settings-layers-note = Lege fest, welche Namensräume zu welcher Schicht gehören. Explorer und Abhängigkeitskarte gruppieren danach.
-settings-layers-action = Schichten bearbeiten

@@ -264,6 +264,8 @@ risk_instability_gap = 100
 risk_max = 5
 # Most modules the tab "Modules" draws and lists, the most referenced first; the rest is counted. Cycles and risks are always found among all modules.
 max_modules = 200
+# Most places of one dependency between two modules that the tab "Modules", `get_dependencies` and `codeskimr modules` list; the total is still counted.
+max_places = 100
 
 # The HTML export of a project (blueprint 15, ADR 0090).
 [export]
@@ -279,3 +281,11 @@ max_references = 600000
 max_symbols = 200
 # Most usages listed per symbol whose usages a change can break; the total of its usages is still counted.
 max_usages = 50
+# From which size a move of a metric counts as worse or better in the list of metric changes (ADR 0114); a smaller
+# move is noise and is not listed. Complexity and efferent coupling are counted in units, the maintainability index in
+# points, instability in thousandths, and lines are only marked when an object grew by at least this many.
+metric_min_cc = 2
+metric_min_mi = 5
+metric_min_ce = 2
+metric_min_instability = 100
+metric_loc_growth = 20

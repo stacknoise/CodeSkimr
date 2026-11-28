@@ -9,7 +9,7 @@ use super::consts::{
 };
 use super::error::{ConfigError, Violation};
 use super::model::{
-    Annotations, Budgets, Config, Conventions, Editor, KeySources, Level2, McpLimits,
+    Annotations, Budgets, Compare, Config, Conventions, Editor, KeySources, Level2, McpLimits,
     MetricThresholds, Scan, Ui,
 };
 
@@ -55,9 +55,23 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     positive(keys::GRAPH_ROW_BOXES, config.graph.row_boxes)?;
     positive(keys::GRAPH_RISK_MAX, config.graph.risk_max)?;
     positive(keys::GRAPH_MAX_MODULES, config.graph.max_modules)?;
+    positive(keys::GRAPH_MAX_PLACES, config.graph.max_places)?;
     positive(keys::EXPORT_MAX_REFERENCES, config.export.max_references)?;
     positive(keys::COMPARE_MAX_SYMBOLS, config.compare.max_symbols)?;
-    positive(keys::COMPARE_MAX_USAGES, config.compare.max_usages)
+    positive(keys::COMPARE_MAX_USAGES, config.compare.max_usages)?;
+    check_metric_thresholds(&config.compare)
+}
+
+/// The thresholds of the metric changes (ADR 0114) must be positive: zero would list every move.
+fn check_metric_thresholds(compare: &Compare) -> Result<(), ConfigError> {
+    positive(keys::COMPARE_METRIC_MIN_CC, compare.metric_min_cc)?;
+    positive(keys::COMPARE_METRIC_MIN_MI, compare.metric_min_mi)?;
+    positive(keys::COMPARE_METRIC_MIN_CE, compare.metric_min_ce)?;
+    positive(
+        keys::COMPARE_METRIC_MIN_INSTABILITY,
+        compare.metric_min_instability,
+    )?;
+    positive(keys::COMPARE_METRIC_LOC_GROWTH, compare.metric_loc_growth)
 }
 
 fn check_conventions(conventions: &Conventions) -> Result<(), ConfigError> {

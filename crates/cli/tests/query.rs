@@ -1,9 +1,10 @@
 //! The query commands: their arguments, and the JSON and text they print.
 
 use codeskimr_cli::{
-    Action, CompareQuery, ContextQuery, ImpactQuery, Parsed, QueryAction, QueryKind, QueryTarget,
-    RenameQuery, ScansQuery, SymbolsQuery, UnusedQuery, UsagesQuery, change_markdown, parse,
-    query_code_report, query_error_json, query_json, query_text,
+    Action, CompareQuery, ContextQuery, ImpactQuery, MetricsSide, ModulesQuery, Parsed,
+    QueryAction, QueryKind, QueryTarget, RenameQuery, ScansQuery, SymbolsQuery, UnusedQuery,
+    UsagesQuery, change_markdown, metrics_markdown, parse, query_code_report, query_error_json,
+    query_json, query_text,
 };
 use codeskimr_i18n::Messages;
 use serde_json::{Value, json};
@@ -143,6 +144,8 @@ fn unused_reads_its_options_and_refuses_values_outside_its_lists() {
             "csharp",
             "--assessment",
             "likely",
+            "--reason",
+            "private",
             "--include-tests",
             "--limit",
             "3",
@@ -151,6 +154,7 @@ fn unused_reads_its_options_and_refuses_values_outside_its_lists() {
             kind: Some("functions".to_owned()),
             language: Some("csharp".to_owned()),
             assessment: Some("likely".to_owned()),
+            reason: Some("private".to_owned()),
             include_tests: true,
             limit: Some(3),
             target: QueryTarget::default(),
@@ -159,6 +163,7 @@ fn unused_reads_its_options_and_refuses_values_outside_its_lists() {
     let messages = Messages::load().unwrap();
     for arguments in [
         ["codeskimr", "unused", "--assessment", "dead"],
+        ["codeskimr", "unused", "--reason", "dead"],
         ["codeskimr", "unused", "--kind", "everything"],
     ] {
         assert!(parse(arguments.iter().copied(), &messages, "en").is_err());
@@ -293,6 +298,7 @@ fn compare_and_change_read_the_two_scans() {
         base: Some(4),
         newer: Some(9),
         markdown: false,
+        metrics: None,
         target: scans_target(Some("shop"), false),
     };
     let arguments = ["shop", "--base", "4", "--target", "9"];
@@ -330,6 +336,7 @@ fn change_without_options_takes_the_newest_scan_and_the_one_before() {
             base: None,
             newer: None,
             markdown: false,
+            metrics: None,
             target: scans_target(None, false),
         })
     );
@@ -380,4 +387,287 @@ fn a_name_cannot_break_out_of_the_code_span_of_the_markdown() {
         "{markdown}"
     );
     assert_eq!(markdown.lines().next(), Some("<!-- codeskimr-change -->"));
+}
+
+#[test]
+fn modules_reads_the_depth_the_limit_and_the_output() {
+    assert_eq!(
+        action(&[
+            "codeskimr",
+            "modules",
+            "--depth",
+            "2",
+            "--limit",
+            "20",
+            "--json"
+        ]),
+        QueryAction::Modules(ModulesQuery {
+            depth: Some(2),
+            limit: Some(20),
+            from: None,
+            to: None,
+            target: QueryTarget {
+                project: None,
+                json: true
+            },
+        })
+    );
+}
+
+#[test]
+fn modules_reads_the_two_modules_of_a_dependency_and_wants_both() {
+    let QueryAction::Modules(query) = action(&[
+        "codeskimr",
+        "modules",
+        "--from",
+        "App.Web",
+        "--to",
+        "App.Domain",
+    ]) else {
+        unreachable!("a modules command")
+    };
+    assert_eq!(query.from.as_deref(), Some("App.Web"));
+    assert_eq!(query.to.as_deref(), Some("App.Domain"));
+    let messages = Messages::load().unwrap();
+    let alone = parse(
+        ["codeskimr", "modules", "--from", "App.Web"],
+        &messages,
+        "en",
+    );
+    assert!(alone.is_err());
+}
+
+#[test]
+fn the_text_of_the_places_of_a_dependency_lists_file_line_and_symbols_in_both_languages() {
+    let messages = Messages::load().unwrap();
+    let answer = json!({
+        "level": "module", "from": "App.Web", "to": "App.Domain", "total": 3,
+        "places": [
+            {"path": "web/Page.cs", "line": 8, "from": "App.Web.Page.Show", "to": "App.Domain.Invoice.Total"},
+            {"path": "web/Page.cs", "line": 20, "from": "App.Web.Page.Show", "to": "App.Domain.Invoice.Pay"}
+        ]
+    });
+    let english = query_text(&messages, "en", QueryKind::Modules, (&answer, None)).unwrap();
+    assert!(
+        english.contains("Places of App.Web -> App.Domain: 2 of 3 shown."),
+        "{english}"
+    );
+    assert!(
+        english.contains("web/Page.cs:8  App.Web.Page.Show -> App.Domain.Invoice.Total"),
+        "{english}"
+    );
+    let german = query_text(&messages, "de", QueryKind::Modules, (&answer, None)).unwrap();
+    assert!(
+        german.contains("Stellen von App.Web -> App.Domain: 2 von 3 gezeigt."),
+        "{german}"
+    );
+    let none = json!({"from": "A", "to": "B", "total": 0, "places": []});
+    let empty = query_text(&messages, "en", QueryKind::Modules, (&none, None)).unwrap();
+    assert_eq!(empty, "No places of A -> B found.");
+}
+
+fn module_answer() -> Value {
+    json!({
+        "level": "module",
+        "total": 3,
+        "modules": [
+            {"name": "App.Domain", "layer": "Domain", "incoming": 11, "outgoing": 2,
+             "stability": 154, "types": 2, "in_cycle": true, "violations": 0},
+            {"name": "App.Web", "layer": null, "incoming": 0, "outgoing": 7,
+             "stability": 1000, "types": 1, "in_cycle": false, "violations": 1},
+            {"name": "App.Lonely", "layer": null, "incoming": 0, "outgoing": 0,
+             "stability": null, "types": 1, "in_cycle": false, "violations": 0}
+        ],
+        "cycles": [{
+            "modules": ["App.Domain", "App.Application"],
+            "edges": [],
+            "resolution": [{"from": "App.Domain", "to": "App.Application", "count": 1}]
+        }],
+        "violations": [{
+            "edge": {"from": "App.Web", "to": "App.Domain", "count": 4},
+            "from_layer": "Web", "to_layer": "Domain"
+        }],
+        "risks": [{
+            "module": "App.Domain", "incoming": 11, "stability": 154,
+            "depends_on": "App.Web", "depends_on_stability": 1000
+        }]
+    })
+}
+
+#[test]
+fn the_text_of_modules_names_rings_violations_and_risks_in_both_languages() {
+    let messages = Messages::load().unwrap();
+    let answer = module_answer();
+    let english = query_text(&messages, "en", QueryKind::Modules, (&answer, None)).unwrap();
+    assert!(english.contains("App.Domain [Domain]"), "{english}");
+    assert!(english.contains("stability 0.15"), "{english}");
+    assert!(english.contains("stability none"), "{english}");
+    assert!(english.contains("in a cycle"), "{english}");
+    assert!(
+        english.contains("2 modules in a ring: App.Domain -> App.Application"),
+        "{english}"
+    );
+    assert!(
+        english.contains("Ending it takes away App.Domain -> App.Application (1 place)"),
+        "{english}"
+    );
+    assert!(
+        english.contains("App.Web (Web) -> App.Domain (Domain): 4 places"),
+        "{english}"
+    );
+    assert!(english.contains("is used in 11 places"), "{english}");
+    let german = query_text(&messages, "de", QueryKind::Modules, (&answer, None)).unwrap();
+    assert!(german.contains("Stabilität 0,15"), "{german}");
+    assert!(german.contains("im Zyklus"), "{german}");
+    assert!(german.contains("1 Stelle"), "{german}");
+}
+
+#[test]
+fn the_text_of_modules_rounds_the_stability_like_the_ui() {
+    let messages = Messages::load().unwrap();
+    let mut answer = module_answer();
+    answer["modules"][0]["stability"] = json!(995);
+    answer["modules"][1]["stability"] = json!(999);
+    let english = query_text(&messages, "en", QueryKind::Modules, (&answer, None)).unwrap();
+    assert!(english.contains("stability 1.00"), "{english}");
+    assert!(!english.contains("stability 0.99"), "{english}");
+    let german = query_text(&messages, "de", QueryKind::Modules, (&answer, None)).unwrap();
+    assert!(german.contains("Stabilität 1,00"), "{german}");
+}
+
+#[test]
+fn the_text_of_modules_says_when_there_are_none() {
+    let messages = Messages::load().unwrap();
+    let none = json!({"modules": [], "total": 0});
+    let text = query_text(&messages, "en", QueryKind::Modules, (&none, None)).unwrap();
+    assert_eq!(text, "No modules found.");
+}
+
+#[test]
+fn the_scan_list_names_how_long_each_step_of_saving_took() {
+    let answer = json!({
+        "keep": 5, "average_ms": 900,
+        "scans": [{
+            "snapshot": 3, "created": 1_700_000_000, "mode": "full", "files": 4,
+            "files_changed": 4, "duration_ms": 900, "commit": null,
+            "steps": [
+                {"step": "references", "duration_ms": 120},
+                {"step": "reference_indexes", "duration_ms": 640}
+            ]
+        }, {
+            "snapshot": 3, "created": 1_700_000_100, "mode": "incremental", "files": 4,
+            "files_changed": 0, "duration_ms": 10, "commit": null, "steps": []
+        }],
+    });
+    let messages = Messages::load().unwrap();
+    let text = query_text(&messages, "en", QueryKind::Scans, (&answer, None)).unwrap();
+    assert!(
+        text.contains("Saving took: references 120 ms, reference_indexes 640 ms"),
+        "{text}"
+    );
+    assert_eq!(text.matches("Saving took").count(), 1, "{text}");
+}
+
+#[test]
+fn compare_metrics_reads_the_side_the_level_and_the_metrics() {
+    let QueryAction::Compare(query) = action(&[
+        "codeskimr",
+        "compare",
+        "--metrics",
+        "--worse",
+        "--level",
+        "type",
+        "--metric",
+        "cc",
+        "--metric",
+        "mi",
+    ]) else {
+        panic!("not a compare");
+    };
+    let options = query.metrics.unwrap();
+    assert_eq!(options.side, MetricsSide::Worse);
+    assert_eq!(options.level.as_deref(), Some("type"));
+    assert_eq!(options.only, vec!["cc".to_owned(), "mi".to_owned()]);
+    let QueryAction::Compare(plain) = action(&["codeskimr", "compare"]) else {
+        panic!("not a compare");
+    };
+    assert!(plain.metrics.is_none());
+}
+
+fn metrics_answer() -> Value {
+    json!({
+        "level": "member", "looked_at": 12, "is_cut": false,
+        "base": {"snapshot": 1, "created": 1_700_000_000},
+        "target": {"snapshot": 2, "created": 1_700_000_100},
+        "worse": {"total": 1, "is_cut": false, "items": [{
+            "name": "Demo.Big.Run", "kind": "method", "path": "Big.cs", "verdict": "worse",
+            "crosses": true,
+            "moves": [{"metric": "cc", "from": 6.0, "to": 14.5, "direction": "worse",
+                       "crossing": "into_poor"}]
+        }]},
+        "better": {"total": 0, "is_cut": false, "items": []},
+    })
+}
+
+#[test]
+fn the_text_of_compare_metrics_lists_the_moves_and_the_crossing() {
+    let messages = Messages::load().unwrap();
+    let kind = QueryKind::Metrics {
+        worse: true,
+        better: true,
+    };
+    let text = query_text(&messages, "en", kind, (&metrics_answer(), None)).unwrap();
+    assert!(text.contains("1 worse, 0 better"), "{text}");
+    assert!(text.contains("Demo.Big.Run"), "{text}");
+    assert!(
+        text.contains("complexity 6 -> 14.5 (now rated poor)"),
+        "{text}"
+    );
+    let german = query_text(&messages, "de", kind, (&metrics_answer(), None)).unwrap();
+    assert!(german.contains("Demo.Big.Run"), "{german}");
+}
+
+#[test]
+fn compare_metrics_says_when_nothing_moved_by_its_threshold() {
+    let messages = Messages::load().unwrap();
+    let mut answer = metrics_answer();
+    answer["worse"] = json!({"total": 0, "is_cut": false, "items": []});
+    let kind = QueryKind::Metrics {
+        worse: true,
+        better: true,
+    };
+    let text = query_text(&messages, "en", kind, (&answer, None)).unwrap();
+    assert!(text.contains("No object moved"), "{text}");
+}
+
+#[test]
+fn the_markdown_of_compare_metrics_has_the_marker_the_counts_and_the_moves() {
+    let messages = Messages::load().unwrap();
+    let text = metrics_markdown(&messages, "en", &metrics_answer(), (true, true)).unwrap();
+    let lines: Vec<&str> = text.lines().collect();
+    assert_eq!(lines[0], "<!-- codeskimr-metrics -->");
+    assert!(text.contains("- Got worse: 1, got better: 0"), "{text}");
+    assert!(text.contains("### Got worse (1 of 1)"), "{text}");
+    assert!(
+        text.contains("`Demo.Big.Run` (`Big.cs`): complexity 6 -> 14.5 (now rated poor)"),
+        "{text}"
+    );
+    assert!(!text.contains("### Got better"), "{text}");
+    let only_better = metrics_markdown(&messages, "de", &metrics_answer(), (false, true)).unwrap();
+    assert!(only_better.contains("Kein Objekt"), "{only_better}");
+}
+
+#[test]
+fn markdown_is_a_flag_of_compare_metrics_that_needs_it_and_excludes_json() {
+    let QueryAction::Compare(query) = action(&["codeskimr", "compare", "--metrics", "--markdown"])
+    else {
+        panic!("not a compare");
+    };
+    assert!(query.markdown);
+    let messages = Messages::load().unwrap();
+    let without: &[&str] = &["codeskimr", "compare", "--markdown"];
+    let with_json: &[&str] = &["codeskimr", "compare", "--metrics", "--markdown", "--json"];
+    for bad in [without, with_json] {
+        assert!(parse(bad.iter().copied(), &messages, "en").is_err());
+    }
 }

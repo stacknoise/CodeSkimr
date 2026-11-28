@@ -88,6 +88,7 @@ const HISTORY = {
   scans: [
     {
       snapshot: 5,
+      scan: 5,
       created: 1_800_000_000,
       commit: null,
       mode: "full",
@@ -95,9 +96,15 @@ const HISTORY = {
       symbols: 9,
       duration_ms: 2400,
       files_changed: 37,
+      steps: [
+        { step: "references", duration_ms: 400 },
+        { step: "reference_indexes", duration_ms: 1500 },
+        { step: "commit", duration_ms: 100 },
+      ],
     },
     {
       snapshot: 4,
+      scan: 4,
       created: 1_799_990_000,
       commit: null,
       mode: "incremental",
@@ -105,9 +112,11 @@ const HISTORY = {
       symbols: 9,
       duration_ms: 600,
       files_changed: 4,
+      steps: [],
     },
     {
       snapshot: 3,
+      scan: 3,
       created: 1_799_900_000,
       commit: null,
       mode: "full",
@@ -115,6 +124,7 @@ const HISTORY = {
       symbols: 9,
       duration_ms: null,
       files_changed: null,
+      steps: [],
     },
   ],
 };
@@ -179,12 +189,21 @@ describe("the tab Scan", () => {
   it("lists the last scans with the duration of each and a dash where it was not stored", async () => {
     const stop = await shown();
     const history = within(await screen.findByRole("region", { name: "Recent scans" }));
-    expect(await history.findByText("5 are kept")).toBeInTheDocument();
+    expect(await history.findByText("5 states are kept")).toBeInTheDocument();
     expect(history.getAllByText("2.4 s").length).toBeGreaterThan(0);
     expect(history.getByText("0.6 s")).toBeInTheDocument();
     expect(history.getByText("current")).toBeInTheDocument();
     expect(history.getAllByText("37").length).toBeGreaterThan(0);
     expect(history.getAllByText("—").length).toBeGreaterThan(0);
+    stop();
+  });
+
+  it("shows how long each step of saving took for the newest scan that kept the times", async () => {
+    const stop = await shown();
+    const history = within(await screen.findByRole("region", { name: "Recent scans" }));
+    expect(await history.findByText("Time per step of saving")).toBeInTheDocument();
+    expect(history.getByText("Build reference indexes")).toBeInTheDocument();
+    expect(history.getByText("1.5 s")).toBeInTheDocument();
     stop();
   });
 

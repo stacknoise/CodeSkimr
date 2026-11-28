@@ -62,8 +62,8 @@ pub use memory::{MemoryGauge, MemoryLimit, MemoryWatch};
 pub use mentions::{Mention, MentionLimits, Mentions, NameMentions};
 pub use outline::{CodeOutline, MemberRow, OutlineNode};
 pub use query::{
-    CodeIndex, CodeSpan, FileHit, MemberRef, ScanEntry, SearchHit, SymbolDetail, SymbolKey,
-    TypeFocus, TypeNeighbour,
+    CodeIndex, CodeSpan, FileHit, MemberRef, ScanEntry, SearchHit, StepTime, SymbolDetail,
+    SymbolKey, TypeFocus, TypeNeighbour,
 };
 pub use references::{ReferencePlace, ReferencePlaces, ReferenceSite, ReferenceSites};
 pub use report::{

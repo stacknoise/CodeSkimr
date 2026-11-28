@@ -17,6 +17,7 @@ import {
   SECONDS_UNIT,
 } from "./consts";
 import { moment } from "./moment";
+import { StepTimes } from "./StepTimes";
 import type { ScanEntry, ScanHistoryAnswer } from "./types";
 import styles from "./History.module.css";
 
@@ -109,7 +110,7 @@ function Row(props: { project: number; scan: ScanEntry; newest: boolean }) {
             type="button"
             class={styles.compare}
             title={t(I18N_KEYS.SCAN_HISTORY_COMPARE_TITLE)}
-            onClick={() => compareWithCurrent(props.project, props.scan.snapshot)}
+            onClick={() => compareWithCurrent(props.project, props.scan.scan)}
           >
             {t(I18N_KEYS.SCAN_HISTORY_COMPARE)}
           </button>
@@ -180,6 +181,7 @@ export function History(props: { row: ProjectRow }) {
               fallback={<div class={styles.note}>{t(I18N_KEYS.SCAN_HISTORY_EMPTY)}</div>}
             >
               <Table project={props.row.id} scans={list().scans} />
+              <StepTimes steps={list().scans.find((scan) => scan.steps.length > 0)?.steps ?? []} />
             </Show>
           </>
         )}

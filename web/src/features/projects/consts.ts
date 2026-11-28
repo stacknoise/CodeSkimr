@@ -18,6 +18,8 @@ export const SCOPE_COMMAND = { get: "scope.get", set: "scope.set" } as const;
 export const SCOPE_PATH_SEPARATOR = "/";
 /** Ids of the headings of the scope page, which name their sections. */
 export const SCOPE_HEADING_ID = { languages: "scope-languages", folders: "scope-folders" } as const;
+/** The id of the heading of the abapGit card (ADR 0113). */
+export const ABAPGIT_HEADING_ID = "abapgit-heading";
 /** The custom property that carries the depth of a folder in the tree to the style sheet. */
 export const SCOPE_DEPTH_VAR = "--scope-depth";
 /** The name of the radio group of the hint in the window "New project". */
@@ -88,6 +90,7 @@ export const SCAN_MODE = { full: "full", incremental: "incremental" } as const;
 
 /** Display names of the languages (proper names, not translated). */
 export const LANGUAGE_NAMES: Record<string, string> = {
+  abap: "ABAP",
   c: "C",
   cpp: "C++",
   csharp: "C#",
@@ -317,9 +320,6 @@ export const REMOVE_MARKS = { goes: "−", stays: "✓", warning: "!" } as const
 /** The id of the title of the dialog "Remove project" and of the window "New project". */
 export const REMOVE_DIALOG_TITLE_ID = "remove-title";
 export const NEW_PROJECT_TITLE_ID = "new-project-title";
-
-/** How project names are compared for the list: without regard to case and accents, digits as numbers. */
-export const NAME_ORDER: Intl.CollatorOptions = { sensitivity: "base", numeric: true };
 
 /** The drag events the screen listens to on the window. */
 export const DRAG_EVENT = {

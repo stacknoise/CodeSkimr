@@ -438,6 +438,8 @@ pub struct UnusedQuery {
     pub language: Option<String>,
     /// `likely`, `public` or `approximate`.
     pub assessment: Option<String>,
+    /// `private`, `internal`, `public` or `approximate`.
+    pub reason: Option<String>,
     /// Test code counts.
     pub include_tests: bool,
     /// Number of symbols.
@@ -453,6 +455,21 @@ pub struct RulesQuery {
     pub limit: Option<u32>,
     /// Holds the state instead of judging: every violation of now becomes an old burden.
     pub hold: bool,
+    /// Project and output.
+    pub target: QueryTarget,
+}
+
+/// Arguments of `codeskimr modules`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModulesQuery {
+    /// Merge the namespaces into their first `depth` segments; all of them if left out.
+    pub depth: Option<u32>,
+    /// Number of modules listed.
+    pub limit: Option<u32>,
+    /// With `to`: the depending module of one dependency, whose places are listed instead.
+    pub from: Option<String>,
+    /// With `from`: the module that is depended on.
+    pub to: Option<String>,
     /// Project and output.
     pub target: QueryTarget,
 }
@@ -477,6 +494,38 @@ pub struct ScansQuery {
     pub target: QueryTarget,
 }
 
+/// Which side of the metric changes `codeskimr compare --metrics` prints.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MetricsSide {
+    /// Both lists.
+    Both,
+    /// Only what got worse.
+    Worse,
+    /// Only what got better.
+    Better,
+}
+
+impl MetricsSide {
+    /// Which lists are printed: the worse ones, the better ones.
+    #[must_use]
+    pub const fn lists(self) -> (bool, bool) {
+        (!matches!(self, Self::Better), !matches!(self, Self::Worse))
+    }
+}
+
+/// What `codeskimr compare --metrics` is asked for (ADR 0114).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MetricsOptions {
+    /// Which list is printed; the JSON always holds both.
+    pub side: MetricsSide,
+    /// Only objects in which one of these metrics moved; every judged metric if empty.
+    pub only: Vec<String>,
+    /// `module`, `type` or `member`; `member` if left out.
+    pub level: Option<String>,
+    /// Whether test code is looked at too.
+    pub include_tests: bool,
+}
+
 /// Arguments of `codeskimr compare` and `codeskimr change`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompareQuery {
@@ -486,6 +535,8 @@ pub struct CompareQuery {
     pub newer: Option<u64>,
     /// Print Markdown for a comment on a pull request (`change` only); never with `--json`.
     pub markdown: bool,
+    /// The metric changes instead of the changed symbols (`compare --metrics` only).
+    pub metrics: Option<MetricsOptions>,
     /// Project and output.
     pub target: QueryTarget,
 }
@@ -509,6 +560,8 @@ pub enum QueryAction {
     Rules(RulesQuery),
     /// Shows what a new name for a symbol would hit; changes nothing.
     Rename(RenameQuery),
+    /// Shows the modules with cycles, coupling and stability.
+    Modules(ModulesQuery),
     /// Lists the retained scans of the project.
     Scans(ScansQuery),
     /// Compares two retained scans.
@@ -529,6 +582,7 @@ impl QueryAction {
             | Self::Unused(UnusedQuery { target, .. })
             | Self::Rules(RulesQuery { target, .. })
             | Self::Rename(RenameQuery { target, .. })
+            | Self::Modules(ModulesQuery { target, .. })
             | Self::Scans(ScansQuery { target })
             | Self::Compare(CompareQuery { target, .. })
             | Self::Change(CompareQuery { target, .. }) => target,

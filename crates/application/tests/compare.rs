@@ -10,8 +10,10 @@ mod tests {
     use std::sync::{Arc, Mutex, PoisonError};
 
     use codeskimr_application::compare::{
-        CompareLimits, ComparePorts, ComparisonRequest, CriticalOutcome, ScanComparer, UsageStatus,
+        CompareLimits, ComparePorts, ComparisonRequest, CriticalOutcome, MetricRules,
+        MetricsRequest, ScanComparer, UsageStatus,
     };
+    use codeskimr_application::config::Config;
     use codeskimr_application::error::CodedError;
     use codeskimr_application::ports::{
         CodeIndex, CodeSpan, ComparisonSource, FileHit, ScanEntry, SearchHit, SymbolDetail,
@@ -19,9 +21,10 @@ mod tests {
     };
     use codeskimr_codes::{Coded, ErrorCode};
     use codeskimr_domain::{
-        Confidence, ContentHash, FileId, LayerEdge, LayerName, NamespaceGraph, Position, ProjectId,
-        QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot,
-        SnapshotId, Span, SymbolFact, SymbolId, SymbolKind, Timestamp, UsageQuery, Visibility,
+        Confidence, ContentHash, FileId, LayerEdge, LayerName, MetricFact, MetricLevel,
+        MetricValues, NamespaceGraph, Position, ProjectId, QualifiedName, Reference, ReferenceId,
+        ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, Span, SymbolFact, SymbolId,
+        SymbolKind, Timestamp, UsageQuery, Visibility,
     };
 
     use super::fakes::{MemoryAnnotations, PROJECT};
@@ -32,6 +35,7 @@ mod tests {
 
     fn entry(id: SnapshotId) -> ScanEntry {
         ScanEntry {
+            scan: id.get(),
             snapshot: id,
             created: Timestamp(id.get().try_into().unwrap()),
             commit: None,
@@ -40,6 +44,7 @@ mod tests {
             symbols: 1,
             duration_ms: None,
             files_changed: None,
+            steps: Vec::new(),
         }
     }
 
@@ -126,11 +131,16 @@ mod tests {
     struct Source {
         facts: HashMap<SnapshotId, Vec<SymbolFact>>,
         rules: HashMap<SnapshotId, String>,
+        metrics: HashMap<SnapshotId, Vec<MetricFact>>,
     }
 
     impl ComparisonSource for Source {
         fn comparison_facts(&self, snapshot: SnapshotId) -> Result<Vec<SymbolFact>, CodedError> {
             Ok(self.facts.get(&snapshot).cloned().unwrap_or_default())
+        }
+
+        fn metric_facts(&self, snapshot: SnapshotId) -> Result<Vec<MetricFact>, CodedError> {
+            Ok(self.metrics.get(&snapshot).cloned().unwrap_or_default())
         }
 
         fn snapshot_naming_rules(
@@ -298,7 +308,11 @@ mod tests {
             usages: Arc::new(world.usages.clone()),
             annotations: world.annotations.clone(),
         };
-        ScanComparer::new(ports, limits)
+        ScanComparer::new(
+            ports,
+            limits,
+            MetricRules::from_config(&Config::resolve(&[]).expect("valid")),
+        )
     }
 
     const LIMITS: CompareLimits = CompareLimits {
@@ -381,11 +395,53 @@ mod tests {
 
     #[test]
     fn a_base_that_is_not_older_than_the_target_gives_cmp_101() {
-        for (base, target) in [(NEW, MID), (MID, MID)] {
-            let request = ask(Some(base), Some(target), false);
-            let error = comparer(&world(), LIMITS).compare(&request).unwrap_err();
-            assert_eq!(error.code(), ErrorCode::ComparisonOrderInvalid);
-        }
+        let request = ask(Some(NEW), Some(MID), false);
+        let error = comparer(&world(), LIMITS).compare(&request).unwrap_err();
+        assert_eq!(error.code(), ErrorCode::ComparisonOrderInvalid);
+    }
+
+    /// The history of three scans of `NEW` (the first wrote it, two found nothing changed), `MID`
+    /// before them: every scan is an entry of its own (ADR 0093).
+    fn world_with_repeated_scans() -> World {
+        let mut world = world();
+        let again = |scan: u64| ScanEntry {
+            scan,
+            files_changed: Some(0),
+            ..entry(NEW)
+        };
+        world.index.history = vec![again(103), again(102), entry(NEW), entry(MID), entry(OLD)];
+        world
+    }
+
+    #[test]
+    fn the_default_of_two_scans_in_a_row_without_changes_is_an_empty_comparison() {
+        let answer = comparer(&world_with_repeated_scans(), LIMITS)
+            .compare(&ask(None, None, true))
+            .unwrap();
+        assert_eq!((answer.base.scan, answer.target.scan), (102, 103));
+        assert_eq!((answer.base.snapshot, answer.target.snapshot), (NEW, NEW));
+        assert_eq!(
+            answer.added.total + answer.removed.total + answer.changed.total,
+            0
+        );
+        assert_eq!(answer.layers.new_violations.len(), 0);
+    }
+
+    #[test]
+    fn a_snapshot_named_twice_is_compared_with_itself_from_its_first_to_its_last_scan() {
+        let answer = comparer(&world_with_repeated_scans(), LIMITS)
+            .compare(&ask(Some(NEW), Some(NEW), false))
+            .unwrap();
+        assert_eq!((answer.base.scan, answer.target.scan), (30, 103));
+        assert_eq!(answer.changed.total, 0);
+    }
+
+    #[test]
+    fn a_named_snapshot_stands_for_its_newest_scan() {
+        let answer = comparer(&world_with_repeated_scans(), LIMITS)
+            .compare(&ask(Some(MID), None, false))
+            .unwrap();
+        assert_eq!((answer.base.snapshot, answer.target.scan), (MID, 103));
     }
 
     #[test]
@@ -524,5 +580,103 @@ mod tests {
                 ("App.Body", CriticalOutcome::Changed)
             ]
         );
+    }
+
+    fn metric_fact(name: &str, path: &str, cc: f64, mi: f64) -> MetricFact {
+        MetricFact {
+            kind: SymbolKind::Method,
+            qualified_name: QualifiedName::new(name).unwrap(),
+            signature: Some("()".to_owned()),
+            path: RelativePath::new(path).unwrap(),
+            values: MetricValues {
+                cc: Some(cc),
+                mi: Some(mi),
+                ..MetricValues::default()
+            },
+        }
+    }
+
+    fn metrics_world() -> World {
+        let mut world = world();
+        world.source.metrics.insert(
+            MID,
+            vec![
+                metric_fact("App.Slow", "src/a.cs", 6.0, 71.0),
+                metric_fact("App.Fast", "src/b.cs", 18.0, 49.0),
+                metric_fact("App.Same", "src/c.cs", 3.0, 80.0),
+                metric_fact("App.Test", "tests/t.cs", 3.0, 80.0),
+            ],
+        );
+        world.source.metrics.insert(
+            NEW,
+            vec![
+                metric_fact("App.Slow", "src/a.cs", 14.0, 58.0),
+                metric_fact("App.Fast", "src/b.cs", 9.0, 61.0),
+                metric_fact("App.Same", "src/c.cs", 3.0, 80.0),
+                metric_fact("App.Test", "tests/t.cs", 30.0, 10.0),
+            ],
+        );
+        world
+    }
+
+    fn metrics_request(include_tests: bool) -> MetricsRequest {
+        MetricsRequest {
+            project: PROJECT,
+            base: None,
+            target: None,
+            level: MetricLevel::Member,
+            include_tests,
+            only: Vec::new(),
+        }
+    }
+
+    fn named(list: &[codeskimr_domain::MetricChange]) -> Vec<&str> {
+        list.iter()
+            .map(|change| change.target.qualified_name.as_str())
+            .collect()
+    }
+
+    #[test]
+    fn the_metric_lists_hold_what_got_worse_and_what_got_better() {
+        let answer = comparer(&metrics_world(), LIMITS)
+            .compare_metrics(&metrics_request(false))
+            .unwrap();
+        assert_eq!((answer.base.snapshot, answer.target.snapshot), (MID, NEW));
+        assert_eq!(named(&answer.worse.items), vec!["App.Slow"]);
+        assert_eq!(named(&answer.better.items), vec!["App.Fast"]);
+        assert_eq!(answer.looked_at, 3, "the test file is left out");
+    }
+
+    #[test]
+    fn test_code_is_listed_when_the_request_asks_for_it() {
+        let answer = comparer(&metrics_world(), LIMITS)
+            .compare_metrics(&metrics_request(true))
+            .unwrap();
+        assert_eq!(named(&answer.worse.items), vec!["App.Test", "App.Slow"]);
+    }
+
+    #[test]
+    fn the_metric_lists_say_so_when_they_are_cut() {
+        let limits = CompareLimits {
+            max_symbols: 1,
+            ..LIMITS
+        };
+        let answer = comparer(&metrics_world(), limits)
+            .compare_metrics(&metrics_request(true))
+            .unwrap();
+        assert_eq!((answer.worse.total, answer.worse.items.len()), (2, 1));
+        assert!(answer.worse.is_cut());
+    }
+
+    #[test]
+    fn an_unknown_level_has_nothing_to_list() {
+        let request = MetricsRequest {
+            level: MetricLevel::Module,
+            ..metrics_request(false)
+        };
+        let answer = comparer(&metrics_world(), LIMITS)
+            .compare_metrics(&request)
+            .unwrap();
+        assert!(answer.worse.items.is_empty() && answer.better.items.is_empty());
     }
 }

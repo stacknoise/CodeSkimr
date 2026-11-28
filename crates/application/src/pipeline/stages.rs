@@ -1080,7 +1080,7 @@ impl Stage for PersistStage {
             left_out: paths.left_out.clone(),
             skipped: input.run.skipped,
         };
-        let stored = self.store.persist(data)?;
+        let stored = self.write(data, ctx)?;
         log_warnings(&warnings);
         ctx.progress(1, 1);
         Ok(Persisted {
@@ -1094,6 +1094,13 @@ impl Stage for PersistStage {
 }
 
 impl PersistStage {
+    /// Writes the snapshot and lets the stage tell which step of the write it is in.
+    fn write(&self, data: SnapshotData, ctx: &StageContext<'_>) -> Result<Snapshot, Interruption> {
+        Ok(self
+            .store
+            .persist_with_steps(data, &|step| ctx.step(step))?)
+    }
+
     /// The end of a scan that found nothing changed: `snapshot` stays as it is and gets the time
     /// and commit of this scan. If another process wrote a snapshot meanwhile, the scan fails with
     /// `STO-302` and can be run again.
@@ -1103,6 +1110,7 @@ impl PersistStage {
             snapshot,
             at: self.clock.now(),
             commit: input.run.commit,
+            began: input.run.began,
         };
         let confirmed = self
             .store

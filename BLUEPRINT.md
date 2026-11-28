@@ -105,7 +105,7 @@ All rules in this section are **MUST** and are enforced in CI (section 17.3).
 ### 3.3 Correctness
 
 - **R-07 No panics in production code.** `unwrap`, `expect`, `panic!`, `todo!`, `unimplemented!` and indexing without a bounds check are forbidden (Clippy `deny`). Errors are typed (section 11).
-- **R-08 No `unsafe`** outside `codeskimr_secrets::memory` (section 12.4). Every `unsafe` block carries a `// SAFETY:` comment and a test.
+- **R-08 No `unsafe`** outside `codeskimr_secrets::memory` (section 12.4) and `codeskimr_grammar_abap`, which only turns the C entry point of a vendored grammar into a Tree-sitter language (ADR 0113). Every `unsafe` block carries a `// SAFETY:` comment and a test.
 - **R-09 Every public item is documented** (`missing_docs = deny`) in English, with one sentence of purpose and its errors where it has any.
 - **R-10 Strict typing.** Rust: newtypes for IDs and validated values. TypeScript: `strict: true`, no `any`, no non-null assertions.
 
@@ -373,7 +373,7 @@ languages/csharp/
 | Tier | Delivers | Languages in 1.0 |
 |---|---|---|
 | **full** | symbols incl. members, doc comments, references with scope-aware resolution, all metrics | C#, TypeScript/JavaScript, Python, Java, Kotlin, Rust (Go after 1.0, ADR 0011) |
-| **basic** | types and functions, spans, LOC, CC, `cc_max` (no MI); references only by unique name | every other language with a Tree-sitter grammar |
+| **basic** | types and functions, spans, LOC, CC, `cc_max` (no MI); references only by unique name | every other language with a Tree-sitter grammar (ABAP from abapGit folders, ADR 0113) |
 
 - Full-tier grammars are compiled into the binary.
 - Basic-tier grammars are compiled in behind the cargo feature `basic-grammars` (default on), which keeps a slim build small (section 16, ADR 0020). Packs of every tier are loaded on first use; the tests load all of them (ADR 0059). The time of loading is not part of the scan time that the scan reports, so the benchmarks of section 16 keep their meaning. A loader for shared libraries needs its own ADR because of R-08.
@@ -473,7 +473,7 @@ codeskimr mcp                     MCP over stdio
 codeskimr export <project> --html <file>
 codeskimr scope <project>         show or change the languages and folders a project leaves out (ADR 0102)
 codeskimr check <path>            run the convention checks (for CI)
-codeskimr symbols|usages|impact|context <query|symbol>, codeskimr unused, codeskimr rules, codeskimr preview-rename <symbol> <new-name>   the questions of the MCP tools `search_symbols`, `find_usages`, `impact_of_change`, `get_context`, `find_unused`, `check_rules`, `preview_rename` for scripts and CI (`--json` with `schema` and `stale`, ADR 0099); `rules` exits with 1 only for new violations (ADR 0104)
+codeskimr symbols|usages|impact|context <query|symbol>, codeskimr unused, codeskimr rules, codeskimr modules, codeskimr preview-rename <symbol> <new-name>   the questions of the MCP tools `search_symbols`, `find_usages`, `impact_of_change`, `get_context`, `find_unused`, `check_rules`, `get_dependencies` with `level` `module`, `preview_rename` for scripts and CI (`--json` with `schema` and `stale`, ADR 0099); `rules` exits with 1 only for new violations (ADR 0104)
 codeskimr codes [<code>]          list error codes / explain one code
 codeskimr scans <project>         list the retained scans with duration (ADR 0097, from 1.1)
 codeskimr compare <project>       compare two scans: added, removed, changed, moved (ADR 0097, from 1.1)

@@ -43,6 +43,7 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `PRJ-201` | no such project | add and scan it first |
 | `PRJ-302` | a scan of this project is already running (also when removing the project) | wait for it or cancel it |
 | `PRJ-303` | the scan was cancelled, no new snapshot exists | start it again if needed |
+| `PRJ-304` | a convention check of this project is already running (screen Conventions) | wait until it has ended |
 | `PRJ-501` | as many scans run at the same time as allowed (4) | wait until one has ended |
 | `PRJ-502` | the report of a scan (its level) could not be stored; the scan itself is stored | scan again; check the free space of the data folder |
 | `SRC-201` | a source folder, a source file or a language pack folder does not exist or cannot be read | check the path and rights |
@@ -59,6 +60,7 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `CFG-101`, `CFG-102`, `CFG-103` | invalid value, unreadable file, unknown key in the configuration | correct the setting named in the message |
 | `CFG-104` | the file `.codeskimr.toml` could not be written when layers were saved in the UI | make the project folder writable, or write the `[[layers]]` tables by hand |
 | `CFG-105` | level 2 is not enabled in the user configuration | put `[level2]` / `enabled = true` into your `config.toml`; CodeSkimr never does it for you |
+| `CFG-106` | the file `.codeskimr.toml` was changed (by hand, by `git pull`) while a dialog of the UI was open, so saving was refused | reload the page and make the change again |
 | `RES-*` | level 2 (indexers): tool missing or too old (`RES-201`), index too large, timeout, output or memory limit (`RES-501` to `RES-504`), indexer failed (`RES-601`), index corrupt (`RES-101`), too few occurrences map (`RES-302`); level 1 stays in every case | see [Language indexers](indexers.md#errors) |
 | `SEC-301`, `SEC-403` | level 2 is not enabled and confirmed, or the caller may not confirm it | enable it and run `codeskimr level2 confirm <project>` in a terminal |
 | `PRJ-303` | not an error: you cancelled the scan | start it again |

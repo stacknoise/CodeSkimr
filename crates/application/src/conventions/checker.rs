@@ -225,7 +225,7 @@ fn not_checked(analysed: &[Analysed], stored: Option<&StoredProject<'_>>) -> Vec
 }
 
 /// Whether a folder on the way to `path` is one of the test folders.
-fn in_test_folder(path: &RelativePath, test_folders: &[String]) -> bool {
+pub(crate) fn in_test_folder(path: &RelativePath, test_folders: &[String]) -> bool {
     let mut parts: Vec<&str> = path.as_str().split(PATH_SEPARATOR).collect();
     parts.pop();
     parts

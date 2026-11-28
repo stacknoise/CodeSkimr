@@ -1,4 +1,4 @@
-import { For, onCleanup, onMount, Show } from "solid-js";
+import { createMemo, For, onCleanup, onMount, Show } from "solid-js";
 import { onEnter } from "../../shared/keys/keydown";
 import { cx } from "../../shared/ui/cx";
 import { SHIELD } from "../annotations/consts";
@@ -14,7 +14,7 @@ import {
   URL_CLOSE,
   URL_OPEN,
 } from "./consts";
-import { edgeKind, edgePath, rankColor, shown, styleOf } from "./geometry";
+import { edgeKind, edgePath, rankColor, isDimmed, relatedTo, shown, styleOf } from "./geometry";
 import type { GraphData, LayerBox, LayerLink, Size, View } from "./types";
 import { useNavigation } from "./useNavigation";
 import { transformOf } from "./viewport";
@@ -119,6 +119,16 @@ function Edges(props: {
   );
 }
 
+/** The classes of a box: selected, critical and faded are told apart by the look. */
+function boxClass(state: { selected: boolean; critical: boolean; dimmed: boolean }): string {
+  return cx(
+    styles.box,
+    state.selected && styles.selected,
+    state.critical && styles.critical,
+    state.dimmed && styles.dimmed,
+  );
+}
+
 /** One box: a button for a layer, a namespace or a type. A critical one carries the label "K". */
 function BoxButton(props: {
   box: LayerBox;
@@ -126,12 +136,13 @@ function BoxButton(props: {
   onSelect: (name: string) => void;
   onOpen: (name: string) => void;
   critical: boolean;
+  dimmed: boolean;
 }) {
   const box = () => props.box;
   return (
     <button
       type="button"
-      class={cx(styles.box, props.selected && styles.selected, props.critical && styles.critical)}
+      class={boxClass(props)}
       style={{
         left: box().x + PX,
         top: box().y + PX,
@@ -167,7 +178,11 @@ function Boxes(props: {
   onSelect: (name: string) => void;
   onOpen: (name: string) => void;
   critical: (box: LayerBox) => boolean;
+  violationsOnly: boolean;
 }) {
+  const related = createMemo(() =>
+    relatedTo(props.selected, props.data.links, props.violationsOnly),
+  );
   return (
     <For each={props.data.boxes}>
       {(box) => (
@@ -177,6 +192,7 @@ function Boxes(props: {
           onSelect={props.onSelect}
           onOpen={props.onOpen}
           critical={props.critical(box)}
+          dimmed={isDimmed(related(), box.name)}
         />
       )}
     </For>
@@ -232,6 +248,7 @@ function Stage(props: {
         onSelect={props.onSelect}
         onOpen={props.onOpen}
         critical={props.critical}
+        violationsOnly={props.violationsOnly}
       />
     </div>
   );

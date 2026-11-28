@@ -525,6 +525,11 @@ fn the_size_of_a_graph_box_must_be_positive() {
             "graph.max_modules",
             Violation::MustBePositive,
         ),
+        (
+            "[graph]\nmax_places = 0\n",
+            "graph.max_places",
+            Violation::MustBePositive,
+        ),
     ]);
 }
 
@@ -558,6 +563,21 @@ fn the_comparison_limits_have_defaults() {
     let config = Config::resolve(&[]).expect("valid");
     assert_eq!(config.compare.max_symbols, 200);
     assert_eq!(config.compare.max_usages, 50);
+}
+
+#[test]
+fn the_metric_thresholds_must_be_positive_and_have_defaults() {
+    assert_rejected(&[(
+        "[compare]\nmetric_min_cc = 0\n",
+        "compare.metric_min_cc",
+        Violation::MustBePositive,
+    )]);
+    let compare = Config::resolve(&[]).expect("valid").compare;
+    assert_eq!(compare.metric_min_cc, 2);
+    assert_eq!(compare.metric_min_mi, 5);
+    assert_eq!(compare.metric_min_ce, 2);
+    assert_eq!(compare.metric_min_instability, 100);
+    assert_eq!(compare.metric_loc_growth, 20);
 }
 
 #[test]

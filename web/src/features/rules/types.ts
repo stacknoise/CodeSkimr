@@ -21,6 +21,15 @@ export interface ViolationOut {
   old: boolean;
   places: PlaceOut[];
   ring: RingOut | null;
+  /** The symbol `from` names in the newest scan, `null` if the scan has none of that name. */
+  from_symbol: SymbolRef | null;
+  to_symbol: SymbolRef | null;
+}
+
+/** A symbol of the newest scan, as the explorer opens it. */
+export interface SymbolRef {
+  id: number;
+  kind: string;
 }
 
 /** What one layer that limits its use may use. */
@@ -48,6 +57,8 @@ export interface RulesOut {
   holdable: boolean;
   cycles: boolean;
   held_on: string | null;
+  /** The version of the project file as it was read; sent back with a change (CFG-106). */
+  file_version: string;
   rules: RuleOut[];
   resolved: number;
   old: number;
@@ -64,4 +75,45 @@ export interface HeldOut {
 export interface OpenedOut {
   file: string;
   created: boolean;
+}
+
+/** One entry of `[[rules.forbid]]` as `rules.set` carries it. */
+export interface ForbidInput {
+  from: string;
+  to: string;
+  reason?: string;
+}
+
+/** One entry of `[[rules.public_api]]` as `rules.set` carries it. */
+export interface PublicApiInput {
+  module: string;
+  internal: string[];
+}
+
+/** What one layer may use; `null` is no limit. */
+export interface LimitInput {
+  layer: string;
+  may_use: string[] | null;
+}
+
+/** The input of `rules.set` and `rules.preview`: the rules the project file gets as a whole. */
+export interface RulesInput {
+  project: number;
+  cycles: boolean;
+  forbid: ForbidInput[];
+  public_api: PublicApiInput[];
+  limits: LimitInput[];
+  /** The version `rules.show` answered; a file that changed since is refused (CFG-106). */
+  file_version: string;
+}
+
+/** The answer of `rules.set`. */
+export interface SavedOut {
+  rules: number;
+}
+
+/** What the layer editor knows that the rules dialogs need: the layers and the namespaces. */
+export interface LayersOut {
+  layers: { name: string }[];
+  namespaces: { name: string }[];
 }

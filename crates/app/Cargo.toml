@@ -19,6 +19,7 @@ codeskimr_parsing = { path = "../adapters/parsing" }
 codeskimr_storage = { path = "../adapters/storage" }
 codeskimr_indexer = { path = "../adapters/indexer" }
 codeskimr_scip = { path = "../adapters/scip" }
+codeskimr_fsguard = { path = "../adapters/fsguard" }
 codeskimr_source = { path = "../adapters/source" }
 codeskimr_secrets = { path = "../adapters/secrets" }
 codeskimr_i18n = { path = "../adapters/i18n" }
@@ -37,6 +38,10 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+
+# Unix only: `O_NOFOLLOW`, so that the log file is never opened through a link (ADR 0115).
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
 
 # Windows only: compares the open launch file with its path by the identity the system gives the file
 # (volume and index), which needs no `unsafe` of ours (issue #372).

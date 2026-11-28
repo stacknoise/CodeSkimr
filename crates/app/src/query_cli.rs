@@ -10,21 +10,24 @@ use std::sync::Arc;
 
 use codeskimr_application::access;
 use codeskimr_application::cancel::CancelToken;
-use codeskimr_application::compare::{ComparisonAnswer, ComparisonRequest, ScanListAnswer};
+use codeskimr_application::compare::{
+    ComparisonAnswer, ComparisonRequest, MetricsAnswer, MetricsWanted, ScanListAnswer,
+    metrics_request,
+};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{Clock, CodeIndex, FileDiscovery, ProjectRepository};
 use codeskimr_cli::{
-    CompareQuery, ContextQuery, ImpactQuery, QueryAction, QueryKind, RenameQuery, RulesQuery,
-    SymbolsQuery, UnusedQuery, UsagesQuery, change_markdown, query_code_report, query_error_json,
-    query_json, query_text,
+    CompareQuery, ContextQuery, ImpactQuery, MetricsOptions, ModulesQuery, QueryAction, QueryKind,
+    RenameQuery, RulesQuery, SymbolsQuery, UnusedQuery, UsagesQuery, change_markdown,
+    metrics_markdown, query_code_report, query_error_json, query_json, query_text,
 };
 use codeskimr_codes::i18n::COMPARE_DIRECT_ONLY_NOTE;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Permission, Principal, ProjectId, ProjectSource, SnapshotId};
-use codeskimr_i18n::Messages;
+use codeskimr_i18n::{I18nError, Messages};
 use codeskimr_mcp::{
-    ContextArgs, ImpactArgs, McpError, RenameArgs, RulesArgs, SearchArgs, Tools, UnusedArgs,
-    UsagesArgs,
+    ContextArgs, DependenciesArgs, ImpactArgs, LEVEL_MODULE, McpError, RenameArgs, RulesArgs,
+    SearchArgs, Tools, UnusedArgs, UsagesArgs,
 };
 use codeskimr_storage::SqliteStore;
 use serde_json::Value;
@@ -133,6 +136,9 @@ fn compare_answer(
     (project, query): (ProjectId, &CompareQuery),
     with_impact: bool,
 ) -> Result<Value, QueryFailure> {
+    if let Some(options) = &query.metrics {
+        return metrics_answer(session, (project, query, options));
+    }
     let comparison =
         scan_compare::comparer(&session.store, &session.config).compare(&ComparisonRequest {
             project,
@@ -145,6 +151,28 @@ fn compare_answer(
         .format(around.language, COMPARE_DIRECT_ONLY_NOTE, None)
         .map_err(|error| QueryFailure::from(CodedError::caused_by(error)))?;
     as_json(&ComparisonAnswer::new(&comparison, Some(note)))
+}
+
+/// `compare --metrics`: the objects that got worse and those that got better (ADR 0114).
+fn metrics_answer(
+    session: &Session,
+    (project, query, options): (ProjectId, &CompareQuery, &MetricsOptions),
+) -> Result<Value, QueryFailure> {
+    let request = metrics_request(
+        project,
+        (
+            query.base.map(SnapshotId::new),
+            query.newer.map(SnapshotId::new),
+        ),
+        MetricsWanted {
+            level: options.level.as_deref(),
+            only: &options.only,
+            include_tests: options.include_tests,
+        },
+    )?;
+    let found =
+        scan_compare::comparer(&session.store, &session.config).compare_metrics(&request)?;
+    as_json(&MetricsAnswer::new(&found))
 }
 
 /// An answer as JSON; serialising these plain types does not fail.
@@ -166,6 +194,7 @@ fn ask(tools: &Tools, principal: Principal, action: &QueryAction) -> Result<Valu
         QueryAction::Unused(query) => tools.find_unused(&principal, &unused_args(query)),
         QueryAction::Rules(query) => tools.check_rules(&principal, &rules_args(query)),
         QueryAction::Rename(query) => tools.preview_rename(&principal, &rename_args(query)),
+        QueryAction::Modules(query) => tools.get_dependencies(&principal, &modules_args(query)),
     }
 }
 
@@ -173,6 +202,22 @@ fn rename_args(query: &RenameQuery) -> RenameArgs {
     RenameArgs {
         symbol: query.symbol.clone(),
         new_name: query.new_name.clone(),
+        project: None,
+        limit: query.limit,
+    }
+}
+
+/// The question of `modules`: the module level of `get_dependencies`.
+fn modules_args(query: &ModulesQuery) -> DependenciesArgs {
+    DependenciesArgs {
+        symbol: None,
+        layer: None,
+        level: Some(LEVEL_MODULE.to_owned()),
+        depth: query.depth,
+        from_module: query.from.clone(),
+        to_module: query.to.clone(),
+        direction: None,
+        include_tests: None,
         project: None,
         limit: query.limit,
     }
@@ -190,6 +235,7 @@ fn unused_args(query: &UnusedQuery) -> UnusedArgs {
         kind: query.kind.clone(),
         language: query.language.clone(),
         assessment: query.assessment.clone(),
+        reason: query.reason.clone(),
         include_tests: Some(query.include_tests),
         project: None,
         limit: query.limit,
@@ -254,6 +300,13 @@ fn stale(session: &Session, around: &Surroundings<'_>) -> Option<bool> {
 
 const fn kind_of(action: &QueryAction) -> QueryKind {
     match action {
+        QueryAction::Compare(CompareQuery {
+            metrics: Some(options),
+            ..
+        }) => {
+            let (worse, better) = options.side.lists();
+            QueryKind::Metrics { worse, better }
+        }
         QueryAction::Symbols(_) => QueryKind::Symbols,
         QueryAction::Usages(_) => QueryKind::Usages,
         QueryAction::Impact(_) => QueryKind::Impact,
@@ -261,9 +314,35 @@ const fn kind_of(action: &QueryAction) -> QueryKind {
         QueryAction::Unused(_) => QueryKind::Unused,
         QueryAction::Rules(_) => QueryKind::Rules,
         QueryAction::Rename(_) => QueryKind::Rename,
+        QueryAction::Modules(_) => QueryKind::Modules,
         QueryAction::Scans(_) => QueryKind::Scans,
         QueryAction::Compare(_) => QueryKind::Compare,
         QueryAction::Change(_) => QueryKind::Change,
+    }
+}
+
+/// The Markdown a comment on a pull request holds, for `change --markdown` and
+/// `compare --metrics --markdown`; `None` for any other command.
+fn markdown_of(
+    action: &QueryAction,
+    around: &Surroundings<'_>,
+    answer: &Value,
+) -> Option<Result<String, I18nError>> {
+    match action {
+        QueryAction::Change(CompareQuery { markdown: true, .. }) => {
+            Some(change_markdown(around.messages, around.language, answer))
+        }
+        QueryAction::Compare(CompareQuery {
+            markdown: true,
+            metrics: Some(options),
+            ..
+        }) => Some(metrics_markdown(
+            around.messages,
+            around.language,
+            answer,
+            options.side.lists(),
+        )),
+        _ => None,
     }
 }
 
@@ -357,9 +436,8 @@ pub fn run(
     } else {
         kind_of(action)
     };
-    let text = if let QueryAction::Change(CompareQuery { markdown: true, .. }) = action {
-        change_markdown(around.messages, around.language, &answer)
-            .map_err(|error| QueryFailure::from(CodedError::caused_by(error)))?
+    let text = if let Some(markdown) = markdown_of(action, around, &answer) {
+        markdown.map_err(|error| QueryFailure::from(CodedError::caused_by(error)))?
     } else if action.target().json {
         query_json(answer, stale)
             .map_err(|_| QueryFailure::from(CodedError::new(ErrorCode::UnexpectedInternalError)))?

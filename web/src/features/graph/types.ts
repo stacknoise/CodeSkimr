@@ -117,6 +117,23 @@ export interface ModuleRisk {
   depends_on_stability: number;
 }
 
+/** One place where something in a module refers to something in another. */
+export interface ModulePlace {
+  path: string;
+  /** Counted from 1. */
+  line: number;
+  from: string;
+  to: string;
+}
+
+/** The answer of `graph.module_places`: the places of one dependency, cut to a limit. */
+export interface PlacesData {
+  snapshot: number | null;
+  /** How many places the dependency has, also those that were cut. */
+  total: number;
+  places: ModulePlace[];
+}
+
 /** What the tab "Modules" shows beside the picture. */
 export interface ModulesInfo {
   modules: ModuleRow[];

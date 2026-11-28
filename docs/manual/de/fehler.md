@@ -43,6 +43,7 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | `PRJ-201` | kein solches Projekt | zuerst eintragen und scannen |
 | `PRJ-302` | ein Scan dieses Projekts läuft schon (auch beim Entfernen des Projekts) | abwarten oder abbrechen |
 | `PRJ-303` | der Scan wurde abgebrochen, es gibt keinen neuen Snapshot | bei Bedarf neu starten |
+| `PRJ-304` | eine Konventionsprüfung dieses Projekts läuft schon (Seite Konventionen) | warten, bis sie beendet ist |
 | `PRJ-501` | so viele Scans wie erlaubt (4) laufen gleichzeitig | warten, bis einer beendet ist |
 | `PRJ-502` | der Bericht eines Scans (seine Stufe) konnte nicht gespeichert werden; der Scan selbst ist gespeichert | erneut scannen; freien Platz im Datenordner prüfen |
 | `SRC-201` | ein Quellordner, eine Quelldatei oder ein Sprachpaket-Ordner existiert nicht oder ist nicht lesbar | Pfad und Rechte prüfen |
@@ -59,6 +60,7 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | `CFG-101`, `CFG-102`, `CFG-103` | ungültiger Wert, nicht lesbare Datei, unbekannter Schlüssel in der Konfiguration | die in der Meldung genannte Einstellung korrigieren |
 | `CFG-104` | die Datei `.codeskimr.toml` ließ sich beim Speichern der Schichten in der Oberfläche nicht schreiben | Projektordner beschreibbar machen oder die `[[layers]]`-Tabellen von Hand eintragen |
 | `CFG-105` | Ebene 2 ist in der Benutzerkonfiguration nicht eingeschaltet | `[level2]` / `enabled = true` in die eigene `config.toml` schreiben; CodeSkimr tut das nie selbst |
+| `CFG-106` | die Datei `.codeskimr.toml` wurde geändert (von Hand, durch `git pull`), während ein Dialog der Oberfläche offen war; das Speichern wurde abgelehnt | Seite neu laden und die Änderung noch einmal machen |
 | `RES-*` | Ebene 2 (Indexer): Werkzeug fehlt oder zu alt (`RES-201`), Index zu groß, Zeitlimit, Ausgabe- oder Speichergrenze (`RES-501` bis `RES-504`), Indexer fehlgeschlagen (`RES-601`), Index beschädigt (`RES-101`), zu wenige Vorkommen zuordenbar (`RES-302`); Ebene 1 bleibt in jedem Fall | siehe [Sprach-Indexer](indexer.md#fehler) |
 | `SEC-301`, `SEC-403` | Ebene 2 ist nicht eingeschaltet und bestätigt, oder der Aufrufer darf sie nicht bestätigen | einschalten und `codeskimr level2 confirm <Projekt>` in einem Terminal ausführen |
 | `PRJ-303` | kein Fehler: Sie haben den Scan abgebrochen | erneut starten |

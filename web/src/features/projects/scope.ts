@@ -23,6 +23,22 @@ export interface ScopeChoice {
   folders: string[];
 }
 
+/** The number of objects of one type in an abapGit repository (`CLAS`, `INTF` …). */
+export interface AbapGitKind {
+  kind: string;
+  objects: number;
+}
+
+/** What an abapGit repository holds (ADR 0113). */
+export interface AbapGitInfo {
+  starting_folder: string;
+  folder_logic: "prefix" | "full";
+  configured: boolean;
+  kinds: AbapGitKind[];
+  packages: number;
+  source_files: number;
+}
+
 /** The answer of `scope.get`. */
 export interface ScopeAnswer {
   project: number;
@@ -32,6 +48,7 @@ export interface ScopeAnswer {
   folders: ScopeFolder[];
   folders_more: number;
   root_project_files: string[];
+  abapgit: AbapGitInfo | null;
 }
 
 /** The folder that is left out and contains `path` (or is it), if any. */

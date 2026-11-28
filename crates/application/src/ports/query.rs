@@ -9,6 +9,7 @@ use codeskimr_domain::{
 
 use crate::error::CodedError;
 use crate::ports::SymbolLabel;
+use crate::stage::PersistStep;
 
 /// One result of a name search.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -85,12 +86,16 @@ pub struct SymbolDetail {
     pub same_name: u32,
 }
 
-/// One retained scan of a project, as the list of the last scans shows it (ADR 0097).
+/// One retained scan of a project, as the list of the last scans shows it (ADR 0097, 0093). Every
+/// scan is one entry, also one that found nothing changed and so wrote no snapshot of its own: its
+/// entry names the snapshot it confirmed, which several entries can share.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScanEntry {
-    /// The snapshot the scan wrote.
+    /// Identifies the scan itself; unlike `snapshot` it is unique among the entries.
+    pub scan: u64,
+    /// The snapshot the scan wrote, or confirmed if it found nothing changed.
     pub snapshot: SnapshotId,
-    /// When the last scan that wrote or confirmed the snapshot ran.
+    /// When the scan ended.
     pub created: Timestamp,
     /// Commit, if the source is a Git repository.
     pub commit: Option<CommitHash>,
@@ -100,12 +105,23 @@ pub struct ScanEntry {
     pub files: u32,
     /// Number of symbols of the snapshot.
     pub symbols: u32,
-    /// Wall time of the scan that wrote the snapshot in milliseconds; `None` for a snapshot
-    /// written before it was stored.
+    /// Wall time of the scan in milliseconds; `None` for a scan stored before it was kept.
     pub duration_ms: Option<u64>,
-    /// Files that scan changed against the previous snapshot; `None` for the first scan and for
-    /// a snapshot written before it was stored.
+    /// Files the scan changed against the previous snapshot, `0` for a scan that found nothing
+    /// changed; `None` for the first scan and for a scan stored before it was kept.
     pub files_changed: Option<u32>,
+    /// How long each step of writing the snapshot took, in the order of the write; empty for a
+    /// scan that wrote nothing and for a scan stored before the times were kept.
+    pub steps: Vec<StepTime>,
+}
+
+/// The time one step of writing a snapshot took.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StepTime {
+    /// The step.
+    pub step: PersistStep,
+    /// Wall time of the step in milliseconds.
+    pub duration_ms: u64,
 }
 
 /// Queries on the newest snapshots.

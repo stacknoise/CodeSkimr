@@ -48,6 +48,12 @@ table{width:100%;border-collapse:collapse}th{text-align:left;font-size:12px;font
 .fr{display:flex;align-items:center;gap:10px}.lab{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;display:block}
 .code{font:600 26px 'JetBrains Mono','DejaVu Sans Mono',monospace;letter-spacing:.12em;text-align:center;padding:14px;background:var(--bg);border:1px dashed var(--accent);border-radius:8px}
 .new{background:var(--goodbg);color:var(--good)}
+/* The list of the comparison and its filter row (blueprint 15, ADR 0097): the list fills the height that is left and scrolls in its own box; long names are cut with an ellipsis (the full text is the tooltip). */
+.tree.scr{flex:1;min-height:0;display:flex;flex-direction:column}
+.fb{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line)}
+.fb .in{padding:5px 10px;min-width:180px}.fb .btn{padding:5px 10px;font-size:12px}.fb .btn.on{background:var(--accentbg);border-color:var(--accent);color:var(--accent);font-weight:600}
+.sc{flex:1;min-height:0;overflow:auto}
+.ell{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style></head><body><div class="board" id="b"></div><script>
 const q=new URLSearchParams(location.search),pick=(k,list)=>list.find(x=>x===q.get(k))||list[0],v=pick('v',['m28a','m29']),th=pick('t',['petrol','hell','dunkel']);
 const P=window.P=(c,t)=>`<span class="pill ${c}">${t}</span>`;
@@ -70,7 +76,8 @@ ${[['heute 14:02','vollständig','2,4 s','1.842','37','sel'],['heute 11:20','ink
 V.m29=()=>page({title:'Änderung',sub:'kundenportal',rail:1,tabs:['Auswirkung','Vergleich'],on:'Vergleich',body:`
 <div class="fr" style="gap:14px"><div class="col"><span class="lab">Basis (vorher)</span><div class="in">Scan von gestern 09:10 · main @ a41c9e2</div></div><span style="font-size:18px">→</span><div class="col"><span class="lab">Ziel (nachher)</span><div class="in">Aktueller Scan · Arbeitsordner</div></div><span class="btn pri" style="margin-top:18px">Vergleichen</span></div>
 <div style="display:flex;gap:12px">${kpi('Neu','14','Symbole')}${kpi('Geändert','9','Signatur 4 · Inhalt 5')}${kpi('Entfernt','3','Aufrufer prüfen')}${kpi('Verschoben','2','umbenannt oder in andere Datei')}</div>
-<div class="tree">${[['bad','entfernt','OrderService.cancelLegacy()','src/orders/service.ts'],['warn','Signatur','PriceCalc.total(items, tax)','src/pricing/calc.ts'],['warn','Signatur','Mailer.send(to, body)','src/mail/mailer.ts'],['n','verschoben','formatMoney()','utils/money.ts → shared/money.ts'],['new','neu','RefundPolicy','src/orders/refund.ts']].map(r=>`<div class="tr"><span class="pill ${r[0]}" style="width:86px;text-align:center">${r[1]}</span><span class="mono" style="font-size:12.5px">${r[2]}</span><span class="num">${r[3]}</span></div>`).join('')}</div>
+<div class="tree scr"><div class="fb"><span class="in muted">Nach Namen suchen</span><span class="in">Alle Änderungen ▾</span><span class="in">Alle Arten ▾</span><span class="btn">Nur öffentliche</span><span class="btn">Filter zurücksetzen</span><span class="sp"></span><span class="mono muted">5 von 5</span></div>
+<div class="sc"><div class="tr" style="font-size:11px;font-weight:600;color:var(--muted);position:sticky;top:0;background:var(--surface)"><span style="width:86px">Änderung</span><span>Symbol</span><span class="num">Datei ▲</span></div>${[['bad','entfernt','OrderService.cancelLegacy()','src/orders/service.ts'],['warn','Signatur','PriceCalc.total(items, tax)','src/pricing/calc.ts'],['warn','Signatur','Mailer.send(to, body)','src/mail/mailer.ts'],['n','verschoben','formatMoney()','utils/money.ts → shared/money.ts'],['new','neu','RefundPolicy','src/orders/refund.ts']].map(r=>`<div class="tr"><span class="pill ${r[0]}" style="width:86px;text-align:center">${r[1]}</span><span class="mono ell" style="font-size:12.5px" title="${r[2]}">${r[2]}</span><span class="num">${r[3]}</span></div>`).join('')}</div></div>
 <div class="note i">Zwei Stände desselben Projekts. Grundlage für Auswirkung, Trends und Live-Ansicht. Weiter zu „Auswirkung“ zeigt die betroffenen Stellen (Mock <span class="mono">erw-auswirkung</span>).</div>`});
 const b=document.getElementById('b');b.classList.add(th);b.innerHTML=(v==='m29'?V.m29:V.m28a)()+`<span class="mark">${v}</span>`;
 </script></body></html>

@@ -13,6 +13,12 @@ export type WireEvent =
       total: number;
       /** Milliseconds since the stage started, as the server measured them. */
       elapsed_ms?: number;
+      /** Label of the step of writing the snapshot, while the stage `persist` is in one. */
+      step?: string;
+      /** Place of that step in the write, counted from one. */
+      step_number?: number;
+      /** How many steps a write has at most. */
+      steps?: number;
     }
   | {
       type: typeof EVENT.created;
@@ -31,6 +37,15 @@ export type WireEvent =
       code: string | null;
     };
 
+/** The step of writing the snapshot that the stage `persist` reported last. */
+export interface StepRun {
+  name: string;
+  number: number;
+  of: number;
+  /** When the step began, in milliseconds of the clock of the browser. */
+  startedAt: number;
+}
+
 /** What one stage of a run has reported. Times are in milliseconds of the clock of the browser. */
 export interface StageRun {
   done: number;
@@ -39,6 +54,8 @@ export interface StageRun {
   endedAt: number | null;
   /** What the server measured for the stage; `null` while it has told nothing. */
   tookMs: number | null;
+  /** The step of the write the stage is in; `null` outside a step. */
+  step: StepRun | null;
 }
 
 /** How a run stands. */
@@ -73,8 +90,11 @@ export type BudgetTargets = Record<
 
 /** One scan of the list of the last scans (`scans.list`, ADR 0097). */
 export interface ScanEntry {
-  /** The snapshot the scan wrote. */
+  /** The snapshot the scan wrote, or confirmed if it found nothing changed; scans without a change
+   * share the snapshot of the scan before them. */
   snapshot: number;
+  /** Identifies the scan itself; unlike `snapshot` it is unique in the list. */
+  scan: number;
   /** Seconds since the Unix epoch. */
   created: number;
   commit: string | null;
@@ -85,6 +105,16 @@ export interface ScanEntry {
   duration_ms: number | null;
   /** Files the scan changed against the one before; `null` for the first scan and for old ones. */
   files_changed: number | null;
+  /** How long each step of writing the snapshot took, in the order of the write; empty for a scan
+   * that wrote nothing and for one stored before the times were kept. */
+  steps: StepTime[];
+}
+
+/** The time one step of writing a snapshot took. */
+export interface StepTime {
+  /** Label of the step (`PersistStep` in crates/application). */
+  step: string;
+  duration_ms: number;
 }
 
 /** The output of `scans.list`. */

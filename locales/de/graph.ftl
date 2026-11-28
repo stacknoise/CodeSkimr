@@ -70,7 +70,9 @@ graph-modules-badge-violations = { $count ->
     [one] 1 Verstoß
    *[other] { $count } Verstöße
 }
-graph-modules-explain = ein: so viele Stellen in anderen Modulen nutzen dieses. aus: so viele Stellen nutzt es in anderen Modulen. Stabilität = aus ÷ (ein + aus). 0 heißt: viele hängen davon ab und es hängt von wenig ab, es ändert sich besser selten; 1 heißt das Gegenteil.
+graph-modules-col-in-hint = So viele Stellen in anderen Modulen nutzen dieses Modul.
+graph-modules-col-out-hint = So viele Stellen in diesem Modul nutzen andere Module.
+graph-modules-col-stability-hint = Stabilität = aus ÷ (ein + aus). 0 heißt: Viele hängen davon ab und es hängt von wenig ab, es ändert sich besser selten. 1 heißt das Gegenteil.
 graph-modules-cycles-title = Zyklen
 graph-modules-cycles-none = Keine Zyklen zwischen Modulen.
 graph-modules-cycle-edge = { $from } → { $to }: { $count ->
@@ -87,5 +89,21 @@ graph-modules-violation = { $from } ({ $fromLayer }) → { $to } ({ $toLayer }):
    *[other] { $count } Stellen
 }
 graph-modules-risks-title = Auffällig
-graph-modules-risk = { $module } (Stabilität { $stability }) wird von { $incoming } Stellen genutzt und hängt selbst von { $other } ab (Stabilität { $otherStability }), das sich häufiger ändert.
+graph-modules-risk = { $module } (Stabilität { $stability }) wird von { $incoming ->
+    [one] 1 Stelle
+   *[other] { $incoming } Stellen
+} genutzt und hängt selbst von { $other } ab (Stabilität { $otherStability }), das sich häufiger ändert.
+graph-modules-places-show = { $count ->
+    [one] Die Stelle zeigen
+   *[other] Die { $count } Stellen zeigen
+}
+graph-modules-places-hide = Stellen ausblenden
+graph-modules-place-uses = { $from } → { $to }
+graph-modules-places-more = { $count ->
+    [one] 1 weitere Stelle wird nicht gezeigt.
+   *[other] { $count } weitere Stellen werden nicht gezeigt.
+}
+graph-modules-places-failed = Die Stellen ließen sich nicht laden.
 graph-modules-legend-cycle = im Zyklus
+graph-toggle-violations-only-hint = Nur in der Ansicht „Schichten“ verfügbar: Nur dort werden Verstöße gegen die Schichtung als Verbindungen gezeichnet. Bei Modulen zeigt die Seitenleiste sie unter „Gegen die Schichtung“.
+graph-modules-badge-cycle-hint = Zyklus: Dieses Modul hängt über andere Module von sich selbst ab (A braucht B, B braucht A). Die Seitenleiste nennt die schwächste Kante, mit der man den Zyklus beendet.

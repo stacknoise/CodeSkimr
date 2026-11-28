@@ -86,6 +86,13 @@ pub const GRAPH_MODULES_TITLE: &str = i18n::COMMAND_GRAPH_MODULES_TITLE;
 /// Description key of `graph.modules`.
 pub const GRAPH_MODULES_DESCRIPTION: &str = i18n::COMMAND_GRAPH_MODULES_DESCRIPTION;
 
+/// Id of the command that lists the places of one dependency between two modules (ADR 0108).
+pub const GRAPH_MODULE_PLACES: &str = "graph.module_places";
+/// Title key of `graph.module_places`.
+pub const GRAPH_MODULE_PLACES_TITLE: &str = i18n::COMMAND_GRAPH_MODULE_PLACES_TITLE;
+/// Description key of `graph.module_places`.
+pub const GRAPH_MODULE_PLACES_DESCRIPTION: &str = i18n::COMMAND_GRAPH_MODULE_PLACES_DESCRIPTION;
+
 /// Id of the command of the quick search.
 pub const SEARCH_QUERY: &str = "search.query";
 /// Most hits the quick search returns.
@@ -363,6 +370,21 @@ pub const RULES_HOLD: &str = "rules.hold";
 pub const RULES_HOLD_TITLE: &str = i18n::COMMAND_RULES_HOLD_TITLE;
 /// Description key of `rules.hold`.
 pub const RULES_HOLD_DESCRIPTION: &str = i18n::COMMAND_RULES_HOLD_DESCRIPTION;
+/// Most rules (bans and public interfaces together) that one call of `rules.set` or
+/// `rules.preview` takes.
+pub const MAX_RULES_PER_CALL: usize = 500;
+/// Id of the command that writes the architecture rules into the project file.
+pub const RULES_SET: &str = "rules.set";
+/// Title key of `rules.set`.
+pub const RULES_SET_TITLE: &str = i18n::COMMAND_RULES_SET_TITLE;
+/// Description key of `rules.set`.
+pub const RULES_SET_DESCRIPTION: &str = i18n::COMMAND_RULES_SET_DESCRIPTION;
+/// Id of the command that judges wanted rules over the newest scan without writing them.
+pub const RULES_PREVIEW: &str = "rules.preview";
+/// Title key of `rules.preview`.
+pub const RULES_PREVIEW_TITLE: &str = i18n::COMMAND_RULES_PREVIEW_TITLE;
+/// Description key of `rules.preview`.
+pub const RULES_PREVIEW_DESCRIPTION: &str = i18n::COMMAND_RULES_PREVIEW_DESCRIPTION;
 /// Id of the command that keeps a symbol on purpose (an entry of `[[unused.ignore]]`).
 pub const UNUSED_KEEP: &str = "unused.keep";
 /// Title key of `unused.keep`.
@@ -438,6 +460,25 @@ pub const SCANS_IMPACT: &str = "scans.impact";
 pub const SCANS_IMPACT_TITLE: &str = i18n::COMMAND_SCANS_IMPACT_TITLE;
 /// Description key of `scans.impact`.
 pub const SCANS_IMPACT_DESCRIPTION: &str = i18n::COMMAND_SCANS_IMPACT_DESCRIPTION;
+/// Id of the command that lists which objects got worse or better by their metrics (ADR 0114).
+pub const SCANS_METRICS: &str = "scans.metrics";
+/// Title key of `scans.metrics`.
+pub const SCANS_METRICS_TITLE: &str = i18n::COMMAND_SCANS_METRICS_TITLE;
+/// Description key of `scans.metrics`.
+pub const SCANS_METRICS_DESCRIPTION: &str = i18n::COMMAND_SCANS_METRICS_DESCRIPTION;
+/// Id of the command that returns the metric changes as the Markdown of `compare --metrics --markdown`.
+pub const SCANS_METRICS_MARKDOWN: &str = "scans.metrics_markdown";
+/// Title key of `scans.metrics_markdown`.
+pub const SCANS_METRICS_MARKDOWN_TITLE: &str = i18n::COMMAND_SCANS_METRICS_MARKDOWN_TITLE;
+/// Description key of `scans.metrics_markdown`.
+pub const SCANS_METRICS_MARKDOWN_DESCRIPTION: &str =
+    i18n::COMMAND_SCANS_METRICS_MARKDOWN_DESCRIPTION;
+/// Id of the command that returns the impact as the Markdown of `change --markdown`.
+pub const SCANS_IMPACT_MARKDOWN: &str = "scans.impact_markdown";
+/// Title key of `scans.impact_markdown`.
+pub const SCANS_IMPACT_MARKDOWN_TITLE: &str = i18n::COMMAND_SCANS_IMPACT_MARKDOWN_TITLE;
+/// Description key of `scans.impact_markdown`.
+pub const SCANS_IMPACT_MARKDOWN_DESCRIPTION: &str = i18n::COMMAND_SCANS_IMPACT_MARKDOWN_DESCRIPTION;
 /// Id of the command that summarises a project for the statistics screen (ADR 0081).
 pub const STATS_OVERVIEW: &str = "stats.overview";
 /// Title key of `stats.overview`.
@@ -505,3 +546,47 @@ pub const RENAME_PREVIEW_LIMIT: usize = 500;
 /// The bits of a Unix file mode that make a file executable (owner, group, other).
 #[cfg(unix)]
 pub(super) const EXECUTE_BITS: u32 = 0o111;
+
+/// Id of the command `log.status`.
+pub const LOG_STATUS: &str = "log.status";
+/// Title key of `log.status`.
+pub const LOG_STATUS_TITLE: &str = i18n::COMMAND_LOG_STATUS_TITLE;
+/// Description key of `log.status`.
+pub const LOG_STATUS_DESCRIPTION: &str = i18n::COMMAND_LOG_STATUS_DESCRIPTION;
+/// Id of the command `log.set_level`.
+pub const LOG_SET_LEVEL: &str = "log.set_level";
+/// Title key of `log.set_level`.
+pub const LOG_SET_LEVEL_TITLE: &str = i18n::COMMAND_LOG_SET_LEVEL_TITLE;
+/// Description key of `log.set_level`.
+pub const LOG_SET_LEVEL_DESCRIPTION: &str = i18n::COMMAND_LOG_SET_LEVEL_DESCRIPTION;
+/// Id of the command `log.tail`.
+pub const LOG_TAIL: &str = "log.tail";
+/// Title key of `log.tail`.
+pub const LOG_TAIL_TITLE: &str = i18n::COMMAND_LOG_TAIL_TITLE;
+/// Description key of `log.tail`.
+pub const LOG_TAIL_DESCRIPTION: &str = i18n::COMMAND_LOG_TAIL_DESCRIPTION;
+/// Id of the command `log.clear`.
+pub const LOG_CLEAR: &str = "log.clear";
+/// Title key of `log.clear`.
+pub const LOG_CLEAR_TITLE: &str = i18n::COMMAND_LOG_CLEAR_TITLE;
+/// Description key of `log.clear`.
+pub const LOG_CLEAR_DESCRIPTION: &str = i18n::COMMAND_LOG_CLEAR_DESCRIPTION;
+/// Id of the command `log.open_folder`.
+pub const LOG_OPEN_FOLDER: &str = "log.open_folder";
+/// Title key of `log.open_folder`.
+pub const LOG_OPEN_FOLDER_TITLE: &str = i18n::COMMAND_LOG_OPEN_FOLDER_TITLE;
+/// Description key of `log.open_folder`.
+pub const LOG_OPEN_FOLDER_DESCRIPTION: &str = i18n::COMMAND_LOG_OPEN_FOLDER_DESCRIPTION;
+
+/// Id of the command that checks the code of a folder project against the code rules.
+pub const CONVENTIONS_CHECK: &str = "conventions.check";
+/// Title key of `conventions.check`.
+pub const CONVENTIONS_CHECK_TITLE: &str = i18n::COMMAND_CONVENTIONS_CHECK_TITLE;
+/// Description key of `conventions.check`.
+pub const CONVENTIONS_CHECK_DESCRIPTION: &str = i18n::COMMAND_CONVENTIONS_CHECK_DESCRIPTION;
+/// Member of the answer of `conventions.check` that holds the findings.
+pub const CONVENTIONS_FINDINGS: &str = "findings";
+/// Member of a finding that holds the qualified name of its function.
+pub const CONVENTIONS_SYMBOL: &str = "symbol";
+/// Member that `conventions.check` adds to a finding: the symbol of the newest scan, or `null`.
+pub const CONVENTIONS_SYMBOL_REF: &str = "symbol_ref";

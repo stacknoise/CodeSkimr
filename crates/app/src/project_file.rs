@@ -1,7 +1,9 @@
 //! Reading the project file `.codeskimr.toml` as text, for the layer editor and the exception
 //! list of the unused symbols.
 
+use std::collections::hash_map::DefaultHasher;
 use std::fs;
+use std::hash::{Hash, Hasher};
 use std::io::{ErrorKind, Read};
 use std::path::Path;
 
@@ -30,5 +32,27 @@ pub(crate) fn read_project_file(path: &Path) -> Result<String, CodedError> {
     match read {
         Ok(_) if text.len() as u64 <= PROJECT_FILE_MAX_BYTES => Ok(text),
         _ => Err(unreadable()),
+    }
+}
+
+/// The version of a project file text: a number that changes when the text does. Only a server
+/// compares it with one it made before, so it needs to be the same for the same text within a run.
+pub(crate) fn version_of(text: &str) -> String {
+    let mut hasher = DefaultHasher::new();
+    text.hash(&mut hasher);
+    hasher.finish().to_string()
+}
+
+/// Refuses a write that was made from an older state of the file: `expected` is the version the
+/// client read, `text` the file as it is now. A client that sends none writes without the check.
+///
+/// # Errors
+/// `CFG-106` if the file changed since the client read it.
+pub(crate) fn require_version(text: &str, expected: Option<&str>) -> Result<(), CodedError> {
+    match expected {
+        Some(version) if version != version_of(text) => {
+            Err(CodedError::new(ErrorCode::ProjectFileChanged))
+        }
+        _ => Ok(()),
     }
 }

@@ -97,6 +97,29 @@ fn the_assessment_follows_the_visibility_in_a_language_with_exact_usages() {
 }
 
 #[test]
+fn the_reason_cuts_the_unused_symbols_to_the_private_ones() {
+    let exact = "[ui]\napproximate_languages = [\"python\"]\n";
+    let fixture = Fixture::installed_with(None, Some(exact));
+    let id = project(&fixture);
+    let private = ranking(
+        &fixture,
+        id,
+        &json!({ "ranking": "unused", "kinds": "functions", "reason": "private" }),
+    );
+    assert_eq!(names(&private), ["Hidden"]);
+    assert_eq!(private["total"], 1);
+    // The counts above the list stay those of all unused symbols.
+    assert!(private["unused"]["public"].as_u64().unwrap() >= 1);
+    let internal = ranking(
+        &fixture,
+        id,
+        &json!({ "ranking": "unused", "kinds": "functions", "reason": "internal" }),
+    );
+    assert_eq!(names(&internal), [] as [&str; 0]);
+    assert_eq!(internal["total"], 0);
+}
+
+#[test]
 fn the_complexity_ranking_holds_callables_with_their_rating_and_keeps_the_limit() {
     let fixture = Fixture::installed(None);
     let id = project(&fixture);

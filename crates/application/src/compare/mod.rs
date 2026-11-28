@@ -9,6 +9,8 @@
 mod critical;
 mod impact;
 mod layers;
+pub mod metrics;
+mod metrics_wire;
 pub mod report;
 mod select;
 mod wire;
@@ -19,17 +21,20 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{AnnotationKind, Comparison, ProjectId, SnapshotId, compare_symbols};
 
 use crate::config::Compare;
+pub use crate::consts::CROSSING_INTO_POOR;
 use crate::error::CodedError;
 use crate::ports::{
     AnnotationFilter, AnnotationStore, CodeIndex, ComparisonSource, ScanEntry, UsageIndex,
 };
+pub use metrics::{MetricComparison, MetricRules, MetricsRequest};
+pub use metrics_wire::{MetricChangeOut, MetricsAnswer, MetricsWanted, MoveOut, metrics_request};
 pub use report::{
     ComparisonRequest, CriticalChange, CriticalOutcome, Impact, ImpactUsage, LayerChange,
     LayerChanges, Listed, ScanComparison, SymbolImpact, UsageStatus,
 };
 pub use wire::{
     ComparisonAnswer, CriticalOut, HolderOut, LayerEdgeOut, LayersOut, ListedOut, MatchedOut,
-    ScanListAnswer, ScanOut, SummaryOut, SymbolImpactOut, SymbolOut, UsageOut,
+    ScanListAnswer, ScanOut, StepOut, SummaryOut, SymbolImpactOut, SymbolOut, UsageOut,
 };
 
 /// The limits of the lists of a comparison (`compare.*`).
@@ -71,11 +76,21 @@ pub trait ScanDiffs: Send + Sync {
     /// # Errors
     /// `CMP-201`, `CMP-101`, `CMP-301` or a failure of the `STO` group.
     fn compare(&self, request: &ComparisonRequest) -> Result<ScanComparison, CodedError>;
+
+    /// Compares the metrics of the objects of two scans; see [`ScanComparer::compare_metrics`].
+    ///
+    /// # Errors
+    /// `CMP-201`, `CMP-101`, `CMP-301` or a failure of the `STO` group.
+    fn compare_metrics(&self, request: &MetricsRequest) -> Result<MetricComparison, CodedError>;
 }
 
 impl ScanDiffs for ScanComparer {
     fn compare(&self, request: &ComparisonRequest) -> Result<ScanComparison, CodedError> {
         Self::compare(self, request)
+    }
+
+    fn compare_metrics(&self, request: &MetricsRequest) -> Result<MetricComparison, CodedError> {
+        Self::compare_metrics(self, request)
     }
 }
 
@@ -83,13 +98,18 @@ impl ScanDiffs for ScanComparer {
 pub struct ScanComparer {
     ports: ComparePorts,
     limits: CompareLimits,
+    rules: MetricRules,
 }
 
 impl ScanComparer {
     /// A use case over the ports and the limits of `compare.*`.
     #[must_use]
-    pub const fn new(ports: ComparePorts, limits: CompareLimits) -> Self {
-        Self { ports, limits }
+    pub const fn new(ports: ComparePorts, limits: CompareLimits, rules: MetricRules) -> Self {
+        Self {
+            ports,
+            limits,
+            rules,
+        }
     }
 
     /// Compares the two scans the request names (or the newest and the one before it) and, if

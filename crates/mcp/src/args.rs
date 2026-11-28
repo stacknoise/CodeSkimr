@@ -179,6 +179,16 @@ pub struct DiffArgs {
     pub base: Option<u64>,
     /// Snapshot id of the newer scan; the newest scan if left out.
     pub target: Option<u64>,
+    /// Whether to add the metric changes (ADR 0114) under `metrics`: the objects that got worse
+    /// and those that got better by complexity, maintainability, lines and coupling; `false` if
+    /// left out.
+    pub metrics: Option<bool>,
+    /// The level of the metric changes: `module`, `type` or `member`; `member` if left out. Counts
+    /// only with `metrics: true`.
+    pub metrics_level: Option<String>,
+    /// Whether test code counts in the metric changes; `false` if left out. Counts only with
+    /// `metrics: true`.
+    pub include_tests: Option<bool>,
 }
 
 /// Arguments of `check_rules`.
@@ -204,6 +214,8 @@ pub struct UnusedArgs {
     pub language: Option<String>,
     /// `likely`, `public` or `approximate`: only symbols with this assessment.
     pub assessment: Option<String>,
+    /// `private`, `internal`, `public` or `approximate`: only symbols with this reason.
+    pub reason: Option<String>,
     /// Whether test code counts; `false` if left out.
     pub include_tests: Option<bool>,
     /// Id of the project; the project of this server if left out.
@@ -263,6 +275,12 @@ pub struct DependenciesArgs {
     /// With `level` `module`: merge the namespaces into their first `depth` segments; all of
     /// them if left out.
     pub depth: Option<u32>,
+    /// With `level` `module`, together with `to_module`: the module that depends on the other.
+    /// The answer then lists the places (file, line and both symbols) of that one dependency
+    /// instead of the modules.
+    pub from_module: Option<String>,
+    /// With `level` `module`, together with `from_module`: the module that is depended on.
+    pub to_module: Option<String>,
     /// `outgoing` (what the target depends on, the default) or `incoming` (what depends on it).
     pub direction: Option<String>,
     /// Whether references from test code count; `false` if left out. Applies to `symbol` only.

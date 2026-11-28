@@ -178,6 +178,28 @@ fn credentials_need_the_token(url: &str, token: &str) -> Vec<String> {
     vec![bad, set, gone]
 }
 
+/// The log holds paths and names and the convention check reads the code of a project, so both
+/// need the token like reading source text (ADR 0115, ADR 0116).
+fn the_log_needs_the_token(url: &str, token: &str) {
+    for wrong in [None, Some("csk_wrong"), Some("")] {
+        let headers: Vec<String> = wrong.map(bearer).into_iter().collect();
+        for id in [
+            "log.status",
+            "log.tail",
+            "log.set_level",
+            "log.clear",
+            "conventions.check",
+        ] {
+            let answer = command_request(url, id, &headers, &json!({ "lines": 1 }));
+            assert_eq!(status(&answer), 401, "{id}, token {wrong:?}");
+            assert!(answer.contains("API-401"), "{id}");
+        }
+    }
+    let right = [bearer(token)];
+    let answer = command_request(url, "log.status", &right, &json!(null));
+    assert_eq!(status(&answer), 200);
+}
+
 /// A foreign `Host` or `Origin` is refused with `API-402`, whatever the token.
 fn host_and_origin(url: &str, token: &str, source: &str) {
     let address = url.trim_start_matches(URL_SCHEME);
@@ -434,6 +456,7 @@ fn bad_tokens_hosts_and_origins_are_refused_and_the_event_stream_leaks_nothing()
         host_and_origin(url, token, &source);
         removal_needs_the_token_and_the_origin(url, token);
         the_folder_dialog_needs_the_token_and_the_origin(url, token);
+        the_log_needs_the_token(url, token);
         let mut answers = credentials_need_the_token(url, token);
         answers.extend(cors_and_headers(url, token));
         let (foreign, stream) = event_stream(url, token, &source);

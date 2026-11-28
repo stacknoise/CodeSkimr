@@ -43,7 +43,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 25));
+    assert_eq!((mode.as_str(), version), ("wal", 27));
 }
 
 #[test]
@@ -578,8 +578,10 @@ fn connections_opening_a_new_database_at_once_all_succeed() {
     }
 }
 
-/// Takes back the newest schema changes: the scope (version 24) and the scan history (version 25).
-const NEWEST_CHANGES_DROPPED: &str = "DROP TABLE scope_folders; DROP TABLE scope_languages;
+/// Takes back the newest schema changes: the scope (version 24), the scan history (version 25), the
+/// scan log (version 26) and the times of the steps of a write (version 27).
+const NEWEST_CHANGES_DROPPED: &str =
+    "DROP TABLE scan_steps; DROP TABLE scan_log; DROP TABLE scope_folders; DROP TABLE scope_languages;
      ALTER TABLE snapshots DROP COLUMN duration_ms;
      ALTER TABLE snapshots DROP COLUMN files_changed;";
 
@@ -747,6 +749,30 @@ fn a_large_full_scan_removes_the_expired_snapshots_before_it_loads() {
 }
 
 #[test]
+fn a_large_full_scan_builds_the_indexes_of_the_pending_names_again_after_the_delete() {
+    let db = TempDb::new();
+    let store = ProjectDb::open(&db.0, keep(1)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    persist_counted(&store, &[(10, 100), (20, 200)], 25_000);
+    let conn = Connection::open(&db.0).unwrap();
+    let mut statement = conn
+        .prepare(
+            "SELECT name FROM sqlite_master WHERE type = 'index' \
+             AND tbl_name = 'pending_references' ORDER BY name",
+        )
+        .unwrap();
+    let names: Vec<String> = statement
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    assert_eq!(
+        names,
+        ["pending_references_bases", "pending_references_by_file"]
+    );
+}
+
+#[test]
 fn a_large_full_scan_keeps_the_rows_a_retained_incremental_scan_shares() {
     let db = TempDb::new();
     let store = ProjectDb::open(&db.0, keep(2)).unwrap();
@@ -846,4 +872,26 @@ fn the_reverse_index_of_a_file_database_is_loaded_on_its_own_connection() {
         .usages(codeskimr_domain::SnapshotId::new(10), &query, 10)
         .unwrap();
     assert_eq!(page.total, 1);
+}
+
+#[test]
+fn a_scan_is_stored_even_when_the_time_of_its_commit_cannot_be_stored() {
+    use codeskimr_application::ports::SnapshotStore;
+    let db = TempDb::new();
+    let store = ProjectDb::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    // The commit comes last and is stored in a write of its own: refuse exactly that row.
+    Connection::open(&db.0)
+        .unwrap()
+        .execute_batch(
+            "CREATE TRIGGER no_commit_time BEFORE INSERT ON scan_steps WHEN NEW.step = 'commit'
+             BEGIN SELECT RAISE(ABORT, 'refused'); END;",
+        )
+        .unwrap();
+    let stored = store.persist(data(header(10, codeskimr_domain::ScanMode::Full)));
+    assert!(stored.is_ok(), "{stored:?}");
+    let history = store.scan_history(PROJECT).unwrap();
+    let steps: Vec<_> = history[0].steps.iter().map(|time| time.step).collect();
+    assert!(!steps.contains(&codeskimr_application::stage::PersistStep::Commit));
+    assert_ne!(steps.len(), 0);
 }

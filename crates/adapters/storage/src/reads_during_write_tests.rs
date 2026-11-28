@@ -14,7 +14,7 @@ use codeskimr_domain::{
     SnapshotStats, Timestamp,
 };
 
-use crate::snapshots::write_snapshot;
+use crate::snapshots::{StepClock, write_snapshot};
 use crate::store::ProjectDb;
 
 /// Long enough for an answer that does not wait, far too short to sit out a test that hangs.
@@ -90,7 +90,7 @@ fn asked_during_the_write<T: Send>(
     thread::scope(|scope| {
         scope.spawn(move || {
             let stored = store.write(|tx| {
-                write_snapshot(tx, &scan(), KEPT_SNAPSHOTS)?;
+                write_snapshot(tx, &scan(), KEPT_SNAPSHOTS, &StepClock::new(&|_| {}))?;
                 started.send(()).unwrap();
                 held.recv().unwrap();
                 Ok(())

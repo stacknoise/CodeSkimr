@@ -112,6 +112,71 @@ describe("the level Modules", () => {
     );
   });
 
+  it("explains in, out and stability as tooltips of the column heads", async () => {
+    serve({ "projects.list": () => answer([ROW]), "graph.modules": () => answer(MODULES) });
+    render(() => <GraphScreen />);
+    const panel = await screen.findByRole("complementary", { name: "Modules" });
+    const head = (name: RegExp) => within(panel).getByRole("columnheader", { name });
+    expect(head(/^in/)).toHaveAttribute("title", expect.stringContaining("use this module"));
+    expect(head(/^out/)).toHaveAttribute("title", expect.stringContaining("use other modules"));
+    expect(head(/^Stability/)).toHaveAttribute(
+      "title",
+      expect.stringContaining("out ÷ (in + out)"),
+    );
+  });
+
+  it("opens the places of the edge that ends a cycle, with file, line and both symbols", async () => {
+    const places = {
+      snapshot: 5,
+      total: 3,
+      places: [
+        {
+          path: "src/Checkout.cs",
+          line: 12,
+          from: "Shop.Checkout.Cart.Add",
+          to: "Shop.Orders.Order.Id",
+        },
+        {
+          path: "src/Checkout.cs",
+          line: 40,
+          from: "Shop.Checkout.Cart.Pay",
+          to: "Shop.Orders.Order.Total",
+        },
+      ],
+    };
+    serve({
+      "projects.list": () => answer([ROW]),
+      "graph.modules": () => answer(MODULES),
+      "graph.module_places": () => answer(places),
+    });
+    render(() => <GraphScreen />);
+    const panel = await screen.findByRole("complementary", { name: "Modules" });
+    const button = within(panel).getByRole("button", { name: "Show the 2 places" });
+    expect(button).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(button);
+    expect(await within(panel).findByText("src/Checkout.cs:12")).toBeInTheDocument();
+    expect(
+      within(panel).getByText("Shop.Checkout.Cart.Pay → Shop.Orders.Order.Total"),
+    ).toBeInTheDocument();
+    expect(within(panel).getByText("1 more place is not shown.")).toBeInTheDocument();
+    fireEvent.click(within(panel).getByRole("button", { name: "Hide the places" }));
+    expect(within(panel).queryByText("src/Checkout.cs:12")).not.toBeInTheDocument();
+  });
+
+  it("says that the places could not be loaded", async () => {
+    serve({
+      "projects.list": () => answer([ROW]),
+      "graph.modules": () => answer(MODULES),
+      "graph.module_places": () => answer({}, 500),
+    });
+    render(() => <GraphScreen />);
+    const panel = await screen.findByRole("complementary", { name: "Modules" });
+    fireEvent.click(within(panel).getByRole("button", { name: "Show the 2 places" }));
+    expect(await within(panel).findByRole("alert")).toHaveTextContent(
+      "The places could not be loaded.",
+    );
+  });
+
   it("says when there is no cycle and marks a click on a row as the selection", async () => {
     serve({
       "projects.list": () => answer([ROW]),

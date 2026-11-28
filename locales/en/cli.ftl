@@ -212,6 +212,7 @@ cli-scope-folder = { $state ->
    *[left_out] Left out
 }: folder { $path } ({ $files } files)
 cli-scope-more = { $count } more folders are not listed. Use --json for the whole answer.
+cli-scope-abapgit = abapGit project: starting folder "{ $folder }", folder logic { $logic }, { $objects } objects in { $packages } packages, { $files } source files.
 cli-scope-saved = The scope is saved. It applies from the next scan; the code stays one project.
 cli-scope-unchanged = The scope stays as it was.
 # The query commands symbols, usages, impact and context.
@@ -260,6 +261,7 @@ cli-arg-budget = How much the answer holds: short, medium (default) or long
 cli-arg-unused-kind = Only these symbols: all (default), types or functions
 cli-arg-language-filter = Only symbols of this language, such as csharp or python
 cli-arg-assessment = Only symbols with this assessment: likely, public or approximate
+cli-arg-reason = Only symbols with this reason: private, internal, public or approximate
 cli-cmd-preview-rename = Show what a new name for a symbol would hit: places in the code, name conflicts and text hits; changes nothing (the answer of preview_rename)
 cli-arg-query-new-name = The new name: letters, digits and underscores, not starting with a digit
 cli-rename-head = Rename preview: { $name } -> { $new }. CodeSkimr changes nothing.
@@ -303,3 +305,39 @@ cli-arg-compare-project = Id of the project, or the folder or Git URL it was sca
 cli-arg-compare-base = Id of the older scan (default: the scan before the target); `codeskimr scans` lists the ids
 cli-arg-compare-target = Id of the newer scan (default: the newest scan)
 cli-arg-markdown = Print the answer as Markdown for a comment on a pull request; cannot be combined with --json
+cli-arg-compare-metrics = List which objects got worse and which got better by their metrics instead of the symbols that changed
+cli-arg-metrics-worse = Only the objects that got worse (with --metrics)
+cli-arg-metrics-better = Only the objects that got better (with --metrics)
+cli-arg-metrics-metric = Only objects in which one of these metrics moved, separated by commas: loc, cc, mi, ce, instability (with --metrics)
+cli-arg-metrics-level = The level to list: module, type or member (default: member; with --metrics)
+cli-cmd-modules = Show the modules (namespaces) of the project: references in and out, stability, the cycles between modules with the dependencies that end them, the dependencies against the layering and the modules that stand out (the answer of get_dependencies with level module)
+cli-arg-modules-depth = Merge the namespaces into their first N segments (all of them if left out)
+cli-arg-modules-from = The module that depends on the other; with --to, the places of that dependency are listed instead of the modules
+cli-arg-modules-to = The module that is depended on (with --from)
+cli-query-modules-none = No modules found.
+cli-query-modules-places-head = Places of { $from } -> { $to }: { $shown } of { $total } shown.
+cli-query-modules-place = { $path }:{ $line }  { $from } -> { $to }
+cli-query-modules-places-none = No places of { $from } -> { $to } found.
+cli-query-modules-head = Modules: { $shown } of { $total } shown, the most referenced first. in: places in other modules that use it; out: places in it that use other modules; stability = out / (in + out).
+cli-query-modules-line = { $name }{ $layer }  in { $incoming }, out { $outgoing }, stability { $stability }{ $flags }
+cli-query-modules-layer = [{ $name }]
+cli-query-modules-stability = { $whole }.{ $hundredths }
+cli-query-modules-stability-none = none
+cli-query-modules-flag-cycle = in a cycle
+cli-query-modules-flag-violations = { $count ->
+    [one] 1 dependency against the layering
+   *[other] { $count } dependencies against the layering
+}
+cli-query-modules-cycles = Cycles: { $shown }
+cli-query-modules-cycle = { $modules } modules in a ring: { $chain }
+cli-query-modules-resolve = Ending it takes away { $from } -> { $to } ({ $count ->
+    [one] 1 place
+   *[other] { $count } places
+})
+cli-query-modules-violations = Against the layering: { $shown }
+cli-query-modules-violation = { $from } ({ $from_layer }) -> { $to } ({ $to_layer }): { $count ->
+    [one] 1 place
+   *[other] { $count } places
+}
+cli-query-modules-risks = Stands out: { $shown }
+cli-query-modules-risk = { $name } (stability { $stability }) is used in { $incoming } places and depends on { $other } (stability { $otherStability }), which changes more often.

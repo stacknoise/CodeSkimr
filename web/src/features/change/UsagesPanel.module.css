@@ -1,3 +1,9 @@
+/* The panel scrolls on its own when the usages are longer than the height that is left. */
+.panel {
+    min-height: 0;
+    overflow: auto;
+}
+
 .top {
     display: flex;
     flex-direction: column;

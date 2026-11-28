@@ -26,8 +26,11 @@ pub fn builtin(name: &str) -> Option<Language> {
 
 #[cfg(feature = "basic-grammars")]
 fn basic(name: &str) -> Option<Language> {
-    use crate::consts::{GRAMMAR_C, GRAMMAR_CPP, GRAMMAR_GO, GRAMMAR_PHP, GRAMMAR_RUBY};
+    use crate::consts::{
+        GRAMMAR_ABAP, GRAMMAR_C, GRAMMAR_CPP, GRAMMAR_GO, GRAMMAR_PHP, GRAMMAR_RUBY,
+    };
     match name {
+        GRAMMAR_ABAP => Some(codeskimr_grammar_abap::LANGUAGE.into()),
         GRAMMAR_GO => Some(tree_sitter_go::LANGUAGE.into()),
         GRAMMAR_C => Some(tree_sitter_c::LANGUAGE.into()),
         GRAMMAR_CPP => Some(tree_sitter_cpp::LANGUAGE.into()),

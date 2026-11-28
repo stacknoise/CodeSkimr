@@ -11,11 +11,14 @@ export type ErrorCode =
   | "APP-603"
   | "APP-604"
   | "APP-605"
+  | "APP-606"
+  | "APP-607"
   | "CFG-101"
   | "CFG-102"
   | "CFG-103"
   | "CFG-104"
   | "CFG-105"
+  | "CFG-106"
   | "PRJ-101"
   | "PRJ-102"
   | "PRJ-103"
@@ -23,6 +26,7 @@ export type ErrorCode =
   | "PRJ-301"
   | "PRJ-302"
   | "PRJ-303"
+  | "PRJ-304"
   | "PRJ-501"
   | "PRJ-502"
   | "PRJ-503"
@@ -138,11 +142,14 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "APP-603": { id: "APP-603", name: "tray_start_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The program could not start itself in the background or show its tray icon.", since: "0.1.0", deprecated: false, messageKey: "error-APP-603" },
   "APP-604": { id: "APP-604", name: "confirm_window_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The console window for the level 2 confirmation could not be started; the screen shows the command instead.", since: "0.9.0", deprecated: false, messageKey: "error-APP-604" },
   "APP-605": { id: "APP-605", name: "project_file_open_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The system did not start a program for the project file.", since: "1.2.0", deprecated: false, messageKey: "error-APP-605" },
+  "APP-606": { id: "APP-606", name: "log_folder_open_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The system did not open the folder of the log files.", since: "1.2.0", deprecated: false, messageKey: "error-APP-606" },
+  "APP-607": { id: "APP-607", name: "log_file_unavailable", group: "APP", class: "external", severity: "error", retryable: true, description: "The log file does not exist, cannot be read or cannot be emptied.", since: "1.2.0", deprecated: false, messageKey: "error-APP-607" },
   "CFG-101": { id: "CFG-101", name: "config_invalid_value", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration value is outside its allowed range or has the wrong type.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-101" },
   "CFG-102": { id: "CFG-102", name: "config_parse_failed", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file is not valid TOML.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-102" },
   "CFG-103": { id: "CFG-103", name: "config_unknown_key", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file or flag sets a key that does not exist.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-103" },
   "CFG-104": { id: "CFG-104", name: "project_file_not_writable", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "The project file `.codeskimr.toml` could not be written.", since: "0.9.0", deprecated: false, messageKey: "error-CFG-104" },
   "CFG-105": { id: "CFG-105", name: "level2_switch_off", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "Level 2 is not enabled in the user configuration; the program does not enable it itself.", since: "0.9.0", deprecated: false, messageKey: "error-CFG-105" },
+  "CFG-106": { id: "CFG-106", name: "project_file_changed", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "The project file `.codeskimr.toml` changed after the screen read it, so saving would overwrite that change.", since: "1.1.0", deprecated: false, messageKey: "error-CFG-106" },
   "PRJ-101": { id: "PRJ-101", name: "project_source_invalid", group: "PRJ", class: "invalid_input", severity: "error", retryable: false, description: "The given source is neither an existing folder nor a valid Git URL.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-101" },
   "PRJ-102": { id: "PRJ-102", name: "project_name_invalid", group: "PRJ", class: "invalid_input", severity: "error", retryable: false, description: "The display name of a project is empty, has control or invisible characters or is too long.", since: "1.0.0", deprecated: false, messageKey: "error-PRJ-102" },
   "PRJ-103": { id: "PRJ-103", name: "project_scope_invalid", group: "PRJ", class: "invalid_input", severity: "error", retryable: false, description: "The scope of a project names a folder that is not a folder inside the project (empty, absolute, with a drive, or leaving the project through ..), a language with an invalid name, or more entries than scan.max_scope_entries allows.", since: "1.1.0", deprecated: false, messageKey: "error-PRJ-103" },
@@ -150,6 +157,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "PRJ-301": { id: "PRJ-301", name: "project_already_registered", group: "PRJ", class: "conflict", severity: "error", retryable: false, description: "A project with the same source is already registered.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-301" },
   "PRJ-302": { id: "PRJ-302", name: "snapshot_in_progress", group: "PRJ", class: "conflict", severity: "error", retryable: false, description: "A scan for this project is already running.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-302" },
   "PRJ-303": { id: "PRJ-303", name: "scan_cancelled", group: "PRJ", class: "conflict", severity: "info", retryable: true, description: "The scan was cancelled by the user; no snapshot was written.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-303" },
+  "PRJ-304": { id: "PRJ-304", name: "check_in_progress", group: "PRJ", class: "conflict", severity: "error", retryable: true, description: "A convention check for this project is already running.", since: "1.2.0", deprecated: false, messageKey: "error-PRJ-304" },
   "PRJ-501": { id: "PRJ-501", name: "too_many_scans", group: "PRJ", class: "limit", severity: "error", retryable: true, description: "As many scans run at the same time as the server allows; try again when one has ended.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-501" },
   "PRJ-502": { id: "PRJ-502", name: "scan_report_not_stored", group: "PRJ", class: "limit", severity: "warning", retryable: false, description: "The report of the scan (its level and what level 2 did per language) could not be stored; the scan and its snapshot are stored.", since: "0.9.0", deprecated: false, messageKey: "error-PRJ-502" },
   "PRJ-503": { id: "PRJ-503", name: "scan_memory_limit", group: "PRJ", class: "limit", severity: "error", retryable: false, description: "The scan added more memory than scan.max_memory_mb allows, or the program passed 70 % of the installed memory, and the scan was stopped before the machine ran out of memory; no snapshot was written (ADR 0087).", since: "1.0.0", deprecated: false, messageKey: "error-PRJ-503" },

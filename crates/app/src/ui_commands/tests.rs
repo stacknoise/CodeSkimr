@@ -186,7 +186,7 @@ impl Fixture {
 }
 
 /// Every command of the registry, in the order the API lists them.
-const COMMAND_IDS: [&str; 57] = [
+const COMMAND_IDS: [&str; 69] = [
     "alerts.dismiss",
     "alerts.dismiss_all",
     "alerts.list",
@@ -198,6 +198,7 @@ const COMMAND_IDS: [&str; 57] = [
     "annotations.mark_critical",
     "annotations.summary",
     "annotations.update",
+    "conventions.check",
     "credentials.delete",
     "credentials.list",
     "credentials.set",
@@ -206,11 +207,17 @@ const COMMAND_IDS: [&str; 57] = [
     "explorer.symbol",
     "export.html",
     "graph.layers",
+    "graph.module_places",
     "graph.modules",
     "layers.get",
     "layers.set",
     "level2.revoke",
     "level2.status",
+    "log.clear",
+    "log.open_folder",
+    "log.set_level",
+    "log.status",
+    "log.tail",
     "preferences.get",
     "preferences.set",
     "project_file.open",
@@ -226,10 +233,15 @@ const COMMAND_IDS: [&str; 57] = [
     "projects.tools",
     "rename.preview",
     "rules.hold",
+    "rules.preview",
+    "rules.set",
     "rules.show",
     "scans.compare",
     "scans.impact",
+    "scans.impact_markdown",
     "scans.list",
+    "scans.metrics",
+    "scans.metrics_markdown",
     "scope.get",
     "scope.set",
     "search.query",
@@ -580,6 +592,7 @@ fn a_token_without_the_read_right_is_refused() {
         "explorer.source",
         "explorer.symbol",
         "graph.layers",
+        "graph.module_places",
         "graph.modules",
         "search.query",
         "stats.overview",
@@ -1298,6 +1311,30 @@ fn only_a_manager_may_save_the_memory_limit_of_an_indexer() {
 }
 
 #[test]
+fn the_log_level_is_checked_and_only_a_manager_may_change_the_log() {
+    let fixture = Fixture::new();
+    let status = fixture.call("log.status", json!(null)).unwrap();
+    assert_eq!(
+        status["levels"],
+        json!(["off", "warn", "info", "debug", "trace"])
+    );
+    for word in ["error", "loud", ""] {
+        assert_eq!(
+            fixture.call("log.set_level", json!({"level": word})),
+            Err("API-101")
+        );
+    }
+    let as_reader = |id: &str, input: Value| run_as(&fixture, principal::reader(), id, input);
+    for id in ["log.status", "log.tail", "log.clear", "log.open_folder"] {
+        assert_eq!(as_reader(id, json!({"lines": 1})).unwrap_err(), "AUTH-401");
+    }
+    assert_eq!(
+        as_reader("log.set_level", json!({"level": "debug"})).unwrap_err(),
+        "AUTH-401"
+    );
+}
+
+#[test]
 fn only_a_manager_may_change_the_preferences() {
     let fixture = Fixture::new();
     let chosen = json!({"theme": "dunkel", "language": "en"});
@@ -1414,14 +1451,20 @@ const RING_UI: &str = "using Demo.Core;\n\nnamespace Demo.Ui;\n\npublic class Sc
 const RING_CORE: &str = "using Demo.Ui;\n\nnamespace Demo.Core;\n\npublic class Engine\n{\n    public int Run() { Screen screen = new Screen(); return screen.Title(); }\n}\n";
 const RING_RULES: &str = "[[layers]]\nname = \"ui\"\nnamespaces = [\"Demo.Ui\"]\nmay_use = [\"core\"]\n\n[[layers]]\nname = \"core\"\nnamespaces = [\"Demo.Core\"]\nmay_use = []\n";
 
-/// The answer of `graph.modules` for two namespaces that use each other.
-fn module_map(extra: &serde_json::Value) -> serde_json::Value {
+/// A project of two namespaces that use each other, scanned.
+fn ring_project() -> (Fixture, serde_json::Value) {
     let fixture = Fixture::new();
     let app = fixture.root.path().join("app");
     fs::write(app.join("Screen.cs"), RING_UI).unwrap();
     fs::write(app.join("Engine.cs"), RING_CORE).unwrap();
     fs::write(app.join(".codeskimr.toml"), RING_RULES).unwrap();
-    let mut input = json!({ "project": added(&fixture) });
+    let project = json!({ "project": added(&fixture) });
+    (fixture, project)
+}
+
+/// The answer of `graph.modules` for two namespaces that use each other.
+fn module_map(extra: &serde_json::Value) -> serde_json::Value {
+    let (fixture, mut input) = ring_project();
     input
         .as_object_mut()
         .unwrap()
@@ -1473,4 +1516,34 @@ fn the_module_map_of_a_project_without_a_scan_is_empty() {
     assert!(map["snapshot"].is_null());
     assert_eq!(map["modules"], json!([]));
     assert_eq!(map["cycles"], json!([]));
+}
+
+#[test]
+fn the_places_of_a_module_dependency_name_file_line_and_both_symbols() {
+    let (fixture, mut input) = ring_project();
+    input["from"] = json!("Demo.Core");
+    input["to"] = json!("Demo.Ui");
+    let found = fixture.call("graph.module_places", input).unwrap();
+    assert!(found["snapshot"].is_u64());
+    let places = found["places"].as_array().unwrap();
+    assert_eq!(found["total"], places.len());
+    assert_ne!(found["total"], 0);
+    assert!(places[0]["path"].as_str().unwrap().ends_with("Engine.cs"));
+    assert!(places[0]["line"].as_u64().unwrap() >= 1);
+    assert!(places[0]["from"].as_str().unwrap().starts_with("Demo.Core"));
+    assert!(places[0]["to"].as_str().unwrap().starts_with("Demo.Ui"));
+}
+
+#[test]
+fn the_places_of_a_project_without_a_scan_are_empty() {
+    let fixture = Fixture::new();
+    let unscanned = fixture.register_unscanned();
+    let found = fixture
+        .call(
+            "graph.module_places",
+            json!({ "project": unscanned, "from": "A", "to": "B" }),
+        )
+        .unwrap();
+    assert!(found["snapshot"].is_null());
+    assert_eq!(found["total"], 0);
 }

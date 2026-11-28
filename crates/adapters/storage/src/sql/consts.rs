@@ -71,10 +71,29 @@ pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files,
 /// milliseconds, changed files, snapshot id (ADR 0097).
 pub const SNAPSHOT_SCAN_SET: &str =
     "UPDATE snapshots SET duration_ms = ?1, files_changed = ?2 WHERE id = ?3";
-/// The retained snapshots of a project, newest first: project id (ADR 0097).
-pub const SCAN_HISTORY: &str = "SELECT id, commit_hash, created, mode, files, symbols, refs, \
-    duration_ms, files_changed FROM snapshots WHERE project_id = ?1 AND NOT EXISTS \
-    (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1) ORDER BY id DESC";
+/// The retained scans of a project, newest first, each with the totals of its snapshot: project
+/// id (ADR 0097, ADR 0093).
+pub const SCAN_HISTORY: &str = "SELECT l.id, l.snapshot_id, l.commit_hash, l.created, l.mode, \
+    s.files, s.symbols, s.refs, l.duration_ms, l.files_changed FROM scan_log l \
+    JOIN snapshots s ON s.id = l.snapshot_id WHERE s.project_id = ?1 AND NOT EXISTS \
+    (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1) ORDER BY l.id DESC";
+/// The times of the steps of the scans of a project: project id.
+pub const SCAN_STEPS: &str = "SELECT t.scan_id, t.step, t.duration_ms FROM scan_steps t \
+    JOIN scan_log l ON l.id = t.scan_id JOIN snapshots s ON s.id = l.snapshot_id \
+    WHERE s.project_id = ?1";
+/// Stores the time of one step of the write of a scan: scan id, step label, milliseconds.
+pub const SCAN_STEP_INSERT: &str =
+    "INSERT OR REPLACE INTO scan_steps (scan_id, step, duration_ms) VALUES (?1, ?2, ?3)";
+/// The scan that wrote a snapshot (its oldest row): snapshot id.
+pub const SCAN_LOG_WRITER: &str = "SELECT MIN(id) FROM scan_log WHERE snapshot_id = ?1";
+/// Records a scan: snapshot id, time, commit, mode, duration in milliseconds, changed files.
+pub const SCAN_LOG_INSERT: &str = "INSERT INTO scan_log (snapshot_id, created, commit_hash, mode, \
+    duration_ms, files_changed) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
+/// Deletes the rows of a snapshot but the one of the scan that wrote it (the oldest, with the real
+/// duration and changed files) and its newest ones: snapshot id, number of newest rows to keep.
+pub const SCAN_LOG_TRIM: &str = "DELETE FROM scan_log WHERE snapshot_id = ?1 \
+    AND id <> (SELECT MIN(id) FROM scan_log WHERE snapshot_id = ?1) \
+    AND id NOT IN (SELECT id FROM scan_log WHERE snapshot_id = ?1 ORDER BY id DESC LIMIT ?2)";
 
 /// Confirms a snapshot after a scan that found nothing changed: creation time, commit, mode (the
 /// label of an incremental scan), snapshot id.
@@ -258,6 +277,19 @@ pub const REFERENCE_INDEXES_CREATE: &[&str] = &[
     "CREATE INDEX references_by_target ON symbol_references (to_symbol)",
     "CREATE INDEX references_by_source ON symbol_references (from_symbol)",
     "CREATE INDEX references_by_file ON symbol_references (file_id)",
+];
+/// Drops the indexes of `pending_references` that migration 0011 creates, before the snapshots
+/// beyond the retention are deleted: every deleted row also leaves two indexes in random places,
+/// which made this the slowest table of the delete (12 s of 28 s on 3 million rows, 2 s without).
+pub const PENDING_INDEXES_DROP: &[&str] = &[
+    "DROP INDEX IF EXISTS pending_references_by_file",
+    "DROP INDEX IF EXISTS pending_references_bases",
+];
+/// Builds them again (the same ones migration 0011 creates); a no-op when they exist.
+pub const PENDING_INDEXES_CREATE: &[&str] = &[
+    "CREATE INDEX IF NOT EXISTS pending_references_by_file ON pending_references (file_id, from_symbol)",
+    "CREATE INDEX IF NOT EXISTS pending_references_bases ON pending_references (file_id) \
+        WHERE kind IN ('inherit', 'implement')",
 ];
 /// Number of stored fingerprints, over all snapshots.
 pub const FINGERPRINT_COUNT: &str = "SELECT COUNT(*) FROM fingerprints";
@@ -562,6 +594,14 @@ pub const COMPARISON_FACTS: &str = "SELECT s.id, s.kind, s.qualified_name, s.sig
     s.visibility, f.path, s.content_hash \
     FROM symbol_rows s CROSS JOIN files f ON f.snapshot_id = ?1 AND f.id = s.file_id \
     WHERE s.origin = ?3 AND +s.kind IN (SELECT value FROM json_each(?2)) ORDER BY s.id";
+/// The measured values of the comparable objects of a snapshot, one row per object and metric, in
+/// the order of the object (ADR 0114): snapshot, kinds as a JSON list, origin.
+pub const METRIC_FACTS: &str = "SELECT s.id, s.kind, s.qualified_name, s.signature, f.path, \
+    m.kind, m.value \
+    FROM metrics m CROSS JOIN symbol_rows s ON s.id = m.symbol_id \
+    CROSS JOIN files f ON f.snapshot_id = ?1 AND f.id = s.file_id \
+    WHERE m.snapshot_id = ?1 AND s.origin = ?3 AND +s.kind IN (SELECT value FROM json_each(?2)) \
+    ORDER BY s.id, m.kind";
 /// The naming rules of the newest snapshot of a project; no row without a snapshot, `NULL` for one
 /// from before the record existed.
 pub const SNAPSHOT_NAMING_LATEST: &str = "SELECT naming_rules FROM snapshots WHERE project_id = ?1 AND NOT EXISTS (SELECT 1 FROM projects p WHERE p.id = ?1 AND p.removing = 1) ORDER BY id DESC LIMIT 1";

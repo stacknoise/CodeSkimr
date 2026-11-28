@@ -1,0 +1,56 @@
+# Public ABAP reference of CI (blueprint 17.2, ADR 0113): abap2xlsx (Apache-2.0), an abapGit
+# project. It is used only by our own tests: the source is fetched at the pinned commit into
+# `target/corpus/` and never stored in this repository or shipped. Updating the commit is a
+# deliberate change with new expected values. The sources under `src/` are scanned (`*.abap`;
+# the XML files of abapGit are metadata, not code), the tests and the repository files are skipped.
+# Names are folded to lower case (`name_case`), so the samples are lower case.
+
+[project]
+repository = "https://github.com/abap2xlsx/abap2xlsx"
+commit = "3bdf779f490717bfe0553c95f686e6371ffc326e"
+skip_folders = ["test", "docs", ".github"]
+language = "abap"
+extensions = ["abap"]
+
+# Symbols per kind over all `*.abap` files of `src/`; `module` is one per file. Counted
+# independently from the syntax tree of the grammar: 101 `class_definition`, 11 `interface_definition`,
+# 1,035 `METHOD` implementations plus 120 methods declared in interfaces, 4 `FORM`. Three files
+# (`zcl_excel`, `zcl_excel_ranges`, `zcl_excel_worksheet`) have a syntax error at a variable called
+# `ranges` (an ABAP keyword); the symbols around it are still found.
+[counts]
+files = 103
+module = 103
+class = 101
+interface = 11
+method = 1155
+function = 4
+
+[[sample]]
+file = "src/zcl_excel_rows.clas.abap"
+kind = "class"
+name = "zcl_excel_rows"
+parent = "zcl_excel_rows.clas"
+
+[[sample]]
+file = "src/zcl_excel_rows.clas.abap"
+kind = "method"
+name = "add"
+parent = "zcl_excel_rows"
+
+[[sample]]
+file = "src/zif_excel_book_protection.intf.abap"
+kind = "interface"
+name = "zif_excel_book_protection"
+parent = "zif_excel_book_protection.intf"
+
+[[sample]]
+file = "src/not_cloud/zexcel_template_get_types.prog.abap"
+kind = "function"
+name = "get_file_path"
+parent = "zexcel_template_get_types.prog"
+
+[[references]]
+file = "src/not_cloud/zexcel_template_get_types.prog.abap"
+kind = "call"
+target = "get_file_path"
+line = 36

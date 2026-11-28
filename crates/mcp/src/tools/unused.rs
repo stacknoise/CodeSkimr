@@ -4,14 +4,14 @@ use codeskimr_application::access;
 use codeskimr_application::config::UnusedIgnore;
 use codeskimr_application::unused::{Finding, Findings};
 use codeskimr_domain::{
-    Assessment, KindGroup, LanguageId, Principal, Ranking, RankingQuery, UsageOrder,
+    Assessment, KindGroup, LanguageId, Principal, Ranking, RankingQuery, UnusedReason, UsageOrder,
 };
 use serde::Serialize;
 use serde_json::Value;
 
 use super::{SnapshotInfo, Tools, optional_label, to_json, truncation_notice};
 use crate::args::UnusedArgs;
-use crate::consts::{ARG_ASSESSMENT, ARG_KIND, ARG_LANGUAGE, READ_TOOL_PERMISSION};
+use crate::consts::{ARG_ASSESSMENT, ARG_KIND, ARG_LANGUAGE, ARG_REASON, READ_TOOL_PERMISSION};
 use crate::error::{CodeReport, McpError};
 
 #[derive(Serialize)]
@@ -88,10 +88,28 @@ fn rule(entry: &UnusedIgnore) -> Rule {
     }
 }
 
-/// What the arguments ask: the ranking and the assessment the list is cut to.
-fn question(args: &UnusedArgs) -> Result<(RankingQuery, Option<Assessment>), McpError> {
+/// What the list is cut to; a symbol must match every filter that is set.
+#[derive(Clone, Copy)]
+struct Wanted {
+    assessment: Option<Assessment>,
+    reason: Option<UnusedReason>,
+}
+
+impl Wanted {
+    fn matches(self, finding: &Finding) -> bool {
+        self.assessment
+            .is_none_or(|assessment| finding.assessment == assessment)
+            && self.reason.is_none_or(|reason| finding.reason == reason)
+    }
+}
+
+/// What the arguments ask: the ranking and the filters the list is cut to.
+fn question(args: &UnusedArgs) -> Result<(RankingQuery, Wanted), McpError> {
     let kinds = optional_label::<KindGroup>(args.kind.as_deref(), ARG_KIND)?;
-    let wanted = optional_label::<Assessment>(args.assessment.as_deref(), ARG_ASSESSMENT)?;
+    let wanted = Wanted {
+        assessment: optional_label::<Assessment>(args.assessment.as_deref(), ARG_ASSESSMENT)?,
+        reason: optional_label::<UnusedReason>(args.reason.as_deref(), ARG_REASON)?,
+    };
     let language = args
         .language
         .as_deref()
@@ -132,8 +150,8 @@ impl Tools {
     /// much it means.
     ///
     /// # Errors
-    /// `AUTH-401` if the principal may not read, `MCP-101` for an unknown `kind`, `language` or
-    /// `assessment`, `MCP-201` and `MCP-203` for the project, `CFG-101` / `CFG-102` if the
+    /// `AUTH-401` if the principal may not read, `MCP-101` for an unknown `kind`, `language`,
+    /// `assessment` or `reason`, `MCP-201` and `MCP-203` for the project, `CFG-101` / `CFG-102` if the
     /// exception list of the project file is invalid, or the code of a failing port.
     pub fn find_unused(&self, principal: &Principal, args: &UnusedArgs) -> Result<Value, McpError> {
         access::require(principal, READ_TOOL_PERMISSION)?;
@@ -146,7 +164,7 @@ impl Tools {
         let rows: Vec<&Finding> = found
             .kept
             .iter()
-            .filter(|finding| wanted.is_none_or(|assessment| finding.assessment == assessment))
+            .filter(|finding| wanted.matches(finding))
             .collect();
         let max = usize::try_from(limit.value).unwrap_or(usize::MAX);
         let cut = rows.len() > max || found.left_out.len() > max;

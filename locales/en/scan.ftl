@@ -52,6 +52,21 @@ scan-stage-measure = Metrics
 scan-stage-measure-detail = Lines, complexity, maintainability
 scan-stage-persist = Save
 scan-stage-persist-detail = SQLite, search index
+scan-step-line = { $step } · { $number } / { $of } · { $time } so far
+scan-steps-title = Time per step of saving
+scan-steps-total = together
+scan-steps-unit = { $seconds } s
+scan-step-header = Create the scan
+scan-step-prune-before-load = Remove old scans first
+scan-step-facts = Save files and symbols
+scan-step-references = Save references
+scan-step-reference-indexes = Build reference indexes
+scan-step-fingerprints = Save similarity features
+scan-step-details = Save rules, warnings and parse times
+scan-step-integrity = Check the result
+scan-step-read-models = Compute overviews and totals
+scan-step-prune = Delete surplus old scans
+scan-step-commit = Finish
 scan-budget-cold-start = Program start
 scan-budget-search-keystroke = Search (keystroke)
 scan-budget-explorer-switch = Switch type
@@ -86,8 +101,8 @@ scan-left-out-unnamed = { $count ->
 scan-files-unchanged = No file changed · { $checked } checked
 
 scan-history-keep = { $count ->
-    [one] { NUMBER($count) } is kept
-   *[other] { NUMBER($count) } are kept
+    [one] { NUMBER($count) } state is kept
+   *[other] { NUMBER($count) } states are kept
 }
 scan-history-column-time = Time
 scan-history-column-mode = Kind
@@ -96,7 +111,7 @@ scan-history-column-files = Files
 scan-history-column-changed = Changed
 scan-history-current = current
 scan-history-empty = No scan yet.
-scan-history-note = The duration is stored per scan; a scan without changes writes no entry and leaves the time and the duration of the entry before as they are.
+scan-history-note = The duration is stored per scan. Every scan is an entry of its own; a scan without changes shows 0 changed files and confirms the state before it.
 scan-history-last = Last scan
 scan-history-files-changed = { $count ->
     [one] { NUMBER($count) } file changed since the one before

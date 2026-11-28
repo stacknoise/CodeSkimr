@@ -159,6 +159,22 @@ description = "The system did not start a program for the project file."
 since = "1.2.0"
 
 [[codes]]
+id = "APP-606"
+name = "log_folder_open_failed"
+severity = "error"
+retryable = true
+description = "The system did not open the folder of the log files."
+since = "1.2.0"
+
+[[codes]]
+id = "APP-607"
+name = "log_file_unavailable"
+severity = "error"
+retryable = true
+description = "The log file does not exist, cannot be read or cannot be emptied."
+since = "1.2.0"
+
+[[codes]]
 id = "CFG-101"
 name = "config_invalid_value"
 severity = "error"
@@ -197,6 +213,14 @@ severity = "error"
 retryable = false
 description = "Level 2 is not enabled in the user configuration; the program does not enable it itself."
 since = "0.9.0"
+
+[[codes]]
+id = "CFG-106"
+name = "project_file_changed"
+severity = "error"
+retryable = false
+description = "The project file `.codeskimr.toml` changed after the screen read it, so saving would overwrite that change."
+since = "1.1.0"
 
 [[codes]]
 id = "PRJ-101"
@@ -253,6 +277,14 @@ severity = "info"
 retryable = true
 description = "The scan was cancelled by the user; no snapshot was written."
 since = "0.1.0"
+
+[[codes]]
+id = "PRJ-304"
+name = "check_in_progress"
+severity = "error"
+retryable = true
+description = "A convention check for this project is already running."
+since = "1.2.0"
 
 [[codes]]
 id = "PRJ-501"
